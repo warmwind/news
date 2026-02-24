@@ -1,5 +1,5 @@
 import Parser from 'rss-parser';
-import Anthropic from '@anthropic-ai/sdk';
+import { execFileSync } from 'child_process';
 import { writeFileSync, readFileSync, mkdirSync, existsSync, readdirSync } from 'fs';
 import { join } from 'path';
 
@@ -109,7 +109,6 @@ async function fetchFeed(config: FeedConfig): Promise<RawArticle[]> {
 }
 
 async function summarizeWithHaiku(
-  client: Anthropic,
   articles: RawArticle[],
 ): Promise<Array<{ summary: string; slug: string }>> {
   if (articles.length === 0) return [];
@@ -118,13 +117,7 @@ async function summarizeWithHaiku(
     .map((a, i) => `[${i}] Title: ${a.title}\nSource: ${a.source}\nContent: ${a.contentSnippet}`)
     .join('\n\n');
 
-  const response = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 4096,
-    messages: [
-      {
-        role: 'user',
-        content: `For each article below, generate:
+  const prompt = `For each article below, generate:
 1. A 2-3 sentence summary capturing key facts and why it matters. Use neutral, journalistic tone.
 2. A URL-safe slug derived from the title (lowercase, hyphens, no special chars, max 80 chars).
 
@@ -132,16 +125,20 @@ Return ONLY a JSON array with objects like: {"summary": "...", "slug": "..."}
 One object per article, in the same order. No markdown fences.
 
 Articles:
-${articlesText}`,
-      },
-    ],
-  });
+${articlesText}`;
 
-  const text = response.content[0].type === 'text' ? response.content[0].text : '';
   try {
+    const output = execFileSync(
+      'claude',
+      ['-p', prompt, '--model', 'claude-haiku-4-5-20251001', '--output-format', 'json', '--max-turns', '1'],
+      { timeout: 120_000, maxBuffer: 10 * 1024 * 1024, encoding: 'utf-8' },
+    );
+
+    const envelope = JSON.parse(output.trim());
+    const text = typeof envelope.result === 'string' ? envelope.result : JSON.stringify(envelope.result);
     return JSON.parse(text.trim());
-  } catch {
-    console.error('Failed to parse Haiku response, using fallback slugs/summaries');
+  } catch (err) {
+    console.error('Failed to get Haiku response via Claude CLI, using fallback slugs/summaries:', (err as Error).message);
     return articles.map(a => ({
       summary: a.contentSnippet.slice(0, 200),
       slug: slugify(a.title),
@@ -201,15 +198,12 @@ async function main() {
     return;
   }
 
-  // Initialize Anthropic client for Haiku summarization
-  const client = new Anthropic();
-
   // Process each category: summarize with Haiku, then write date-based files
   for (const [category, articles] of Object.entries(categories)) {
     if (articles.length === 0) continue;
 
     console.log(`Summarizing ${articles.length} ${category} articles with Haiku...`);
-    const summaries = await summarizeWithHaiku(client, articles);
+    const summaries = await summarizeWithHaiku(articles);
 
     // Build NewsArticle objects
     const newsArticles: NewsArticle[] = articles.map((a, i) => ({
