@@ -3,25 +3,30 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import CategoryNav from '../components/CategoryNav.astro';
 import NewsCard from '../components/NewsCard.astro';
 
-import techNews from '../data/news/tech.json';
-import aiNews from '../data/news/ai.json';
-import economicNews from '../data/news/economic.json';
-import githubNews from '../data/news/github.json';
-import sportsNews from '../data/news/sports.json';
+const newsFiles = import.meta.glob('../data/news/*/*.json', { eager: true });
+const allNews: Array<{ title: string; slug: string; url: string; source: string; date: string; summary: string; content: string; category: string }> = [];
 
-const allNews = [...techNews, ...aiNews, ...economicNews, ...githubNews, ...sportsNews]
-  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-  .slice(0, 20);
+for (const [, mod] of Object.entries(newsFiles)) {
+  const articles = (mod as any).default || mod;
+  if (Array.isArray(articles)) {
+    allNews.push(...articles);
+  }
+}
+
+allNews.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+const latest = allNews.slice(0, 20);
 ---
 <BaseLayout>
   <CategoryNav active="all" />
-  {allNews.map(article => (
+  {latest.map(article => (
     <NewsCard
       title={article.title}
       url={article.url}
       source={article.source}
       date={article.date}
       summary={article.summary}
+      slug={article.slug}
+      category={article.category}
     />
   ))}
 </BaseLayout>
