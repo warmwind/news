@@ -1,14 +1,23 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
-import CategoryNav from '../components/CategoryNav.astro';
-import NewsCard from '../components/NewsCard.astro';
-import { getHreflangLinks } from '../lib/i18n';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import CategoryNav from '../../components/CategoryNav.astro';
+import NewsCard from '../../components/NewsCard.astro';
+import { NON_ENGLISH_LANGUAGES, OG_LOCALES, resolveTranslations, getHreflangLinks } from '../../lib/i18n';
 
 const PAGE_SIZE = 10;
+
+export function getStaticPaths() {
+  return NON_ENGLISH_LANGUAGES.map(lang => ({
+    params: { lang },
+  }));
+}
+
+const { lang } = Astro.params;
+const ogLocale = OG_LOCALES[lang!] || 'en_US';
 const hreflangLinks = getHreflangLinks('all', 'https://news.oscarjiang.site');
 
-const newsFiles = import.meta.glob('../data/news/*/*.json', { eager: true });
-const allNews: Array<{ title: string; slug: string; url: string; source: string; date: string; summary: string; content: string; category: string }> = [];
+const newsFiles = import.meta.glob('../../data/news/*/*.json', { eager: true });
+const allNews: Array<{ title: string; slug: string; url: string; source: string; date: string; summary: string; content: string; category: string; translations?: Record<string, { title: string; summary: string }> }> = [];
 
 for (const [, mod] of Object.entries(newsFiles)) {
   const articles = (mod as any).default || mod;
@@ -18,15 +27,16 @@ for (const [, mod] of Object.entries(newsFiles)) {
 }
 
 allNews.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-const initialArticles = allNews.slice(0, PAGE_SIZE);
-const hasMore = allNews.length > PAGE_SIZE;
+const resolved = resolveTranslations(allNews, lang!);
+const initialArticles = resolved.slice(0, PAGE_SIZE);
+const hasMore = resolved.length > PAGE_SIZE;
 
 const collectionSchema = {
   "@context": "https://schema.org",
   "@type": "CollectionPage",
   "name": "Oscar's News - Latest Headlines",
   "description": "AI-curated news aggregation covering tech, AI, economics, GitHub, and sports.",
-  "url": "https://news.oscarjiang.site",
+  "url": `https://news.oscarjiang.site/${lang}`,
   "mainEntity": {
     "@type": "ItemList",
     "itemListElement": initialArticles.map((article, index) => ({
@@ -38,9 +48,9 @@ const collectionSchema = {
   },
 };
 ---
-<BaseLayout structuredData={collectionSchema} lang="en" ogLocale="en_US" hreflangLinks={hreflangLinks}>
+<BaseLayout structuredData={collectionSchema} lang={lang} ogLocale={ogLocale} hreflangLinks={hreflangLinks}>
   <h1 class="sr-only">Oscar's News - Latest Headlines</h1>
-  <CategoryNav active="all" lang="en" />
+  <CategoryNav active="all" lang={lang} />
   <div id="news-list">
     {initialArticles.map(article => (
       <NewsCard
@@ -60,13 +70,13 @@ const collectionSchema = {
       <span class="spinner"></span>
     </div>
   )}
-  <script is:inline data-category="all" data-astro-rerun>
+  <script is:inline define:vars={{ lang }} data-category="all" data-astro-rerun>
     (function() {
       var sentinel = document.getElementById('scroll-sentinel');
       if (!sentinel) return;
       var container = document.getElementById('news-list');
       var spinner = document.getElementById('load-more-spinner');
-      var category = document.querySelector('script[data-category]').getAttribute('data-category');
+      var category = 'all';
       var page = 1;
       var loading = false;
       var done = false;
@@ -103,7 +113,7 @@ const collectionSchema = {
         loading = true;
         spinner.style.display = 'block';
         page++;
-        fetch('/api/articles/en/' + category + '/' + page + '.json')
+        fetch('/api/articles/' + lang + '/' + category + '/' + page + '.json')
           .then(function(r) { return r.json(); })
           .then(function(data) {
             var html = '';

@@ -8,9 +8,12 @@ interface Props {
   description?: string;
   structuredData?: Record<string, any> | Record<string, any>[];
   noindex?: boolean;
+  lang?: string;
+  ogLocale?: string;
+  hreflangLinks?: Array<{ lang: string; href: string }>;
 }
 
-const { title = "Oscar's News", description = "AI-curated news aggregation", structuredData, noindex = false } = Astro.props;
+const { title = "Oscar's News", description = "AI-curated news aggregation", structuredData, noindex = false, lang = 'en', ogLocale = 'en_US', hreflangLinks = [] } = Astro.props;
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
 const websiteSchema = {
@@ -33,7 +36,7 @@ const allStructuredData = structuredData
   : [websiteSchema];
 ---
 <!DOCTYPE html>
-<html lang="en">
+<html lang={lang}>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -46,11 +49,14 @@ const allStructuredData = structuredData
   <meta property="og:type" content="website" />
   <meta property="og:url" content={canonicalURL.href} />
   <meta property="og:site_name" content="Oscar's News" />
-  <meta property="og:locale" content="en_US" />
+  <meta property="og:locale" content={ogLocale} />
   <meta name="twitter:card" content="summary" />
   <meta name="twitter:title" content={title} />
   <meta name="twitter:description" content={description} />
   <link rel="alternate" type="application/rss+xml" title="Oscar's News RSS" href="/rss.xml" />
+  {hreflangLinks.map(link => (
+    <link rel="alternate" hreflang={link.lang} href={link.href} />
+  ))}
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   {allStructuredData.map(data => (
     <script type="application/ld+json" set:html={JSON.stringify(data)} />
@@ -59,23 +65,21 @@ const allStructuredData = structuredData
   <script is:inline>
     var theme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     document.documentElement.setAttribute('data-theme', theme);
-    var savedLang = localStorage.getItem('lang') || 'en';
-    document.documentElement.setAttribute('data-lang', savedLang);
-    if (savedLang !== 'en') {
-      document.documentElement.classList.add('lang-loading');
+    // One-time migration: redirect users with saved non-English lang preference
+    var savedLang = localStorage.getItem('lang');
+    if (savedLang && savedLang !== 'en' && document.documentElement.getAttribute('lang') === 'en') {
+      localStorage.removeItem('lang');
+      var path = window.location.pathname;
+      window.location.href = '/' + savedLang + (path === '/' ? '/' : path);
     }
-    // Preserve theme/lang on <html> across client-side navigations
+    // Preserve theme across client-side navigations
     document.addEventListener('astro:before-swap', function(ev) {
       ev.newDocument.documentElement.setAttribute('data-theme', document.documentElement.getAttribute('data-theme'));
-      ev.newDocument.documentElement.setAttribute('data-lang', document.documentElement.getAttribute('data-lang'));
     });
   </script>
-  <style>
-    .lang-loading .card-title, .lang-loading .card-summary { visibility: hidden; }
-  </style>
 </head>
 <body>
-  <Header />
+  <Header lang={lang} />
   <main>
     <slot />
   </main>

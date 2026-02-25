@@ -1,32 +1,49 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
-import CategoryNav from '../components/CategoryNav.astro';
-import NewsCard from '../components/NewsCard.astro';
-import { getHreflangLinks } from '../lib/i18n';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import CategoryNav from '../../components/CategoryNav.astro';
+import NewsCard from '../../components/NewsCard.astro';
+import { NON_ENGLISH_LANGUAGES, CATEGORIES, CATEGORY_LABELS, OG_LOCALES, resolveTranslations, getHreflangLinks, categoryPath } from '../../lib/i18n';
 
 const PAGE_SIZE = 10;
-const hreflangLinks = getHreflangLinks('all', 'https://news.oscarjiang.site');
 
-const newsFiles = import.meta.glob('../data/news/*/*.json', { eager: true });
-const allNews: Array<{ title: string; slug: string; url: string; source: string; date: string; summary: string; content: string; category: string }> = [];
+export function getStaticPaths() {
+  const paths: Array<{ params: { lang: string; category: string } }> = [];
+  for (const lang of NON_ENGLISH_LANGUAGES) {
+    for (const category of CATEGORIES) {
+      paths.push({ params: { lang, category } });
+    }
+  }
+  return paths;
+}
 
-for (const [, mod] of Object.entries(newsFiles)) {
-  const articles = (mod as any).default || mod;
-  if (Array.isArray(articles)) {
-    allNews.push(...articles);
+const { lang, category } = Astro.params;
+const label = CATEGORY_LABELS[category!] || category;
+const ogLocale = OG_LOCALES[lang!] || 'en_US';
+const hreflangLinks = getHreflangLinks(category!, 'https://news.oscarjiang.site');
+
+const newsFiles = import.meta.glob('../../data/news/*/*.json', { eager: true });
+const articles: Array<{ title: string; slug: string; url: string; source: string; date: string; summary: string; content: string; category: string; translations?: Record<string, { title: string; summary: string }> }> = [];
+
+for (const [path, mod] of Object.entries(newsFiles)) {
+  const pathCategory = path.split('/').at(-2);
+  if (pathCategory !== category) continue;
+  const data = (mod as any).default || mod;
+  if (Array.isArray(data)) {
+    articles.push(...data);
   }
 }
 
-allNews.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-const initialArticles = allNews.slice(0, PAGE_SIZE);
-const hasMore = allNews.length > PAGE_SIZE;
+articles.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+const resolved = resolveTranslations(articles, lang!);
+const initialArticles = resolved.slice(0, PAGE_SIZE);
+const hasMore = resolved.length > PAGE_SIZE;
 
 const collectionSchema = {
   "@context": "https://schema.org",
   "@type": "CollectionPage",
-  "name": "Oscar's News - Latest Headlines",
-  "description": "AI-curated news aggregation covering tech, AI, economics, GitHub, and sports.",
-  "url": "https://news.oscarjiang.site",
+  "name": `${label} News - Oscar's News`,
+  "description": `Latest ${label} news curated by AI.`,
+  "url": `https://news.oscarjiang.site/${lang}/${category}`,
   "mainEntity": {
     "@type": "ItemList",
     "itemListElement": initialArticles.map((article, index) => ({
@@ -37,10 +54,29 @@ const collectionSchema = {
     })),
   },
 };
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": `https://news.oscarjiang.site/${lang}`,
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": label,
+      "item": `https://news.oscarjiang.site/${lang}/${category}`,
+    },
+  ],
+};
 ---
-<BaseLayout structuredData={collectionSchema} lang="en" ogLocale="en_US" hreflangLinks={hreflangLinks}>
-  <h1 class="sr-only">Oscar's News - Latest Headlines</h1>
-  <CategoryNav active="all" lang="en" />
+<BaseLayout title={`${label} - Oscar's News`} lang={lang} ogLocale={ogLocale} hreflangLinks={hreflangLinks} structuredData={[collectionSchema, breadcrumbSchema]}>
+  <h1 class="sr-only">{label} News - Oscar's News</h1>
+  <CategoryNav active={category} lang={lang} />
   <div id="news-list">
     {initialArticles.map(article => (
       <NewsCard
@@ -60,13 +96,12 @@ const collectionSchema = {
       <span class="spinner"></span>
     </div>
   )}
-  <script is:inline data-category="all" data-astro-rerun>
+  <script is:inline define:vars={{ lang, category }} data-astro-rerun>
     (function() {
       var sentinel = document.getElementById('scroll-sentinel');
       if (!sentinel) return;
       var container = document.getElementById('news-list');
       var spinner = document.getElementById('load-more-spinner');
-      var category = document.querySelector('script[data-category]').getAttribute('data-category');
       var page = 1;
       var loading = false;
       var done = false;
@@ -103,7 +138,7 @@ const collectionSchema = {
         loading = true;
         spinner.style.display = 'block';
         page++;
-        fetch('/api/articles/en/' + category + '/' + page + '.json')
+        fetch('/api/articles/' + lang + '/' + category + '/' + page + '.json')
           .then(function(r) { return r.json(); })
           .then(function(data) {
             var html = '';

@@ -2,25 +2,19 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CategoryNav from '../components/CategoryNav.astro';
 import NewsCard from '../components/NewsCard.astro';
+import { CATEGORIES, CATEGORY_LABELS, getHreflangLinks } from '../lib/i18n';
 
 const PAGE_SIZE = 10;
 
-const categoryLabels: Record<string, string> = {
-  tech: 'Tech',
-  ai: 'AI',
-  economic: 'Economic',
-  github: 'GitHub',
-  sports: 'Sports',
-};
-
 export function getStaticPaths() {
-  return ['tech', 'ai', 'economic', 'github', 'sports'].map(category => ({
+  return CATEGORIES.map(category => ({
     params: { category },
   }));
 }
 
 const { category } = Astro.params;
-const label = categoryLabels[category!] || category;
+const label = CATEGORY_LABELS[category!] || category;
+const hreflangLinks = getHreflangLinks(category!, 'https://news.oscarjiang.site');
 
 const newsFiles = import.meta.glob('../data/news/*/*.json', { eager: true });
 const articles: Array<{ title: string; slug: string; url: string; source: string; date: string; summary: string; content: string; category: string }> = [];
@@ -74,9 +68,9 @@ const breadcrumbSchema = {
   ],
 };
 ---
-<BaseLayout title={`${label} - Oscar's News`} structuredData={[collectionSchema, breadcrumbSchema]}>
+<BaseLayout title={`${label} - Oscar's News`} lang="en" ogLocale="en_US" hreflangLinks={hreflangLinks} structuredData={[collectionSchema, breadcrumbSchema]}>
   <h1 class="sr-only">{label} News - Oscar's News</h1>
-  <CategoryNav active={category} />
+  <CategoryNav active={category} lang="en" />
   <div id="news-list">
     {initialArticles.map(article => (
       <NewsCard
@@ -138,8 +132,7 @@ const breadcrumbSchema = {
         loading = true;
         spinner.style.display = 'block';
         page++;
-        var lang = document.documentElement.getAttribute('data-lang') || 'en';
-        fetch('/api/articles/' + lang + '/' + category + '/' + page + '.json')
+        fetch('/api/articles/en/' + category + '/' + page + '.json')
           .then(function(r) { return r.json(); })
           .then(function(data) {
             var html = '';
