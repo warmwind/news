@@ -72,8 +72,6 @@ interface NewsArticle {
 
 const TRANSLATION_LANGS = [
   { code: 'zh', name: 'Chinese' },
-  { code: 'ja', name: 'Japanese' },
-  { code: 'ko', name: 'Korean' },
   { code: 'fr', name: 'French' },
   { code: 'de', name: 'German' },
   { code: 'es', name: 'Spanish' },
@@ -180,7 +178,7 @@ Keep translations concise — match the length of the original, do not add extra
 Escape special characters properly in JSON strings.
 
 Return a JSON array with objects like:
-[{"slug": "original-slug", "translations": {"zh": {"title": "...", "summary": "..."}, "ja": {"title": "...", "summary": "..."}, "ko": {"title": "...", "summary": "..."}, "fr": {"title": "...", "summary": "..."}, "de": {"title": "...", "summary": "..."}, "es": {"title": "...", "summary": "..."}}}]
+[{"slug": "original-slug", "translations": {"zh": {"title": "...", "summary": "..."}, "fr": {"title": "...", "summary": "..."}, "de": {"title": "...", "summary": "..."}, "es": {"title": "...", "summary": "..."}}}]
 
 Articles:
 ${articlesText}`;
