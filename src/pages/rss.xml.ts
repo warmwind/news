@@ -21,7 +21,7 @@ export function GET(context: APIContext) {
     site: context.site!.toString(),
     items: latest.map(article => ({
       title: article.title,
-      link: `${context.site}article/${article.category}/${article.date.slice(0, 10)}/${article.slug}`,
+      link: article.url,
       description: article.summary,
       pubDate: new Date(article.date),
     })),
