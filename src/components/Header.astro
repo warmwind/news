@@ -144,14 +144,6 @@
 </style>
 
 <script is:inline>
-  document.getElementById('theme-toggle').addEventListener('click', () => {
-    const current = document.documentElement.getAttribute('data-theme');
-    const next = current === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('theme', next);
-  });
-
-  // Language switcher
   var langLabels = { en: 'EN', zh: '中文', fr: 'FR', de: 'DE', es: 'ES' };
 
   function applyLanguage(lang) {
@@ -159,52 +151,63 @@
     for (var i = 0; i < els.length; i++) {
       var el = els[i];
       var text = el.getAttribute('data-' + lang) || el.getAttribute('data-en');
-      // Handle card-title which has a child <span class="arrow">
       var arrow = el.querySelector('.arrow');
       if (arrow) {
-        // Set text before the arrow span
         el.firstChild.textContent = text + ' ';
       } else {
         el.textContent = text;
       }
     }
-    // Update button label
     var btn = document.getElementById('lang-toggle');
     if (btn) btn.textContent = langLabels[lang] || lang.toUpperCase();
-    // Update active state in menu
     var menuBtns = document.querySelectorAll('#lang-menu button');
     for (var j = 0; j < menuBtns.length; j++) {
       menuBtns[j].classList.toggle('active', menuBtns[j].getAttribute('data-lang') === lang);
     }
     localStorage.setItem('lang', lang);
+    document.documentElement.setAttribute('data-lang', lang);
+    document.documentElement.classList.remove('lang-loading');
   }
 
-  // Toggle dropdown
-  document.getElementById('lang-toggle').addEventListener('click', function (e) {
-    e.stopPropagation();
-    document.getElementById('lang-menu').classList.toggle('open');
-  });
-
-  // Language selection
-  document.getElementById('lang-menu').addEventListener('click', function (e) {
-    var lang = e.target.getAttribute('data-lang');
-    if (lang) {
-      applyLanguage(lang);
-      document.getElementById('lang-menu').classList.remove('open');
+  // Event delegation for theme and language controls
+  document.addEventListener('click', function(e) {
+    var toggle = e.target.closest('#theme-toggle');
+    if (toggle) {
+      var current = document.documentElement.getAttribute('data-theme');
+      var next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      return;
     }
+
+    var langToggle = e.target.closest('#lang-toggle');
+    if (langToggle) {
+      e.stopPropagation();
+      document.getElementById('lang-menu').classList.toggle('open');
+      return;
+    }
+
+    var langOption = e.target.closest('#lang-menu button');
+    if (langOption) {
+      var lang = langOption.getAttribute('data-lang');
+      if (lang) {
+        applyLanguage(lang);
+        document.getElementById('lang-menu').classList.remove('open');
+      }
+      return;
+    }
+
+    // Close lang menu on outside click
+    var menu = document.getElementById('lang-menu');
+    if (menu) menu.classList.remove('open');
   });
 
-  // Close on outside click
-  document.addEventListener('click', function () {
-    document.getElementById('lang-menu').classList.remove('open');
-  });
-
-  // Set button label immediately from data-lang set in <head> to avoid flash
+  // Set button label immediately from data-lang set in <head>
   var initialLang = document.documentElement.getAttribute('data-lang') || 'en';
   var langBtn = document.getElementById('lang-toggle');
   if (langBtn) langBtn.textContent = langLabels[initialLang] || initialLang.toUpperCase();
 
-  // Apply saved language to content (deferred until DOM is ready so news cards exist)
+  // Apply saved language to content
   function initLanguage() {
     applyLanguage(initialLang);
   }
