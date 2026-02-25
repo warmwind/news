@@ -23,7 +23,7 @@ const { category } = Astro.params;
 const label = categoryLabels[category!] || category;
 
 const newsFiles = import.meta.glob('../data/news/*/*.json', { eager: true });
-const articles: Array<{ title: string; slug: string; url: string; source: string; date: string; summary: string; content: string; category: string; translations?: Record<string, { title: string; summary: string }> }> = [];
+const articles: Array<{ title: string; slug: string; url: string; source: string; date: string; summary: string; content: string; category: string }> = [];
 
 for (const [path, mod] of Object.entries(newsFiles)) {
   const pathCategory = path.split('/').at(-2);
@@ -87,7 +87,6 @@ const breadcrumbSchema = {
         summary={article.summary}
         slug={article.slug}
         category={article.category}
-        translations={article.translations}
       />
     ))}
   </div>
@@ -106,6 +105,7 @@ const breadcrumbSchema = {
       var page = 1;
       var loading = false;
       var done = false;
+      window.__loadedPages = [1];
 
       function relativeTime(dateStr) {
         var now = new Date();
@@ -126,18 +126,10 @@ const breadcrumbSchema = {
       }
 
       function renderCard(a) {
-        var titleAttrs = ' data-en="' + esc(a.title) + '"';
-        var summaryAttrs = ' data-en="' + esc(a.summary) + '"';
-        if (a.translations) {
-          for (var lang in a.translations) {
-            titleAttrs += ' data-' + lang + '="' + esc(a.translations[lang].title) + '"';
-            summaryAttrs += ' data-' + lang + '="' + esc(a.translations[lang].summary) + '"';
-          }
-        }
-        return '<article class="news-card">' +
-          '<h2 class="card-heading"><a href="' + esc(a.url) + '" target="_blank" rel="noopener noreferrer" class="card-title"' + titleAttrs + '>' + esc(a.title) + ' <span class="arrow">\u2192</span></a></h2>' +
+        return '<article class="news-card" data-slug="' + esc(a.slug) + '">' +
+          '<h2 class="card-heading"><a href="' + esc(a.url) + '" target="_blank" rel="noopener noreferrer" class="card-title">' + esc(a.title) + ' <span class="arrow">\u2192</span></a></h2>' +
           '<div class="card-meta"><span class="source">' + esc(a.source) + '</span><span class="separator">\u00b7</span><time datetime="' + esc(a.date) + '">' + relativeTime(a.date) + '</time></div>' +
-          '<p class="card-summary"' + summaryAttrs + '>' + esc(a.summary) + '</p>' +
+          '<p class="card-summary">' + esc(a.summary) + '</p>' +
           '</article>';
       }
 
@@ -146,7 +138,8 @@ const breadcrumbSchema = {
         loading = true;
         spinner.style.display = 'block';
         page++;
-        fetch('/api/articles/' + category + '/' + page + '.json')
+        var lang = document.documentElement.getAttribute('data-lang') || 'en';
+        fetch('/api/articles/' + lang + '/' + category + '/' + page + '.json')
           .then(function(r) { return r.json(); })
           .then(function(data) {
             var html = '';
@@ -154,11 +147,7 @@ const breadcrumbSchema = {
               html += renderCard(data.items[i]);
             }
             container.insertAdjacentHTML('beforeend', html);
-
-            var lang = document.documentElement.getAttribute('data-lang') || 'en';
-            if (lang !== 'en' && typeof applyLanguage === 'function') {
-              applyLanguage(lang);
-            }
+            window.__loadedPages.push(page);
 
             if (!data.hasMore) {
               done = true;

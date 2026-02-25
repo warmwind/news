@@ -2,6 +2,7 @@ import type { GetStaticPaths } from 'astro';
 
 const PAGE_SIZE = 10;
 const categories = ['all', 'tech', 'ai', 'economic', 'github', 'sports'];
+const languages = ['en', 'zh', 'fr', 'de', 'es'];
 
 type Article = {
   title: string;
@@ -26,7 +27,6 @@ function loadArticles(category: string): Article[] {
     const data = (mod as any).default || mod;
     if (Array.isArray(data)) {
       for (const article of data) {
-        // Strip content field to reduce payload
         const { content, ...rest } = article;
         articles.push(rest);
       }
@@ -37,15 +37,30 @@ function loadArticles(category: string): Article[] {
   return articles;
 }
 
+function resolveLanguage(articles: Article[], lang: string): Omit<Article, 'translations'>[] {
+  return articles.map(({ translations, ...rest }) => {
+    if (lang !== 'en' && translations && translations[lang]) {
+      return {
+        ...rest,
+        title: translations[lang].title,
+        summary: translations[lang].summary,
+      };
+    }
+    return rest;
+  });
+}
+
 export const getStaticPaths: GetStaticPaths = () => {
   const paths: Array<{ params: { page: string } }> = [];
 
-  for (const category of categories) {
-    const articles = loadArticles(category);
-    const totalPages = Math.ceil(articles.length / PAGE_SIZE);
+  for (const lang of languages) {
+    for (const category of categories) {
+      const articles = loadArticles(category);
+      const totalPages = Math.ceil(articles.length / PAGE_SIZE);
 
-    for (let i = 1; i <= Math.max(totalPages, 1); i++) {
-      paths.push({ params: { page: `${category}/${i}` } });
+      for (let i = 1; i <= Math.max(totalPages, 1); i++) {
+        paths.push({ params: { page: `${lang}/${category}/${i}` } });
+      }
     }
   }
 
@@ -54,13 +69,14 @@ export const getStaticPaths: GetStaticPaths = () => {
 
 export function GET({ params }: { params: { page: string } }) {
   const parts = params.page.split('/');
-  const category = parts[0];
-  const page = parseInt(parts[1], 10);
+  const lang = parts[0];
+  const category = parts[1];
+  const page = parseInt(parts[2], 10);
 
   const articles = loadArticles(category);
   const totalPages = Math.ceil(articles.length / PAGE_SIZE);
   const start = (page - 1) * PAGE_SIZE;
-  const items = articles.slice(start, start + PAGE_SIZE);
+  const items = resolveLanguage(articles.slice(start, start + PAGE_SIZE), lang);
 
   return new Response(JSON.stringify({
     items,

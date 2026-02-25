@@ -152,18 +152,44 @@
 <script is:inline data-astro-rerun>
   var langLabels = { en: 'EN', zh: '中文', fr: 'FR', de: 'DE', es: 'ES' };
 
-  function applyLanguage(lang) {
-    var els = document.querySelectorAll('[data-en]');
-    for (var i = 0; i < els.length; i++) {
-      var el = els[i];
-      var text = el.getAttribute('data-' + lang) || el.getAttribute('data-en');
-      var arrow = el.querySelector('.arrow');
-      if (arrow) {
-        el.firstChild.textContent = text + ' ';
-      } else {
-        el.textContent = text;
-      }
+  function rehydrateFromApi(lang) {
+    var categoryEl = document.querySelector('script[data-category]');
+    var category = categoryEl ? categoryEl.getAttribute('data-category') : 'all';
+    var pages = window.__loadedPages || [1];
+    var fetches = [];
+    for (var i = 0; i < pages.length; i++) {
+      fetches.push(fetch('/api/articles/' + lang + '/' + category + '/' + pages[i] + '.json').then(function(r) { return r.json(); }));
     }
+    Promise.all(fetches).then(function(results) {
+      var slugMap = {};
+      for (var r = 0; r < results.length; r++) {
+        var items = results[r].items;
+        for (var j = 0; j < items.length; j++) {
+          slugMap[items[j].slug] = { title: items[j].title, summary: items[j].summary };
+        }
+      }
+      var cards = document.querySelectorAll('.news-card[data-slug]');
+      for (var k = 0; k < cards.length; k++) {
+        var slug = cards[k].getAttribute('data-slug');
+        var data = slugMap[slug];
+        if (!data) continue;
+        var titleEl = cards[k].querySelector('.card-title');
+        if (titleEl) {
+          var arrow = titleEl.querySelector('.arrow');
+          if (arrow) {
+            titleEl.firstChild.textContent = data.title + ' ';
+          } else {
+            titleEl.textContent = data.title;
+          }
+        }
+        var summaryEl = cards[k].querySelector('.card-summary');
+        if (summaryEl) summaryEl.textContent = data.summary;
+      }
+      document.documentElement.classList.remove('lang-loading');
+    });
+  }
+
+  function applyLanguage(lang, skipFetch) {
     var btn = document.getElementById('lang-toggle');
     if (btn) btn.textContent = langLabels[lang] || lang.toUpperCase();
     var menuBtns = document.querySelectorAll('#lang-menu button');
@@ -172,7 +198,11 @@
     }
     localStorage.setItem('lang', lang);
     document.documentElement.setAttribute('data-lang', lang);
-    document.documentElement.classList.remove('lang-loading');
+    if (skipFetch) {
+      document.documentElement.classList.remove('lang-loading');
+    } else {
+      rehydrateFromApi(lang);
+    }
   }
 
   // Event delegation for theme and language controls — remove old before re-adding
@@ -218,9 +248,10 @@
   if (langBtn) langBtn.textContent = langLabels[initialLang] || initialLang.toUpperCase();
 
   // Apply saved language to content — wait for DOM on initial load, run immediately on navigation rerun
+  // Skip API fetch for English initial load since SSG HTML is already in English
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() { applyLanguage(initialLang); });
+    document.addEventListener('DOMContentLoaded', function() { applyLanguage(initialLang, initialLang === 'en'); });
   } else {
-    applyLanguage(initialLang);
+    applyLanguage(initialLang, initialLang === 'en');
   }
 </script>
