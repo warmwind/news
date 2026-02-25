@@ -3,6 +3,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import CategoryNav from '../components/CategoryNav.astro';
 import NewsCard from '../components/NewsCard.astro';
 
+const PAGE_SIZE = 10;
+
 const newsFiles = import.meta.glob('../data/news/*/*.json', { eager: true });
 const allNews: Array<{ title: string; slug: string; url: string; source: string; date: string; summary: string; content: string; category: string; translations?: Record<string, { title: string; summary: string }> }> = [];
 
@@ -14,20 +16,115 @@ for (const [, mod] of Object.entries(newsFiles)) {
 }
 
 allNews.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-const latest = allNews.slice(0, 20);
+const initialArticles = allNews.slice(0, PAGE_SIZE);
+const hasMore = allNews.length > PAGE_SIZE;
 ---
 <BaseLayout>
   <CategoryNav active="all" />
-  {latest.map(article => (
-    <NewsCard
-      title={article.title}
-      url={article.url}
-      source={article.source}
-      date={article.date}
-      summary={article.summary}
-      slug={article.slug}
-      category={article.category}
-      translations={article.translations}
-    />
-  ))}
+  <div id="news-list">
+    {initialArticles.map(article => (
+      <NewsCard
+        title={article.title}
+        url={article.url}
+        source={article.source}
+        date={article.date}
+        summary={article.summary}
+        slug={article.slug}
+        category={article.category}
+        translations={article.translations}
+      />
+    ))}
+  </div>
+  {hasMore && (
+    <div id="scroll-sentinel" style="height:1px;"></div>
+    <div id="load-more-spinner" style="text-align:center;padding:2rem 0;display:none;">
+      <span class="spinner"></span>
+    </div>
+  )}
+  <script is:inline data-category="all">
+    (function() {
+      var sentinel = document.getElementById('scroll-sentinel');
+      if (!sentinel) return;
+      var container = document.getElementById('news-list');
+      var spinner = document.getElementById('load-more-spinner');
+      var category = document.querySelector('script[data-category]').getAttribute('data-category');
+      var page = 1;
+      var loading = false;
+      var done = false;
+
+      function relativeTime(dateStr) {
+        var now = new Date();
+        var then = new Date(dateStr);
+        var diffMs = now.getTime() - then.getTime();
+        var diffMins = Math.floor(diffMs / 60000);
+        if (diffMins < 60) return diffMins + 'm ago';
+        var diffHours = Math.floor(diffMins / 60);
+        if (diffHours < 24) return diffHours + 'h ago';
+        var diffDays = Math.floor(diffHours / 24);
+        return diffDays + 'd ago';
+      }
+
+      function esc(s) {
+        var d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+      }
+
+      function renderCard(a) {
+        var titleAttrs = ' data-en="' + esc(a.title) + '"';
+        var summaryAttrs = ' data-en="' + esc(a.summary) + '"';
+        if (a.translations) {
+          for (var lang in a.translations) {
+            titleAttrs += ' data-' + lang + '="' + esc(a.translations[lang].title) + '"';
+            summaryAttrs += ' data-' + lang + '="' + esc(a.translations[lang].summary) + '"';
+          }
+        }
+        return '<article class="news-card">' +
+          '<a href="' + esc(a.url) + '" target="_blank" rel="noopener noreferrer" class="card-title"' + titleAttrs + '>' + esc(a.title) + ' <span class="arrow">\u2192</span></a>' +
+          '<div class="card-meta"><span class="source">' + esc(a.source) + '</span><span class="separator">\u00b7</span><time datetime="' + esc(a.date) + '">' + relativeTime(a.date) + '</time></div>' +
+          '<p class="card-summary"' + summaryAttrs + '>' + esc(a.summary) + '</p>' +
+          '</article>';
+      }
+
+      function loadMore() {
+        if (loading || done) return;
+        loading = true;
+        spinner.style.display = 'block';
+        page++;
+        fetch('/api/articles/' + category + '/' + page + '.json')
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            var html = '';
+            for (var i = 0; i < data.items.length; i++) {
+              html += renderCard(data.items[i]);
+            }
+            container.insertAdjacentHTML('beforeend', html);
+
+            var lang = document.documentElement.getAttribute('data-lang') || 'en';
+            if (lang !== 'en' && typeof applyLanguage === 'function') {
+              applyLanguage(lang);
+            }
+
+            if (!data.hasMore) {
+              done = true;
+              sentinel.remove();
+              spinner.remove();
+            } else {
+              spinner.style.display = 'none';
+            }
+            loading = false;
+          })
+          .catch(function() {
+            loading = false;
+            spinner.style.display = 'none';
+          });
+      }
+
+      var observer = new IntersectionObserver(function(entries) {
+        if (entries[0].isIntersecting) loadMore();
+      }, { rootMargin: '200px' });
+
+      observer.observe(sentinel);
+    })();
+  </script>
 </BaseLayout>
