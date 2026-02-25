@@ -55,6 +55,39 @@ const { title = "Oscar's News", description = "AI-curated news aggregation" } = 
         localStorage.setItem('keyboard-tip-dismissed', '1');
       });
 
+      // Read state
+      var readUrls = JSON.parse(sessionStorage.getItem('read-articles') || '[]');
+      var readSet = {};
+      for (var r = 0; r < readUrls.length; r++) readSet[readUrls[r]] = true;
+
+      function markRead(card) {
+        var link = card.querySelector('.card-title');
+        if (!link) return;
+        var url = link.getAttribute('href');
+        if (url && !readSet[url]) {
+          readSet[url] = true;
+          readUrls.push(url);
+          sessionStorage.setItem('read-articles', JSON.stringify(readUrls));
+        }
+        card.classList.add('read');
+      }
+
+      function applyReadState() {
+        var cards = document.querySelectorAll('.news-card');
+        for (var i = 0; i < cards.length; i++) {
+          var link = cards[i].querySelector('.card-title');
+          if (link && readSet[link.getAttribute('href')]) {
+            cards[i].classList.add('read');
+          }
+        }
+      }
+
+      applyReadState();
+      // Re-apply read state when new cards are loaded via infinite scroll
+      var observer2 = new MutationObserver(function() { applyReadState(); });
+      var newsList = document.getElementById('news-list');
+      if (newsList) observer2.observe(newsList, { childList: true });
+
       // Keyboard navigation
       var activeIndex = -1;
 
@@ -69,8 +102,18 @@ const { title = "Oscar's News", description = "AI-curated news aggregation" } = 
         if (prev) prev.classList.remove('active');
         activeIndex = index;
         cards[activeIndex].classList.add('active');
+        markRead(cards[activeIndex]);
         cards[activeIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       }
+
+      // Mark as read on click
+      document.addEventListener('click', function(e) {
+        var link = e.target.closest('.card-title');
+        if (link) {
+          var card = link.closest('.news-card');
+          if (card) markRead(card);
+        }
+      });
 
       document.addEventListener('keydown', function(e) {
         // Ignore when typing in inputs
@@ -89,6 +132,7 @@ const { title = "Oscar's News", description = "AI-curated news aggregation" } = 
         } else if (e.key === 'v' || e.key === 'V') {
           if (activeIndex >= 0 && activeIndex < cards.length) {
             e.preventDefault();
+            markRead(cards[activeIndex]);
             var link = cards[activeIndex].querySelector('.card-title');
             if (link) window.open(link.href, '_blank');
           }
