@@ -135,7 +135,9 @@ ${articlesText}`;
     );
 
     const envelope = JSON.parse(output.trim());
-    const text = typeof envelope.result === 'string' ? envelope.result : JSON.stringify(envelope.result);
+    let text = typeof envelope.result === 'string' ? envelope.result : JSON.stringify(envelope.result);
+    // Strip markdown fences if present (e.g. ```json ... ```)
+    text = text.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
     return JSON.parse(text.trim());
   } catch (err) {
     console.error('Failed to get Haiku response via Claude CLI, using fallback slugs/summaries:', (err as Error).message);
