@@ -107,6 +107,31 @@ const breadcrumbSchema = {
       var done = false;
       window.__loadedPages = [1];
 
+      var cacheKey = lang + '-' + category;
+      window.__newsCacheKey = cacheKey;
+      var cachedHtml = sessionStorage.getItem('news-html-' + cacheKey);
+      if (cachedHtml) {
+        container.innerHTML = cachedHtml;
+        page = parseInt(sessionStorage.getItem('news-page-' + cacheKey) || '1', 10);
+        done = sessionStorage.getItem('news-done-' + cacheKey) === '1';
+        window.__loadedPages = [];
+        for (var p = 1; p <= page; p++) window.__loadedPages.push(p);
+        if (done && sentinel) {
+          sentinel.remove();
+          if (spinner) spinner.remove();
+        }
+        var savedScroll = sessionStorage.getItem('news-scroll-' + cacheKey);
+        if (savedScroll) {
+          requestAnimationFrame(function() { window.scrollTo(0, parseInt(savedScroll, 10)); });
+        }
+        sessionStorage.removeItem('news-html-' + cacheKey);
+        sessionStorage.removeItem('news-scroll-' + cacheKey);
+        sessionStorage.removeItem('news-page-' + cacheKey);
+        sessionStorage.removeItem('news-done-' + cacheKey);
+      }
+      window.__currentPage = page;
+      window.__newsDone = done;
+
       function relativeTime(dateStr) {
         var now = new Date();
         var then = new Date(dateStr);
@@ -150,11 +175,13 @@ const breadcrumbSchema = {
 
             if (!data.hasMore) {
               done = true;
+              window.__newsDone = true;
               sentinel.remove();
               spinner.remove();
             } else {
               spinner.style.display = 'none';
             }
+            window.__currentPage = page;
             loading = false;
           })
           .catch(function() {
@@ -163,11 +190,12 @@ const breadcrumbSchema = {
           });
       }
 
-      var observer = new IntersectionObserver(function(entries) {
-        if (entries[0].isIntersecting) loadMore();
-      }, { rootMargin: '200px' });
-
-      observer.observe(sentinel);
+      if (!done) {
+        var observer = new IntersectionObserver(function(entries) {
+          if (entries[0].isIntersecting) loadMore();
+        }, { rootMargin: '200px' });
+        observer.observe(sentinel);
+      }
     })();
   </script>
 </BaseLayout>
