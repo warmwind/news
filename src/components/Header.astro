@@ -3,6 +3,18 @@
 <header class="header">
   <a href="/" class="logo">Oscar's News</a>
   <div class="header-actions">
+    <div class="lang-selector">
+      <button id="lang-toggle" class="lang-btn" aria-label="Change language">EN</button>
+      <div id="lang-menu" class="lang-menu">
+        <button data-lang="en">English</button>
+        <button data-lang="zh">中文</button>
+        <button data-lang="ja">日本語</button>
+        <button data-lang="ko">한국어</button>
+        <button data-lang="fr">Français</button>
+        <button data-lang="de">Deutsch</button>
+        <button data-lang="es">Español</button>
+      </div>
+    </div>
     <button id="theme-toggle" class="icon-btn" aria-label="Toggle theme">
       <span class="icon-sun">☀️</span>
       <span class="icon-moon">🌙</span>
@@ -70,6 +82,68 @@
   [data-theme="dark"] .icon-moon {
     display: inline;
   }
+
+  .lang-selector {
+    position: relative;
+  }
+
+  .lang-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 0.2rem 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .lang-btn:hover {
+    color: var(--text);
+    border-color: var(--text-secondary);
+  }
+
+  .lang-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 0.25rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.25rem 0;
+    z-index: 100;
+    min-width: 120px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .lang-menu.open {
+    display: block;
+  }
+
+  .lang-menu button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+  }
+
+  .lang-menu button:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .lang-menu button.active {
+    color: var(--accent);
+    font-weight: 600;
+  }
 </style>
 
 <script is:inline>
@@ -79,4 +153,59 @@
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('theme', next);
   });
+
+  // Language switcher
+  var langLabels = { en: 'EN', zh: '中文', ja: 'JA', ko: 'KO', fr: 'FR', de: 'DE', es: 'ES' };
+
+  function applyLanguage(lang) {
+    var els = document.querySelectorAll('[data-en]');
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      var text = el.getAttribute('data-' + lang) || el.getAttribute('data-en');
+      // Handle card-title which has a child <span class="arrow">
+      var arrow = el.querySelector('.arrow');
+      if (arrow) {
+        // Set text before the arrow span
+        el.firstChild.textContent = text + ' ';
+      } else {
+        el.textContent = text;
+      }
+    }
+    // Update button label
+    var btn = document.getElementById('lang-toggle');
+    if (btn) btn.textContent = langLabels[lang] || lang.toUpperCase();
+    // Update active state in menu
+    var menuBtns = document.querySelectorAll('#lang-menu button');
+    for (var j = 0; j < menuBtns.length; j++) {
+      menuBtns[j].classList.toggle('active', menuBtns[j].getAttribute('data-lang') === lang);
+    }
+    localStorage.setItem('lang', lang);
+  }
+
+  // Toggle dropdown
+  document.getElementById('lang-toggle').addEventListener('click', function (e) {
+    e.stopPropagation();
+    document.getElementById('lang-menu').classList.toggle('open');
+  });
+
+  // Language selection
+  document.getElementById('lang-menu').addEventListener('click', function (e) {
+    var lang = e.target.getAttribute('data-lang');
+    if (lang) {
+      applyLanguage(lang);
+      document.getElementById('lang-menu').classList.remove('open');
+    }
+  });
+
+  // Close on outside click
+  document.addEventListener('click', function () {
+    document.getElementById('lang-menu').classList.remove('open');
+  });
+
+  // Apply saved language on load
+  (function () {
+    var saved = localStorage.getItem('lang');
+    if (saved && saved !== 'en') applyLanguage(saved);
+    else applyLanguage('en');
+  })();
 </script>

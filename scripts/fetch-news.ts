@@ -53,6 +53,11 @@ interface RawArticle {
   contentSnippet: string;
 }
 
+interface ArticleTranslation {
+  title: string;
+  summary: string;
+}
+
 interface NewsArticle {
   title: string;
   slug: string;
@@ -62,7 +67,17 @@ interface NewsArticle {
   summary: string;
   content: string;
   category: string;
+  translations?: Record<string, ArticleTranslation>;
 }
+
+const TRANSLATION_LANGS = [
+  { code: 'zh', name: 'Chinese' },
+  { code: 'ja', name: 'Japanese' },
+  { code: 'ko', name: 'Korean' },
+  { code: 'fr', name: 'French' },
+  { code: 'de', name: 'German' },
+  { code: 'es', name: 'Spanish' },
+];
 
 function slugify(text: string): string {
   return text
@@ -148,6 +163,42 @@ ${articlesText}`;
   }
 }
 
+async function translateWithHaiku(
+  articles: Array<{ title: string; summary: string; slug: string }>,
+): Promise<Array<{ slug: string; translations: Record<string, ArticleTranslation> }>> {
+  if (articles.length === 0) return [];
+
+  const langList = TRANSLATION_LANGS.map(l => `${l.name} (${l.code})`).join(', ');
+  const articlesText = articles
+    .map((a, i) => `[${i}] slug: ${a.slug}\nTitle: ${a.title}\nSummary: ${a.summary}`)
+    .join('\n\n');
+
+  const prompt = `Translate the title and summary of each article below into these languages: ${langList}.
+
+Return ONLY a JSON array with objects like:
+{"slug": "original-slug", "translations": {"zh": {"title": "...", "summary": "..."}, "ja": {"title": "...", "summary": "..."}, ...}}
+One object per article, in the same order. No markdown fences.
+
+Articles:
+${articlesText}`;
+
+  try {
+    const output = execFileSync(
+      'claude',
+      ['-p', prompt, '--model', 'claude-haiku-4-5-20251001', '--output-format', 'json', '--max-turns', '1'],
+      { timeout: 180_000, maxBuffer: 20 * 1024 * 1024, encoding: 'utf-8' },
+    );
+
+    const envelope = JSON.parse(output.trim());
+    let text = typeof envelope.result === 'string' ? envelope.result : JSON.stringify(envelope.result);
+    text = text.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
+    return JSON.parse(text.trim());
+  } catch (err) {
+    console.error('Failed to translate articles via Claude CLI:', (err as Error).message);
+    return [];
+  }
+}
+
 async function main() {
   console.log('Fetching RSS feeds...');
 
@@ -218,6 +269,26 @@ async function main() {
       content: a.contentSnippet,
       category: a.category,
     }));
+
+    // Translate titles and summaries in batches of 8
+    console.log(`Translating ${newsArticles.length} ${category} articles...`);
+    const BATCH_SIZE = 8;
+    const translationMap = new Map<string, Record<string, ArticleTranslation>>();
+    for (let i = 0; i < newsArticles.length; i += BATCH_SIZE) {
+      const batch = newsArticles.slice(i, i + BATCH_SIZE).map(a => ({
+        title: a.title,
+        summary: a.summary,
+        slug: a.slug,
+      }));
+      const results = await translateWithHaiku(batch);
+      for (const r of results) {
+        translationMap.set(r.slug, r.translations);
+      }
+    }
+    for (const article of newsArticles) {
+      const t = translationMap.get(article.slug);
+      if (t) article.translations = t;
+    }
 
     // Group by date and merge with existing date files
     const byDate: Record<string, NewsArticle[]> = {};

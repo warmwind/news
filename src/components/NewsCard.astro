@@ -7,9 +7,10 @@ interface Props {
   summary: string;
   slug: string;
   category: string;
+  translations?: Record<string, { title: string; summary: string }>;
 }
 
-const { title, url, source, date, summary, slug, category } = Astro.props;
+const { title, url, source, date, summary, slug, category, translations } = Astro.props;
 
 function relativeTime(dateStr: string): string {
   const now = new Date();
@@ -25,9 +26,18 @@ function relativeTime(dateStr: string): string {
 
 const dateStr = date.slice(0, 10);
 const articleUrl = `/article/${category}/${dateStr}/${slug}`;
+
+const titleAttrs: Record<string, string> = { 'data-en': title };
+const summaryAttrs: Record<string, string> = { 'data-en': summary };
+if (translations) {
+  for (const [lang, t] of Object.entries(translations)) {
+    titleAttrs[`data-${lang}`] = t.title;
+    summaryAttrs[`data-${lang}`] = t.summary;
+  }
+}
 ---
 <article class="news-card">
-  <a href={articleUrl} class="card-title">{title} <span class="arrow">→</span></a>
+  <a href={articleUrl} class="card-title" {...titleAttrs}>{title} <span class="arrow">→</span></a>
   <div class="card-meta">
     <span class="source">{source}</span>
     <span class="separator">·</span>
@@ -35,7 +45,7 @@ const articleUrl = `/article/${category}/${dateStr}/${slug}`;
     <span class="separator">·</span>
     <a href={url} target="_blank" rel="noopener noreferrer" class="original-link">Original</a>
   </div>
-  <p class="card-summary">{summary}</p>
+  <p class="card-summary" {...summaryAttrs}>{summary}</p>
 </article>
 
 <style>
