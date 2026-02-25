@@ -149,8 +149,10 @@ ${articlesText}`;
 
     const envelope = JSON.parse(output.trim());
     let text = typeof envelope.result === 'string' ? envelope.result : JSON.stringify(envelope.result);
-    // Strip markdown fences if present (e.g. ```json ... ```)
+    // Clean common JSON issues from Haiku output
     text = text.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
+    text = text.replace(/,\s*([\]}])/g, '$1');
+    text = text.replace(/\/\/[^\n]*/g, '');
     return JSON.parse(text.trim());
   } catch (err) {
     console.error('Failed to get Haiku response via Claude CLI, using fallback slugs/summaries:', (err as Error).message);
@@ -161,27 +163,72 @@ ${articlesText}`;
   }
 }
 
+function buildTranslationPrompt(
+  articles: Array<{ title: string; summary: string; slug: string }>,
+): string {
+  const articlesText = articles
+    .map(a => `SLUG: ${a.slug}\nTitle: ${a.title}\nSummary: ${a.summary}`)
+    .join('\n\n');
+
+  return `Translate the title and summary of each article below into Chinese (zh), French (fr), German (de), and Spanish (es).
+
+Return ONLY plain text in this exact format. Separate each article with a blank line. Each field on its own line with the KEY: value format shown below. Do NOT use JSON, markdown, or any other formatting.
+
+SLUG: original-slug
+ZH_TITLE: 中文标题
+ZH_SUMMARY: 中文摘要
+FR_TITLE: Titre français
+FR_SUMMARY: Résumé français
+DE_TITLE: Deutscher Titel
+DE_SUMMARY: Deutsche Zusammenfassung
+ES_TITLE: Título español
+ES_SUMMARY: Resumen español
+
+Articles:
+${articlesText}`;
+}
+
+function parseTranslationResponse(
+  text: string,
+): Array<{ slug: string; translations: Record<string, ArticleTranslation> }> {
+  const results: Array<{ slug: string; translations: Record<string, ArticleTranslation> }> = [];
+  const sections = text.trim().split(/\n\s*\n/);
+
+  for (const section of sections) {
+    const lines = section.trim().split('\n');
+    const kv: Record<string, string> = {};
+    for (const line of lines) {
+      const match = line.match(/^([A-Z_]+):\s*(.+)$/);
+      if (match) kv[match[1]] = match[2].trim();
+    }
+
+    const slug = kv['SLUG'];
+    if (!slug) continue;
+
+    const translations: Record<string, ArticleTranslation> = {};
+    for (const lang of TRANSLATION_LANGS) {
+      const code = lang.code.toUpperCase();
+      const title = kv[`${code}_TITLE`];
+      const summary = kv[`${code}_SUMMARY`];
+      if (title && summary) {
+        translations[lang.code] = { title, summary };
+      }
+    }
+
+    if (Object.keys(translations).length > 0) {
+      results.push({ slug, translations });
+    }
+  }
+
+  return results;
+}
+
 async function translateWithHaiku(
   articles: Array<{ title: string; summary: string; slug: string }>,
 ): Promise<Array<{ slug: string; translations: Record<string, ArticleTranslation> }>> {
   if (articles.length === 0) return [];
 
-  const langList = TRANSLATION_LANGS.map(l => `${l.name} (${l.code})`).join(', ');
-  const articlesText = articles
-    .map((a, i) => `[${i}] slug: ${a.slug}\nTitle: ${a.title}\nSummary: ${a.summary}`)
-    .join('\n\n');
-
-  const prompt = `Translate the title and summary of each article below into these languages: ${langList}.
-
-IMPORTANT: Return ONLY valid JSON. No markdown fences, no comments, no trailing commas.
-Keep translations concise — match the length of the original, do not add extra detail.
-Escape special characters properly in JSON strings.
-
-Return a JSON array with objects like:
-[{"slug": "original-slug", "translations": {"zh": {"title": "...", "summary": "..."}, "fr": {"title": "...", "summary": "..."}, "de": {"title": "...", "summary": "..."}, "es": {"title": "...", "summary": "..."}}}]
-
-Articles:
-${articlesText}`;
+  const prompt = buildTranslationPrompt(articles);
 
   try {
     const output = execFileSync(
@@ -191,11 +238,14 @@ ${articlesText}`;
     );
 
     const envelope = JSON.parse(output.trim());
-    let text = typeof envelope.result === 'string' ? envelope.result : JSON.stringify(envelope.result);
-    text = text.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
-    return JSON.parse(text.trim());
+    const text = typeof envelope.result === 'string' ? envelope.result : JSON.stringify(envelope.result);
+    const results = parseTranslationResponse(text);
+    if (results.length === 0) {
+      console.warn('Translation returned no parseable results for batch');
+    }
+    return results;
   } catch (err) {
-    console.error('Failed to translate articles via Claude CLI:', (err as Error).message);
+    console.error('Translation failed:', (err as Error).message);
     return [];
   }
 }
