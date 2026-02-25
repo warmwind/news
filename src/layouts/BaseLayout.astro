@@ -1,5 +1,6 @@
 ---
 import Header from '../components/Header.astro';
+import { ClientRouter } from 'astro:transitions';
 import '../styles/global.css';
 
 interface Props {
@@ -21,7 +22,8 @@ const { title = "Oscar's News", description = "AI-curated news aggregation" } = 
   <meta property="og:type" content="website" />
   <link rel="alternate" type="application/rss+xml" title="Oscar's News RSS" href="/rss.xml" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <script is:inline>
+  <ClientRouter />
+  <script is:inline data-astro-rerun>
     var theme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     document.documentElement.setAttribute('data-theme', theme);
     var savedLang = localStorage.getItem('lang') || 'en';
@@ -43,7 +45,7 @@ const { title = "Oscar's News", description = "AI-curated news aggregation" } = 
     <span><kbd>J</kbd> next <kbd>K</kbd> prev <kbd>V</kbd> open</span>
     <button id="keyboard-tip-close" aria-label="Dismiss">&times;</button>
   </div>
-  <script is:inline>
+  <script is:inline data-astro-rerun>
     (function() {
       // Keyboard tip dismissal
       var tip = document.getElementById('keyboard-tip');
@@ -84,9 +86,10 @@ const { title = "Oscar's News", description = "AI-curated news aggregation" } = 
 
       applyReadState();
       // Re-apply read state when new cards are loaded via infinite scroll
-      var observer2 = new MutationObserver(function() { applyReadState(); });
+      if (window.__newsListObserver) window.__newsListObserver.disconnect();
+      window.__newsListObserver = new MutationObserver(function() { applyReadState(); });
       var newsList = document.getElementById('news-list');
-      if (newsList) observer2.observe(newsList, { childList: true });
+      if (newsList) window.__newsListObserver.observe(newsList, { childList: true });
 
       // Keyboard navigation
       var activeIndex = -1;
@@ -106,17 +109,19 @@ const { title = "Oscar's News", description = "AI-curated news aggregation" } = 
         cards[activeIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       }
 
-      // Mark as read on click
-      document.addEventListener('click', function(e) {
+      // Remove old document-level listeners before re-adding (prevents duplicates across navigations)
+      if (window.__newsClickHandler) document.removeEventListener('click', window.__newsClickHandler);
+      if (window.__newsKeyHandler) document.removeEventListener('keydown', window.__newsKeyHandler);
+
+      window.__newsClickHandler = function(e) {
         var link = e.target.closest('.card-title');
         if (link) {
           var card = link.closest('.news-card');
           if (card) markRead(card);
         }
-      });
+      };
 
-      document.addEventListener('keydown', function(e) {
-        // Ignore when typing in inputs
+      window.__newsKeyHandler = function(e) {
         var tag = e.target.tagName;
         if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable) return;
 
@@ -137,7 +142,10 @@ const { title = "Oscar's News", description = "AI-curated news aggregation" } = 
             if (link) window.open(link.href, '_blank');
           }
         }
-      });
+      };
+
+      document.addEventListener('click', window.__newsClickHandler);
+      document.addEventListener('keydown', window.__newsKeyHandler);
     })();
   </script>
 </body>
