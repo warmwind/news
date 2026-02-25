@@ -175,9 +175,12 @@ async function translateWithHaiku(
 
   const prompt = `Translate the title and summary of each article below into these languages: ${langList}.
 
-Return ONLY a JSON array with objects like:
-{"slug": "original-slug", "translations": {"zh": {"title": "...", "summary": "..."}, "ja": {"title": "...", "summary": "..."}, ...}}
-One object per article, in the same order. No markdown fences.
+IMPORTANT: Return ONLY valid JSON. No markdown fences, no comments, no trailing commas.
+Keep translations concise — match the length of the original, do not add extra detail.
+Escape special characters properly in JSON strings.
+
+Return a JSON array with objects like:
+[{"slug": "original-slug", "translations": {"zh": {"title": "...", "summary": "..."}, "ja": {"title": "...", "summary": "..."}, "ko": {"title": "...", "summary": "..."}, "fr": {"title": "...", "summary": "..."}, "de": {"title": "...", "summary": "..."}, "es": {"title": "...", "summary": "..."}}}]
 
 Articles:
 ${articlesText}`;
@@ -270,9 +273,9 @@ async function main() {
       category: a.category,
     }));
 
-    // Translate titles and summaries in batches of 8
+    // Translate titles and summaries in batches of 3
     console.log(`Translating ${newsArticles.length} ${category} articles...`);
-    const BATCH_SIZE = 8;
+    const BATCH_SIZE = 3;
     const translationMap = new Map<string, Record<string, ArticleTranslation>>();
     for (let i = 0; i < newsArticles.length; i += BATCH_SIZE) {
       const batch = newsArticles.slice(i, i + BATCH_SIZE).map(a => ({
