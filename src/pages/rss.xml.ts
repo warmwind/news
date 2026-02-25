@@ -19,11 +19,13 @@ export function GET(context: APIContext) {
     title: "Oscar's News",
     description: 'AI-curated news aggregation',
     site: context.site!.toString(),
+    customData: '<language>en-us</language>',
     items: latest.map(article => ({
       title: article.title,
       link: article.url,
       description: article.summary,
       pubDate: new Date(article.date),
+      categories: [article.category],
     })),
   });
 }

@@ -6,9 +6,31 @@ import '../styles/global.css';
 interface Props {
   title?: string;
   description?: string;
+  structuredData?: Record<string, any> | Record<string, any>[];
+  noindex?: boolean;
 }
 
-const { title = "Oscar's News", description = "AI-curated news aggregation" } = Astro.props;
+const { title = "Oscar's News", description = "AI-curated news aggregation", structuredData, noindex = false } = Astro.props;
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Oscar's News",
+  "url": "https://news.oscarjiang.site",
+  "description": "AI-curated news aggregation",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "https://news.oscarjiang.site/?q={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+};
+
+const allStructuredData = structuredData
+  ? Array.isArray(structuredData)
+    ? [websiteSchema, ...structuredData]
+    : [websiteSchema, structuredData]
+  : [websiteSchema];
 ---
 <!DOCTYPE html>
 <html lang="en">
@@ -17,11 +39,22 @@ const { title = "Oscar's News", description = "AI-curated news aggregation" } = 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{title}</title>
   <meta name="description" content={description} />
+  <meta name="robots" content={noindex ? "noindex, nofollow" : "index, follow"} />
+  <link rel="canonical" href={canonicalURL.href} />
   <meta property="og:title" content={title} />
   <meta property="og:description" content={description} />
   <meta property="og:type" content="website" />
+  <meta property="og:url" content={canonicalURL.href} />
+  <meta property="og:site_name" content="Oscar's News" />
+  <meta property="og:locale" content="en_US" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content={title} />
+  <meta name="twitter:description" content={description} />
   <link rel="alternate" type="application/rss+xml" title="Oscar's News RSS" href="/rss.xml" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  {allStructuredData.map(data => (
+    <script type="application/ld+json" set:html={JSON.stringify(data)} />
+  ))}
   <ClientRouter />
   <script is:inline>
     var theme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
