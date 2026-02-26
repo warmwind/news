@@ -1,0 +1,114 @@
+[
+  {
+    "title": "Next.js 앱을 하루만에 6개국어로 만든 방법",
+    "slug": "nextjs-app-six-languages-one-day",
+    "url": "https://dev.to/ji_ai/nextjs-aebeul-harumane-6gaegugeoro-mandeun-bangbeob-pi5",
+    "source": "DEV Community",
+    "date": "2026-02-26T00:05:57.000Z",
+    "summary": "This article details implementing internationalization in Next.js 15 using next-intl, covering locale-based routing architecture, translation file management, and region-specific pricing strategies to support rapid deployment across six countries and diverse markets.",
+    "content": "사주 앱을 6개국에 내놓기로 했다. 한국, 미국, 일본, 중국, 베트남, 인도.\n사주가 동아시아 문화권 밖에서 먹힐까? 모르겠다. 근데 타로와 점성술이 전세계에서 먹히는 걸 보면, \"AI가 당신의 운명을 분석합니다\"는 어디서든 클릭을 부를 것 같았다.\n문제는 하드코딩된 한국어가 모든 페이지에 박혀 있다는 거다.\nNext.js 15 App Router에서 i18n 옵션은 몇 가지 있다. next-intl을 고른 이유는 단순하다 — App Router 네이티브 지원이 가장 깔끔하다. [locale] 동적 세그먼트에 미들웨어로 자동 리디렉트. Server Component에서도 Client Component에서도 같은 useTranslations() 훅.\napps/web/\n├── app/\n│   ├── [locale]/          ← 모든 페이지가 여기 안으로\n│   │   ├── page.tsx\n│   │   ├── result/page.tsx\n│   │   └── layout.tsx     ← html lang={locale} 여기서\n│   └── layout.tsx          ← 빈 껍데기\n├── i18n/\n│   ├── config.ts           ← locales, defaultLocale\n│   ├── routing.ts          ← localePrefix: \"as-needed\"\n│   └── navigation.ts       ← i18n Link, useRouter\n├── messages/\n│   ├── ko.json\n│   ├── en.json\n│   ├── ja.json\n│   ├── zh.json\n│   ├── vi.json\n│   └── hi.json\n└── middleware.ts            ← Accept-Language 감지\n\nlocalePrefix: \"as-needed\"가 핵심이다. 한국어가 디폴트니까 /로 접속하면 한국어, /en/으로 가면 영어. 한국 사용자는 URL에 /ko/가 안 붙는다.\nNext.js App Router에서 root layout은 반드시 <html>과 <body>를 렌더링해야 한다고 알고 있었다. 그래서 root layout에도 넣고, [locale]/layout.tsx에도 <html lang={locale}>을 넣었다.\n결과: html 안에 html. 브라우저는 조용히 무시하지만 완전히 잘못된 구조다.\n// app/layout.tsx — 이게 정답\nexport default function RootLayout({ children }) {\n  return children;  // html/body 없이 그냥 패스스루\n}\n\n// app/[locale]/layout.tsx — 여기서 html/body 관리\nexport default function LocaleLayout({ children, params }) {\n  return (\n    <html lang={locale}>\n      <body>{children}</body>\n    </html>\n  );\n}\n\nroot layout이 그냥 children만 리턴해도 Next.js 15에서는 에러가 안 난다. [locale] layout이 html/body를 제공하니까.\n같은 서비스라도 인도에서 $9.90을 받으면 아무도 안 산다. 각 나라 구매력에 맞춰 가격을 잡았다.\n// ko.json\n\"price\": \"₩12,900\"\n\n// en.json\n\"price\": \"$9.90\"\n\n// ja.json\n\"price\": \"¥1,490\"\n\n// zh.json\n\"price\": \"¥68\"\n\n// vi.json\n\"price\": \"199.000₫\"\n\n// hi.json\n\"price\": \"₹799\"\n\n번역 파일에 가격을 하드코딩한 거다. 나중에 결제 연동하면 서버에서 내려주겠지만, MVP 단계에서는 이게 가장 빠르다. placeholder 이름도 로컬라이즈했다 — 한국은 \"홍길동\", 일본은 \"山田太郎\", 인도는 \"राहुल शर्मा\".\napp/page.tsx를 app/[locale]/page.tsx로 옮",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何在一天内用6种语言构建Next.js应用",
+        "summary": "本文详细介绍了使用next-intl在Next.js 15中实现国际化的方法，涵盖基于地区的路由架构、翻译文件管理和地域特定的定价策略，以支持在六个国家和不同市场中的快速部署。"
+      },
+      "fr": {
+        "title": "Comment créer une application Next.js en six langues en une journée",
+        "summary": "Cet article détaille l'implémentation de l'internationalisation dans Next.js 15 en utilisant next-intl, couvrant l'architecture de routage basée sur les paramètres régionaux, la gestion des fichiers de traduction et les stratégies de tarification spécifiques aux régions pour soutenir le déploiement rapide sur six pays et différents marchés."
+      },
+      "de": {
+        "title": "Wie man eine Next.js-App in sechs Sprachen an einem Tag erstellt",
+        "summary": "Dieser Artikel beschreibt die Implementierung der Internationalisierung in Next.js 15 mit next-intl und behandelt die Routing-Architektur nach Gebietsschema, die Verwaltung von Übersetzungsdateien und regionsspezifische Preisstrategien, um die schnelle Bereitstellung in sechs Ländern und verschiedenen Märkten zu unterstützen."
+      },
+      "es": {
+        "title": "Cómo crear una aplicación Next.js en seis idiomas en un día",
+        "summary": "Este artículo detalla la implementación de la internacionalización en Next.js 15 usando next-intl, cubriendo la arquitectura de enrutamiento basada en configuración regional, la gestión de archivos de traducción y estrategias de precios específicas por región para respaldar la implementación rápida en seis países y diversos mercados."
+      }
+    }
+  },
+  {
+    "title": "Claude 하나로 1인 SaaS 전체를 설계한 기록",
+    "slug": "claude-designed-saas-entire-stack-one-session",
+    "url": "https://dev.to/ji_ai/claude-hanaro-1in-saas-jeoncereul-seolgyehan-girog-44h5",
+    "source": "DEV Community",
+    "date": "2026-02-26T00:01:21.000Z",
+    "summary": "This article documents using Claude AI to comprehensively design a Korean fortune-telling SaaS, demonstrating how iterative conversations can simulate expert panels, identify business strategy gaps, and generate production-ready plans—replacing what would cost thousands in consulting.",
+    "content": "\"로그인 벽부터 제거하세요. magic link 인증이 최대 이탈 원인입니다.\"\n이 말을 한 건 사람이 아니다. Claude가 시뮬레이션한 \"PM 역할의 가상 전문가\"다.\n하루 동안 Claude랑 9개 세션을 했다. 나온 산출물이 20개다. 사업 전략서, 랜딩 디자인, 전문가 패널 회의록, LLM 비용 분석서, 글로벌 확장 전략서, Claude Code 실행용 태스크 파일들.\n이걸 컨설팅 회사에 맡겼으면 몇 주에 몇 천만원이다.\n혼자, 하루, $0.\n처음부터 전부를 시킨 게 아니다. 대화가 깊어지면서 구체화됐다.\n1턴: \"사주 앱 사업성 어때?\" (추상적)\n2턴: \"무료/유료 나눠서 수익 모델 짜줘\" (구체적)\n3턴: \"무료 티어 API 비용을 토큰 단위로 계산해줘\" (매우 구체적)\n4턴: \"Prompt Caching 적용 시 시나리오 A/B/C 비교해줘\" (초구체적)\n\n한 번에 \"사업계획서 써줘\"라고 하면 일반적인 답변이 나온다.\n점진적으로 깊이를 올리면, 각 단계에서 AI가 이전 맥락을 다 갖고 있으니까 결과물이 훨씬 정밀해진다.\n가장 효과가 좋았던 건 \"전문가 패널 시뮬레이션\"이다.\n나: \"전문가 6명을 구성해줘.\n    PM 1명, 사업개발 1명, 로컬라이제이션 1명,\n    미국 시장 전문가 1명, 풀스택 개발자 1명, UI/UX 디자이너 1명.\n    각자 이름이랑 관점을 정해줘.\n    현재 상태(STATUS.md)를 리뷰하고 회의해줘.\"\n\nClaude가 6명의 캐릭터를 만들어서 각자의 관점으로 토론한다. PM이 우선순위를 짜고, 사업 담당이 시장성을 따지고, 개발자가 기술 난이도를 짚고, 디자이너가 UX 이슈를 제기한다.\n혼자 사업하면 \"내 관점\"밖에 없다. 이걸 쓰면 6개 관점이 동시에 나온다.\n물론 진짜 전문가 6명과는 다르다. 하지만 1인 개발자가 놓치기 쉬운 사각지대를 잡아내는 데는 충분하다.\n로그인 벽 제거가 첫 번째였다. magic link 인증이 최대 이탈 원인이라는 걸 PM이 지적했다. 무료 분석은 완전 비로그인으로 전환.\n무료 티어 비용도 94% 잘라냈다. LLM 풀 호출 대신 알고리즘 포맷팅에 AI 1줄 요약만 붙이는 구조로 건당 $0.085 → $0.005.\n사업자등록은 유저 반응 기다리지 말고 결제 연동을 위해 즉시 시작하기로 했다.\nGA4와 Rate Limiting은 필수라는 데 전원 동의했다. 분석 없이 개선은 눈감고 운전이고, 보호 없는 무료 API는 비용 폭탄이다.\n카카오 공유와 OG 이미지를 우선 구현하기로 했다. 사주 서비스의 유일한 무료 마케팅은 바이럴이다.\n글로벌 확장은 보류. 한국에서 유료 전환율 3% 넘기 전까지 영문화에 리소스 안 쓴다.\n이 결정들을 혼자 앉아서 다 생각해냈을까? 솔직히, 사업자등록 즉시 진행이랑 Rate Limiting은 나중에야 생각했을 거다.\n다른 프로젝트에도 그대로 적용할 수 있다. 비전 공유로 큰 그림을 그리고, 전략 수립에서 선택지를 결정하고, 전문가 패널로 검증하고, 디자인을 실물 HTML로 뽑고, 비용을 토큰 단위로 분석하고, 확장 아키텍처를 설계하고, 마지막에 Claude Code에서 실행 가능한 태스크 파일로 변환한다.\nAI를 도구로 쓰는 것과 AI와 사고하는 것은 다르다.\n도구로 쓰면 \"코드 써줘.\" 사고하면 \"이 구조가 맞아? 빠진 거 없어? 내가 놓치는 관점이 뭐야?\"\n후자가 1인 개발자한테는 훨씬 가치가 크다.\n한 가지 솔직한 고백. 이 패널에서 나온 숫자들 — \"30% 전환율\", \"₹99가 최적가\" 같은 것 — 에는 근거가 없다. Claude가 만든 가설이지, 데이터에서 나온 결론이 아니다.\n가설은 가설로만 취급하고, 검증은 런칭 후 실제 데이터로 한다.\n\"AI와 사고하면 6개 관점이 동시에 나온다. 진짜 전문가 6명은 아니지만, 혼자보다는 훨씬 낫다.\"",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "仅用Claude设计整个独立SaaS的记录",
+        "summary": "本文记录了使用Claude AI全面设计一个韩国算命SaaS的过程，展示了迭代对话如何能够模拟专家小组、识别商业战略漏洞和生成生产就绪的计划——替代花费数千元咨询的方案。"
+      },
+      "fr": {
+        "title": "Enregistrement de la conception d'une SaaS entière en solo avec Claude",
+        "summary": "Cet article documente l'utilisation de Claude AI pour concevoir de manière complète une SaaS coréenne de prédiction de fortune, démontrant comment les conversations itératives peuvent simuler des panels d'experts, identifier les lacunes des stratégies commerciales et générer des plans prêts pour la production—remplaçant ce qui coûterait des milliers en consulting."
+      },
+      "de": {
+        "title": "Aufzeichnung der Gestaltung eines gesamten Solo-SaaS mit Claude",
+        "summary": "Dieser Artikel dokumentiert die Verwendung von Claude AI, um ein koreanisches Wahrsage-SaaS umfassend zu gestalten, und zeigt, wie iterative Gespräche Expert-Panels simulieren, Lücken in der Geschäftsstrategie identifizieren und produktionsbereite Pläne erstellen können—was Tausende an Beratungskosten ersetzt."
+      },
+      "es": {
+        "title": "Registro del diseño de un SaaS completo en solitario con Claude",
+        "summary": "Este artículo documenta el uso de Claude AI para diseñar de manera integral un SaaS coreano de adivinación de fortuna, demostrando cómo las conversaciones iterativas pueden simular paneles de expertos, identificar brechas en la estrategia comercial y generar planes listos para producción—reemplazando lo que costaría miles en consultoría."
+      }
+    }
+  },
+  {
+    "title": "Understanding IP Management in Oracle Cloud Infrastructure (OCI)",
+    "slug": "oracle-cloud-infrastructure-ip-management-guide",
+    "url": "https://dev.to/hiltonj/understanding-ip-management-in-oracle-cloud-infrastructure-oci-1ili",
+    "source": "DEV Community",
+    "date": "2026-02-26T00:01:10.000Z",
+    "summary": "A comprehensive guide to OCI's IP address management system covering private IPs for internal communication, public IPs for internet access, and advanced features like reserved IPs and bring-your-own-IP options, essential for building secure cloud infrastructure.",
+    "content": "Navigating the complexities of cloud networking is crucial for building robust and scalable applications. In Oracle Cloud Infrastructure (OCI), effective IP address management forms the backbone of your network architecture. This guide will demystify OCI's IP address categories, explore their use cases, and introduce advanced concepts like Reserved Public IPs, Bring Your Own IP (BYOIP), and Public IP Pools. \nOCI categorizes IP addresses into two primary types, each serving distinct communication needs. \nThese are used for internal communication within your OCI network and with connected on-premises environments. \nInternal Communication: Instances within the same Virtual Cloud Network (VCN) communicate seamlessly using private IPs.\nVCN Peering: Connecting multiple VCNs, whether in the same or different regions, relies on private IP routing.\nOn-premises Connectivity: Secure connections to your data centers via the Dynamic Routing Gateway (DRG).\nInstance Allocation: Each instance receives at least one primary private IP.\nVNIC Capacity: Every Virtual Network Interface Card (VNIC) includes one primary private IP address and supports up to 32 secondary private IP addresses, totaling 33 private IPs per VNIC.\nThese are designed for internet accessibility, allowing your resources to communicate with the outside world. \nInternet Reachability: Public IPs are reachable from the internet, assigned to a private IP object on your OCI resource. \nPrerequisites: For a public IP to function, your VCN requires an Internet Gateway, and the associated public subnet must have correctly configured Route Tables and Security Lists. \nFlexibility: Resources can be assigned multiple public IPs across single or multiple VNICs. \nOCI offers two types of public IP addresses to cater to different operational requirements.\n\nReserved Public IP Addresses in Detail\nCreation: You create them individually. \nLimits: Up to 50 Reserved Public IPs are allowed per region. \nAssignment: Assigned to resources aft",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "了解Oracle云基础设施(OCI)中的IP管理",
+        "summary": "这是一份全面的OCI IP地址管理系统指南，涵盖用于内部通信的私有IP、用于互联网访问的公共IP以及高级功能（如保留IP和自带IP选项），这些对于构建安全的云基础设施至关重要。"
+      },
+      "fr": {
+        "title": "Comprendre la gestion des adresses IP dans l'infrastructure cloud Oracle (OCI)",
+        "summary": "Un guide complet du système de gestion des adresses IP d'OCI couvrant les adresses IP privées pour la communication interne, les adresses IP publiques pour l'accès Internet et les fonctionnalités avancées comme les adresses IP réservées et les options bring-your-own-IP, essentielles pour construire une infrastructure cloud sécurisée."
+      },
+      "de": {
+        "title": "Verständnis der IP-Verwaltung in der Oracle-Cloud-Infrastruktur (OCI)",
+        "summary": "Ein umfassender Leitfaden zum IP-Adressenmanagementsystem von OCI, der private IP-Adressen für interne Kommunikation, öffentliche IP-Adressen für Internetzugriff und erweiterte Funktionen wie reservierte IP-Adressen und Bring-Your-Own-IP-Optionen abdeckt, die für den Aufbau einer sicheren Cloud-Infrastruktur unerlässlich sind."
+      },
+      "es": {
+        "title": "Entender la gestión de direcciones IP en la infraestructura en la nube de Oracle (OCI)",
+        "summary": "Una guía completa del sistema de gestión de direcciones IP de OCI que cubre direcciones IP privadas para comunicación interna, direcciones IP públicas para acceso a Internet y funciones avanzadas como direcciones IP reservadas y opciones bring-your-own-IP, esenciales para construir una infraestructura en la nube segura."
+      }
+    }
+  },
+  {
+    "title": "Why You Shouldn't Let AI Do Your Fortune Telling — And How to Do It Right",
+    "slug": "ai-fortune-telling-deterministic-algorithm-interpretation",
+    "url": "https://dev.to/ji_ai/why-you-shouldnt-let-ai-do-your-fortune-telling-and-how-to-do-it-right-2h3l",
+    "source": "DEV Community",
+    "date": "2026-02-26T00:00:40.000Z",
+    "summary": "This article demonstrates why LLMs cannot reliably perform precise astronomical calendar calculations for fortune-telling and advocates combining deterministic algorithms for computation with AI for human-readable interpretation of results.",
+    "content": "The first lesson I learned building a saju (Korean four-pillar fortune telling) app: it's not about what you ask AI to do — it's about what you don't.\nRevenue is still $0. This isn't a success story — it's a debugging diary.\n\"Tell me the fortune for someone born March 15, 1990.\"\nI threw this straight at an LLM. The response looked great. Smooth sentences, Five Elements this, Wood-Fire-Earth-Metal-Water that.\nBut there was a problem. The base calculations were wrong.\nMe: \"Analyze the Four Pillars for March 15, 1990, 6 AM\"\nClaude: \"The year pillar is Geng-Wu, month is Ji-Mao...\"\nMe: \"...Ji-Mao is wrong.\"\n\nLLMs can't do manseryeok (traditional Korean astronomical calendar) calculations. More precisely, they appear to get it right probabilistically, but they don't actually compute anything.\nThe Heavenly Stems and Earthly Branches follow a 60-cycle system. Month pillars shift at solar term boundaries. Hour pillars depend on the day's Heavenly Stem. This isn't reasoning — it's arithmetic.\nWhen you ask a language model to do arithmetic, it gets things wrong.\nAnd when the base stems are wrong, everything downstream is garbage. Wrong Five Elements. Wrong Ten Gods. Wrong structure analysis.\nA beautifully written paragraph with incorrect data isn't fortune analysis — it's fiction.\nOnce I realized this, I rebuilt the whole thing.\n[Birth date + time] → [Calendar Engine] → [Accurate JSON] → [LLM] → [Interpretation]\n\nI built the calendar engine in code. It's based on the lunar-typescript library, with solar term correction, leap month handling, and midnight boundary logic — all deterministic algorithms.\nThe output is JSON. Heavenly Stems, Earthly Branches, Five Element distribution, Ten Gods relationships, structure type, favorable elements. All precise.\nThe LLM gets this JSON. \"Read this data and interpret it.\" That's the entire prompt strategy.\nCode handles the calendar calculations — the part that must be 100% accurate. AI handles turning that data into readable, insightful lan",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么不应该让AI做占卜——以及如何正确地做",
+        "summary": "本文演示了为什么大语言模型无法可靠地执行用于占卜的精确天文日历计算，并倡导将确定性算法用于计算，将AI用于人类可读的结果解释。"
+      },
+      "fr": {
+        "title": "Pourquoi vous ne devriez pas laisser l'IA faire votre voyance — Et comment le faire correctement",
+        "summary": "Cet article démontre pourquoi les LLM ne peuvent pas effectuer de manière fiable des calculs précis de calendrier astronomique pour la voyance et préconise de combiner des algorithmes déterministes pour le calcul avec l'IA pour l'interprétation lisible par l'homme des résultats."
+      },
+      "de": {
+        "title": "Warum Sie KI nicht für Ihre Wahrsagung einsetzen sollten — Und wie man es richtig macht",
+        "summary": "Dieser Artikel zeigt, warum LLMs keine zuverlässigen astronomischen Kalenderberechnungen für Wahrsagungen durchführen können, und befürwortet die Kombination deterministischer Algorithmen für Berechnungen mit KI für menschenlesbare Interpretationen der Ergebnisse."
+      },
+      "es": {
+        "title": "Por qué no deberías dejar que la IA haga tu lectura del futuro — Y cómo hacerlo correctamente",
+        "summary": "Este artículo demuestra por qué los LLM no pueden realizar de manera confiable cálculos precisos de calendarios astronómicos para la lectura del futuro e aboga por combinar algoritmos deterministas para cálculos con IA para la interpretación legible por humanos de los resultados."
+      }
+    }
+  }
+]
