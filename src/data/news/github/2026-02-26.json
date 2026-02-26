@@ -1,5 +1,341 @@
 [
   {
+    "title": "How to Use React Query with React Router Loaders (Pre-fetch & Cache Data)",
+    "slug": "how-to-use-react-query-with-react-router-loaders-pre-fetch-cache",
+    "url": "https://dev.to/edriso/how-to-use-react-query-with-react-router-loaders-pre-fetch-cache-data-kag",
+    "source": "DEV Community",
+    "date": "2026-02-26T12:11:05.000Z",
+    "summary": "Combining React Query with React Router loaders enables data pre-fetching before components mount, eliminating loading spinners. Using queryClient.ensureQueryData() checks the cache first and fetches fresh data if needed, ensuring the page renders immediately when mounted.",
+    "content": "The Problem\n\n\nWhen you navigate to a page, there's usually a delay while data is being fetched. The user sees a loading spinner, and the content pops in after the request finishes. Not great.\nWhat if the data was already there when the page loads?\nThat's exactly what combining React Query with React Router loaders gives you.\nLoader runs before the component mounts (React Router calls it on navigation).\nInside the loader, we ask React Query: \"Do you already have this data cached?\"\n\n\n\nYes → Use it instantly. No network request.\nNo → Fetch it now, wait for it, then cache it.\nWhen the component finally mounts, it calls useQuery with the same query. Since the data is already cached, it renders immediately — no loading state.\nThe key method is queryClient.ensureQueryData(queryOptions). Think of it as: \"Make sure this data exists — get it from cache or fetch it.\"\nLet's build a page that shows Pokémon details. When you navigate to /pokemon/pikachu, the data is already loaded.\n// pages/Pokemon.jsx\nimport { useQuery } from '@tanstack/react-query';\nimport { useLoaderData } from 'react-router-dom';\nimport axios from 'axios';\n\n// A function that returns the query config (key + fetch function).\n// We reuse this in BOTH the loader and the component.\nconst pokemonQuery = (name) => {\n  return {\n    queryKey: ['pokemon', name],\n    queryFn: async () => {\n      const response = await axios.get(\n        `https://pokeapi.co/api/v2/pokemon/${name}`\n      );\n      return response.data;\n    },\n  };\n};\n\n// The loader receives queryClient from the router setup (see step 4).\n// It runs BEFORE the component mounts.\nexport const loader = (queryClient) => {\n  return async ({ params }) => {\n    const { name } = params;\n\n    // ensureQueryData checks the cache first:\n    //   - cached? → returns it instantly\n    //   - not cached? → fetches, caches, and returns it\n    await queryClient.ensureQueryData(pokemonQuery(name));\n\n    // We only return the param — the actual data lives in React Query's ca",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何将React Query与React Router加载程序一起使用（预获取和缓存数据）",
+        "summary": "将React Query与React Router加载程序结合使用可以在组件挂载前预获取数据，消除加载旋转器。使用queryClient.ensureQueryData()首先检查缓存，如果需要则获取新鲜数据，确保页面在挂载时立即呈现。"
+      },
+      "fr": {
+        "title": "Comment utiliser React Query avec les loaders de React Router (pré-récupération et mise en cache des données)",
+        "summary": "La combinaison de React Query avec les loaders de React Router permet la pré-récupération des données avant que les composants ne se montent, éliminant les spinners de chargement. L'utilisation de queryClient.ensureQueryData() vérifie d'abord le cache et récupère les données fraîches si nécessaire, garantissant que la page s'affiche immédiatement lors du montage."
+      },
+      "de": {
+        "title": "Verwendung von React Query mit React Router-Loadern (Vorab-Abrufen und Zwischenspeicherung von Daten)",
+        "summary": "Das Kombinieren von React Query mit React Router-Loadern ermöglicht das Vorab-Abrufen von Daten, bevor Komponenten bereitgestellt werden, und beseitigt Lade-Spinner. Die Verwendung von queryClient.ensureQueryData() prüft zunächst den Cache und ruft bei Bedarf neue Daten ab, um sicherzustellen, dass die Seite beim Bereitstellen sofort gerendert wird."
+      },
+      "es": {
+        "title": "Cómo usar React Query con React Router Loaders (Captura previa y almacenamiento en caché de datos)",
+        "summary": "La combinación de React Query con los cargadores de React Router permite la captura previa de datos antes de que se monten los componentes, eliminando los indicadores de carga. El uso de queryClient.ensureQueryData() verifica primero el caché y obtiene datos frescos si es necesario, asegurando que la página se procese inmediatamente cuando se monta."
+      }
+    }
+  },
+  {
+    "title": "Appends for AI apps: Stream into a single message with Ably AI Transport",
+    "slug": "appends-for-ai-apps-stream-into-single-message-ably-ai-transport",
+    "url": "https://dev.to/ablyblog/appends-for-ai-apps-stream-into-a-single-message-with-ably-ai-transport-398a",
+    "source": "DEV Community",
+    "date": "2026-02-26T12:05:30.000Z",
+    "summary": "Ably AI Transport's message appends feature streams AI tokens into a single message rather than individual messages, solving fragmentation issues from client disconnections and refreshes. This approach simplifies UI reconstruction and message history handling without manual orchestration.",
+    "content": "Streaming tokens is easy. Resuming cleanly is not. A user refreshes mid-response, another client joins late, a mobile connection drops for 10 seconds, and suddenly your \"one answer\" is 600 tiny messages that your UI has to stitch back together. Message history turns into fragments. You start building a side store just to reconstruct \"the response so far\".\nThis is not a model problem. It's a delivery problem\nThat's why we developed message appends for Ably AI Transport. Appends let you stream AI output tokens into a single message as they are produced, so you get progressive rendering for live subscribers and a clean, compact response in history.\nThe failure mode we're fixing\n\n\nThe usual implementation is to stream each token as a single message, which is simple and works perfectly on a stable connection. In production, clients disconnect and resume mid-stream: refreshes, mobile dropouts, backgrounded tabs, and late joins.\nOnce you have real reconnects and refreshes, you inherit work you did not plan for: ordering, dedupe, buffering, \"latest wins\" logic, and replay rules that make history and realtime agree. You can build it, but it is the kind of work that quietly eats weeks of engineering time.\n\nWith appends you can avoid that by changing the shape of the data. Instead of hundreds of token messages, you have one response message whose content grows over time.\nIn Ably AI Transport, you publish an initial response message and capture its server-assigned serial. That serial is what you append to.\nIt's a small detail that ends up doing a lot of work for you:\nconst result = await channel.publish({ name: 'response', data: '' });\nconst { serials: [msgSerial] } = result;\n\nNow, as your model yields tokens, you append each fragment to that same message:\nif (event.type === 'token') {\n  channel.appendMessage({ serial: msgSerial, data: event.text });\n}\n\nWhat changes for clients\n\n\nSubscribers still see progressive output, but they see it as actions on the same message serial. A",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI应用程序的追加：使用Ably AI Transport流入单个消息",
+        "summary": "Ably AI Transport的消息追加功能将AI令牌流入单个消息而不是多个消息，解决了客户端断开连接和刷新导致的碎片化问题。这种方法简化了UI重建和消息历史处理，无需手动编排。"
+      },
+      "fr": {
+        "title": "Appends pour les applications IA : Flux dans un message unique avec Ably AI Transport",
+        "summary": "La fonctionnalité d'ajout de messages d'Ably AI Transport diffuse les jetons IA dans un message unique plutôt que dans des messages individuels, résolvant les problèmes de fragmentation dus aux déconnexions et actualisations des clients. Cette approche simplifie la reconstruction de l'interface utilisateur et la gestion de l'historique des messages sans orchestration manuelle."
+      },
+      "de": {
+        "title": "Appends für KI-Apps: Stream in eine einzelne Nachricht mit Ably AI Transport",
+        "summary": "Die Nachrichtenanhang-Funktion von Ably AI Transport streamt KI-Token in eine einzelne Nachricht statt in einzelne Nachrichten und löst Fragmentierungsprobleme durch Client-Trennungen und Aktualisierungen. Dieser Ansatz vereinfacht die UI-Rekonstruktion und das Nachrichtenverlauf-Management ohne manuelle Orchestrierung."
+      },
+      "es": {
+        "title": "Appends para aplicaciones de IA: Stream en un mensaje único con Ably AI Transport",
+        "summary": "La función de adición de mensajes de Ably AI Transport transmite tokens de IA en un mensaje único en lugar de mensajes individuales, resolviendo problemas de fragmentación por desconexiones y actualizaciones de clientes. Este enfoque simplifica la reconstrucción de la interfaz de usuario y el manejo del historial de mensajes sin orquestación manual."
+      }
+    }
+  },
+  {
+    "title": "Node.js Application with CI/CD GitLab Pipeline on AWS EC2",
+    "slug": "node-js-application-ci-cd-gitlab-pipeline-aws-ec2",
+    "url": "https://dev.to/addwebsolutionpvtltd/nodejs-application-with-cicd-gitlab-pipeline-on-aws-ec2-2kk9",
+    "source": "DEV Community",
+    "date": "2026-02-26T12:01:06.000Z",
+    "summary": "This guide demonstrates setting up a CI/CD pipeline for Node.js applications using GitLab CI/CD to automate testing, building, and deployment to AWS EC2 instances. The automated workflow reduces manual errors and accelerates development cycles through SSH-based code deployment and PM2-managed application restarts.",
+    "content": "“Automation is the key to speed and reliability in modern software development.”\nIntroduction\nArchitecture Overview\nPrerequisites\nCI/CD Workflow (Step-by-Step)\nGitLab Pipeline Configuration\nDeployment Process on AWS EC2\nSecurity Best Practices\nInteresting Facts & Statistics\nFAQs\nKey Takeaways\nConclusion\nContinuous Integration and Continuous Deployment (CI/CD) is a modern development practice that automates the process of building, testing, and deploying applications. This document explains how to set up a CI/CD pipeline for a Node.js application using GitLab CI/CD and deploy it automatically to an AWS EC2 instance.\nAutomate deployment\nReduce manual errors\nImprove development speed\nEnsure reliable releases\nBackend: Node.js\nVersion Control: GitLab\nCI/CD Tool: GitLab Pipeline\nServer: AWS EC2 (Ubuntu)\nProcess Manager: PM2\nSSH Authentication: Secure Key-based login\nHigh-level Flow:\nDeveloper pushes code to GitLab repository.\nGitLab pipeline triggers automatically.\nPipeline installs dependencies and builds project.\nGitLab connects to EC2 via SSH.\nCode is pulled on EC2 server.\nApplication restarts using PM2.\nNginx routes HTTP traffic to the Node.js app\nBefore setting up CI/CD, ensure the following:\nGitLab Setup\nGitLab repository created\nBranches (dev/stage/prod) configured\nGitLab Runner enabled (shared runner works)\nAWS EC2 Setup\nUbuntu EC2 instance running\nNode.js & npm installed\nGit installed on server\nSSH access configured\nPM2 installed globally\n\n\n\nnpm install pm2 -g\n\nSSH Key Setup\nGenerate SSH key on local system:\n\n\n\n    ssh-keygen -t rsa -b 4096\n\nAdd public key to EC2:\n\n\n\n    ~/.ssh/authorized_keys\n\n- Add private key in GitLab:\n    **GitLab → Settings → CI/CD → Variables**\n\nSSH_PRIVATE_KEY\nSSH_HOST\nSSH_USER\nStep 1: Developer Pushes Code\nStep 2: Pipeline Triggered\nStep 3: Install Dependencies\nStep 4: SSH Connection\nStep 5: Deployment\nStep 6: Live Deployment\n“CI/CD turns deployment from a risky event into a routine process.”\nCreate .gitlab-ci.yml in project root:\nproduc",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Node.js应用程序与CI/CD GitLab管道在AWS EC2上的集成",
+        "summary": "本指南演示了如何使用GitLab CI/CD为Node.js应用程序设置CI/CD管道，以自动化测试、构建和部署到AWS EC2实例。自动化工作流通过基于SSH的代码部署和PM2管理的应用程序重启来减少手动错误并加快开发周期。"
+      },
+      "fr": {
+        "title": "Application Node.js avec pipeline CI/CD GitLab sur AWS EC2",
+        "summary": "Ce guide démontre comment configurer un pipeline CI/CD pour les applications Node.js en utilisant GitLab CI/CD pour automatiser le test, la construction et le déploiement sur des instances AWS EC2. Le flux de travail automatisé réduit les erreurs manuelles et accélère les cycles de développement grâce au déploiement de code basé sur SSH et aux redémarrages d'application gérés par PM2."
+      },
+      "de": {
+        "title": "Node.js-Anwendung mit CI/CD-GitLab-Pipeline auf AWS EC2",
+        "summary": "Diese Anleitung demonstriert die Einrichtung einer CI/CD-Pipeline für Node.js-Anwendungen mit GitLab CI/CD zur Automatisierung von Tests, Builds und Bereitstellung auf AWS EC2-Instanzen. Der automatisierte Workflow reduziert manuelle Fehler und beschleunigt Entwicklungszyklen durch SSH-basierte Code-Bereitstellung und PM2-verwaltete Anwendungsneustart."
+      },
+      "es": {
+        "title": "Aplicación Node.js con pipeline CI/CD de GitLab en AWS EC2",
+        "summary": "Esta guía demuestra cómo configurar un pipeline CI/CD para aplicaciones Node.js usando GitLab CI/CD para automatizar pruebas, compilación e implementación en instancias de AWS EC2. El flujo de trabajo automatizado reduce errores manuales y acelera los ciclos de desarrollo mediante la implementación de código basada en SSH y reinicios de aplicaciones gestionados por PM2."
+      }
+    }
+  },
+  {
+    "title": "The £20 Billion Handshake",
+    "slug": "the-20-billion-handshake",
+    "url": "https://dev.to/rawveg/the-ps20-billion-handshake-2mmk",
+    "source": "DEV Community",
+    "date": "2026-02-26T12:00:00.000Z",
+    "summary": "Google pays Apple $20 billion annually to remain Safari's default search engine, a relationship exposed during DOJ antitrust proceedings that reflects deeper competition among tech giants. As AI-powered search tools reshape how users find information, these backend licensing deals increasingly determine competitive advantage in the digital economy.",
+    "content": "The smartphone in your pocket contains a curious paradox. Apple, one of the world's most valuable companies, builds its own chips, designs its own operating system, and controls every aspect of its ecosystem with obsessive precision. Yet when you tap Safari's search bar, you're not using an Apple search engine. You're using Google. And Google pays Apple a staggering $20 billion every year to keep it that way.\nThis colossal payment, revealed during the US Department of Justice's antitrust trial against Google, represents far more than a simple business arrangement. It's the visible tip of a fundamental transformation in how digital platforms compete, collaborate, and ultimately extract value from the billions of searches and queries humans perform daily. As artificial intelligence reshapes the search landscape and digital assistants become genuine conversational partners rather than glorified keyword matchers, these backend licensing deals are quietly redrawing the competitive map of the digital economy.\nThe stakes have never been higher. Search advertising generated $102.9 billion in revenue in the United States alone during 2024, accounting for nearly 40 per cent of all digital advertising spending. But the ground is shifting beneath the industry's feet. AI-powered search experiences from OpenAI's ChatGPT, Microsoft's Copilot, and Google's own AI Overviews are fundamentally changing how people find information, and these changes threaten to upend decades of established business models. Into this volatile mix come a new wave of licensing deals, platform partnerships, and strategic alliances that could determine which companies dominate the next generation of digital interaction.\nTo understand where we're heading, it helps to grasp how we got here. Google's dominance in search wasn't accidental. The company built the best search engine, captured roughly 90 per cent of the market, and then methodically paid billions to ensure its search bar appeared by default on ever",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "200亿英镑的握手",
+        "summary": "谷歌每年向苹果支付200亿美元以保持在Safari中作为默认搜索引擎的地位,这一关系在司法部反垄断诉讼中曝光,反映了科技巨头之间更深层的竞争。随着由人工智能驱动的搜索工具重塑用户如何查找信息,这些后端许可协议日益决定了数字经济中的竞争优势。"
+      },
+      "fr": {
+        "title": "La Poignée de Main de 20 Milliards de Livres",
+        "summary": "Google paie à Apple 20 milliards de dollars par an pour rester le moteur de recherche par défaut de Safari, une relation exposée lors des poursuites antitrust du ministère de la Justice qui reflète une concurrence plus profonde entre les géants de la technologie. À mesure que les outils de recherche alimentés par l'IA redéfinissent la façon dont les utilisateurs trouvent des informations, ces accords de licence de backend déterminent de plus en plus l'avantage concurrentiel dans l'économie numérique."
+      },
+      "de": {
+        "title": "Der 20-Milliarden-Pfund-Handschlag",
+        "summary": "Google zahlt Apple jährlich 20 Milliarden Dollar, um die Standard-Suchmaschine von Safari zu bleiben, eine Beziehung, die in den Kartellverfahren des US-Justizministeriums offengelegt wurde und tiefer gehende Konkurrenzen zwischen Technologieriesen widerspiegelt. Da KI-gestützte Suchtools die Art und Weise neu gestalten, wie Benutzer Informationen finden, bestimmen diese Backend-Lizenzvereinbarungen zunehmend den Wettbewerbsvorteil in der digitalen Wirtschaft."
+      },
+      "es": {
+        "title": "El Apretón de Manos de 20 Mil Millones de Libras",
+        "summary": "Google paga a Apple 20 mil millones de dólares anuales para seguir siendo el motor de búsqueda predeterminado de Safari, una relación expuesta durante los procedimientos antimonopolio del Departamento de Justicia que refleja una competencia más profunda entre los gigantes tecnológicos. A medida que las herramientas de búsqueda impulsadas por IA remodelan cómo los usuarios encuentran información, estos acuerdos de licencia de backend determinan cada vez más la ventaja competitiva en la economía digital."
+      }
+    }
+  },
+  {
+    "title": "Kubernetes'te StorageClass Nedir?",
+    "slug": "kubernetes-storageclass-nedir",
+    "url": "https://dev.to/tarikanafarta/kuberneteste-storageclass-nedir-dha",
+    "source": "DEV Community",
+    "date": "2026-02-26T11:49:45.000Z",
+    "summary": "Kubernetes storage architecture comprises PV (Persistent Volumes), PVC (Persistent Volume Claims), and StorageClass, supporting both static and dynamic provisioning models. Data storage can reside on node-local disks, NFS shares, or cloud providers depending on StorageClass policies and PV configuration.",
+    "content": "PV, PVC ve Veri Gerçekten Nerede Saklanıyor?\n\n\nBu yazıda şu konuları inceleyeceğim:\nPV (Persistent Volume) nedir?\nPVC (Persistent Volume Claim) nedir?\nStorageClass ne işe yarar?\nStatic vs Dynamic provisioning farkı nedir?\nMariaDB / PostgreSQL gibi uygulamalarda disk nerede?\nÖncelikle Kubernetes'te storage zinciri şu şekildedir:\nPod -> PVC -> StorageClass -> PV -> Physical Storage\nPV, cluster içindeki gerçek disk kaynağını temsil eder.\nBu kaynak şunlardan birisidir:\nNode üzerindeki local disk\nNFS share\nCloud disk\nDistributed storage\nYani aslında PV, storage'ın kendisidir.\nPVC ise uygulamanın disk talebidir.\nÖrneğin:\n10Gi storage\nAccess mode: ReadWriteOnce\nstorageClass: fast-storage\nPVC diski oluşturmaz, bir disk talep eder.\nStorageClass, PVC oluşturulduğunda disk'in nasıl sağlanacağını belirler.\nYani, disk local mi olacak? NFS mi olacak? Cloud block storage mı olacak? Otomatik mi üretilecek? Hangi performans sınıfı kullanılacak? Gibi sorulara cevap veren bir policy katmanıdır.\nStatic provisioning modelinde PV manuel olarak oluşturulur. Yani önce storage kaynağı tanımlanır, ardından PVC bu PV'ye bağlanır.\nBu yöntem daha fazla kontrol sağlar ancak her yeni disk ihtiyacında manuel işlem gerektirir. Genellikle test ortamlarında veya local/NFS kurulumlarında tercih edilir.\nDynamic provisioning modelinde ise sadece PVC oluşturulur.\nBu süreç CSI (Container Storage Interface) driver'ları sayesinde çalışır.\nBu sorunun cevabı PV tanımındadır.\nPV şu path'i gösteriyorsa: /mnt/k8s/data, disk node üzerindedir. Node arızalanırsa veri kaybedilebilir. Pod başka node'a taşınırsa diske erişilemez.\nPV şu şekilde tanımlanmışsa:\nnfs:\n  server: 192.168.1.10\n  path: /srv/nfs/share\n\nDisk NFS server üzerindedir. Pod hangi node'da olursa olsun aynı veriye erişebilir.\nPV bir cloud volume'a bağlıysa, disk cloud provider tarafındadır.\nRWO (ReadWriteOnce) -> Sadece tek node yazabilir\nPVC silindiğinde disk'in nasıl davranacağını reclaim policy belirler. Kubernetes'te 3 farklı reclaim policy vardır",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Kubernetes中的StorageClass是什么?",
+        "summary": "Kubernetes存储架构包括PV(持久卷)、PVC(持久卷声明)和StorageClass,支持静态和动态配置模型。根据StorageClass策略和PV配置,数据存储可以驻留在节点本地磁盘、NFS共享或云提供商上。"
+      },
+      "fr": {
+        "title": "Qu'est-ce que StorageClass dans Kubernetes?",
+        "summary": "L'architecture de stockage Kubernetes comprend PV (Persistent Volumes), PVC (Persistent Volume Claims) et StorageClass, supportant les modèles de provisionnement statique et dynamique. Le stockage de données peut résider sur des disques locaux de nœud, des partages NFS ou des fournisseurs cloud en fonction des politiques StorageClass et de la configuration PV."
+      },
+      "de": {
+        "title": "Was ist StorageClass in Kubernetes?",
+        "summary": "Die Kubernetes-Speicherarchitektur umfasst PV (Persistent Volumes), PVC (Persistent Volume Claims) und StorageClass und unterstützt sowohl statische als auch dynamische Bereitstellungsmodelle. Der Datenspeicher kann je nach StorageClass-Richtlinien und PV-Konfiguration auf lokalen Node-Festplatten, NFS-Freigaben oder Cloud-Anbietern residieren."
+      },
+      "es": {
+        "title": "¿Qué es StorageClass en Kubernetes?",
+        "summary": "La arquitectura de almacenamiento de Kubernetes comprende PV (Volúmenes Persistentes), PVC (Reclamaciones de Volumen Persistentes) y StorageClass, admitiendo modelos de aprovisionamiento estático y dinámico. El almacenamiento de datos puede residir en discos locales de nodos, recursos compartidos NFS o proveedores en la nube dependiendo de las políticas de StorageClass y la configuración de PV."
+      }
+    }
+  },
+  {
+    "title": "Why is cdk.out (Cloud Assembly) Necessary in AWS CDK?",
+    "slug": "why-is-cdk-out-cloud-assembly-necessary-aws-cdk",
+    "url": "https://dev.to/aws-heroes/why-is-cdkout-cloud-assembly-necessary-in-aws-cdk-n5f",
+    "source": "DEV Community",
+    "date": "2026-02-26T11:45:47.000Z",
+    "summary": "AWS CDK's cdk.out directory stores the cloud assembly—an intermediate artifact containing CloudFormation templates, metadata, and asset files generated from CDK code. This assembly bridges CDK code to AWS infrastructure deployment and includes stack templates, manifest files, and Docker image assets.",
+    "content": "What is cdk.out\n\n\ncdk.out is a directory that stores a collection of files called the cloud assembly.\nWhen you run the cdk synth command or the cdk deploy command, the cloud assembly is generated from your CDK code and stored in the cdk.out directory.\nThe cloud assembly is a collection of files generated by the synthesis of a CDK application (CDK code). The CDK CLI references this information to deploy resources to the AWS environment.\nIn other words, the cloud assembly can be considered an intermediate artifact that CDK uses to deploy infrastructure definitions written in CDK code to the AWS environment.\n\nThe cloud assembly primarily consists of the following files and directories:\n(stack name).template.json\n\n\nCloudFormation template generated by CDK code\n(stack name).assets.json\n\n\nFile describing information about assets used in CDK code\nmanifest.json\n\n\nFile describing metadata of the cloud assembly\ntree.json\n\n\nFile representing the Construct tree structure of resources defined in CDK code\ncdk.out\n\n\nFile storing Cloud Assembly schema version information\nasset.(hash value)/\n\n\nDirectory storing asset files used in CDK code\nUses hash values calculated for each asset as directory names\nEach asset is classified into two types: S3 assets and Docker image assets, which are uploaded to S3 buckets or ECR repositories created by the cdk bootstrap command when the cdk deploy command is executed\nDocker image assets are built when the cdk deploy command is executed (not when the cdk synth command is executed)\nassembly-(stage name)/\n\n\nDirectory storing cloud assemblies generated for each stage when using Stage Construct\n\n\n\n\n\n\n\n\n\n\n\n\n  \n  \n  Why cdk.out is Necessary\n\n\nAs explained above, cdk.out is a directory for storing the cloud assembly, which is an intermediate artifact generated from CDK code.\nSo why is this directory necessary? You might wonder whether it's really necessary to generate and store information needed for deployment as files.\nBefore explaining this, let me fir",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么AWS CDK中的cdk.out(云程序集)是必要的?",
+        "summary": "AWS CDK的cdk.out目录存储云程序集——一个中间制品,包含从CDK代码生成的CloudFormation模板、元数据和资产文件。此程序集连接CDK代码与AWS基础设施部署,包括堆栈模板、清单文件和Docker镜像资产。"
+      },
+      "fr": {
+        "title": "Pourquoi cdk.out (Cloud Assembly) est-il nécessaire dans AWS CDK?",
+        "summary": "Le répertoire cdk.out d'AWS CDK stocke l'assembly cloud — un artefact intermédiaire contenant les modèles CloudFormation, les métadonnées et les fichiers d'actifs générés à partir du code CDK. Cet assembly relie le code CDK au déploiement de l'infrastructure AWS et inclut les modèles de pile, les fichiers manifeste et les actifs d'image Docker."
+      },
+      "de": {
+        "title": "Warum ist cdk.out (Cloud Assembly) in AWS CDK notwendig?",
+        "summary": "Das Verzeichnis cdk.out von AWS CDK speichert die Cloud Assembly — ein Zwischenartefakt, das CloudFormation-Vorlagen, Metadaten und aus CDK-Code generierte Asset-Dateien enthält. Diese Assembly verbindet CDK-Code mit der AWS-Infrastruktur-Bereitstellung und umfasst Stack-Vorlagen, Manifest-Dateien und Docker-Image-Assets."
+      },
+      "es": {
+        "title": "¿Por qué es necesario cdk.out (Cloud Assembly) en AWS CDK?",
+        "summary": "El directorio cdk.out de AWS CDK almacena el cloud assembly—un artefacto intermedio que contiene plantillas de CloudFormation, metadatos y archivos de activos generados a partir del código CDK. Este assembly vincula el código CDK con la implementación de infraestructura de AWS e incluye plantillas de pila, archivos de manifiesto y activos de imagen Docker."
+      }
+    }
+  },
+  {
+    "title": "My Pixel's Keyboard Generated a Custom Emoji.",
+    "slug": "my-pixel-keyboard-generated-custom-emoji",
+    "url": "https://dev.to/megzlawther1/my-pixels-keyboard-generated-a-custom-emoji-42k",
+    "source": "DEV Community",
+    "date": "2026-02-26T11:45:35.000Z",
+    "summary": "Google Gemini's Emojify feature on Pixel 10 keyboards generates custom emojis dynamically beyond Unicode standards, creating novel visual communications not found in preset emoji tables. This on-device AI capability demonstrates how generative models can extend traditional interface constraints.",
+    "content": "What I Built with Google Gemini: \nMy project isn't a traditional \"build\" in the sense of writing code for a new application. Instead, I built a novel interaction with Google Gemini, specifically through the \"Emojify\" feature on my Google Pixel 10 keyboard. My \"build\" was essentially demonstrating and exploring how a widely accessible AI feature can generate entirely new, non-standard visual communication..\nThe \"problem\" it solved (or rather, illuminated) is the limitation of pre-set, static emoji sets. While existing emojis are vast, they can't cover every nuanced concept. My interaction with Gemini showcased its ability to dynamically create a custom visual to perfectly fit a specific textual context, transcending the boundaries of Unicode.\nHere's what happened: \nThis wasn't through a dedicated generative AI interface; it was a seamless, on-device AI capability integrated into a common keyboard function. \nWhat I Learned:\nThis experience has been incredibly eye-opening, both technically and philosophically.\nGoing Beyond the Standard Emoji Table (and My Reaction to It): My biggest ponderance and a major learning point is how it was able to go beyond the standard emoji table of preset characters (Unicode/ASCII). Emojis are typically strict templates of codes, already preset and preloaded. Gemini's Emojify function went out of its preset and preloaded list to generate something entirely new. When I saw this custom visual, my immediate reaction was confusion. I automatically checked my keyboard's emoji list, particularly the \"Family\" section, and confirmed that the generated icon was not available there. My screenshot of the available standard family emojis (e.g., \"Family: Adult, Adult, Child\") clearly shows they are distinct and generic. This solidifies that the AI truly generated a novel image, rather than pulling from existing assets, and profoundly changed my understanding of what a keyboard's \"emojify\" function is capable of.\nAI's Gender Inference in Generative Out",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我的Pixel键盘生成了自定义表情符号",
+        "summary": "谷歌Gemini在Pixel 10键盘上的Emojify功能动态生成超越Unicode标准的自定义表情符号，创造出预设表情符号表中找不到的新颖视觉通信。这种设备上的AI能力展示了生成模型如何能够扩展传统界面约束。"
+      },
+      "fr": {
+        "title": "Mon clavier Pixel a généré un emoji personnalisé",
+        "summary": "La fonction Emojify de Google Gemini sur les claviers Pixel 10 génère dynamiquement des emojis personnalisés au-delà des normes Unicode, créant de nouvelles communications visuelles introuvables dans les tableaux d'emojis préétablis. Cette capacité d'IA sur l'appareil démontre comment les modèles génératifs peuvent étendre les contraintes d'interface traditionnelles."
+      },
+      "de": {
+        "title": "Meine Pixel-Tastatur hat ein benutzerdefiniertes Emoji generiert",
+        "summary": "Googles Gemini-Emojify-Funktion auf Pixel-10-Tastaturen generiert dynamisch benutzerdefinierte Emojis jenseits von Unicode-Standards und erzeugt neuartige visuelle Kommunikation, die in voreingestellten Emoji-Tabellen nicht zu finden ist. Diese On-Device-KI-Funktion zeigt, wie generative Modelle traditionelle Schnittstellenbeschränkungen erweitern können."
+      },
+      "es": {
+        "title": "Mi teclado Pixel generó un emoji personalizado",
+        "summary": "La función Emojify de Google Gemini en los teclados Pixel 10 genera emojis personalizados de forma dinámica más allá de los estándares Unicode, creando comunicaciones visuales novedosas que no se encuentran en las tablas de emojis predefinidas. Esta capacidad de IA en el dispositivo demuestra cómo los modelos generativos pueden ampliar las restricciones tradicionales de la interfaz."
+      }
+    }
+  },
+  {
+    "title": "I Built and Launched an AI Document API in Under a Week — Here's Exactly How I Did It",
+    "slug": "i-built-and-launched-ai-document-api-under-week",
+    "url": "https://dev.to/senzen/i-built-and-launched-an-ai-document-api-in-under-a-week-heres-exactly-how-i-did-it-4j8c",
+    "source": "DEV Community",
+    "date": "2026-02-26T11:45:08.000Z",
+    "summary": "Developer launched Condensare, an AI document processing API leveraging GPT-4o to transform uploaded files into structured notes and contextual implementation suggestions. Deployed serverlessly on Vercel and published on RapidAPI, the solution was built and launched in under one week.",
+    "content": "I Built and Launched an AI Document API in Under a Week — Here's Exactly How I Did It\n\n\n\nTL;DR: I built Condensare — an AI-powered document processing API that turns any uploaded file into structured notes and contextualised implementation suggestions. It's live on RapidAPI. This is the full breakdown of how I built it, deployed it, tested it and shipped it.\nA few weeks ago I had a simple frustration.\nI was uploading documents to various AI tools trying to get useful summaries and actionable insights, and every single one felt generic. The output didn't know what industry I was in, what scale my business operated at, or what I actually wanted to do with the information.\nIt just summarised. That was it.\nSo I built Condensare — a document condensing and AI suggestion API that takes any uploaded file and returns structured notes plus contextualised implementation suggestions.\nI kept it simple and production-focused:\n\n\n\nLayer\nTechnology\n\n\n\n\nAPI Server\nNode.js + Express\n\n\nAI\nOpenAI GPT-4o\n\n\nDeployment\nVercel (serverless)\n\n\nMarketplace\nRapidAPI\n\n\nFile Uploads\nMulter\n\n\nDocument Parsing\npdf-parse, mammoth, xlsx\n\n\n\nVercel serverless was the right call for an API marketplace product — zero infrastructure management, global distribution out of the box, automatic scaling. You don't want to be managing servers when you're trying to get to market fast.\ncondensare-api/\n├── src/\n│   ├── app.js                  # Express entry point\n│   ├── routes/\n│   │   └── condense.js         # Route definitions\n│   ├── middleware/\n│   │   └── authenticate.js     # Auth + plan management\n│   ├── services/\n│   │   ├── parseService.js     # File parsing logic\n│   │   ├── condenseService.js  # AI condensing logic\n│   │   └── suggestService.js   # AI suggestions logic\n│   └── utils/\n│       └── fileUtils.js        # File validation helpers\n├── vercel.json\n└── package.json\n\nPOST /api/v1/condense/parse\n\n\nAvailable on: FREE, PRO, MEGA, ULTRA\nThe lightweight endpoint. Upload any supported file and get b",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我在一周内构建并推出了一个AI文档API——以下是我的具体做法",
+        "summary": "开发者推出了Condensare，这是一个利用GPT-4o的AI文档处理API，可以将上传的文件转换为结构化笔记和上下文实现建议。在Vercel上无服务器部署并在RapidAPI上发布，该解决方案在一周内构建和推出。"
+      },
+      "fr": {
+        "title": "J'ai construit et lancé une API de documents IA en une semaine — Voici exactement comment j'ai fait",
+        "summary": "Un développeur a lancé Condensare, une API de traitement de documents IA exploitant GPT-4o pour transformer les fichiers téléchargés en notes structurées et suggestions d'implémentation contextuelle. Déployée sans serveur sur Vercel et publiée sur RapidAPI, la solution a été construite et lancée en une semaine."
+      },
+      "de": {
+        "title": "Ich habe eine KI-Dokument-API in einer Woche entwickelt und gestartet — Genau so habe ich es getan",
+        "summary": "Ein Entwickler hat Condensare gestartet, eine KI-Dokumentverarbeitungs-API, die GPT-4o nutzt, um hochgeladene Dateien in strukturierte Notizen und kontextabhängige Implementierungsvorschläge umzuwandeln. Serverlos auf Vercel bereitgestellt und auf RapidAPI veröffentlicht, wurde die Lösung in einer Woche entwickelt und gestartet."
+      },
+      "es": {
+        "title": "Construí y lancé una API de documentos IA en una semana — Así es exactamente cómo lo hice",
+        "summary": "Un desarrollador lanzó Condensare, una API de procesamiento de documentos IA que aprovecha GPT-4o para transformar archivos cargados en notas estructuradas y sugerencias de implementación contextuales. Implementada sin servidor en Vercel y publicada en RapidAPI, la solución se construyó y lanzó en una semana."
+      }
+    }
+  },
+  {
+    "title": "Why We Replaced Debezium + Kafka in Our Large-Scale Real-Time Pipeline",
+    "slug": "why-we-replaced-debezium-kafka-large-scale-real-time-pipeline",
+    "url": "https://dev.to/heywalter/why-we-replaced-debezium-kafka-in-our-large-scale-real-time-pipeline-2dc1",
+    "source": "DEV Community",
+    "date": "2026-02-26T11:42:08.000Z",
+    "summary": "A company replaced Debezium and Kafka with alternative solutions to sync over 3,000 tables across heterogeneous databases (Oracle, MySQL, PostgreSQL, MongoDB) into ClickHouse for real-time analytics. The migration addressed operational complexity and maintenance overhead in large-scale CDC pipelines.",
+    "content": "I’ve just wrapped up a real-time data platform project that’s been running smoothly in production for a few months now. While it’s all still fresh, I figured it’s a good time to look back on our selection process, the migration, the pitfalls we hit, and some takeaways — hopefully useful for anyone tackling real-time synchronization across heterogeneous databases.\nOur company has grown quickly over the past few years, with multiple rounds of IT upgrades, system migrations, and acquisitions along the way. This left us with a mixed bag of databases: Oracle for legacy core transaction systems, MySQL for most business applications, SQL Server for some remaining Windows-based legacy apps, PostgreSQL for newer microservices, and even MongoDB for semi-structured data. All told, we have around 50+ instances and over 3,000 regularly used tables, spread across different teams and systems — a textbook case of data silos.\nThe goal was to build a unified real-time analytics platform by syncing data from all these sources near-real-time into a data warehouse (we went with ClickHouse). Primary use cases included real-time dashboards, risk monitoring, and data APIs for some of the downstream applications . ClickHouse’s strengths in high-concurrency queries, compression, and OLAP performance made it perfect for delivering second-to-minute latency.\nOn top of that, we wanted the pipeline to be relatively low-maintenance, so data engineers could own it day-to-day and we could move toward real DataOps practices — instead of pulling in developers for every tweak.\nAs the tech leader, I usually lean toward proven open-source solutions to avoid building everything from scratch. So we naturally started with the industry’s go-to real-time CDC stack:\n\nFigure1: Debezium Kafka ClickHouse architecture\nCore components:\nCDC Capture: Debezium for change capture. Its wide range of connectors covered virtually all our source types, and the community is solid.\nBuffering: Apache Kafka as the intermediate",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么我们在大规模实时管道中替换了Debezium + Kafka",
+        "summary": "一家公司用替代方案替换了Debezium和Kafka，将超过3000个表从异构数据库（Oracle、MySQL、PostgreSQL、MongoDB）同步到ClickHouse以进行实时分析。这次迁移解决了大规模CDC管道中的操作复杂性和维护开销问题。"
+      },
+      "fr": {
+        "title": "Pourquoi nous avons remplacé Debezium + Kafka dans notre pipeline temps réel à grande échelle",
+        "summary": "Une entreprise a remplacé Debezium et Kafka par des solutions alternatives pour synchroniser plus de 3 000 tables à travers des bases de données hétérogènes (Oracle, MySQL, PostgreSQL, MongoDB) dans ClickHouse pour l'analyse en temps réel. La migration a résolu la complexité opérationnelle et la surcharge de maintenance dans les pipelines CDC à grande échelle."
+      },
+      "de": {
+        "title": "Warum wir Debezium + Kafka in unserer großflächigen Echtzeit-Pipeline ersetzt haben",
+        "summary": "Ein Unternehmen hat Debezium und Kafka durch alternative Lösungen ersetzt, um über 3.000 Tabellen aus heterogenen Datenbanken (Oracle, MySQL, PostgreSQL, MongoDB) in ClickHouse für Echtzeit-Analytik zu synchronisieren. Die Migration hat die operative Komplexität und Wartungsbelastung in großflächigen CDC-Pipelines reduziert."
+      },
+      "es": {
+        "title": "Por qué reemplazamos Debezium + Kafka en nuestro pipeline de tiempo real a gran escala",
+        "summary": "Una empresa reemplazó Debezium y Kafka con soluciones alternativas para sincronizar más de 3,000 tablas en bases de datos heterogéneas (Oracle, MySQL, PostgreSQL, MongoDB) en ClickHouse para análisis en tiempo real. La migración abordó la complejidad operativa y la sobrecarga de mantenimiento en pipelines CDC a gran escala."
+      }
+    }
+  },
+  {
+    "title": "Cypress in the Age of AI Agents: Orchestration, Trust, and the Tests That Run Themselves",
+    "slug": "cypress-in-age-of-ai-agents-orchestration-trust-tests",
+    "url": "https://dev.to/cypress/cypress-in-the-age-of-ai-agents-orchestration-trust-and-the-tests-that-run-themselves-43go",
+    "source": "DEV Community",
+    "date": "2026-02-26T11:33:21.000Z",
+    "summary": "Cypress's cy.prompt() enables AI to write and self-heal tests in plain English, but introduces trust concerns when AI makes autonomous pipeline decisions without human oversight. The article distinguishes between risky autonomy and preferable augmentation in AI-driven testing frameworks.",
+    "content": "Last year, I wrote about Docker and Cypress for this blog. It covered containers, layer caching, and parallel runners. Good stuff. Useful stuff.\nBut I'm not writing that article again.\nHere's why.\nI could write a perfect container config in my sleep. So could Claude. So could GPT. So could any intern with a prompt. Syntax has become a commodity. The Dockerfile isn't the hard part anymore.\nThe hard part?\nOrchestration and trust when AI agents run the tests.\nLet me explain.\nIn 2025, Cypress shipped cy.prompt(). Write tests in plain English. The AI figures out the selectors. It even self-heals when your UI changes.\nThat's powerful. And that's dangerous.\nNot because the tool is bad. It's genuinely impressive. But because it changes who is making decisions in your pipeline. And most teams haven't thought about that.\nBefore cy.prompt(), the chain of trust was simple:\nA human wrote the test\nA human reviewed it\nCI ran it\nIf it failed, a human fixed it\nEvery link in that chain had a name attached.\nNow?\nAn AI writes the test\nAn AI picks the selectors\nAn AI heals the test when it breaks\nThe human sees green checkmarks\nEverybody ships\nUntil something goes wrong. And nobody knows why.\nThe industry keeps confusing two very different things.\nAutonomy means the agent acts for you. You find out later what happened.\nAugmentation means the agent helps you decide. You still make the call.\nMost AI testing tools sell autonomy:\n\"Never write a test again!\"\n\"Self-healing pipelines!\"\n\"Zero maintenance!\"\nThat sounds great in a demo.\nIt falls apart in production.\nGoogle's testing team found that 1.5% of all test runs were flaky (2016 study). Nearly 16% of tests showed some flakiness over time. Microsoft reported 49,000 flaky tests across 100+ product teams (2022). These numbers haven't gotten better. Now imagine those tests were written by AI.\nYou don't have a testing problem.\nYou have a trust problem.\nI've watched AI code assistants generate test suites. Here's the pattern I see every time:\nD",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Cypress在AI代理时代：编排、信任与自运行测试",
+        "summary": "Cypress的cy.prompt()使AI能够用纯英文编写和自我修复测试，但当AI在没有人工监督的情况下自主做出管道决策时会引入信任问题。该文章区分了AI驱动测试框架中的危险自主性和更可取的增强方法。"
+      },
+      "fr": {
+        "title": "Cypress à l'ère des agents IA : Orchestration, confiance et tests qui s'exécutent eux-mêmes",
+        "summary": "La méthode cy.prompt() de Cypress permet à l'IA d'écrire et d'auto-corriger les tests en anglais simple, mais introduit des préoccupations de confiance lorsque l'IA prend des décisions autonomes dans le pipeline sans surveillance humaine. L'article distingue entre l'autonomie risquée et l'augmentation préférable dans les cadres de test pilotés par l'IA."
+      },
+      "de": {
+        "title": "Cypress im Zeitalter von KI-Agenten: Orchestrierung, Vertrauen und selbstablaufende Tests",
+        "summary": "Cypress's cy.prompt() ermöglicht es der KI, Tests in einfachem Englisch zu schreiben und selbst zu heilen, führt aber zu Vertrauensproblemen ein, wenn KI autonome Pipeline-Entscheidungen ohne menschliche Aufsicht trifft. Der Artikel unterscheidet zwischen riskanter Autonomie und erwünschter Augmentation in KI-gesteuerten Test-Frameworks."
+      },
+      "es": {
+        "title": "Cypress en la Era de los Agentes de IA: Orquestación, Confianza y Pruebas que se Ejecutan por Sí Solas",
+        "summary": "El cy.prompt() de Cypress permite que la IA escriba y auto-corrija pruebas en inglés simple, pero introduce preocupaciones de confianza cuando la IA toma decisiones autónomas en el pipeline sin supervisión humana. El artículo distingue entre la autonomía arriesgada y la aumentación preferible en marcos de prueba impulsados por IA."
+      }
+    }
+  },
+  {
+    "title": "I realized my AI tools were leaking sensitive data. So I built a local proxy to stop it",
+    "slug": "i-realized-ai-tools-leaking-sensitive-data-built-local-proxy",
+    "url": "https://dev.to/ubcent/i-realized-my-ai-tools-were-leaking-sensitive-data-so-i-built-a-local-proxy-to-stop-it-2pma",
+    "source": "DEV Community",
+    "date": "2026-02-26T11:31:45.000Z",
+    "summary": "Developer created Velar, a local HTTP/HTTPS proxy that detects and masks sensitive data before transmission to AI providers, preventing unintended credential and API key leaks. The tool addresses privacy gaps in AI coding assistants like Cursor and Copilot that send full codebase context to external servers.",
+    "content": "A few months ago I had a moment of uncomfortable clarity.\nI was using Cursor to work on a project that had database credentials in an .env file. The AI had full access to the codebase. I wasn't thinking about it - I was just coding. And then it hit me: all of this is going to their servers right now. The keys, the internal URLs, everything.\nI stopped and thought about how long I'd been doing this without a second thought. And then I asked a few colleagues. Same story. Nobody was really thinking about it. We all just... trusted that it was fine.\nIt probably is fine, most of the time. But \"probably fine\" is not a compliance posture. And as AI coding tools get deeper access to our codebases, the surface area for accidental leaks keeps growing.\nThat's why I built Velar — a local proxy that sits between your app and AI providers, detects sensitive data, and masks it before it ever leaves your machine.\n\nCopilot, Cursor - these tools are genuinely useful. But they work by sending your code (and often a lot of surrounding context) to external APIs. Most developers don't think carefully about what's in that context.\nCommon things that end up in AI requests without people realizing:\nAWS/GCP/Azure credentials accidentally committed or present in env files\nDatabase connection strings\nInternal API endpoints and tokens\nCustomer emails or names in logs you're debugging\nJWTs from test sessions\nNone of this is malicious. It's just how development works. But \"it's not malicious\" doesn't mean it's not a problem when you're dealing with regulated data or working in an enterprise environment.\nVelar runs locally as an HTTP/HTTPS proxy with MITM support. You configure it to intercept traffic to specific domains (like api.openai.com), and it inspects outbound payloads before forwarding them.\nYour app → Velar → AI provider\n\nWhen it detects something sensitive, it replaces it with a deterministic placeholder:\nalice@company.com → [EMAIL_1]\nAKIAIOSFODNN7EXAMPLE → [AWS_KEY_1]\n\nThen, when the re",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我意识到我的AI工具在泄露敏感数据。所以我构建了一个本地代理来阻止它",
+        "summary": "开发者创建了Velar，一个本地HTTP/HTTPS代理，在数据传输到AI提供商之前检测并屏蔽敏感数据，防止意外的凭证和API密钥泄露。该工具解决了Cursor和Copilot等AI编码助手的隐私漏洞，这些助手将完整代码库上下文发送到外部服务器。"
+      },
+      "fr": {
+        "title": "J'ai réalisé que mes outils IA fuyaient des données sensibles. Alors j'ai construit un proxy local pour l'arrêter",
+        "summary": "Un développeur a créé Velar, un proxy HTTP/HTTPS local qui détecte et masque les données sensibles avant leur transmission aux fournisseurs d'IA, empêchant les fuites involontaires d'identifiants et de clés API. L'outil répond aux lacunes en matière de confidentialité des assistants de codage IA comme Cursor et Copilot qui envoient le contexte complet de la base de code aux serveurs externes."
+      },
+      "de": {
+        "title": "Ich merkte, dass meine KI-Tools sensible Daten lecken. Deshalb habe ich einen lokalen Proxy erstellt, um das zu stoppen",
+        "summary": "Ein Entwickler erstellte Velar, einen lokalen HTTP/HTTPS-Proxy, der sensible Daten vor der Übertragung an KI-Anbieter erkennt und maskiert und so unbeabsichtigte Anmeldedaten- und API-Schlüssel-Lecks verhindert. Das Tool behebt Datenschutzlücken in KI-Codierungsassistenten wie Cursor und Copilot, die den vollständigen Codebase-Kontext an externe Server senden."
+      },
+      "es": {
+        "title": "Me di cuenta de que mis herramientas de IA estaban filtrando datos sensibles. Así que construí un proxy local para detenerlo",
+        "summary": "El desarrollador creó Velar, un proxy HTTP/HTTPS local que detecta y enmascara datos sensibles antes de su transmisión a proveedores de IA, evitando fugas involuntarias de credenciales y claves de API. La herramienta aborda las brechas de privacidad en asistentes de codificación impulsados por IA como Cursor y Copilot que envían contexto completo de la base de código a servidores externos."
+      }
+    }
+  },
+  {
+    "title": "React Query: What Is `staleTime` and Why Should You Care?",
+    "slug": "react-query-what-is-staletime-and-why-should-you-care",
+    "url": "https://dev.to/bishoy_bishai/react-query-what-is-staletime-and-why-should-you-care-1m64",
+    "source": "DEV Community",
+    "date": "2026-02-26T11:27:35.000Z",
+    "summary": "React Query's staleTime configuration defines how long cached data remains fresh before triggering background re-fetches, implementing the stale-while-revalidate pattern. Proper staleTime configuration improves perceived performance by serving cached data instantly while silently updating in the background.",
+    "content": "Ever been working on a web app and felt like your data fetching was doing too much work? You know the drill: navigate to a list page, see a loading spinner. Click into a detail, another spinner. Go back to the list... spinner again. It’s a classic scenario, and honestly, it can make even the snappiest apps feel sluggish.\nAs developers, we often focus on making sure our data is always up-to-the-second fresh. But sometimes, \"always fresh\" comes at the cost of user experience. This is where React Query's staleTime comes into play. It’s not just a performance tweak; it’s a fundamental shift in how you deliver perceived performance. It’s the difference between an app that feels like a website and an app that feels like an extension of the user's mind.\nImagine an e-commerce site. A user lands on a product listing. We fetch the products. They click on a product to view details. They hit the back button. What happens?\nBy default, without any specific configuration, React Query considers data \"stale\" the moment it's fetched (default staleTime: 0). This means when the user returns to the product list, even if they were just there a second ago, React Query triggers another network request. The UI shows a loading state, maybe a flash of empty content, and then the data reappears. This \"loading flicker\" is jarring.\nstaleTime: Your Best Friend for Perceived Performance\n\n\nAt its core, staleTime tells React Query for how long a piece of data should be considered \"fresh.\" As long as data is fresh, React Query will serve it from the cache immediately without even looking at the network.\nOnce staleTime has passed, the data becomes \"stale.\" But here is the magic: React Query will still serve it from the cache instantly if it’s available, but it will also trigger a background re-fetch to get the latest version. This is the \"stale-while-revalidate\" pattern.\nData is fresh: React Query serves cached data instantly. Zero network activity.\nstaleTime expires: Data is now stale.\nNew request ha",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "React Query：什么是`staleTime`以及为什么应该关心？",
+        "summary": "React Query的staleTime配置定义了缓存数据在触发后台重新获取之前保持新鲜的时间长度，实现了stale-while-revalidate模式。正确的staleTime配置通过立即提供缓存数据同时在后台静默更新来改善感知性能。"
+      },
+      "fr": {
+        "title": "React Query : Qu'est-ce que `staleTime` et pourquoi devriez-vous vous en soucier ?",
+        "summary": "La configuration staleTime de React Query définit combien de temps les données en cache restent actuelles avant de déclencher des re-récupérations en arrière-plan, en implémentant le modèle stale-while-revalidate. Une configuration staleTime appropriée améliore les performances perçues en servant les données en cache instantanément tout en les mettant à jour silencieusement en arrière-plan."
+      },
+      "de": {
+        "title": "React Query: Was ist `staleTime` und warum sollte es Sie interessieren?",
+        "summary": "Die staleTime-Konfiguration von React Query definiert, wie lange zwischengespeicherte Daten frisch bleiben, bevor Background-Refetches ausgelöst werden, und implementiert das stale-while-revalidate-Muster. Eine ordnungsgemäße staleTime-Konfiguration verbessert die wahrgenommene Leistung, indem sie zwischengespeicherte Daten sofort bereitstellt und gleichzeitig im Hintergrund aktualisiert."
+      },
+      "es": {
+        "title": "React Query: ¿Qué es `staleTime` y por qué debería importarte?",
+        "summary": "La configuración staleTime de React Query define cuánto tiempo los datos en caché permanecen frescos antes de desencadenar re-búsquedas en segundo plano, implementando el patrón stale-while-revalidate. Una configuración staleTime adecuada mejora el rendimiento percibido al servir datos en caché instantáneamente mientras se actualiza silenciosamente en segundo plano."
+      }
+    }
+  },
+  {
     "title": "Hide API Keys from Your Frontend — No Backend Required",
     "slug": "hide-api-keys-from-frontend-no-backend-required",
     "url": "https://dev.to/robleney/hide-api-keys-from-your-frontend-no-backend-required-nnb",
@@ -332,6 +668,34 @@
       "es": {
         "title": "NABARD Grado A 2025 — elegibilidad, plan de estudios y estrategia",
         "summary": "La guía del examen NABARD Grado A 2025 especifica los criterios de elegibilidad (edad 25-35 años, licenciatura, 2+ años de experiencia en banca rural) y describe una estructura de tres fases que cubre inglés general, razonamiento, aptitud cuantitativa, más temas especializados en agricultura y economía. La descripción general completa del plan de estudios proporciona un marco para los candidatos que se preparan para las posiciones de gerente asistente del Banco Nacional para la Agricultura y Desarrollo Rural de India. Esto importa porque aclara los requisitos para acceder a oportunidades de carrera en desarrollo rural en el sector bancario indio."
+      }
+    }
+  },
+  {
+    "title": "Tech companies shouldn't be bullied into doing surveillance",
+    "slug": "tech-companies-shouldnt-be-bullied-into-doing-surveillance",
+    "url": "https://www.eff.org/deeplinks/2026/02/tech-companies-shouldnt-be-bullied-doing-surveillance",
+    "source": "Hacker News",
+    "date": "2026-02-26T00:37:32.000Z",
+    "summary": "The EFF argues against government pressure on tech companies to implement surveillance capabilities, warning that coercion threatens user privacy and corporate independence. The article raises concerns about forced compliance and its implications for digital rights.",
+    "content": "Article URL: https://www.eff.org/deeplinks/2026/02/tech-companies-shouldnt-be-bullied-doing-surveillance\nComments URL: https://news.ycombinator.com/item?id=47160226\nPoints: 300\n# Comments: 100",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "科技公司不应该被强制进行监控",
+        "summary": "电子前沿基金会反对政府对科技公司施压实施监控功能，警告强制威胁用户隐私和企业独立性。该文章对强制合规及其对数字权利的影响表示关切。"
+      },
+      "fr": {
+        "title": "Les entreprises technologiques ne devraient pas être forcées à faire de la surveillance",
+        "summary": "L'EFF s'oppose à la pression gouvernementale sur les entreprises technologiques pour mettre en œuvre des capacités de surveillance, avertissant que la coercition menace la vie privée des utilisateurs et l'indépendance des entreprises. L'article soulève des préoccupations concernant la conformité forcée et ses implications pour les droits numériques."
+      },
+      "de": {
+        "title": "Technologieunternehmen sollten nicht zu Überwachung gezwungen werden",
+        "summary": "Die EFF spricht sich gegen Druck der Regierung auf Technologieunternehmen aus, um Überwachungsfunktionen zu implementieren, und warnt davor, dass Zwang die Benutzerprivatsphäre und die Unternehmensunabhängigkeit gefährdet. Der Artikel äußert Bedenken über erzwungene Compliance und ihre Auswirkungen auf digitale Rechte."
+      },
+      "es": {
+        "title": "Las empresas tecnológicas no deberían ser obligadas a realizar vigilancia",
+        "summary": "La EFF se opone a la presión gubernamental sobre las empresas tecnológicas para implementar capacidades de vigilancia, advirtiendo que la coerción amenaza la privacidad del usuario y la independencia corporativa. El artículo plantea preocupaciones sobre el cumplimiento forzado y sus implicaciones para los derechos digitales."
       }
     }
   },
