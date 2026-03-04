@@ -1,5 +1,341 @@
 [
   {
+    "title": "Proto Wrapper Plugin: How I Stopped Fighting Protobuf Versioning",
+    "slug": "proto-wrapper-plugin-protobuf-versioning",
+    "url": "https://dev.to/alnovis/proto-wrapper-plugin-how-i-stopped-fighting-protobuf-versioning-4jd3",
+    "source": "DEV Community",
+    "date": "2026-03-04T12:03:59.000Z",
+    "summary": "Proto Wrapper Plugin automatically generates unified Java APIs that work across multiple protobuf versions, eliminating version-specific conditional code scattered throughout codebases. By analyzing proto schemas and detecting type conflicts, it enables developers to write version-agnostic code while the plugin's generated wrappers handle compatibility transparently. This significantly reduces maintenance burden in systems managing multiple protocol versions.",
+    "content": "If you've ever worked on a system that processes protobuf messages from multiple protocol versions, you know the pain. You add a new field, change a type from int32 to enum, and suddenly your codebase is littered with if (version == 1) ... else if (version == 2) blocks.\nI built Proto Wrapper Plugin to solve this problem once and for all.\nHere's a typical scenario. You have a payment processing system. Version 1 of your protocol uses an integer for payment type:\n// v1/payment.proto\nmessage Payment {\n  int32 payment_type = 1;  // 1=cash, 2=card, 3=transfer\n}\n\nThen someone decides (rightfully so) that enums are better:\n// v2/payment.proto\nmessage Payment {\n  PaymentType payment_type = 1;\n}\n\nenum PaymentType {\n  CASH = 1;\n  CARD = 2;\n  TRANSFER = 3;\n}\n\nNow your code looks like this:\n// This is everywhere in your codebase\nif (protocolVersion == 1) {\n    int type = paymentV1.getPaymentType();\n    processPayment(type);\n} else if (protocolVersion == 2) {\n    PaymentType type = paymentV2.getPaymentType();\n    processPayment(type.getNumber());\n}\n\nMultiply this by dozens of messages, and you have a maintenance nightmare.\nProto Wrapper generates a unified Java API that works across all your protocol versions:\n// Single code path. Works with v1, v2, v3... whatever.\nPayment payment = versionContext.wrapPayment(anyProto);\nint type = payment.getPaymentType();  // Always returns int\nPaymentType typeEnum = payment.getPaymentTypeEnum();  // Returns enum when available\n\nbyte[] bytes = payment.toBytes();  // Serializes back to original version\n\nThe plugin analyzes your proto schemas, detects conflicts, and generates appropriate accessors. You write version-agnostic code, and the generated wrappers handle the details.\nAdd the plugin to your Maven build:\n<plugin>\n    <groupId>io.alnovis</groupId>\n    <artifactId>proto-wrapper-maven-plugin</artifactId>\n    <version>2.3.2</version>\n    <configuration>\n        <basePackage>com.example.model</basePackage>\n        <protoRoot>${basedir}/proto</",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Proto Wrapper 插件：我如何停止与 Protobuf 版本控制的斗争",
+        "summary": "Proto Wrapper 插件自动生成统一的 Java API，可跨多个 protobuf 版本工作，消除了散布在整个代码库中的特定版本条件代码。通过分析 proto 模式和检测类型冲突，它使开发人员能够编写版本无关的代码，而插件生成的包装器可透明地处理兼容性。这大大减少了管理多个协议版本的系统中的维护负担。"
+      },
+      "fr": {
+        "title": "Plugin Proto Wrapper : Comment j'ai arrêté de lutter contre le versioning de Protobuf",
+        "summary": "Le plugin Proto Wrapper génère automatiquement des API Java unifiées qui fonctionnent sur plusieurs versions de protobuf, éliminant le code conditionnel spécifique à la version dispersé dans les bases de code. En analysant les schémas proto et en détectant les conflits de types, il permet aux développeurs d'écrire du code agnostique à la version tandis que les wrappers générés par le plugin gèrent la compatibilité de manière transparente. Cela réduit considérablement la charge de maintenance dans les systèmes gérant plusieurs versions de protocole."
+      },
+      "de": {
+        "title": "Proto Wrapper Plugin: Wie ich aufgehört habe, mit Protobuf-Versionierung zu kämpfen",
+        "summary": "Das Proto Wrapper Plugin generiert automatisch einheitliche Java-APIs, die über mehrere Protobuf-Versionen hinweg funktionieren und eliminate versionsspezifische bedingte Code, der über Code-Basen verteilt ist. Durch die Analyse von Proto-Schemas und das Erkennen von Typkonflikten ermöglicht es Entwicklern, versionsneutralen Code zu schreiben, während die vom Plugin generierten Wrapper Kompatibilität transparent handhaben. Dies reduziert erheblich die Wartungslast in Systemen, die mehrere Protokollversionen verwalten."
+      },
+      "es": {
+        "title": "Plugin Proto Wrapper: Cómo dejé de luchar contra el versionado de Protobuf",
+        "summary": "El plugin Proto Wrapper genera automáticamente API Java unificadas que funcionan en múltiples versiones de protobuf, eliminando código condicional específico de versión disperso en bases de código. Al analizar esquemas proto y detectar conflictos de tipo, permite a los desarrolladores escribir código agnóstico a la versión mientras que los envoltores generados por el plugin manejan la compatibilidad de manera transparente. Esto reduce significativamente la carga de mantenimiento en sistemas que administran múltiples versiones de protocolo."
+      }
+    }
+  },
+  {
+    "title": "Fixing the Agent Wake Notification Bug: Unifying to Slack Across All Agents",
+    "slug": "agent-wake-notification-bug-slack-telegram",
+    "url": "https://dev.to/linou518/fixing-the-agent-wake-notification-bug-unifying-to-slack-across-all-agents-3f69",
+    "source": "DEV Community",
+    "date": "2026-03-04T12:02:33.000Z",
+    "summary": "A home server cluster running 16 AI agents experienced HTTP 500 errors when wake_agent() attempted to send Telegram notifications to Slack-only agents. The fix involved adding channel information to the agent registry and branching notification logic by channel type, also discovering and registering six previously missing agents. This incident highlights the importance of environment-aware configuration in distributed agent systems.",
+    "content": "Fixing the Agent Wake Notification Bug: Unifying to Slack Across All Agents\n\n\n\n  \n  \n  TL;DR\n\n\n\n16 AI Agents run in our home server cluster, and HTTP 500 errors were occurring on the message bus intermittently\nRoot cause: wake_agent() hardcoded Telegram notifications for all agents, failing for those on Slack\nFix: Added channel info to the agent registry and branched notification logic by channel type\nBonus: Discovered and registered 6 previously missing agents in the process\nOur home server cluster runs 16 AI Agents. Joe (overall manager), Jack (personal domain coordinator), and a team of domain-specialist agents handle everything from investment tracking to health management.\nAgent-to-agent communication goes through a custom message bus (Python Flask, running at http://192.168.x.x:8091). Agents periodically poll their inbox and reply when needed.\nThe wrinkle: some agents run on Slack, others on Telegram.\n\n\n\nAgent Group\nNotification Channel\n\n\n\n\njoe, jack\nSlack\n\n\npi4\nSlack\n\n\nMost others\nTelegram\n\n\n\nDuring morning health checks, we noticed HTTP 500s coming back from the message bus when sending messages to certain agents.\nPOST /api/send\n→ 500 Internal Server Error\n→ Log: \"Telegram sendMessage failed: chat not found\"\n\nMessages to specific agents consistently failed — and worse, the error was propagating and halting bus-wide processing.\nLooking at app.py on the message bus server, the wake_agent() function looked like this:\ndef wake_agent(agent_id: str):\n    \"\"\"Wake an agent by sending a notification about new messages\"\"\"\n    telegram_chat_id = AGENT_CHAT_MAP.get(agent_id)\n    if telegram_chat_id:\n        send_telegram_message(telegram_chat_id, f\"📬 New message: {agent_id}\")\n\nTelegram-only, for every agent. When this tried to ping joe, jack, or pi4 via Telegram (they're on Slack), it failed — hard.\nChecking AGENT_CHAT_MAP also revealed that 6 recently-added agents weren't registered at all:\nMissing from registry: pi4, windows, monitor, shadow, erp-chat-bridge, learn-i",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "修复代理唤醒通知错误：统一所有代理的 Slack",
+        "summary": "运行 16 个 AI 代理的家庭服务器集群在 wake_agent() 尝试向仅限 Slack 的代理发送 Telegram 通知时遇到 HTTP 500 错误。修复涉及向代理注册表添加通道信息并按通道类型分支通知逻辑，还发现并注册了六个以前缺失的代理。这个事件强调了环境感知配置在分布式代理系统中的重要性。"
+      },
+      "fr": {
+        "title": "Correction du bug de notification d'activation d'agent : unification vers Slack pour tous les agents",
+        "summary": "Un cluster de serveur domestique exécutant 16 agents IA a connu des erreurs HTTP 500 lorsque wake_agent() a tenté d'envoyer des notifications Telegram à des agents exclusivement Slack. La correction impliquait d'ajouter des informations de canal au registre des agents et de créer une logique de notification en branche par type de canal, découvrant également et enregistrant six agents précédemment manquants. Cet incident souligne l'importance de la configuration consciente de l'environnement dans les systèmes d'agents distribués."
+      },
+      "de": {
+        "title": "Behebung des Agent-Wake-Benachrichtigungsfehlers: Vereinheitlichung von Slack über alle Agenten",
+        "summary": "Ein Home-Server-Cluster mit 16 KI-Agenten erlebte HTTP-500-Fehler, als wake_agent() versuchte, Telegram-Benachrichtigungen an nur-Slack-Agenten zu senden. Die Behebung umfasste das Hinzufügen von Kanalinformationen zur Agent-Registry und das Verzweigen der Benachrichtigungslogik nach Kanaltyp, wobei auch sechs zuvor fehlende Agenten erkannt und registriert wurden. Dieser Vorfall unterstreicht die Bedeutung umgebungsbewusster Konfiguration in verteilten Agent-Systemen."
+      },
+      "es": {
+        "title": "Corrección del error de notificación de activación del agente: unificación a Slack en todos los agentes",
+        "summary": "Un cluster de servidor doméstico que ejecuta 16 agentes de IA experimentó errores HTTP 500 cuando wake_agent() intentó enviar notificaciones de Telegram a agentes solo de Slack. La corrección implicó agregar información de canal al registro de agentes y ramificar la lógica de notificación por tipo de canal, también descubriendo y registrando seis agentes previamente faltantes. Este incidente destaca la importancia de la configuración consciente del entorno en sistemas de agentes distribuidos."
+      }
+    }
+  },
+  {
+    "title": "Tech Hiring and Neurodiversity",
+    "slug": "tech-hiring-neurodiversity-interview-bias",
+    "url": "https://dev.to/rawveg/tech-hiring-and-neurodiversity-ibp",
+    "source": "DEV Community",
+    "date": "2026-03-04T12:00:00.000Z",
+    "summary": "Technical interviews systematically disadvantage neurodivergent candidates by measuring performance under sensory stress and social pressure rather than actual coding ability, despite evidence of excellence in real work environments. Major tech companies' audits of AI hiring tools repeatedly revealed discrimination against neurodivergent individuals, autistic engineers, and other marginalized groups. The disconnect between interview performance and real-world competency suggests structural problems in current hiring practices.",
+    "content": "The software engineer had prepared for weeks. They'd studied algorithms, practised coding problems, reviewed the company's tech stack. What they couldn't prepare for was the fluorescent lighting that felt like needles in their skull, the unexpected background chatter from an open office that fragmented their thoughts, and the overwhelming cognitive demand of writing code whilst simultaneously explaining their reasoning to three strangers who were judging their every word. Twenty minutes into the pair programming interview, they froze. Not because they didn't know the answer. Because their autistic brain, overwhelmed by sensory chaos and social performance demands, simply shut down.\nThey didn't get the job. The feedback cited “communication issues” and “inability to think under pressure.” What the feedback didn't mention: their GitHub profile showed five years of elegant, well-documented code. Their portfolio included contributions to major open-source projects. In their actual work environment, with noise-cancelling headphones and asynchronous communication, they excelled. But the interview measured none of that.\nWhen Amazon scrapped its AI recruiting tool in 2018 after discovering it systematically discriminated against women, the tech industry collectively shuddered. The algorithm, trained on a decade of predominantly male hiring decisions, had learned to penalise CVs containing the word “women's” and downgrade graduates from all-women's colleges. Engineers attempted repairs, but couldn't guarantee neutrality. The project died, and with it, a cautionary tale was born.\nSince then, companies have fled AI-assisted hiring in droves. Following New York City's 2021 requirement that employers audit automated hiring tools for bias, every single audit revealed discrimination against women, people of colour, LGBTQ+ candidates, neurodivergent individuals, and non-native English speakers. The message seemed clear: algorithms cannot be trusted with something as consequential a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "科技招聘与神经多样性",
+        "summary": "技术面试通过测量在感官压力和社交压力下的表现而非实际编码能力来系统性地不利于神经发散的候选人，尽管有证据表明他们在真实工作环境中表现卓越。主要科技公司对人工智能招聘工具的审计反复发现对神经发散个体、自闭症工程师和其他边缘化群体的歧视。面试表现与真实世界能力之间的脱节表明当前招聘实践存在结构性问题。"
+      },
+      "fr": {
+        "title": "Recrutement en technologie et neurodiversité",
+        "summary": "Les entretiens techniques désavantagent systématiquement les candidats neurodivergents en mesurant les performances sous stress sensoriel et pression sociale plutôt que la capacité réelle de codage, malgré les preuves d'excellence dans les environnements de travail réels. Les audits des outils de recrutement par IA menés par les grandes entreprises technologiques ont révélé à plusieurs reprises une discrimination contre les personnes neurodivergentes, les ingénieurs autistes et d'autres groupes marginalisés. Le décalage entre les performances d'entretien et les compétences du monde réel suggère des problèmes structurels dans les pratiques de recrutement actuelles."
+      },
+      "de": {
+        "title": "Tech-Rekrutierung und Neurodiversität",
+        "summary": "Technische Interviews benachteiligen neurodivergente Kandidaten systematisch, indem sie die Leistung unter sensorischem Stress und sozialer Druck messen, anstatt die tatsächliche Codierungsfähigkeit zu messen, trotz Beweisen für Exzellenz in realen Arbeitsumgebungen. Audits von KI-Recruiting-Tools durch große Technologieunternehmen enthüllten wiederholt Diskriminierung gegen neurodivergente Personen, autistische Ingenieure und andere marginalisierte Gruppen. Die Diskrepanz zwischen Interview-Leistung und Fähigkeiten in der realen Welt deutet auf strukturelle Probleme in den gegenwärtigen Einstellungspraktiken hin."
+      },
+      "es": {
+        "title": "Contratación en tecnología y neurodiversidad",
+        "summary": "Las entrevistas técnicas desventajan sistemáticamente a los candidatos neurodiversos al medir el desempeño bajo estrés sensorial y presión social en lugar de la capacidad real de codificación, a pesar de las pruebas de excelencia en entornos de trabajo reales. Las auditorías de herramientas de contratación de IA realizadas por grandes empresas tecnológicas revelaron repetidamente discriminación contra individuos neurodiversos, ingenieros autistas y otros grupos marginalizados. La desconexión entre el desempeño de la entrevista y la competencia en el mundo real sugiere problemas estructurales en las prácticas de contratación actuales."
+      }
+    }
+  },
+  {
+    "title": "PHP Enums Are Not Your Bottleneck (Here's Proof)",
+    "slug": "php-enums-not-bottleneck-performance",
+    "url": "https://dev.to/tegos/php-enums-are-not-your-bottleneck-heres-proof-1887",
+    "source": "DEV Community",
+    "date": "2026-03-04T11:59:40.000Z",
+    "summary": "PHP 8.1 enums are implemented as singletons, ensuring each case is instantiated once and reused throughout the request lifetime, eliminating allocation overhead in loops. Performance testing on a 50,000-item export demonstrated that using enums directly was comparable to pre-cached array lookups, proving enums are not the bottleneck developers suspect. This analysis shows premature optimization around enum access is unnecessary for typical database export operations.",
+    "content": "When you're building a large export - say, 50_000 order items, you start looking at every part of the code and wondering: what's slowing this down?\nHere we have some order item export simplified code:\nfinal class OrderItemExport\n{\n    public function store(): void\n    {\n        $rows = $this->query()->toBase()->cursor();\n\n        foreach ($rows as $row) {\n            $this->writer->addRow($this->map($row));\n        }\n\n        $this->writer->close();\n    }\n\n    private function map(object $row): array\n    {\n        $status = OrderItemStatusEnum::tryFrom($row->status_id);\n        $currency = CurrencyEnum::tryFrom($row->currency_id);\n\n        return [\n            $row->order_id,\n            $status?->label(),\n            $currency?->code(),\n        ];\n    }\n}\n\nEnums are an easy target. They look like objects, they have methods, and you call them on every row. So the question came up naturally: do PHP enums create overhead in a loop like this?\n$orderItemStatus = OrderItemStatusEnum::tryFrom($row->status_id);\n$statusLabel = $orderItemStatus?->label();\n\nLet's find out.\nPHP 8.1 enums are objects - but each case is implemented as a singleton. Each enum case is instantiated once and reused for the lifetime of the request. That means:\n$a = OrderItemStatusEnum::tryFrom(7);\n$b = OrderItemStatusEnum::tryFrom(7);\n\n$a === $b; // true\n\nSame instance, every time. No new allocations, no garbage to collect.\nTo be sure, I refactored the export to use pre-cached arrays instead of calling tryFrom() on every row:\n// Constructor\n$this->statusLabels = OrderItemStatusEnum::labels();\n$this->currencyNames = CurrencyEnum::names();\n\n// Per row only array lookup\n$this->statusLabels[$rowOrderItem->status_id] ?? null,\n\nAlso moved JSON localization to a raw SQL expression, so PHP doesn't decode JSON on every row:\n->selectRaw(\"order_items.name->>'$.$locale' as localized_name\")\n\nThen I ran both versions against 50_000 rows with proper memory and GC profiling.\n\n\n\nMetric\nBefore\nAfter\n\n\n\n\nTime elapsed\n42",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "PHP 枚举并非您的性能瓶颈（这是证明）",
+        "summary": "PHP 8.1 枚举作为单例实现，确保每个 case 只实例化一次，并在整个请求生命周期内重用，消除了循环中的分配开销。在包含 50,000 项导出的性能测试中，直接使用枚举的性能与预缓存的数组查找相当，证明枚举并非开发人员怀疑的性能瓶颈。这项分析表明，对于典型的数据库导出操作，围绕枚举访问的过度优化是不必要的。"
+      },
+      "fr": {
+        "title": "Les énumérations PHP ne sont pas votre goulot d'étranglement (voici la preuve)",
+        "summary": "Les énumérations PHP 8.1 sont implémentées en tant que singletons, garantissant que chaque cas est instancié une seule fois et réutilisé tout au long de la durée de vie de la requête, éliminant les frais généraux d'allocation dans les boucles. Les tests de performance sur une exportation de 50 000 éléments ont démontré que l'utilisation directe d'énumérations était comparable aux recherches de tableaux pré-cachés, prouvant que les énumérations ne sont pas le goulot d'étranglement que les développeurs soupçonnent. Cette analyse montre que l'optimisation prématurée autour de l'accès aux énumérations est inutile pour les opérations typiques d'exportation de bases de données."
+      },
+      "de": {
+        "title": "PHP-Enums sind nicht Ihr Engpass (hier ist der Beweis)",
+        "summary": "PHP 8.1-Enums werden als Singleton implementiert, wobei jeder Case genau einmal instanziiert und während der gesamten Request-Lebensdauer wiederverwendet wird, wodurch Allokationsoverhead in Schleifen entfällt. Leistungstests bei einem Export mit 50.000 Elementen zeigten, dass die direkte Verwendung von Enums mit vorgecachten Array-Lookups vergleichbar war, was beweist, dass Enums nicht der verdächtigte Engpass sind. Diese Analyse zeigt, dass vorzeitige Optimierungen beim Enum-Zugriff für typische Datenbankexportoperationen unnötig sind."
+      },
+      "es": {
+        "title": "Los enums de PHP no son su cuello de botella (aquí está la prueba)",
+        "summary": "Los enums de PHP 8.1 se implementan como singletons, asegurando que cada case se instancia una sola vez y se reutiliza durante toda la vida útil de la solicitud, eliminando la sobrecarga de asignación en bucles. Las pruebas de rendimiento en una exportación de 50.000 elementos demostraron que el uso directo de enums era comparable a las búsquedas de matrices precachedadas, lo que demuestra que los enums no son el cuello de botella que los desarrolladores sospechan. Este análisis muestra que la optimización prematura en torno al acceso a enums es innecesaria para las operaciones típicas de exportación de bases de datos."
+      }
+    }
+  },
+  {
+    "title": "2026 Complete Guide: OpenClaw ACP - Bridge Your IDE to AI Agents",
+    "slug": "openclaw-acp-ide-ai-agents-bridge",
+    "url": "https://dev.to/czmilo/2026-complete-guide-openclaw-acp-bridge-your-ide-to-ai-agents-3hl8",
+    "source": "DEV Community",
+    "date": "2026-03-04T11:56:51.000Z",
+    "summary": "OpenClaw ACP is a command-line bridge connecting IDEs directly to OpenClaw Gateway instances, maintaining persistent conversation context across editor sessions and machine restarts. Unlike traditional AI coding assistants that work in isolation, it enables context-aware development workflows with session continuity and support for multiple specialized agents. The tool integrates with popular editors like Zed, takes under five minutes to set up, and forwards prompts over WebSocket.",
+    "content": "2026 Complete Guide: OpenClaw ACP - Bridge Your IDE to AI Agents\n\n\n\n  \n  \n  🎯 Key Takeaways (TL;DR)\n\n\n\nOpenClaw ACP (Agent Client Protocol) is a bridge that connects your IDE directly to an OpenClaw Gateway session, enabling AI agents to drive development workflows from your editor\nThe OpenClaw ACP bridge maintains session continuity, allowing you to reconnect to the same conversation transcript or start fresh sessions on demand\nSetting up OpenClaw ACP takes less than 5 minutes and works with popular editors like Zed, with support for custom IDE integrations\nWhat is OpenClaw ACP?\nHow the OpenClaw ACP Bridge Works\nInstallation and Setup\nConnecting to Remote Gateways\nSession Management Deep Dive\nZed Editor Integration\nSecurity Best Practices\nFAQ\nSummary & Recommendations\nOpenClaw ACP is a command-line tool that implements the Agent Client Protocol (ACP), serving as a bridge between your IDE and an OpenClaw Gateway instance. Think of it as a communication tunnel that allows your code editor to send prompts directly to an AI agent and receive responses back—all without leaving your development environment.\nThe OpenClaw ACP bridge speaks ACP over stdio (standard input/output), making it compatible with any IDE or tooling that supports the protocol. It forwards prompts to the OpenClaw Gateway over WebSocket and maintains session mappings, so your AI conversations persist across editor restarts.\nTraditional AI coding assistants often work in isolation—you paste code, get a response, and start over. OpenClaw ACP changes this by:\nMaintaining Context: Your OpenClaw ACP agent remembers previous conversations, decisions, and code changes\nEnabling Persistent Workflows: Work on a feature across multiple OpenClaw ACP sessions without losing progress\nIntegrating Natively: No need to copy-paste between chat interfaces and your IDE\nSupporting Multiple Agents: Route different tasks to different specialized agents via OpenClaw ACP session keys\nAt its core, the OpenClaw ACP bridge perf",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "2026 完整指南：OpenClaw ACP - 将您的 IDE 与 AI 代理连接",
+        "summary": "OpenClaw ACP 是一个命令行桥接工具，将 IDE 直接连接到 OpenClaw Gateway 实例，在编辑器会话和机器重启后保持持久的对话上下文。与在隔离状态下工作的传统 AI 编码助手不同，它能够实现具有会话连续性和多个专门代理支持的上下文感知开发工作流。该工具与 Zed 等流行编辑器集成，设置耗时不超过五分钟，并通过 WebSocket 转发提示。"
+      },
+      "fr": {
+        "title": "Guide Complet 2026 : OpenClaw ACP - Connectez Votre IDE aux Agents IA",
+        "summary": "OpenClaw ACP est un pont en ligne de commande reliant directement les IDEs aux instances OpenClaw Gateway, maintenant un contexte de conversation persistant entre les sessions d'éditeur et les redémarrages de machine. Contrairement aux assistants de codage IA traditionnels qui fonctionnent en isolation, il permet des flux de travail de développement conscients du contexte avec continuité de session et support pour plusieurs agents spécialisés. L'outil s'intègre avec les éditeurs populaires comme Zed, prend moins de cinq minutes à configurer et transfère les invites via WebSocket."
+      },
+      "de": {
+        "title": "2026 Vollständiger Leitfaden: OpenClaw ACP - Verbinden Sie Ihre IDE mit KI-Agenten",
+        "summary": "OpenClaw ACP ist eine Befehlszeilenbrücke, die IDEs direkt mit OpenClaw Gateway-Instanzen verbindet und einen persistenten Konversationskontext über Editor-Sitzungen und Neustarts hinweg beibehält. Im Gegensatz zu traditionellen KI-Codierassistenten, die isoliert funktionieren, ermöglicht es kontextbewusste Entwicklungsworkflows mit Sitzungskontinuität und Unterstützung für mehrere spezialisierte Agenten. Das Tool wird mit beliebten Editoren wie Zed integriert, dauert weniger als fünf Minuten zum Einrichten und leitet Eingabeaufforderungen über WebSocket weiter."
+      },
+      "es": {
+        "title": "Guía Completa 2026: OpenClaw ACP - Conecta Tu IDE a Agentes de IA",
+        "summary": "OpenClaw ACP es un puente de línea de comandos que conecta los IDEs directamente con instancias de OpenClaw Gateway, manteniendo un contexto de conversación persistente entre sesiones de editor y reinicios de máquina. A diferencia de los asistentes de codificación de IA tradicionales que funcionan de forma aislada, permite flujos de trabajo de desarrollo conscientes del contexto con continuidad de sesión y soporte para múltiples agentes especializados. La herramienta se integra con editores populares como Zed, toma menos de cinco minutos para configurar y reenvía indicaciones a través de WebSocket."
+      }
+    }
+  },
+  {
+    "title": "Manage Your SQL Databases via Terminal with This App",
+    "slug": "pam-sql-database-terminal-cli-tool",
+    "url": "https://dev.to/marcosplusplus/manage-your-sql-databases-via-terminal-with-this-app-4ken",
+    "source": "DEV Community",
+    "date": "2026-03-04T11:56:49.000Z",
+    "summary": "Pam is a Go-based CLI tool providing efficient terminal access to multiple database systems including PostgreSQL, MySQL, SQLite, and others with a Vim-inspired terminal UI. It enables developers to save query libraries, execute parameterized queries interactively, and export results in CSV, JSON, Markdown and other formats while maintaining full keyboard control. The minimalist interface prioritizes efficiency while delivering powerful database management capabilities.",
+    "content": "For developers, DBAs, and analysts who need a lightweight, fast, and powerful tool for working with multiple databases in the terminal.\nPam is a minimalist command-line interface (CLI) tool written in Go, designed to simplify managing and executing SQL queries across multiple databases. Inspired by “The Office,” Pam pays homage to the character who organizes everything efficiently.\nQuery Library: Save and organize your most-used SQL queries for easy access and reuse.\nMulti-database Support: Compatible with PostgreSQL, MySQL, SQLite, Oracle, SQL Server, ClickHouse, and Firebird.\nTUI (Terminal User Interface): Keyboard-focused navigation with Vim-inspired shortcuts for efficient manipulation of query results.\nDirect Editing: Update cells, delete rows, and edit SQL directly in the results table.\nData Export: Export results in formats such as CSV, JSON, SQL, Markdown, or HTML.\nParameterized Queries: Support for parameterized queries, enabling dynamic searches without rewriting SQL.\nYou can install Pam via Go, by downloading the binary directly from the releases repository, or using Nix/NixOS.\ngo install github.com/eduardofuncao/pam/cmd/pam@latest\n\nAfter installation, initialize a connection to your desired database:\npam init mydb postgres \"postgresql://user:pass@localhost:5432/mydb\"\n\nAdd queries to your library:\npam add list_users \"SELECT * FROM users\"\n\nAnd run them interactively:\npam run list_users\n\nThe TUI interface supports Vim-like shortcuts (j, k, h, l), copy cell (y), export data (x), edit cell (u), delete row (D), and more quick commands.\nPam stores its configuration in ~/.config/pam/config.yaml, allowing you to adjust row limits, column widths, and color schemes for the interface.\nThe app provides example commands for easily connecting to various database types, including PostgreSQL, MySQL, SQL Server, Oracle, SQLite, ClickHouse, and Firebird.\nFor more information, visit the repository",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "通过此应用在终端管理您的 SQL 数据库",
+        "summary": "Pam 是一个基于 Go 的命令行工具，提供对包括 PostgreSQL、MySQL、SQLite 等多个数据库系统的高效终端访问，具有 Vim 启发的终端用户界面。它使开发人员能够保存查询库、交互式执行参数化查询，并以 CSV、JSON、Markdown 等多种格式导出结果，同时保持完全的键盘控制。简约的界面优先考虑效率，同时提供强大的数据库管理功能。"
+      },
+      "fr": {
+        "title": "Gérez Vos Bases de Données SQL via Terminal avec Cette Application",
+        "summary": "Pam est un outil CLI basé sur Go fournissant un accès terminal efficace à plusieurs systèmes de base de données, notamment PostgreSQL, MySQL, SQLite et autres avec une interface terminal inspirée de Vim. Il permet aux développeurs de sauvegarder des bibliothèques de requêtes, d'exécuter des requêtes paramétrées de manière interactive et d'exporter les résultats dans des formats CSV, JSON, Markdown et autres tout en maintenant un contrôle complet du clavier. L'interface minimaliste privilégie l'efficacité tout en offrant de puissantes capacités de gestion de bases de données."
+      },
+      "de": {
+        "title": "Verwalten Sie Ihre SQL-Datenbanken über Terminal mit dieser App",
+        "summary": "Pam ist ein Go-basiertes CLI-Tool, das effizienten Terminalzugriff auf mehrere Datenbanksysteme einschließlich PostgreSQL, MySQL, SQLite und anderen mit einer von Vim inspirierten Terminal-UI bietet. Es ermöglicht Entwicklern, Abfragebibliotheken zu speichern, parametrisierte Abfragen interaktiv auszuführen und Ergebnisse in CSV-, JSON-, Markdown- und anderen Formaten zu exportieren, während die volle Tastaturkontrolle beibehalten wird. Die minimalistische Benutzeroberfläche priorisiert Effizienz und bietet gleichzeitig leistungsstarke Datenbankmanagement-Funktionen."
+      },
+      "es": {
+        "title": "Gestiona Tus Bases de Datos SQL desde la Terminal con Esta Aplicación",
+        "summary": "Pam es una herramienta CLI basada en Go que proporciona acceso eficiente a través de terminal a múltiples sistemas de bases de datos incluyendo PostgreSQL, MySQL, SQLite y otros con una interfaz de terminal inspirada en Vim. Permite a los desarrolladores guardar bibliotecas de consultas, ejecutar consultas parametrizadas de forma interactiva y exportar resultados en formatos CSV, JSON, Markdown y otros mientras mantienen control total del teclado. La interfaz minimalista prioriza la eficiencia mientras entrega poderosas capacidades de gestión de bases de datos."
+      }
+    }
+  },
+  {
+    "title": "🚀 Day 9 of My Java Automation Journey – Types of Inheritance",
+    "slug": "java-inheritance-types-learning-guide",
+    "url": "https://dev.to/bala_dkaveri_443d4beb9c8/day-9-of-my-java-automation-journey-types-of-inheritance-3a92",
+    "source": "DEV Community",
+    "date": "2026-03-04T11:55:16.000Z",
+    "summary": "Java supports four main inheritance patterns—single, hierarchical, multilevel, and interface-based—enabling code reuse and IS-A relationships between classes. Java explicitly avoids multiple class inheritance to prevent ambiguity when parent classes share the same method names, though it achieves similar flexibility through interface implementation. Understanding these inheritance types is fundamental to designing maintainable object-oriented systems.",
+    "content": "On Day 9, I learned about:\n✅ Different Types of Inheritance in Java\nYesterday we discussed Single Inheritance.\n📌 What is Inheritance?\nInheritance is a mechanism where:\nA child class acquires the properties and behaviors of a parent class.\nIt represents an:\n🔁 IS-A Relationship\nExample:\nDeveloper is an Employee\nSenior_Dev is a Developer\n📚 Types of Inheritance in Java\n1️⃣ Single Inheritance\nLet’s understand each one clearly 👇\n1️⃣ Single Inheritance\n📖 Definition\nWhen one child class inherits from one parent class.\nStructure:\nParent → Child\n\nExample:\n2️⃣ Multiple Inheritance\n📖 Definition\nWhen one child class tries to inherit from more than one parent class.\nStructure (Not allowed in Java classes):\nMom\n   ↘\n    Child\n   ↗\nDad\n\n❌ Problem: Ambiguity Issue\nIf both parent classes have the same method:\nvoid work()\nThen Java cannot decide:\nWhich parent's method should the child use?\nThis is called:\n⚠ Ambiguity Problem\n🚫 Important\nJava does NOT support multiple inheritance using classes.\nBut…\n✅ It supports multiple inheritance via Interfaces (we will learn later).\nclass Child extends Mom, Dad\n👉 It throws a compile-time error.\n3️⃣ Hierarchical Inheritance\n📖 Definition\nWhen multiple child classes inherit from the same parent class.\nStructure:\n        Employee\n        /      \\\n   Developer   Testing\n\nExample:\nDeveloper extends Employee\nTesting extends Employee\nBoth share common properties like:\nsalary\nThis improves reusability.\n4️⃣ Multilevel Inheritance (Important Today)\n📖 Definition\nWhen a class inherits from another class, and then another class inherits from that class.\nStructure:\nGrandparent → Parent → Child\n\nExample:\nEmployee → Developer → Senior_Dev\n\nThis is called Multilevel Inheritance.\n💻 Now Let’s Understand the Code\n🔹 Step 1: Employee (Parent Class)\npublic class Employee {\n    int salary;\n\n    void Welcome() {\n        System.out.println(\"Welcome\");\n    }\n}\n\n🔍 Explanation\nsalary → Instance variable\nWelcome() → Method\n\nActs as base class\nContains common proper",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "🚀 我的Java自动化之旅第9天——继承类型",
+        "summary": "Java支持四种主要的继承模式——单一继承、分层继承、多层继承和基于接口的继承——可以实现代码重用和类之间的IS-A关系。Java明确避免了多重继承，以防止当父类具有相同方法名称时的歧义，但通过接口实现实现了类似的灵活性。理解这些继承类型对于设计可维护的面向对象系统至关重要。"
+      },
+      "fr": {
+        "title": "🚀 Jour 9 de mon parcours d'automatisation Java – Types d'héritage",
+        "summary": "Java supporte quatre principaux modèles d'héritage—héritage simple, hiérarchique, multicouche et basé sur les interfaces—permettant la réutilisation de code et les relations IS-A entre les classes. Java évite explicitement l'héritage multiple pour prévenir l'ambiguïté lorsque les classes parent partagent les mêmes noms de méthode, bien qu'il réalise une flexibilité similaire grâce à l'implémentation d'interfaces. Comprendre ces types d'héritage est fondamental pour concevoir des systèmes orientés objet maintenables."
+      },
+      "de": {
+        "title": "🚀 Tag 9 meiner Java-Automatisierungsreise – Vererbungstypen",
+        "summary": "Java unterstützt vier Hauptvererbungsmuster—einfache Vererbung, hierarchische Vererbung, mehrstufige Vererbung und schnittstellenbasierte Vererbung—die eine Codewiederverwendung und IS-A-Beziehungen zwischen Klassen ermöglichen. Java vermeidet explizit mehrfache Vererbung, um Mehrdeutigkeit zu vermeiden, wenn übergeordnete Klassen denselben Methodennamen teilen, erreicht aber ähnliche Flexibilität durch die Implementierung von Schnittstellen. Das Verständnis dieser Vererbungstypen ist grundlegend für die Gestaltung wartbarer objektorientierter Systeme."
+      },
+      "es": {
+        "title": "🚀 Día 9 de Mi Viaje de Automatización Java – Tipos de Herencia",
+        "summary": "Java admite cuatro patrones de herencia principales—herencia simple, jerárquica, multinivel y basada en interfaces—lo que permite la reutilización de código y las relaciones IS-A entre clases. Java evita explícitamente la herencia múltiple para prevenir ambigüedad cuando las clases padre comparten los mismos nombres de métodos, aunque logra una flexibilidad similar mediante la implementación de interfaces. Comprender estos tipos de herencia es fundamental para diseñar sistemas orientados a objetos mantenibles."
+      }
+    }
+  },
+  {
+    "title": "I built a CLI to sync Cursor chat history between machines",
+    "slug": "cursor-chat-history-sync-cli-tool",
+    "url": "https://dev.to/callum_5c4104e61f9bc/i-built-a-cli-to-sync-cursor-chat-history-between-machines-2cnf",
+    "source": "DEV Community",
+    "date": "2026-03-04T11:51:30.000Z",
+    "summary": "cursaves is a CLI tool that exports Cursor IDE conversations to a private git repository, enabling developers to restore AI chat history and context when switching between machines. Since Cursor stores all conversation data locally in SQLite with no built-in cloud sync, this tool bridges the gap by handling project matching via git remote URLs and automatically rewriting file paths. The workflow involves two simple commands—push and pull—making multi-machine AI-assisted development seamless.",
+    "content": "The Problem\n\n\nIf you use Cursor across multiple machines — a laptop, a desktop, a VM over SSH — you've hit this: you switch devices and your entire conversation history is gone.\nAll the context the AI had about your codebase, the decisions you made together, the thread of reasoning across dozens of messages — stuck on whichever machine you happened to be using.\nThis matters because Cursor's agent mode builds up a deep understanding of your project over a conversation. Losing that context means starting from scratch, re-explaining your architecture, and burning credits on information the AI already had.\nCursor stores all chat data in local SQLite databases, not in the cloud. Even when you're connected to a remote server via SSH, the chats live on the machine running Cursor's UI.\nThere's no built-in sync. No export. No way to move conversations between machines.\ncursaves is a CLI tool that exports your Cursor conversations to a private git repo and imports them on another machine.\n# Install (once per machine)\nuv tool install git+https://github.com/Callum-Ward/cursaves.git\n\n# Set up sync repo (once per machine)\ncursaves init --remote git@github.com:you/my-cursaves.git\n\nThen the workflow is two commands:\n# Machine A: save your chats\ncursaves push\n\n# Machine B: restore them\ncursaves pull\n# Restart Cursor to see the imported chats\n\nThat's it.\nPush reads Cursor's SQLite databases, exports each conversation as a self-contained JSON snapshot (compressed with gzip), commits to a git repo, and pushes.\nPull fetches from git, writes the conversation data back into Cursor's databases, rewrites file paths to match the target machine, and registers the chats in the correct workspace.\nIt handles the tricky parts:\nProject matching — uses git remote URLs to identify projects, so the same repo at /Users/alice/myapp and /home/bob/myapp syncs correctly\nPath rewriting — file references in chat metadata are automatically rewritten for the target machine\nSSH workspaces — Cursor stores SSH c",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个CLI来同步Cursor聊天历史记录",
+        "summary": "cursaves是一个CLI工具，可将Cursor IDE对话导出到私有git存储库，使开发人员能够在机器之间切换时恢复AI聊天历史和上下文。由于Cursor将所有对话数据本地存储在SQLite中，没有内置的云同步，此工具通过处理git远程URL的项目匹配并自动重写文件路径来填补这一空白。工作流涉及两个简单的命令——push和pull——使多机AI辅助开发无缝进行。"
+      },
+      "fr": {
+        "title": "J'ai construit un CLI pour synchroniser l'historique de chat Cursor entre machines",
+        "summary": "cursaves est un outil CLI qui exporte les conversations Cursor IDE vers un référentiel git privé, permettant aux développeurs de restaurer l'historique de chat IA et le contexte lors du passage d'une machine à l'autre. Étant donné que Cursor stocke toutes les données de conversation localement dans SQLite sans synchronisation cloud intégrée, cet outil comble le vide en gérant la correspondance des projets via les URL distantes git et en réécrivant automatiquement les chemins de fichiers. Le flux de travail implique deux simples commandes—push et pull—rendant le développement assisté par IA multi-machines transparent."
+      },
+      "de": {
+        "title": "Ich habe ein CLI zum Synchronisieren des Cursor-Chat-Verlaufs zwischen Maschinen erstellt",
+        "summary": "cursaves ist ein CLI-Tool, das Cursor IDE-Gespräche in ein privates Git-Repository exportiert und Entwicklern ermöglicht, KI-Chat-Verlauf und Kontext beim Wechsel zwischen Maschinen wiederherzustellen. Da Cursor alle Gesprächsdaten lokal in SQLite speichert und keine integrierte Cloud-Synchronisierung hat, überbrückt dieses Tool die Lücke, indem es die Projektabstimmung über Git-Remote-URLs handhabt und Dateipfade automatisch umschreibt. Der Arbeitsablauf umfasst zwei einfache Befehle—Push und Pull—und macht KI-gestützte Multi-Maschinen-Entwicklung nahtlos."
+      },
+      "es": {
+        "title": "Creé un CLI para sincronizar el historial de chat de Cursor entre máquinas",
+        "summary": "cursaves es una herramienta CLI que exporta conversaciones de Cursor IDE a un repositorio git privado, permitiendo a los desarrolladores restaurar el historial de chat de IA y el contexto al cambiar entre máquinas. Dado que Cursor almacena todos los datos de conversación localmente en SQLite sin sincronización en la nube integrada, esta herramienta cierra la brecha manejando la coincidencia de proyectos a través de URL remotas de git y reescribiendo automáticamente rutas de archivos. El flujo de trabajo implica dos simples comandos—push y pull—haciendo que el desarrollo asistido por IA multi-máquina sea sin interrupciones."
+      }
+    }
+  },
+  {
+    "title": "Add Runtime Context to Your AI Coding Workflow (Next.js + Frontman)",
+    "slug": "runtime-context-ai-coding-nextjs-frontman",
+    "url": "https://dev.to/bluehotdog/add-runtime-context-to-your-ai-coding-workflow-nextjs-frontman-439o",
+    "source": "DEV Community",
+    "date": "2026-03-04T11:51:21.000Z",
+    "summary": "Frontman adds runtime-aware AI assistance to Next.js apps by enabling developers to click on broken UI elements and have AI fix them with full visual context instead of code descriptions alone. Installation takes five minutes and stores API keys locally in the browser, working with Claude, OpenAI, or OpenRouter. The tool demonstrates practical improvements in debugging speed and accuracy for layout and styling issues by providing actual DOM and visual information to the AI.",
+    "content": "This is a practical walkthrough. We'll take a Next.js app with a layout bug, install Frontman, and fix the bug by clicking the broken element in the browser instead of describing it to an AI that can't see it.\nBy the end you'll know whether runtime-aware AI coding actually saves time or is just a debugger with extra steps. (Spoiler: it's both.)\nA Next.js 14 or 15 project (or npx create-next-app@latest to create one)\nAn API key from Claude, OpenAI, or OpenRouter\n5 minutes\nnpx @frontman-ai/nextjs install\n\nThat's it for setup. The installer handles your config automatically. Start your dev server:\nnpm run dev\n\nWhen you open your app in the browser, you'll see a small Frontman toolbar. Click it and enter your AI key (Claude, OpenAI, or OpenRouter). The key is stored locally in your browser — it's never sent anywhere except directly to your AI provider.\nLet's create a realistic layout bug. Here's a card grid component with a subtle problem:\n// src/components/CardGrid.tsx\nexport function CardGrid({ items }: { items: Item[] }) {\n  return (\n    <div className=\"grid grid-cols-3 gap-6 p-8\">\n      {items.map((item) => (\n        <div key={item.id} className=\"rounded-lg bg-white p-6 shadow-sm\">\n          <h3 className=\"text-lg font-semibold\">{item.title}</h3>\n          {item.featured && (\n            <span className=\"mt-2 inline-block rounded-full bg-blue-100 px-3 py-1 text-sm text-blue-800\">\n              Featured\n            </span>\n          )}\n          <p className=\"mt-4 text-gray-600\">{item.description}</p>\n        </div>\n      ))}\n    </div>\n  );\n}\n\nThis looks fine in your source code. But when 2 of 6 items are featured, the cards with the badge are taller than the ones without, breaking the grid alignment. The bottom row doesn't align. The gap-6 interacts with the conditional badge in a way that isn't obvious from reading the JSX.\nYou'd describe the bug: \"The cards in CardGrid aren't aligning properly — some are taller than others.\"\nThe AI would read the source, see grid",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "将运行时上下文添加到您的AI编码工作流中（Next.js + Frontman）",
+        "summary": "Frontman通过使开发人员能够点击破损的UI元素并让AI利用完整的视觉上下文进行修复（而不仅仅是代码描述）为Next.js应用程序添加运行时感知的AI辅助。安装只需五分钟，并将API密钥本地存储在浏览器中，可与Claude、OpenAI或OpenRouter配合使用。该工具通过向AI提供实际的DOM和视觉信息，为布局和样式问题的调试速度和准确性带来实际的改进。"
+      },
+      "fr": {
+        "title": "Ajouter du contexte d'exécution à votre flux de travail de codage IA (Next.js + Frontman)",
+        "summary": "Frontman ajoute une assistance IA consciente du runtime aux applications Next.js en permettant aux développeurs de cliquer sur des éléments d'interface utilisateur cassés et de faire réparer par l'IA avec un contexte visuel complet au lieu de simples descriptions de code. L'installation prend cinq minutes et stocke les clés API localement dans le navigateur, fonctionnant avec Claude, OpenAI ou OpenRouter. L'outil démontre des améliorations pratiques en termes de vitesse et de précision du débogage pour les problèmes de mise en page et de style en fournissant à l'IA les informations actuelles du DOM et visuelles."
+      },
+      "de": {
+        "title": "Laufzeitkontext zu Ihrem KI-Codierungs-Workflow hinzufügen (Next.js + Frontman)",
+        "summary": "Frontman fügt Next.js-Apps durch die Ermöglichung für Entwickler, auf kaputte Benutzeroberflächenelemente zu klicken und diese von der KI mit vollem visuellen Kontext statt nur Code-Beschreibungen reparieren zu lassen, laufzeitbewusste KI-Unterstützung hinzu. Die Installation dauert fünf Minuten und speichert API-Schlüssel lokal im Browser, funktioniert mit Claude, OpenAI oder OpenRouter. Das Tool demonstriert praktische Verbesserungen in Debugging-Geschwindigkeit und -Genauigkeit für Layout- und Styling-Probleme, indem es der KI tatsächliche DOM- und visuelle Informationen bereitstellt."
+      },
+      "es": {
+        "title": "Agregar contexto en tiempo de ejecución a su flujo de trabajo de codificación de IA (Next.js + Frontman)",
+        "summary": "Frontman agrega asistencia de IA consciente del runtime a las aplicaciones Next.js permitiendo a los desarrolladores hacer clic en elementos de interfaz de usuario rotos y que la IA los repare con contexto visual completo en lugar de solo descripciones de código. La instalación toma cinco minutos y almacena las claves API localmente en el navegador, funcionando con Claude, OpenAI u OpenRouter. La herramienta demuestra mejoras prácticas en la velocidad y precisión de la depuración para problemas de diseño y estilo al proporcionar información visual y DOM actual a la IA."
+      }
+    }
+  },
+  {
+    "title": "Gerencie suas bases SQL via Terminal com esse App",
+    "slug": "pam-sql-cli-gerenciar-bases-dados",
+    "url": "https://dev.to/marcosplusplus/gerencie-suas-bases-sql-via-terminal-com-esse-app-374",
+    "source": "DEV Community",
+    "date": "2026-03-04T11:48:01.000Z",
+    "summary": "Pam é uma ferramenta de CLI escrita em Go que fornece acesso eficiente ao terminal para múltiplos sistemas de banco de dados como PostgreSQL, MySQL e SQLite com interface inspirada em Vim. Permite salvar bibliotecas de consultas, executar queries parametrizadas interativamente e exportar resultados em múltiplos formatos mantendo controle total do teclado. A interface minimalista prioriza eficiência enquanto oferece poderosas capacidades de gerenciamento de banco de dados.",
+    "content": "Para desenvolvedores, DBAs e analistas que precisam de uma ferramenta leve, rápida e poderosa para diferentes bancos de dados no terminal.\nPam é uma ferramenta de linha de comando (CLI) minimalista, escrita em Go, projetada para facilitar o gerenciamento e a execução de consultas SQL em múltiplos bancos de dados. Inspirada no universo de “The Office”, Pam homenageia a personagem que organiza tudo com eficiência.\nBiblioteca de Queries: Salve e organize suas consultas SQL mais usadas, facilitando o acesso e reuso.\nMulti-banco de dados: Compatível com PostgreSQL, MySQL, SQLite, Oracle, SQL Server, ClickHouse e Firebird.\nInterface TUI (Terminal User Interface): Navegação focada no teclado, com atalhos inspirados no Vim, permitindo manipulação eficiente dos resultados das queries.\nEdição Direta: Atualize células, exclua linhas e edite SQL diretamente na tabela de resultados.\nExportação de Dados: Exporte resultados em formatos como CSV, JSON, SQL, Markdown ou HTML.\nParâmetros em Queries: Suporte a consultas parametrizadas, facilitando buscas dinâmicas sem precisar reescrever SQL.\nVocê pode instalar Pam via Go, baixando o binário diretamente do repositório de releases, ou usando Nix/NixOS.\ngo install github.com/eduardofuncao/pam/cmd/pam@latest\n\nApós instalar, basta inicializar uma conexão com o banco de dados desejado:\npam init mydb postgres \"postgresql://user:pass@localhost:5432/mydb\"\n\nAdicione queries à sua biblioteca:\npam add list_users \"SELECT * FROM users\"\n\nE execute-as de forma interativa:\npam run list_users\n\nA interface TUI permite navegação com atalhos do tipo Vim (j, k, h, l), cópia de células (y), exportação de dados (x), edição de células (u), exclusão de linhas (D), entre outros comandos rápidos.\nPam armazena suas configurações em ~/.config/pam/config.yaml, permitindo ajustar limites de linhas, largura de colunas e esquemas de cores para a interface.\nO aplicativo oferece exemplos de comandos para conectar-se facilmente a diversos tipos de bancos de dados, inclu",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "通过此应用程序通过终端管理您的SQL数据库",
+        "summary": "Pam是一个用Go编写的CLI工具，为PostgreSQL、MySQL和SQLite等多个数据库系统提供高效的终端访问，采用Vim启发的界面。它允许保存查询库、交互式执行参数化查询并以多种格式导出结果，同时保持完全的键盘控制。极简界面优先考虑效率，同时提供强大的数据库管理功能。"
+      },
+      "fr": {
+        "title": "Gérez vos bases de données SQL via le Terminal avec cette application",
+        "summary": "Pam est un outil CLI écrit en Go qui fournit un accès terminal efficace à plusieurs systèmes de bases de données comme PostgreSQL, MySQL et SQLite avec une interface inspirée de Vim. Il permet de sauvegarder des bibliothèques de requêtes, d'exécuter interactivement des requêtes paramétrées et d'exporter les résultats dans plusieurs formats tout en maintenant un contrôle total du clavier. L'interface minimaliste privilégie l'efficacité tout en offrant de puissantes capacités de gestion de bases de données."
+      },
+      "de": {
+        "title": "Verwalten Sie Ihre SQL-Datenbanken über das Terminal mit dieser App",
+        "summary": "Pam ist ein in Go geschriebenes CLI-Tool, das effizienten Terminalzugriff auf mehrere Datenbanksysteme wie PostgreSQL, MySQL und SQLite mit einer von Vim inspirierten Oberfläche bietet. Es ermöglicht das Speichern von Abfragebibliotheken, das interaktive Ausführen parametrisierter Abfragen und den Export von Ergebnissen in mehreren Formaten bei vollständiger Tastaturkontrolle. Die minimalistische Oberfläche priorisiert Effizienz, bietet aber auch leistungsstarke Datenbankmanagement-Funktionen."
+      },
+      "es": {
+        "title": "Administre sus bases de datos SQL a través de Terminal con esta Aplicación",
+        "summary": "Pam es una herramienta CLI escrita en Go que proporciona acceso eficiente por terminal a múltiples sistemas de bases de datos como PostgreSQL, MySQL y SQLite con una interfaz inspirada en Vim. Permite guardar bibliotecas de consultas, ejecutar consultas parametrizadas interactivamente y exportar resultados en múltiples formatos manteniendo control total del teclado. La interfaz minimalista prioriza la eficiencia mientras ofrece potentes capacidades de gestión de bases de datos."
+      }
+    }
+  },
+  {
+    "title": "The Two SQL Concepts That Made Me Finally Understand Real Data: Joins & Window Functions.",
+    "slug": "sql-joins-window-functions-data-analysis",
+    "url": "https://dev.to/wilbon/the-two-sql-concepts-that-made-me-finally-understand-real-data-joins-window-functions-d8m",
+    "source": "DEV Community",
+    "date": "2026-03-04T11:45:27.000Z",
+    "summary": "Joins and window functions are essential SQL concepts for connecting information across multiple tables and performing complex aggregations that single-table queries cannot achieve. INNER JOIN matches data, LEFT JOIN preserves all records from one table, and FULL OUTER JOIN enables data reconciliation across systems. Mastering these patterns is critical for moving beyond simple queries to practical data analysis and business intelligence work.",
+    "content": "When I first started learning SQL, I thought I had it figured out.\nI could write things like:\nSELECT * FROM employees\nBut the moment I started working with real datasets, things got messy.\nData wasn’t in one table anymore. It was split across multiple tables — employees, departments, salaries, etc.\nThat’s when two SQL concepts started making real sense to me:\n Joins\n Window functions\nOnce I understood these, SQL felt way more powerful.\nIn this article, I’ll walk through both concepts using PostgreSQL examples, a small dataset, and the mental models that helped me understand them.\nThe Example Dataset\nLet's imagine a small HR dataset.\nemployees\ndepartments\nYou can create this dataset in PostgreSQL like this:\nCREATE TABLE employees (\nINSERT INTO employees VALUES\nCREATE TABLE departments (\nINSERT INTO departments VALUES\nPart 1: Understanding SQL Joins\nJoins are how relational databases connect information across tables.\nWhen I first learned joins, the simplest way to understand them was this:\nA join links rows from two tables using a common column.\nINNER JOIN — Matching Data Only\nAn INNER JOIN returns only rows where a match exists in both tables.\nExample: \nshow employees and their department names.\nSELECT\nResult:\nname    department_name\nEve disappears because she doesn't have a department assigned.\nINNER JOIN only returns matching rows.\nLEFT JOIN — Keep All Employees\nSometimes we want all records from one table, even if a match doesn't exist.\nThat’s where LEFT JOIN becomes useful.\nSELECT\nResult:\nname    department_name\nNow Eve appears, but her department is NULL.\nThis type of query is extremely common when:\nanalyzing incomplete data\n\n\nidentifying missing relationships\n\n\n\nFULL OUTER JOIN — Everything\n_A FULL OUTER JOIN _returns everything from both tables.\nSELECT\nThis is very useful for data reconciliation.\nPart 2:\n\n\nWhen I first encountered window functions, they looked confusing.\nBut once I understood the idea, they became one of the most powerful tools in SQL.\nThe ke",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "让我最终理解真实数据的两个SQL概念：连接和窗口函数",
+        "summary": "连接和窗口函数是关键的SQL概念，用于连接多个表中的信息并执行单表查询无法实现的复杂聚合。INNER JOIN匹配数据，LEFT JOIN保留一个表中的所有记录，FULL OUTER JOIN实现跨系统的数据协调。掌握这些模式对于从简单查询发展到实际数据分析和商业智能工作至关重要。"
+      },
+      "fr": {
+        "title": "Les deux concepts SQL qui m'ont finalement permis de comprendre les vraies données : les jointures et les fonctions de fenêtre",
+        "summary": "Les jointures et les fonctions de fenêtre sont des concepts SQL essentiels pour connecter les informations sur plusieurs tables et effectuer des agrégations complexes que les requêtes sur une seule table ne peuvent pas accomplir. INNER JOIN fait correspondre les données, LEFT JOIN préserve tous les enregistrements d'une table, et FULL OUTER JOIN permet la réconciliation des données entre les systèmes. Maîtriser ces modèles est essentiel pour progresser au-delà des requêtes simples vers un travail d'analyse de données pratique et de business intelligence."
+      },
+      "de": {
+        "title": "Die zwei SQL-Konzepte, die mir endlich geholfen haben, echte Daten zu verstehen: Joins und Window Functions",
+        "summary": "Joins und Window Functions sind wesentliche SQL-Konzepte zum Verbinden von Informationen über mehrere Tabellen hinweg und zum Durchführen komplexer Aggregationen, die Single-Table-Abfragen nicht erreichen können. INNER JOIN gleicht Daten ab, LEFT JOIN behält alle Datensätze aus einer Tabelle bei, und FULL OUTER JOIN ermöglicht die Datenabstimmung zwischen Systemen. Die Beherrschung dieser Muster ist entscheidend, um über einfache Abfragen hinausgehen zu können und praktische Datenanalysen und Business-Intelligence-Arbeiten durchzuführen."
+      },
+      "es": {
+        "title": "Los dos conceptos de SQL que finalmente me ayudaron a entender datos reales: Uniones y funciones de ventana",
+        "summary": "Las uniones y las funciones de ventana son conceptos SQL esenciales para conectar información en múltiples tablas y realizar agregaciones complejas que las consultas de una sola tabla no pueden lograr. INNER JOIN coincide con los datos, LEFT JOIN preserva todos los registros de una tabla, y FULL OUTER JOIN permite la reconciliación de datos entre sistemas. Dominar estos patrones es crítico para pasar de consultas simples a trabajo práctico de análisis de datos e inteligencia empresarial."
+      }
+    }
+  },
+  {
+    "title": "Prompting Efficient : Parlez Markdown et XML, pas Français",
+    "slug": "efficient-prompting-markdown-xml-tokens",
+    "url": "https://dev.to/pepetoken/prompting-efficient-parlez-markdown-et-xml-pas-francais-1opc",
+    "source": "DEV Community",
+    "date": "2026-03-04T11:44:41.000Z",
+    "summary": "Developers should structure LLM prompts using Markdown and XML instead of conversational text to reduce token costs by up to 40% and improve output precision. By eliminating polite formalities and prose narrative, prompts become clearer to models that inherently understand structured data formats better than natural language. This optimization approach converts millions of requests into significant cost savings while improving processing speed and response quality.",
+    "content": "Dans la majorité des revues de code sur des projets intégrant l'IA, on retrouve systématiquement des variables de prompt qui ressemblent à ça :\n\"Bonjour, j'aimerais que tu puisses s'il te plaît analyser le texte suivant et me donner les trois points clés. Merci d'avance pour ton aide ! Voici le texte : ...\"\nOn est humains, c'est un réflexe naturel d'être poli. Sauf qu'à chaque exécution de cette boucle, vous venez de payer pour 20 tokens de \"bruit\" absolu. Sur un million de requêtes, votre politesse vient de vous coûter quelques centaines d'euros et a ralenti votre serveur.\nUn LLM n'est pas un humain susceptible. C'est un moteur de calcul probabiliste. Voici comment structurer vos données en entrée pour maximiser sa précision et réduire vos coûts.\nLes LLMs (comme GPT ou Claude) ont ingurgité la quasi-totalité d'internet, mais surtout la quasi-totalité de GitHub (code source) et de StackOverflow. \nIls sont intimement programmés pour comprendre la structure stricte bien mieux que la prose littéraire. \nVotre objectif : Maximiser le rapport Signal/Bruit. Supprimez toutes les phrases de transition, les formules de politesse, et remplacez-les par des structures de données que le modèle reconnaît nativement. \nLa manière la plus économique et universelle de le faire ? Le Markdown.\nLe Markdown utilise très peu de caractères (et donc très peu de tokens) pour créer une hiérarchie forte.\n# ❌ L'approche \"Roman\" (Bavarde et ambiguë)\nprompt_bavard = f\"\"\"\nJe veux que tu agisses comme un correcteur orthographique. \nTu dois regarder ce texte utilisateur et le corriger. \nFais attention, tu ne dois pas ajouter de commentaires, juste la correction. \nLe texte est : {user_input}\n\"\"\"\n\n# ✅ L'approche \"Markdown\" (Dense, claire, économique)\nprompt_efficient = f\"\"\"\n# ROLE\nCorrecteur orthographique strict.\n\n# RÈGLES\n- Corriger les fautes.\n- Output : UNIQUEMENT le texte corrigé.\n- AUCUN commentaire.\n\n# TEXTE\n{user_input}\n\"\"\"\n\nLe ROI est immédiat : Le prompt Markdown est 40% plus court, il coûte",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "高效提示：使用Markdown和XML，而不是法语",
+        "summary": "开发人员应该使用Markdown和XML而不是对话文本来构建LLM提示，以减少高达40%的令牌成本并提高输出精度。通过消除礼貌的形式和散文叙述，提示对于本质上理解结构化数据格式而不是自然语言的模型变得更清晰。这种优化方法将数百万个请求转化为显著的成本节省，同时提高处理速度和响应质量。"
+      },
+      "fr": {
+        "title": "Prompting Efficace : Parlez Markdown et XML, pas Français",
+        "summary": "Les développeurs doivent structurer les invites LLM à l'aide de Markdown et XML au lieu de texte conversationnel pour réduire les coûts des jetons jusqu'à 40% et améliorer la précision des résultats. En éliminant les formalités polies et les récits en prose, les invites deviennent plus claires pour les modèles qui comprennent intrinsèquement les formats de données structurées mieux que le langage naturel. Cette approche d'optimisation convertit des millions de demandes en économies de coûts significatives tout en améliorant la vitesse de traitement et la qualité des réponses."
+      },
+      "de": {
+        "title": "Effiziente Aufforderung: Sprechen Sie Markdown und XML, nicht Französisch",
+        "summary": "Entwickler sollten LLM-Aufforderungen mithilfe von Markdown und XML statt Konversationstext strukturieren, um die Token-Kosten um bis zu 40% zu senken und die Ausgabegenauigkeit zu verbessern. Durch die Beseitigung höflicher Formalitäten und Prosa-Erzählungen werden Aufforderungen für Modelle, die strukturierte Datenformate von Natur aus besser verstehen als natürliche Sprache, klarer. Dieser Optimierungsansatz wandelt Millionen von Anfragen in erhebliche Kosteneinsparungen um und verbessert gleichzeitig die Verarbeitungsgeschwindigkeit und Antwortqualität."
+      },
+      "es": {
+        "title": "Indicaciones Eficientes: Hable Markdown y XML, no Francés",
+        "summary": "Los desarrolladores deben estructurar indicaciones LLM usando Markdown y XML en lugar de texto conversacional para reducir los costos de tokens hasta en un 40% y mejorar la precisión de salida. Al eliminar formalismos corteses y narrativa en prosa, las indicaciones se vuelven más claras para los modelos que comprenden inherentemente formatos de datos estructurados mejor que el lenguaje natural. Este enfoque de optimización convierte millones de solicitudes en ahorros de costos significativos mientras mejora la velocidad de procesamiento y la calidad de las respuestas."
+      }
+    }
+  },
+  {
     "title": "Why JSON.parse Fails on Valid JSON (Hidden Unicode Characters)",
     "slug": "why-json-parse-fails-valid-json-hidden-unicode",
     "url": "https://dev.to/unicode-dev/why-jsonparse-fails-on-valid-json-hidden-unicode-characters-dph",
@@ -332,6 +668,34 @@
       "es": {
         "title": "¿Cuál es la comparación típica de costos entre lift-and-shift versus reescritura completa para la modernización de mainframe?",
         "summary": "La modernización de mainframe por lift-and-shift generalmente cuesta $0,25-$2,30 por línea de código durante 2-36 meses, mientras que las reescrituras completas son más costosas y consumen más tiempo pero pueden ofrecer mayores beneficios comerciales transformacionales."
+      }
+    }
+  },
+  {
+    "title": "TikTok will not introduce end-to-end encryption, saying it makes users less safe",
+    "slug": "tiktok-end-to-end-encryption-safety",
+    "url": "https://www.bbc.com/news/articles/cly2m5e5ke4o",
+    "source": "Hacker News",
+    "date": "2026-03-04T01:31:05.000Z",
+    "summary": "TikTok announced it will not implement end-to-end encryption, arguing that E2E encryption compromises content moderation and user safety capabilities. This position contrasts with privacy advocates who view encryption as essential protection against surveillance and data breaches. The policy reflects ongoing tension between platform moderation objectives and user privacy expectations in social media design.",
+    "content": "Article URL: https://www.bbc.com/news/articles/cly2m5e5ke4o\nComments URL: https://news.ycombinator.com/item?id=47241817\nPoints: 274\n# Comments: 235",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "TikTok不会引入端到端加密，称其会使用户不安全",
+        "summary": "TikTok宣布不会实施端到端加密，辩称E2E加密会损害内容审核和用户安全功能。这一立场与认为加密是防止监控和数据泄露的必要保护的隐私倡导者形成对比。该政策反映了平台审核目标与社交媒体设计中用户隐私期望之间的持续紧张关系。"
+      },
+      "fr": {
+        "title": "TikTok n'introduira pas le chiffrement de bout en bout, affirmant qu'il rend les utilisateurs moins sûrs",
+        "summary": "TikTok a annoncé qu'il ne mettrait pas en œuvre le chiffrement de bout en bout, arguant que le chiffrement E2E compromet la modération du contenu et les capacités de sécurité des utilisateurs. Cette position contraste avec les défenseurs de la vie privée qui considèrent le chiffrement comme une protection essentielle contre la surveillance et les violations de données. La politique reflète les tensions persistantes entre les objectifs de modération des plateformes et les attentes en matière de confidentialité des utilisateurs dans la conception des médias sociaux."
+      },
+      "de": {
+        "title": "TikTok wird keine Ende-zu-Ende-Verschlüsselung einführen und behauptet, dass dies Benutzer weniger sicher macht",
+        "summary": "TikTok kündigte an, keine Ende-zu-Ende-Verschlüsselung implementieren zu wollen, mit der Begründung, dass E2E-Verschlüsselung die Inhaltsmoderation und Benutzersicherheitsfunktionen beeinträchtigt. Diese Position steht im Gegensatz zu Datenschutzverfechtung, die Verschlüsselung als wesentlichen Schutz vor Überwachung und Datenverletzungen betrachten. Die Politik spiegelt die anhaltenden Spannungen zwischen den Moderationszielen der Plattform und den Datenschutzerwartungen der Benutzer im Social-Media-Design wider."
+      },
+      "es": {
+        "title": "TikTok no introducirá cifrado de extremo a extremo, diciendo que hace a los usuarios menos seguros",
+        "summary": "TikTok anunció que no implementará cifrado de extremo a extremo, argumentando que el cifrado E2E compromete la moderación de contenido y las capacidades de seguridad del usuario. Esta posición contrasta con los defensores de la privacidad que ven el cifrado como una protección esencial contra la vigilancia y las violaciones de datos. La política refleja la tensión continua entre los objetivos de moderación de plataforma y las expectativas de privacidad del usuario en el diseño de redes sociales."
       }
     }
   },
