@@ -1,0 +1,142 @@
+[
+  {
+    "title": "The SaaS Architecture Guide: How to Handle Multitenancy in Rails Routing",
+    "slug": "saas-architecture-guide-multitenancy-rails-routing",
+    "url": "https://dev.to/zilton7/the-saas-architecture-guide-how-to-handle-multitenancy-in-rails-routing-2f00",
+    "source": "DEV Community",
+    "date": "2026-03-06T00:21:28.000Z",
+    "summary": "Article discusses how to use Rails routing constraints for SaaS multitenancy, including regex-based ID validation, subdomain routing for tenant apps versus marketing sites, and protecting admin dashboards like Sidekiq. These techniques control access before controller instantiation.",
+    "content": "Most Rails developers stop learning routing after resources :posts.\nBut if you are building a SaaS platform, an API, or a multi-tenant application, resources isn't enough. You need to control who enters your application and where they land before a Controller is even instantiated.\nThis is the power of Routing Constraints. It is the bouncer at the door of your application. Here is how to use it like a pro.\nYou want /products/1 to be valid, but /products/iphone-15 to be invalid (or routed differently).\nBy default, :id accepts anything. You can restrict this using Regex.\n# config/routes.rb\n\n# Only allow numeric IDs\nresources :products, constraints: { id: /\\d+/ }\n\n# Allow \"slugs\" for this specific route\nget 'products/:slug', to: 'products#show', constraints: { slug: /[a-z0-9\\-]+/ }\n\nWhy do this?\n/products/SELECT * FROM, the router rejects it immediately (404) without spinning up the controller.\nThis is the most common requirement for B2B SaaS apps (e.g., slack.com vs mycompany.slack.com).\nYou need to route the \"root\" domain to your marketing site, and \"subdomains\" to the actual app.\n# config/routes.rb\n\nRails.application.routes.draw do\n  # 1. The Tenant App (subdomain present, and it's NOT 'www')\n  constraints ->(req) { req.subdomain.present? && req.subdomain != \"www\" } do\n    scope module: 'tenant' do\n      root to: \"dashboard#show\", as: :tenant_root\n      resources :projects\n    end\n  end\n\n  # 2. The Marketing Site (no subdomain or 'www')\n  root to: \"pages#home\"\n  get \"pricing\", to: \"pages#pricing\"\nend\n\nWhat just happened?\n  scope module: 'tenant': This tells Rails to look for controllers inside app/controllers/tenant/. This keeps your code clean: Tenant::DashboardController is separate from PagesController.\nYou installed Sidekiq or GoodJob. They come with a web dashboard mounted at /sidekiq.\nProblem: You don't want the public to see it.\nSolution: Use a constraint to check the user session inside the router.\n# config/routes.rb\nrequire 'sidekiq/web'\n\n# Define a class fo",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "SaaS 架构指南：如何在 Rails 路由中处理多租户",
+        "summary": "本文讨论如何在 SaaS 多租户中使用 Rails 路由约束，包括基于正则表达式的 ID 验证、用于租户应用与营销网站的子域名路由，以及保护 Sidekiq 等管理仪表板。这些技术在控制器实例化之前控制访问权限。"
+      },
+      "fr": {
+        "title": "Le Guide de l'Architecture SaaS : Comment Gérer la Multi-Location dans le Routage Rails",
+        "summary": "L'article discute de l'utilisation des contraintes de routage Rails pour la multi-location SaaS, y compris la validation des ID basée sur des expressions régulières, le routage des sous-domaines pour les applications locataires par rapport aux sites marketing, et la protection des tableaux de bord administrateur comme Sidekiq. Ces techniques contrôlent l'accès avant l'instanciation du contrôleur."
+      },
+      "de": {
+        "title": "Der SaaS-Architektur-Leitfaden: So Handhaben Sie Multi-Tenancy im Rails-Routing",
+        "summary": "Der Artikel erörtert die Verwendung von Rails-Routing-Einschränkungen für SaaS-Multi-Tenancy, einschließlich Regex-basierter ID-Validierung, Subdomain-Routing für Mandanten-Apps im Vergleich zu Marketing-Websites und dem Schutz von Admin-Dashboards wie Sidekiq. Diese Techniken kontrollieren den Zugriff vor der Controller-Instanziierung."
+      },
+      "es": {
+        "title": "La Guía de Arquitectura SaaS: Cómo Manejar la Multitenencia en el Enrutamiento de Rails",
+        "summary": "El artículo analiza cómo utilizar restricciones de enrutamiento de Rails para multitenencia SaaS, incluida la validación de ID basada en expresiones regulares, el enrutamiento de subdominios para aplicaciones de inquilino frente a sitios de marketing, y la protección de paneles de administración como Sidekiq. Estas técnicas controlan el acceso antes de la instanciación del controlador."
+      }
+    }
+  },
+  {
+    "title": "How to Audit What Your AI Agents Actually Did — Visual Behavioral Proof with PageBolt",
+    "slug": "audit-ai-agents-visual-behavioral-proof-pagebolt",
+    "url": "https://dev.to/custodiaadmin/how-to-audit-what-your-ai-agents-actually-did-visual-behavioral-proof-with-pagebolt-2f96",
+    "source": "DEV Community",
+    "date": "2026-03-06T00:21:28.000Z",
+    "summary": "As LLM agents become production infrastructure, their fast execution creates an audit gap—API logs and database records exist but visual proof of what agents saw and did on-screen remains missing. Video-based audit trails are needed for EU AI Act and SOC 2 compliance.",
+    "content": "How to Audit What Your AI Agents Actually Did — Visual Behavioral Proof with PageBolt\n\n\nAn MCP agent chains five tools: browser search, document lookup, Slack notification, API call, and database update. It completes in 8 seconds. Did it do what you asked? Did it touch the right data? Did it expose credentials in a log?\nYou have API response logs. You have database transaction records. You have zero visual proof of what the agent actually saw on screen or did in the interface. That's the governance gap.\nLLM agents are fast. They're becoming standard infrastructure: CrewAI, LangGraph, Anthropic's Agent SDK, Google Vertex AI agents. Companies are already shipping multi-agent workflows in production — orchestrating 4-6 tools per agent, chaining agents together, running 20+ parallel instances.\nBut fast ≠ auditable. When an agent goes wrong — it deletes the wrong row, leaks PII to a third-party API, takes an action a user didn't authorize — what's your proof? What does your auditor see?\nAPI logs show: \"User made request to API X\"\nDatabase logs show: \"Row Y was updated\"\nBut nobody knows: what was on the agent's screen when it decided to do that?\nThis is the compliance blind spot. EU AI Act (August 2026), SOC 2 Type II, HIPAA audits — they all want behavioral proof. \"Show us what the agent did, step by step, with evidence.\"\nText logs aren't evidence. Video is.\nModel Context Protocol (MCP) is the standard for connecting LLM agents to tools. Microsoft, Anthropic, AWS, and Google are all shipping MCP integrations. By Q4 2026, MCP will be the dominant agent orchestration layer.\nProblem: MCP doesn't come with governance.\nAn agent using MCP can:\nExecute 20+ parallel server calls\nChain results across tools (output from tool A feeds into tool B)\nAccess sensitive data endpoints (databases, Slack, GitHub)\nRetry on failure (potentially mutating data twice)\nYou get logs. You don't get behavioral proof.\nA visual audit trail solves this. Not screenshots of random moments. Continuous, na",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何审计您的 AI 代理实际执行的操作 — 使用 PageBolt 的视觉行为证明",
+        "summary": "随着 LLM 代理成为生产基础设施，它们的快速执行造成了审计空白——API 日志和数据库记录存在，但缺少代理在屏幕上看到和执行的操作的视觉证明。满足欧盟人工智能法案和 SOC 2 合规性需要基于视频的审计跟踪。"
+      },
+      "fr": {
+        "title": "Comment Auditer ce que Vos Agents IA Ont Réellement Fait — Preuve Comportementale Visuelle avec PageBolt",
+        "summary": "À mesure que les agents LLM deviennent une infrastructure de production, leur exécution rapide crée un écart d'audit — les journaux API et les enregistrements de base de données existent, mais la preuve visuelle de ce que les agents ont vu et fait à l'écran fait défaut. Des pistes d'audit basées sur la vidéo sont nécessaires pour la conformité à la loi IA de l'UE et à SOC 2."
+      },
+      "de": {
+        "title": "So Überprüfen Sie, Was Ihre KI-Agenten Tatsächlich Getan Haben — Visueller Verhaltensbeweis mit PageBolt",
+        "summary": "Da LLM-Agenten zur Produktionsinfrastruktur werden, schafft ihre schnelle Ausführung eine Audit-Lücke — API-Protokolle und Datenbankdatensätze existieren, aber der visuelle Beweis für das, was Agenten auf dem Bildschirm sahen und taten, fehlt. Videobasierte Audit-Trails sind für die Konformität mit dem EU-KI-Gesetz und SOC 2 erforderlich."
+      },
+      "es": {
+        "title": "Cómo Auditar lo que Sus Agentes IA Realmente Hicieron — Prueba de Comportamiento Visual con PageBolt",
+        "summary": "A medida que los agentes LLM se convierten en infraestructura de producción, su ejecución rápida crea una brecha de auditoría — existen registros de API y registros de bases de datos, pero falta la prueba visual de lo que los agentes vieron e hicieron en la pantalla. Se necesitan pistas de auditoría basadas en video para cumplir con la Ley de IA de la UE y SOC 2."
+      }
+    }
+  },
+  {
+    "title": "MCP Tool Overload: Why More Tools Make Your Agent Worse",
+    "slug": "mcp-tool-overload-agent-performance-degradation",
+    "url": "https://dev.to/nebulagg/mcp-tool-overload-why-more-tools-make-your-agent-worse-5a49",
+    "source": "DEV Community",
+    "date": "2026-03-06T00:21:28.000Z",
+    "summary": "Connecting too many MCP tools (50+) to an LLM agent degrades performance because tool definitions consume massive token budgets (e.g., GitHub MCP uses ~42K tokens), reducing attention for actual tasks and increasing hallucination. Selective tool exposure is the solution.",
+    "content": "You gave your agent access to 50 MCP tools. GitHub, Slack, Notion, Linear, Jira, Postgres, Stripe, Google Drive, and 42 other integrations. It should be the most capable agent you've ever built.\nInstead, it's the most confused one.\nIt misses obvious tool choices. It hallucinates parameters that don't exist. It picks the wrong tool for simple tasks. Tasks that worked fine with 10 tools fail with 50. This is the MCP context overload problem — and it's one of the most common ways developers unknowingly destroy their agent's performance in production.\nHere's what's happening, why it matters, and exactly how to fix it.\nModel Context Protocol (MCP) is a standard for exposing tools to LLMs. When your agent connects to an MCP server, the server advertises its tools — names, descriptions, and JSON schemas for every parameter. The LLM reads all of this before it can decide which tool to call.\nThe problem: every tool definition takes tokens. Not a few tokens — a lot.\nHere's a rough count for some common MCP servers:\n\n\n\nMCP Server\nApprox. tool definition tokens\n\n\n\n\nGitHub MCP (official)\n~42,000 tokens\n\n\nSlack MCP\n~8,000 tokens\n\n\nNotion MCP\n~6,500 tokens\n\n\nPostgres MCP\n~3,200 tokens\n\n\nLinear MCP\n~5,800 tokens\n\n\n\nGitHub's official MCP server alone eats 42,000 tokens — just for the tool definitions, before your system prompt, before the conversation history, before the actual task. Stack four or five servers together and you've burned 60,000+ tokens on tool schemas that the agent might never use for a given task.\nMost frontier models cap context at 128K–200K tokens. You've just handed 30–50% of that budget to tool definitions.\nThis isn't just a cost issue. It directly degrades decision quality in three ways.\n1. Attention dilution. Transformer attention is not uniform. When the model has to attend across 200K tokens, signal from the actual task gets diluted by noise from 49 tool definitions it doesn't need for this specific request. Research on \"lost in the middle\" effects shows LL",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "MCP 工具过载：为什么更多工具会让您的代理性能更差",
+        "summary": "将太多 MCP 工具（50+）连接到 LLM 代理会降低性能，因为工具定义消耗大量的 token 预算（例如，GitHub MCP 使用约 42K tokens），减少了实际任务的注意力，增加了幻觉。选择性工具暴露是解决方案。"
+      },
+      "fr": {
+        "title": "Surcharge d'Outils MCP : Pourquoi Plus d'Outils Rendent Votre Agent Pire",
+        "summary": "Connecter trop d'outils MCP (50+) à un agent LLM dégrade les performances car les définitions d'outils consomment des budgets de tokens massifs (par exemple, GitHub MCP utilise environ 42K tokens), réduisant l'attention aux tâches réelles et augmentant les hallucinations. L'exposition sélective des outils est la solution."
+      },
+      "de": {
+        "title": "MCP-Tool-Überlastung: Warum Mehr Tools Ihren Agenten Verschlechtern",
+        "summary": "Das Verbinden von zu vielen MCP-Tools (50+) mit einem LLM-Agenten beeinträchtigt die Leistung, da Tool-Definitionen massive Token-Budgets verbrauchen (z. B. GitHub MCP verwendet etwa 42K Token), die Aufmerksamkeit für tatsächliche Aufgaben reduzieren und Halluzinationen erhöhen. Selektive Tool-Exposition ist die Lösung."
+      },
+      "es": {
+        "title": "Sobrecarga de Herramientas MCP: Por Qué Más Herramientas Hacen que Su Agente Sea Peor",
+        "summary": "Conectar demasiadas herramientas MCP (50+) a un agente LLM degrada el rendimiento porque las definiciones de herramientas consumen presupuestos de tokens masivos (por ejemplo, GitHub MCP utiliza aproximadamente 42K tokens), reduciendo la atención a las tareas reales e aumentando las alucinaciones. La exposición selectiva de herramientas es la solución."
+      }
+    }
+  },
+  {
+    "title": "vscreen 0.2.0: the MCP tools got smarter, and now they build websites",
+    "slug": "vscreen-0-2-0-mcp-browser-automation-ai-agents",
+    "url": "https://dev.to/lowjax/vscreen-020-the-mcp-tools-got-smarter-and-now-they-build-websites-5dje",
+    "source": "DEV Community",
+    "date": "2026-03-06T00:14:23.000Z",
+    "summary": "vscreen 0.2.0 consolidates 63 browser automation tools into 47 using a two-layer architecture (workflow and precision), adds real-time error detection, and introduces synthesis tools for building websites from scraped data. This reduces agent round-trips and improves efficiency.",
+    "content": "vscreen gives AI agents a real Chromium browser, streamed live over WebRTC. The first release had 63 tools. They worked — but agents kept chaining them inefficiently. Three round-trips to click a button and see what happened.\n0.2.0 consolidates 63 tools into 47 with a two-layer architecture, adds a live advisor that catches mistakes in real-time, and introduces a synthesis system that builds websites from scraped data.\n\n\n\nLayer\nTools\nPurpose\n\n\n\n\nWorkflow\n\nbrowse, observe, interact, extract, solve_challenge\n\nEntire workflows in a single call\n\n\nPrecision\n\nclick, type, find, wait, scroll, etc.\nExact control when needed\n\n\n\nvscreen_browse navigates, waits, dismisses cookie banners, screenshots, and returns page info — one call instead of four. vscreen_interact clicks by visible text, returns a screenshot after. vscreen_extract pulls structured data in six modes: articles, table, kv, stats, links, or auto.\nFast path for 80% of tasks. Drop to precision tools when needed.\nThe MCP server tracks every tool call in a sliding window and returns inline hints when it detects anti-patterns:\n\n\n\nPattern detected\nHint\n\n\n\n\nclick → wait → screenshot\nvscreen_interact does this in one call\n\n\nscroll → screenshot loop\nUse full_page=true instead\n\n\nRepeated fixed waits\nUse condition=\"text\" or \"selector\"\n\n\nJS for built-in operations\nUse vscreen_get_page_info instead\n\n\n5+ calls without Layer 1\nTry vscreen_browse or vscreen_interact\n\n\n\nOne-shot, contextual. Plus vscreen_plan(\"fill out the form\") for step-by-step tool recipes and vscreen_help(topic=...) for built-in docs. The server is self-documenting.\nAI agents build live web pages from scraped data. One call does everything:\nvscreen_synthesis_scrape_and_create({\n  \"instance_id\": \"dev\",\n  \"title\": \"Tech News Roundup\",\n  \"urls\": [\n    { \"url\": \"https://arstechnica.com\", \"limit\": 8, \"source_label\": \"Ars\" },\n    { \"url\": \"https://techcrunch.com\", \"limit\": 8, \"source_label\": \"TC\" },\n    { \"url\": \"https://theverge.com\", \"limit\": 8, \"source_label\":",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "vscreen 0.2.0：MCP工具变得更聪明，现在可以构建网站了",
+        "summary": "vscreen 0.2.0将63个浏览器自动化工具整合为47个，采用两层架构（工作流和精度），添加实时错误检测，并引入从爬取数据构建网站的合成工具。这减少了代理往返次数并提高了效率。"
+      },
+      "fr": {
+        "title": "vscreen 0.2.0 : les outils MCP sont devenus plus intelligents, et maintenant ils construisent des sites web",
+        "summary": "vscreen 0.2.0 consolide 63 outils d'automatisation de navigateur en 47 en utilisant une architecture à deux niveaux (flux de travail et précision), ajoute la détection d'erreurs en temps réel et introduit des outils de synthèse pour construire des sites web à partir de données grattées. Cela réduit les allers-retours des agents et améliore l'efficacité."
+      },
+      "de": {
+        "title": "vscreen 0.2.0: Die MCP-Tools sind intelligenter geworden und bauen jetzt Websites",
+        "summary": "vscreen 0.2.0 konsolidiert 63 Browser-Automatisierungswerkzeuge in 47 mit einer zweischichtigen Architektur (Workflow und Präzision), fügt Fehlererkennung in Echtzeit hinzu und führt Synthesewerkzeuge zum Erstellen von Websites aus gescrapten Daten ein. Dies reduziert Agent-Roundtrips und verbessert die Effizienz."
+      },
+      "es": {
+        "title": "vscreen 0.2.0: las herramientas MCP son más inteligentes y ahora construyen sitios web",
+        "summary": "vscreen 0.2.0 consolida 63 herramientas de automatización de navegadores en 47 usando una arquitectura de dos capas (flujo de trabajo y precisión), agrega detección de errores en tiempo real e introduce herramientas de síntesis para construir sitios web a partir de datos raspados. Esto reduce los viajes de ida y vuelta del agente y mejora la eficiencia."
+      }
+    }
+  },
+  {
+    "title": "Stop Using Switch Statements: Keyed Services in .NET - A Practical Approach",
+    "slug": "keyed-services-dotnet-dependency-injection",
+    "url": "https://dev.to/raffaeleloi/stop-using-switch-statements-keyed-services-in-net-a-practical-approach-iej",
+    "source": "DEV Community",
+    "date": "2026-03-06T00:09:04.000Z",
+    "summary": ".NET 8's Keyed Services feature allows registering multiple implementations of the same interface with keys, eliminating switch/if-else logic for dependency resolution. This approach is particularly useful for event handlers and notification channels, improving code maintainability.",
+    "content": "Have you heard of Keyed Services? Do you know when to use them? Have you ever needed multiple implementations of the same interface and ended up writing a big switch or if-else block to decide which one to use?\nToday, I'll show you a new tool for your software engineering toolbox and a hands-on approach using a POC project on my GitHub, where you can see the full implementation.\nIn this article, I'll show you how Keyed Services work and how they can simplify event-driven designs using a practical example.\nBefore .NET 8, registering multiple implementations of the same interface was possible, but resolving a specific implementation was not straightforward.\nTypically, you would inject IEnumerable and manually choose the correct implementation using conditions or metadata.\nBut with Keyed Services, a built-in dependency injection feature introduced in .NET 8, you can register multiple classes for the same interface using a key.\nThere are scenarios where we can reduce the number of if-else statements and achieve a cleaner solution using these keys.\nEspecially when handling events, we can build a solid implementation that is easy to extend using Keyed Services.\nKeyed Services are useful when:\nYou have multiple implementations of the same interface\nThe correct implementation depends on runtime data\nYou want to avoid switch / if-else logic\nYou want a solution that is easy to extend\nCommon scenarios include:\nEvent handlers\nNotification channels (Email, SMS)\nBear with me for this example:\nI have an EventHandlerFactory that receives an event and then redirects it to the responsible handler.\nIncoming Event\n      │\n      ▼\nEventHandlerFactory\n      │\n      ▼\nKeyed DI Resolution\n      │\n      ▼\nSpecific EventHandler\n\nHere's an interface that represents that:\ninternal interface IEventHandlerFactory\n{\n    Task HandleEvent(string eventName, object eventData);\n}\n\nEach event handler should implement this interface\ninternal interface IEventHandler\n{\n    Task HandleAsync(object eventDat",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "停止使用Switch语句：.NET中的键控服务 - 实战方法",
+        "summary": ".NET 8的键控服务功能允许使用键注册同一接口的多个实现，消除了依赖项解析中的switch/if-else逻辑。这种方法对事件处理程序和通知通道特别有用，提高了代码可维护性。"
+      },
+      "fr": {
+        "title": "Arrêtez d'utiliser les Switch : les services à clés dans .NET - Une approche pratique",
+        "summary": "La fonctionnalité Services à clés de .NET 8 permet d'enregistrer plusieurs implémentations de la même interface avec des clés, éliminant la logique switch/if-else pour la résolution de dépendances. Cette approche est particulièrement utile pour les gestionnaires d'événements et les canaux de notification, améliorant la maintenabilité du code."
+      },
+      "de": {
+        "title": "Hören Sie auf, Switch-Anweisungen zu verwenden: Keyed Services in .NET - Ein praktischer Ansatz",
+        "summary": "Die Keyed Services-Funktion von .NET 8 ermöglicht die Registrierung mehrerer Implementierungen der gleichen Schnittstelle mit Schlüsseln, wodurch switch/if-else-Logik für die Abhängigkeitsauflösung entfällt. Dieser Ansatz ist besonders für Event Handler und Benachrichtigungskanäle nützlich und verbessert die Wartbarkeit des Codes."
+      },
+      "es": {
+        "title": "Deja de usar Switch: Servicios con claves en .NET - Un enfoque práctico",
+        "summary": "La función Servicios con claves de .NET 8 permite registrar múltiples implementaciones de la misma interfaz con claves, eliminando la lógica de switch/if-else para la resolución de dependencias. Este enfoque es particularmente útil para manejadores de eventos y canales de notificación, mejorando la mantenibilidad del código."
+      }
+    }
+  }
+]
