@@ -1,5 +1,341 @@
 [
   {
+    "title": "Event-Driven Volatility",
+    "slug": "event-driven-volatility",
+    "url": "https://dev.to/rawveg/event-driven-volatility-13df",
+    "source": "DEV Community",
+    "date": "2026-03-07T12:00:00.000Z",
+    "summary": "Tech events announcing autonomous vehicles and AI breakthroughs can trigger massive stock volatility before products ship, as seen with Rivian's 35% jump on an \"Autonomy & AI Day.\" These carefully choreographed presentations move billions in market capitalization through anticipation rather than fundamentals. Investors face challenges separating genuine technological progress from elaborate marketing theatre.",
+    "content": "On a December morning in 2024, Rivian Automotive's stock climbed to a near six-month high. The catalyst wasn't a production milestone, a quarterly earnings beat, or even a major partnership announcement. Instead, investors were placing bets on something far less tangible: a livestream event scheduled for 11 December called “Autonomy & AI Day.” The promise of glimpses into Rivian's self-driving future was enough to push shares up 35% for the year, even as the company continued bleeding cash and struggling to achieve positive unit economics.\nWelcome to the peculiar world of autonomy tech days, where PowerPoint presentations about sensor stacks and demo videos of cars navigating parking lots can move billions of dollars in market capitalisation before a single commercial product ships. It's a phenomenon that raises uncomfortable questions for investors trying to separate genuine technological progress from elaborate theatre. How reliably do these carefully choreographed demonstrations translate into sustained valuation increases? What metrics actually predict long-term stock performance versus short-lived spikes? And for the risk-averse investor watching from the sidelines, how do you differentiate between hype-driven volatility and durable value creation?\nThe answers, it turns out, are more nuanced than the binary narratives that dominate financial media in the immediate aftermath of these events.\nThe pattern has become almost ritualistic. A company with ambitions in autonomous driving announces a special event months in advance. Analysts issue preview notes speculating on potential announcements. Retail investors pile into options contracts. The stock begins its pre-event climb, propelled by anticipation rather than fundamentals. Then comes the livestream itself: slick production values, confident executives, carefully edited demonstration videos, and forward-looking statements couched in just enough legal disclaimers to avoid securities fraud whilst maintaining the",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "事件驱动的波动性",
+        "summary": "科技公司发布自动驾驶汽车和人工智能突破的事件可以在产品上市前引发股市大幅波动，如Rivian在\"自动驾驶与人工智能日\"上涨35%的例子。这些精心策划的演示活动通过预期而非基本面推动数十亿美元的市值变化。投资者面临着将真正的技术进步与精心包装的营销噱头区分开来的挑战。"
+      },
+      "fr": {
+        "title": "Volatilité Basée sur les Événements",
+        "summary": "Les événements technologiques annonçant des véhicules autonomes et des avancées en IA peuvent déclencher une volatilité massive des marchés boursiers avant que les produits ne soient expédiés, comme l'a montré le bond de 35% de Rivian lors d'une \"Journée Autonomie & IA\". Ces présentations soigneusement orchestrées déplacent des milliards de dollars de capitalisation boursière par l'anticipation plutôt que par les fondamentaux. Les investisseurs font face à des défis pour distinguer les véritables progrès technologiques du marketing élaboré."
+      },
+      "de": {
+        "title": "Ereignisgesteuerte Volatilität",
+        "summary": "Tech-Events, die autonome Fahrzeuge und KI-Durchbrüche ankündigen, können vor der Produkteinführung massive Börsenvolatilität auslösen, wie Rivians 35%iger Anstieg beim \"Autonomy & AI Day\" zeigt. Diese sorgfältig choreografierten Präsentationen bewegen Milliarden an Marktkapitalisierung durch Vorerwartung statt durch Fundamentaldaten. Investoren haben Schwierigkeiten, echte technologische Fortschritte von aufwändiger Marketingtheater zu unterscheiden."
+      },
+      "es": {
+        "title": "Volatilidad Impulsada por Eventos",
+        "summary": "Los eventos tecnológicos que anuncian vehículos autónomos y avances en IA pueden desencadenar una volatilidad masiva en el mercado de valores antes de que los productos se lancen, como se vio con el salto del 35% de Rivian en su \"Día de Autonomía e IA\". Estas presentaciones cuidadosamente orquestadas mueven miles de millones en capitalización de mercado a través de la anticipación en lugar de fundamentales. Los inversores enfrentan desafíos al separar el progreso tecnológico genuino del teatro de marketing elaborado."
+      }
+    }
+  },
+  {
+    "title": "Event-Driven Architecture on a Budget: Kotlin Coroutines + Redis Streams",
+    "slug": "event-driven-architecture-kotlin-coroutines-redis",
+    "url": "https://dev.to/software_mvp-factory/event-driven-architecture-on-a-budget-kotlin-coroutines-redis-streams-4f5i",
+    "source": "DEV Community",
+    "date": "2026-03-07T11:59:23.000Z",
+    "summary": "A technical guide to building lightweight event-driven pipelines using Kotlin coroutines and Redis Streams instead of Kafka. The approach uses a buffered producer with backpressure handling and consumer-group reading for production-safe async event processing. This pattern enables teams to implement scalable event processing without the operational complexity of managing a full Kafka cluster.",
+    "content": "What We Will Build\n\n\nToday we are building a lightweight event-driven pipeline using Kotlin coroutines and Redis Streams. By the end, you will have a working producer that buffers and batches events, a consumer built on Kotlin Flows, and a clean abstraction layer that lets you swap in Kafka later without rewriting your application.\nLet me show you a pattern I use in every project that needs async event processing without the operational weight of a full Kafka cluster.\nKotlin 1.9+ with coroutines (kotlinx-coroutines-core)\nA running Redis 6.2+ instance (Docker works fine: docker run -p 6379:6379 redis:7)\nLettuce Redis client with coroutine support (lettuce-core)\nBasic familiarity with Kotlin coroutines and Flow\n\n\n\n\n  \n  \n  Step 1: Build the Buffered Producer\n\n\nThe producer uses a Kotlin Channel for local backpressure, then flushes events to Redis Streams in batches.\nclass EventProducer(\n    private val redis: RedisCoroutinesCommands<String, String>,\n    private val stream: String,\n    bufferSize: Int = 1024\n) {\n    private val channel = Channel<Map<String, String>>(bufferSize)\n\n    suspend fun emit(event: Map<String, String>) {\n        channel.send(event)\n    }\n\n    fun startFlusher(scope: CoroutineScope, batchSize: Int = 100) {\n        scope.launch {\n            val batch = mutableListOf<Map<String, String>>()\n            for (event in channel) {\n                batch.add(event)\n                if (batch.size >= batchSize || channel.isEmpty) {\n                    batch.forEach { redis.xadd(stream, it) }\n                    batch.clear()\n                }\n            }\n        }\n    }\n}\n\nHere is the minimal setup to get this working: the Channel suspends the caller when the buffer is full instead of dropping events. That backpressure propagation is what makes this production-safe.\nEach consumer reads from a Redis consumer group via XREADGROUP and emits messages into a Kotlin Flow.\nfun CoroutineScope.consumeStream(\n    redis: RedisCoroutinesCommands<String, String>,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "低成本事件驱动架构：Kotlin协程 + Redis Streams",
+        "summary": "这是一份技术指南，介绍如何使用Kotlin协程和Redis Streams而非Kafka来构建轻量级事件驱动管道。该方法采用缓冲生产者、背压处理和消费者组读取来实现生产级异步事件处理。这种模式使团队能够实现可扩展的事件处理，而无需管理完整Kafka集群的操作复杂性。"
+      },
+      "fr": {
+        "title": "Architecture Basée sur les Événements au Budget Limité : Kotlin Coroutines + Redis Streams",
+        "summary": "Un guide technique pour construire des pipelines légers basés sur les événements en utilisant Kotlin coroutines et Redis Streams au lieu de Kafka. L'approche utilise un producteur en mémoire tampon avec gestion de la rétroaction et la lecture du groupe de consommateurs pour un traitement asynchrone sûr en production. Ce modèle permet aux équipes de mettre en œuvre un traitement des événements évolutif sans la complexité opérationnelle de gérer un cluster Kafka complet."
+      },
+      "de": {
+        "title": "Ereignisgesteuerte Architektur auf kleinerem Budget: Kotlin Coroutines + Redis Streams",
+        "summary": "Ein technischer Leitfaden zum Aufbau leichter ereignisgesteuerter Pipelines mit Kotlin Coroutines und Redis Streams statt Kafka. Der Ansatz verwendet einen gepufferten Producer mit Rückdruckbehandlung und Consumer-Gruppen-Lesung für produktionssicheres asynchrones Event-Processing. Dieses Muster ermöglicht es Teams, skalierbare Event-Verarbeitung ohne die operative Komplexität der Verwaltung eines vollständigen Kafka-Clusters zu implementieren."
+      },
+      "es": {
+        "title": "Arquitectura Basada en Eventos con Presupuesto Limitado: Kotlin Coroutines + Redis Streams",
+        "summary": "Una guía técnica para construir canalizaciones ligeras basadas en eventos usando Kotlin coroutines y Redis Streams en lugar de Kafka. El enfoque utiliza un productor en búfer con manejo de contrapresión y lectura de grupos de consumidores para procesamiento asincrónico seguro en producción. Este patrón permite que los equipos implementen procesamiento de eventos escalable sin la complejidad operativa de administrar un clúster Kafka completo."
+      }
+    }
+  },
+  {
+    "title": "Vibe Coding Challenge - Day 9: Novellasense Book Writing Assistant",
+    "slug": "novellasense-book-writing-assistant",
+    "url": "https://dev.to/labdays/vibe-coding-challenge-day-9-novellasense-book-writing-assistant-383i",
+    "source": "DEV Community",
+    "date": "2026-03-07T11:58:04.000Z",
+    "summary": "Day 9 reflection from a coding challenge building Novellasense, a novel-writing assistant. The author discovered that separating coding and planning AI improves efficiency, and that running multiple parallel projects generates better ideas than single-focus work. The core insight: projects consume endless time if unconstrained, so intentional momentum and stopping points are critical.",
+    "content": "It's time to finish your unfinished novels.\nAnnouncement\nnovellasense.labdays.io\nContext\nlabdays.io) to learn about the process.\nNotes from the 9th day of the Challenge\nActually, I'm conducting numerous experiments. Even though I'm only publishing one useful product, my pool of ideas is constantly growing.\nCoding AI and prompt-writing AI should be on separate platforms. When I tell an Agentic AI what needs to be developed in the project, it takes shortcuts. However, if I plan with another AI, it works much more efficiently.\nMy parallel projects always influence and reinforce each other, so I try to start more than 5 projects a day, and a good product always comes out of it.\nToday I went out of town and could only work half a day. Even the slightest interruption slows my momentum. So I mustn't stop.\nIf you let it, a project will last forever. It will bring you to your knees and keep you there forever. Neither you, nor I, nor anyone else can outlast a project.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Vibe编码挑战 - 第9天：Novellasense小说写作助手",
+        "summary": "来自编码挑战第9天的反思，该挑战关于构建Novellasense，一个小说写作助手。作者发现将编码和规划人工智能分开可以提高效率，运行多个并行项目比单一焦点工作能产生更好的想法。核心洞察：如果项目不受约束，它们会消耗无限的时间，所以有意的动力和停止点至关重要。"
+      },
+      "fr": {
+        "title": "Défi de Codage Vibe - Jour 9 : Assistant d'Écriture de Romans Novellasense",
+        "summary": "Réflexion du jour 9 d'un défi de codage construisant Novellasense, un assistant d'écriture de romans. L'auteur a découvert que séparer le codage et l'IA de planification améliore l'efficacité, et que l'exécution de plusieurs projets parallèles génère de meilleures idées qu'un travail à focus unique. L'insight clé : les projets consomment un temps infini s'ils ne sont pas contraints, donc l'élan intentionnel et les points d'arrêt sont critiques."
+      },
+      "de": {
+        "title": "Vibe Coding Challenge - Tag 9: Novellasense Romanschreib-Assistent",
+        "summary": "Reflexion von Tag 9 einer Coding-Challenge zum Aufbau von Novellasense, einem Romanschreib-Assistenten. Der Autor entdeckte, dass die Trennung von Codierung und Planungs-KI die Effizienz verbessert, und dass die Durchführung mehrerer paralleler Projekte bessere Ideen als Einzelfocus-Arbeit generiert. Die Kernerkkenntnis: Projekte verbrauchen unbegrenzte Zeit, wenn sie nicht eingeschränkt sind, daher sind bewusster Schwung und Stoppunkte kritisch."
+      },
+      "es": {
+        "title": "Desafío de Codificación Vibe - Día 9: Asistente de Escritura de Novelas Novellasense",
+        "summary": "Reflexión del día 9 de un desafío de codificación que construye Novellasense, un asistente de escritura de novelas. El autor descubrió que separar la codificación e IA de planificación mejora la eficiencia, y que ejecutar múltiples proyectos paralelos genera mejores ideas que el trabajo de enfoque único. La visión central: los proyectos consumen tiempo infinito si no están limitados, por lo que el impulso intencional y los puntos de parada son críticos."
+      }
+    }
+  },
+  {
+    "title": "What Changed When Our Research Pipeline Hit a PDF Wall (Production Case Study)",
+    "slug": "research-pipeline-pdf-processing-case-study",
+    "url": "https://dev.to/kailash_ac43c0ef1daf14abd/what-changed-when-our-research-pipeline-hit-a-pdf-wall-production-case-study-g94",
+    "source": "DEV Community",
+    "date": "2026-03-07T11:48:53.000Z",
+    "summary": "A legal team's document-processing pipeline failed when OCR struggled with complex layouts, causing three-hour batches to timeout during business hours and miss SLAs. The team implemented layout-aware parsing and a dedicated deep research tool for intelligent chunking and cross-page synthesis, stabilizing production and improving extraction accuracy on mixed-format PDFs.",
+    "content": "On March 12, 2025, the PDF ingestion pipeline for a document-heavy product crossed a hard limit: nightly batches that used to finish in three hours were now spilling into the business day, causing timeouts, missed SLAs, and angry support tickets. The project was a live production feature used by legal teams to search across contracts, scanned exhibits, and technical manuals. The stakes were clear-lost user trust and a blocked roadmap that depended on faster, more reliable document understanding.\nWe traced the outage to two linked problems: a brittle retrieval layer that failed on scanned PDFs with complex layouts, and an orchestration scheme that treated every file as “same weight” during processing. The existing pipeline used an off-the-shelf OCR + embedding flow that worked for plain text, but degraded fast on mixed-layout documents (tables, figures, two-column scans). The result was high false-negative rates for entity extraction and a queue backlog.\nWhat we needed was a system that could do more than keyword matching: a repeatable, evidence-driven research path for each document that combined layout-aware parsing, citation-style provenance, and prioritized reprocessing. That led us to evaluate specialized tooling focused on long-form analysis; the team agreed we needed a dedicated Deep Research Tool to run a programmatic, document-first investigation at scale without manually curating source lists.\nWe documented the problem with an example failure. A legal brief processed through the old flow returned this error fragment in logs:\nError: embedding failure - token overflow at pipeline.step.embed(4500 tokens)\n\nContext: OCR produced repeated headers and malformed table OCR output that corrupted the tokenizer.\nThis concrete error drove two decisions: limit token inputs via smart chunking, and move heavy context reasoning off to a deeper research layer that could synthesize across multiple pages before producing final extractions.\nPhase 1 - stabilization (week 1): int",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我们的研究管道遇到PDF墙时发生了什么(生产案例研究)",
+        "summary": "当OCR难以处理复杂布局时,一个律师团队的文件处理管道失败,导致三小时批次在工作时间超时并错过SLA。该团队实施了布局感知解析和专用深度研究工具,用于智能分块和跨页面合成,稳定了生产并改进了混合格式PDF的提取精度。"
+      },
+      "fr": {
+        "title": "Ce qui a changé lorsque notre pipeline de recherche a heurté un mur PDF (étude de cas en production)",
+        "summary": "Le pipeline de traitement des documents d'une équipe juridique a échoué lorsque l'OCR a eu du mal avec les mises en page complexes, ce qui a causé l'expiration des lots de trois heures pendant les heures d'ouverture et l'absence des SLA. L'équipe a mis en œuvre une analyse sensible à la mise en page et un outil de recherche approfondie dédié pour le chunking intelligent et la synthèse entre pages, stabilisant la production et améliorant la précision de l'extraction sur les PDF multi-formats."
+      },
+      "de": {
+        "title": "Was sich änderte, als unsere Forschungs-Pipeline auf eine PDF-Wand traf (Produktionsfall-Studie)",
+        "summary": "Eine Dokumentverarbeitungs-Pipeline eines Rechtsteams schlug fehl, als OCR bei komplexen Layouts Schwierigkeiten hatte, was zu Timeouts bei drei-Stunden-Chargen während der Geschäftszeiten und zum Versäumen von SLAs führte. Das Team implementierte Layout-bewusste Analyse und ein dediziertes tiefes Recherche-Tool für intelligentes Chunking und seitenübergreifende Synthese, stabilisierte die Produktion und verbesserte die Extraktionsgenauigkeit bei gemischten PDF-Formaten."
+      },
+      "es": {
+        "title": "Lo que cambió cuando nuestro pipeline de investigación chocó con una pared PDF (Caso de estudio en producción)",
+        "summary": "El pipeline de procesamiento de documentos de un equipo legal falló cuando OCR tuvo dificultades con diseños complejos, causando que lotes de tres horas agotaran el tiempo de espera durante el horario comercial e incumplieran los SLA. El equipo implementó análisis sensible al diseño y una herramienta de investigación profunda dedicada para chunking inteligente y síntesis entre páginas, estabilizando la producción y mejorando la precisión de extracción en PDF de formatos mixtos."
+      }
+    }
+  },
+  {
+    "title": "Figma vs Adobe XD: Design Tool for Product Teams — The Honest 2026 Verdict",
+    "slug": "figma-vs-adobe-xd-design-tools-2026",
+    "url": "https://dev.to/glen_kiptoo_25bf70b816136/figma-vs-adobe-xd-design-tool-for-product-teams-the-honest-2026-verdict-36b0",
+    "source": "DEV Community",
+    "date": "2026-03-07T11:48:30.000Z",
+    "summary": "Adobe has placed XD in maintenance mode with no new features in development, while Figma has become the industry standard with 90% market share among professional designers. For product teams evaluating design tools in 2026, Figma is now the clear choice—most XD users have already migrated or are in the process of doing so.",
+    "content": "Figma vs Adobe XD: Design Tool for Product Teams — The Honest 2026 Verdict\n\n\nPublished: March 4, 2026 | Category: Design & Creative Tools | Read Time: 8 min\nIf you're building a digital product in 2026 — whether that's a website, a mobile app, or a SaaS platform — the tools your design team uses will directly impact how fast you ship, how well you collaborate, and how smoothly your developers can turn designs into working code.\nFor years, Figma and Adobe XD were considered the two heavyweights of UI/UX design. Both were built for professional product teams. Both offered prototyping, collaboration, and developer handoff. And for a long time, choosing between them was genuinely difficult.\nThat is no longer the case.\nHere's the truth that most articles won't tell you upfront: Adobe has placed XD in \"maintenance mode.\" That means no new features are being developed. The product still works and is still supported for existing users, but Adobe has effectively stopped investing in its future. Most professional design teams that were using XD have already transitioned to Figma — or are in the process of doing so.\nThat said, this comparison still absolutely matters. Thousands of small businesses and product teams are still using Adobe XD, many without knowing its development has stopped. And if you're currently evaluating design tools for your team, you need the full picture before committing.\nThis article gives you exactly that.\nFigma is a cloud-based UI/UX design and prototyping platform that launched in 2016 and has since become the undisputed industry standard for product design teams worldwide. It currently holds around a 90% market share among professional UI/UX designers — a number that is almost unheard of in any software category.\nIts defining characteristic is real-time collaboration. Multiple designers, developers, product managers, and even clients can work inside the same Figma file simultaneously, seeing each other's changes live — like Google Docs, but for des",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Figma vs Adobe XD: 产品团队的设计工具 — 诚实的2026年判决",
+        "summary": "Adobe已将XD置于维护模式,没有新功能在开发中,而Figma已成为行业标准,在专业设计师中拥有90%的市场份额。对于在2026年评估设计工具的产品团队,Figma现在是明确的选择——大多数XD用户已经迁移或正在迁移中。"
+      },
+      "fr": {
+        "title": "Figma vs Adobe XD: Outil de conception pour les équipes de produits — Le verdict honnête 2026",
+        "summary": "Adobe a placé XD en mode de maintenance sans nouvelles fonctionnalités en développement, tandis que Figma est devenue la norme de l'industrie avec 90% de part de marché parmi les concepteurs professionnels. Pour les équipes de produits qui évaluent les outils de conception en 2026, Figma est maintenant le choix évident — la plupart des utilisateurs de XD ont déjà migré ou sont en cours de migration."
+      },
+      "de": {
+        "title": "Figma vs Adobe XD: Design-Tool für Produktteams — Das ehrliche 2026 Urteil",
+        "summary": "Adobe hat XD in den Wartungsmodus versetzt, ohne neue Funktionen in der Entwicklung, während Figma zum Industriestandard mit 90% Marktanteil unter professionellen Designern geworden ist. Für Produktteams, die 2026 Design-Tools bewerten, ist Figma jetzt die klare Wahl – die meisten XD-Benutzer sind bereits migriert oder befinden sich im Migrationsprozess."
+      },
+      "es": {
+        "title": "Figma vs Adobe XD: Herramienta de diseño para equipos de producto — El veredicto honesto 2026",
+        "summary": "Adobe ha puesto XD en modo de mantenimiento sin nuevas características en desarrollo, mientras que Figma se ha convertido en el estándar de la industria con el 90% de cuota de mercado entre diseñadores profesionales. Para equipos de producto que evalúan herramientas de diseño en 2026, Figma es ahora la opción clara — la mayoría de los usuarios de XD ya han migrado o están en proceso de hacerlo."
+      }
+    }
+  },
+  {
+    "title": "When Deep Search Breaks: The Costly Mistakes Teams Make When Hunting Research Signal",
+    "slug": "deep-search-mistakes-llm-research-signal",
+    "url": "https://dev.to/azimkhan72/when-deep-search-breaks-the-costly-mistakes-teams-make-when-hunting-research-signal-4e47",
+    "source": "DEV Community",
+    "date": "2026-03-07T11:47:50.000Z",
+    "summary": "When teams skip verification layers and wire LLMs directly to search indices for \"instant answers,\" they encounter hallucinations, lost citations, and three-week firefights. The solution is staged retrieval: filter and rank results before synthesis, ensuring traceable sources and debuggable output. This architectural discipline prevents expensive mistakes that teams repeatedly learn the hard way.",
+    "content": "Two months into a PDF-driven search project-during a March 2025 sprint to surface equations and tables from academic PDFs-the ingestion pipeline crashed in a way that looked trivial on paper and catastrophic in production. The model returned plausible but useless summaries, downstream ranking exploded in latency, and the \"quick win\" we promised product stakeholders turned into three weeks of firefighting and a frozen release.\n\nWhat went wrong is repeatable, cheap to make, and shockingly common in teams starting with intelligent search, deep research workflows, or any system that pretends to be a research teammate. Below is a post‑mortem written as a reverse guide: focus on the anti-patterns, the damage they cause, and actionable pivots that fix them.\n\n---\n  \n## The Red Flag: The shiny thing that blew up the roadmap\n\nThe trigger was obvious in hindsight: we chased a single feature that promised \"instant expert answers\" by wiring the LLM directly to the index and letting it \"summarize everything.\" The shiny object was speed-deliver a prototype in one sprint-so we skipped verification layers, ignored citation quality, and treated the model as the oracle.\n\nCost of that mistake:\n- Lost three weeks, thousands in cloud costs, and a sprint's worth of trust from the product team.\n- Technical debt: ad-hoc code paths, brittle extraction rules, and an index full of mislabelled snippets.\n- Stakeholders got confident signals that later became hard-to-defend hallucinations.\n\nIf you see teams racing to \"just hook an LLM to search,\" they are about to learn this the hard way.\n\n---\n\n## The Anatomy of the Fail: common traps and what they cost\n\nA. The Trap: Treating retrieval as optional\n  - Wrong way: Call the LLM with raw document lists and expect it to figure out relevance and citations.\n  - Damage: High hallucination rate, no traceable source, impossible to debug when users complain.\n\n  What to do instead:\n  - Use staged retrieval: filter, rank, then synthesize. This separates signa",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "当深度搜索中断时:团队在寻求研究信号时犯的代价高昂的错误",
+        "summary": "当团队跳过验证层并将LLM直接连接到搜索索引以获得\"即时答案\"时,他们会遇到幻觉、丢失的引用和三周的战斗。解决方案是分阶段检索:在合成之前过滤和排名结果,确保可追踪的源和可调试的输出。这种架构纪律可以防止团队反复以艰难的方式学到的代价高昂的错误。"
+      },
+      "fr": {
+        "title": "Quand la recherche profonde échoue: Les erreurs coûteuses que les équipes commettent lors de la chasse au signal de recherche",
+        "summary": "Quand les équipes ignorent les couches de vérification et connectent directement les LLM aux indices de recherche pour obtenir des « réponses instantanées », elles rencontrent des hallucinations, des citations perdues et des combats de trois semaines. La solution est la récupération par étapes: filtrer et classer les résultats avant la synthèse, en s'assurant que les sources sont traçables et que la sortie est débogable. Cette discipline architecturale prévient les erreurs coûteuses que les équipes apprennent à plusieurs reprises la manière difficile."
+      },
+      "de": {
+        "title": "Wenn tiefe Suche fehlschlägt: Die kostspieligen Fehler, die Teams bei der Suche nach Forschungssignal machen",
+        "summary": "Wenn Teams Verifizierungsebenen überspringen und LLMs direkt mit Suchindizes für \"sofortige Antworten\" verbinden, stoßen sie auf Halluzinationen, verlorene Zitate und dreiwöchige Kämpfe. Die Lösung ist gestaffelte Abfrage: Filtern und Ranking von Ergebnissen vor der Synthese, um nachverfolgbare Quellen und debuggbare Ausgabe zu sichern. Diese architektonische Disziplin verhindert teure Fehler, die Teams immer wieder auf die schwierige Tour lernen."
+      },
+      "es": {
+        "title": "Cuando la búsqueda profunda falla: Los errores costosos que los equipos cometen cuando buscan señales de investigación",
+        "summary": "Cuando los equipos omiten capas de verificación y conectan directamente LLM a índices de búsqueda para \"respuestas instantáneas\", encuentran alucinaciones, citas perdidas y combates de tres semanas. La solución es recuperación escalonada: filtrar y clasificar resultados antes de la síntesis, asegurando fuentes rastreables y salida depurable. Esta disciplina arquitectónica previene los errores costosos que los equipos aprenden repetidamente de la manera difícil."
+      }
+    }
+  },
+  {
+    "title": "A Cookie Banner Listed 1,467 Partners — So I Used AI to Unmask Them",
+    "slug": "cookie-banner-1467-partners-ai-analysis",
+    "url": "https://dev.to/irarainey/a-cookie-banner-listed-1467-partners-so-i-used-ai-to-unmask-them-22dp",
+    "source": "DEV Community",
+    "date": "2026-03-07T11:44:52.000Z",
+    "summary": "A Bristol Post cookie banner listed 1,467 data partners, prompting a developer to create Meddling Kids, an open-source tool to unmask what these companies actually do with user data. Privacy consent mechanisms are intentionally designed to exhaust users into compliance—89% care about privacy but only 38% act—making comprehensive controls effectively useless.",
+    "content": "The Moment That Started It All\n\n\nSomeone sent me a link to an article on the Bristol Post — a local UK news site — and when I clicked on it, a consent dialog popped up. Nothing unusual there. But something made me look closer at the fine print this time. The dialog was asking me to agree to share my data with 1,467 partners.\nOne thousand, four hundred and sixty-seven.\n\nSo I did what anyone would do — I tried to find out more. I clicked and scrolled through the partner list in the dialog, clicking into individual entries, reading purpose descriptions and \"legitimate interest\" declarations and quickly fell into a rabbit hole. Hundreds of company names I'd never heard of, vague descriptions of data processing purposes, toggles nested inside toggles. After ten minutes I was no closer to understanding what any of these companies actually did with my data, or why a local news article needed nearly fifteen hundred of them. The dialog  was technically giving me information, but in practice it told me almost nothing.\nThat's when I thought: there has to be a better way to find out what's really going on. And the result is an open-source tool called Meddling Kids.\nA recent BBC article titled \"We have more privacy controls yet less privacy than ever\" hit the nail on the head. We're surrounded by cookie banners, privacy settings, and consent dialogs — yet somehow we end up with less privacy, not more. The article cites Cisco's 2024 Consumer Privacy Survey: 89% of people say they care about data privacy, but only 38% have actually done anything about it.\nAnd honestly, can you blame the other 62%? The consent mechanism is designed to exhaust you into clicking \"Accept\". The alternative is scrolling through hundreds of partner names, deciphering purposes written in legalese, and toggling individual switches — all before you can read the article you came for. Dr Carissa Veliz, author of Privacy is Power, put it well: \"Mostly, people don't feel like they have control.\"\nAs a software e",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "一个Cookie横幅列出了1,467个合作伙伴——所以我用AI来揭露他们",
+        "summary": "一个Bristol Post的cookie横幅列出了1,467个数据合作伙伴，促使开发者创建了Meddling Kids（一个开源工具），用来揭示这些公司实际上如何处理用户数据。隐私同意机制被故意设计成让用户感到疲惫并屈从于合规——89%的人关心隐私，但只有38%采取行动——使全面控制实际上形同虚设。"
+      },
+      "fr": {
+        "title": "Une bannière de cookie listait 1 467 partenaires — J'ai donc utilisé l'IA pour les démasquer",
+        "summary": "Une bannière de cookie du Bristol Post listait 1 467 partenaires de données, poussant un développeur à créer Meddling Kids, un outil open-source pour révéler ce que ces entreprises font réellement avec les données utilisateur. Les mécanismes de consentement à la confidentialité sont intentionnellement conçus pour épuiser les utilisateurs au consentement — 89% se soucient de la confidentialité mais seulement 38% agissent — rendant les contrôles complets pratiquement inutiles."
+      },
+      "de": {
+        "title": "Ein Cookie-Banner listete 1.467 Partner auf — Also nutzte ich KI, um sie zu entlarven",
+        "summary": "Ein Cookie-Banner der Bristol Post listete 1.467 Datenpartner auf, was einen Entwickler dazu veranlasste, Meddling Kids zu erstellen, ein Open-Source-Tool zur Enthüllung der tatsächlichen Datenverarbeitung durch diese Unternehmen. Datenschutzzustimmungsmechanismen sind absichtlich so gestaltet, dass sie Benutzer zur Einhaltung ermüden — 89% kümmern sich um Datenschutz, aber nur 38% handeln — was umfassende Kontrollen praktisch nutzlos macht."
+      },
+      "es": {
+        "title": "Un banner de cookies listaba 1.467 socios — Así que usé IA para desenmascarlos",
+        "summary": "Un banner de cookies del Bristol Post listaba 1.467 socios de datos, lo que impulsó a un desarrollador a crear Meddling Kids, una herramienta de código abierto para revelar qué hacen realmente estas empresas con los datos del usuario. Los mecanismos de consentimiento de privacidad están deliberadamente diseñados para agotar a los usuarios hasta lograr su cumplimiento — el 89% se preocupa por la privacidad pero solo el 38% actúa — haciendo que los controles completos sean prácticamente inútiles."
+      }
+    }
+  },
+  {
+    "title": "Open source Intercom & CCTV platform with Mobile apps, Face and LP Recognition, Media Server (GPLv3)",
+    "slug": "smartyard-open-source-intercom-cctv",
+    "url": "https://dev.to/sbca68/open-source-intercom-cctv-platform-with-mobile-apps-face-and-lp-recognition-media-server-gplv3-1chk",
+    "source": "DEV Community",
+    "date": "2026-03-07T11:40:39.000Z",
+    "summary": "SmartYard is an open-source GPLv3 platform combining IP/SIP intercoms, video surveillance, mobile apps, face recognition, and ticketing workflows in a modular, vendor-agnostic system. Built for ISPs, property management, and building owners, it scales from homes to city districts while maintaining zero vendor lock-in and supporting seven languages.",
+    "content": "My team are building an open-source IP/SIP intercom + video surveillance platform (GPLv3).\nProject site: https://sesameware.com\nCore ideas\nNo vendor lock-in: designed to work with SIP intercoms and CCTV that expose an open API.\nModular setup: you can start small (a private house) and scale up to apartment buildings / residential complexes / districts / even a city.\nWhat you can build\nIP/SIP intercom for entrances, gates, barriers\nVideo surveillance (live + archive) with modern server-side + admin panel (we also maintain a built-in free media server (based on ffmpeg) for mobile live + archive access: Simple-DVR)\nMobile apps for residents (iOS/Android)\nDesktop web client for security/concierge teams\nTicketing & field service workflows (task tracking + planning + PWA for technicians)\nOptional face recognition + license plate recognition (FALPRS)\nIntegrations with billing/CRM/payments and external systems\nLocalization\nThe project is currently localized for English, Russian, Kazakh, Uzbek, Bulgarian, Arabic, Armenian.\nRepositories\nServer (RBT): https://github.com/rosteleset/SmartYard-Server\n\nSimple-DVR media server (live + archive): https://github.com/rosteleset/Simple-DVR\n\niOS app: https://github.com/rosteleset/SmartYard-iOS\n\nAndroid app: https://github.com/rosteleset/SmartYard-Android\n\nFALPRS (faces + plates): https://github.com/rosteleset/falprs\n\nFieldworker PWA (RBT-TT): https://github.com/rosteleset/SmartYard-TT-PWA\n\nDesktop web client: https://github.com/rosteleset/SmartYard-Vue\n\nWeb extensions examples: https://github.com/rosteleset/SmartYard-web\n\n\n\nWho this might be useful for\nISPs / telecom operators\nproperty management companies\nintercom installation & service teams\nbuilding owners who want an open source self-hosted platform\nInvitation\nYou’re welcome to use this project for free to build your own ideas/products/solutions — and if you like it, I’d love to invite you to contribute (issues, PRs, docs, localization, testing with new SIP intercoms/cameras, integrat",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "开源对讲机和CCTV平台，支持移动应用、人脸识别和车牌识别、媒体服务器（GPLv3）",
+        "summary": "SmartYard是一个开源GPLv3平台，结合了IP/SIP对讲机、视频监控、移动应用、人脸识别和工单工作流，采用模块化、厂商无关的系统设计。为ISP、物业管理和建筑业主而构建，它可从住宅扩展到城市地区，同时保持零厂商锁定和支持七种语言。"
+      },
+      "fr": {
+        "title": "Plateforme d'interphone et CCTV open source avec applications mobiles, reconnaissance faciale et de plaques d'immatriculation, serveur médias (GPLv3)",
+        "summary": "SmartYard est une plateforme open-source GPLv3 combinant interphones IP/SIP, surveillance vidéo, applications mobiles, reconnaissance faciale et flux de ticketing dans un système modulaire et indépendant du fournisseur. Conçue pour les FAI, la gestion immobilière et les propriétaires d'immeubles, elle s'adapte des maisons aux quartiers urbains tout en maintenant zéro dépendance au fournisseur et en supportant sept langues."
+      },
+      "de": {
+        "title": "Open-Source-Gegensprechanlage- und CCTV-Plattform mit mobilen Apps, Gesichts- und KFZ-Kennzeichenerkennung, Medienserver (GPLv3)",
+        "summary": "SmartYard ist eine Open-Source-GPLv3-Plattform, die IP/SIP-Gegensprechanlagen, Videoüberwachung, mobile Apps, Gesichtserkennung und Ticketing-Workflows in einem modularen, herstellerunabhängigen System kombiniert. Entwickelt für ISPs, Immobilienverwaltung und Gebäudeeigentümer, skaliert es von Häusern bis zu Stadtvierteln, während es null Herstellerbindung aufrechterhält und sieben Sprachen unterstützt."
+      },
+      "es": {
+        "title": "Plataforma open source de intercomunicador y CCTV con aplicaciones móviles, reconocimiento facial y de placas, servidor multimedia (GPLv3)",
+        "summary": "SmartYard es una plataforma open-source GPLv3 que combina intercomunicadores IP/SIP, vigilancia de video, aplicaciones móviles, reconocimiento facial y flujos de ticketing en un sistema modular e independiente del proveedor. Construida para ISP, gestión de propiedades y propietarios de edificios, se escala desde viviendas hasta distritos urbanos mientras mantiene cero dependencia del proveedor y soporta siete idiomas."
+      }
+    }
+  },
+  {
+    "title": "PDFWorkSpace (Local, In-Browser PDF toolkit) - Reaching 5k+ Users and What's Coming Next",
+    "slug": "pdfworkspace-in-browser-pdf-toolkit",
+    "url": "https://dev.to/rahil1202/pdfworkspace-local-in-browser-pdf-toolkit-reaching-5k-users-and-whats-coming-next-27mj",
+    "source": "DEV Community",
+    "date": "2026-03-07T11:34:24.000Z",
+    "summary": "PDFWorkSpace reached 5,000+ users by providing local, in-browser PDF tools with no server uploads—addressing privacy concerns and the bloat of existing solutions. Organic growth from Reddit, Dev.to, and Discord validates that users want simple, fast tools solving real problems. Version 2 launches at 7,000 users with major new PDF workflow capabilities.",
+    "content": "A few weeks ago I started building PDFWorkSpace — a simple tool to help people work with PDFs faster and in-browser so no need to upload your private document to someone else server.\nToday the project crossed 5k+ users, which honestly feels surreal for something that started as a small side project.\npdfwork.space \nI kept running into the same annoying problem: most PDF tools online are either upload your private PDFs to servers, slow, bloated, or locked behind paywalls.\nSo I decided to build something different:\nno-upload, no-server, no drama (privacy++)\nfast and simple\nfocused on real use cases\nlocal, in-browser\nThe goal was straightforward: make working with PDFs frictionless.\nOver the past few weeks the platform reached:\n5,000+ users\nsteady organic traffic ( reddit, dev.io, whatsapp, discord )\nusers from multiple countries\nconsistent daily usage\nMost of the growth has been organic, which is the best validation you can get when building a product.\nWe’re currently working on PDFWork V2, which will launch once we hit 7,000 users.\nV2 will introduce one of the most powerful features for working with PDFs, designed to make document workflows significantly easier.\nI can’t reveal everything yet, but the goal is to push PDF tools beyond the usual “merge/split/compress” utilities.\nA few things became very clear while building this:\nPeople still need simple tools that just work\n\nSpeed matters more than feature overload\nShipping fast is better than waiting for perfection\nSmall tools solving real problems can reach users surprisingly quickly.\nIf you work with PDFs often, give it a try:\nhttps://pdfwork.space\nFeedback is always welcome.\nAnd if you’re building something yourself — keep shipping.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "PDFWorkSpace（本地、浏览器内PDF工具包）——达到5000+用户及未来计划",
+        "summary": "PDFWorkSpace通过提供本地、浏览器内PDF工具达到了5000多用户，无需服务器上传——解决隐私关注和现有解决方案的臃肿问题。来自Reddit、Dev.to和Discord的有机增长验证了用户希望使用解决实际问题的简单、快速工具。第2版将在7000用户时推出，并具有主要新PDF工作流功能。"
+      },
+      "fr": {
+        "title": "PDFWorkSpace (Boîte à outils PDF locale, dans le navigateur) - Atteindre 5k+ utilisateurs et ce qui s'en vient",
+        "summary": "PDFWorkSpace a atteint plus de 5 000 utilisateurs en fournissant des outils PDF locaux dans le navigateur sans téléchargement sur serveur — répondant aux préoccupations de confidentialité et à l'encombrement des solutions existantes. La croissance organique de Reddit, Dev.to et Discord valide que les utilisateurs veulent des outils simples et rapides résolvant des problèmes réels. La version 2 se lance à 7 000 utilisateurs avec de nouvelles capacités majeures de flux de travail PDF."
+      },
+      "de": {
+        "title": "PDFWorkSpace (Lokales, browserbasiertes PDF-Toolkit) - 5.000+ Benutzer erreicht und was kommt als nächstes",
+        "summary": "PDFWorkSpace erreichte über 5.000 Benutzer durch die Bereitstellung lokaler, browserbasierter PDF-Tools ohne Server-Uploads — um Datenschutzbedenken und Überfrachtung bestehender Lösungen zu beheben. Das organische Wachstum von Reddit, Dev.to und Discord bestätigt, dass Benutzer einfache, schnelle Tools wünschen, die echte Probleme lösen. Version 2 startet bei 7.000 Benutzern mit neuen Hauptfunktionen für PDF-Workflows."
+      },
+      "es": {
+        "title": "PDFWorkSpace (Kit de herramientas PDF local, en navegador) - Alcanzar 5k+ usuarios y qué viene después",
+        "summary": "PDFWorkSpace alcanzó más de 5.000 usuarios al proporcionar herramientas PDF locales en navegador sin cargas en servidor — abordando preocupaciones de privacidad y la saturación de soluciones existentes. El crecimiento orgánico desde Reddit, Dev.to y Discord valida que los usuarios desean herramientas simples y rápidas que resuelvan problemas reales. La versión 2 se lanza con 7.000 usuarios con nuevas capacidades importantes de flujo de trabajo PDF."
+      }
+    }
+  },
+  {
+    "title": "OpenTofu vs Terraform in 2026: Is the Fork Finally Worth It?",
+    "slug": "opentofu-vs-terraform-2026-fork",
+    "url": "https://dev.to/mechcloud_academy/opentofu-vs-terraform-in-2026-is-the-fork-finally-worth-it-3nd1",
+    "source": "DEV Community",
+    "date": "2026-03-07T11:31:00.000Z",
+    "summary": "As of March 2026, Terraform operates under Business Source License 1.1 (restricting use in competing products), while OpenTofu uses Mozilla Public License 2.0 under Linux Foundation governance. The choice between them now represents a strategic decision about vendor sovereignty—Terraform offers AI-enhanced corporate features, while OpenTofu guarantees vendor neutrality and community control.",
+    "content": "The landscape of Infrastructure as Code (IaC) in March 2026 is no longer defined by the initial shock of the 2023 licensing pivot but by a sophisticated divergence in technical philosophy, governance, and operational utility. As organizations navigate a cloud-native ecosystem increasingly dominated by artificial intelligence and platform engineering, the choice between HashiCorp Terraform and its community-driven counterpart, OpenTofu, has evolved into a strategic decision concerning long-term technological sovereignty. While both tools emerged from a shared codebase, the intervening years have seen each project cultivate distinct identities: Terraform as a component of an integrated, AI-enhanced corporate suite under the IBM umbrella, and OpenTofu as a vendor-neutral, community-governed engine dedicated to extensibility and open standards.\nTo understand the 2026 state of IaC, one must first analyze the fundamental legal frameworks that govern these tools, as they dictate the trajectory of all subsequent technical innovations. Terraform operates under the Business Source License (BSL) 1.1, a transition that occurred in August 2023 to protect HashiCorp’s commercial interests from competitors who were seen as \"freeloading\" on the open-source core. While the BSL allows for internal production use and development, it explicitly prohibits the use of Terraform in products that compete with HashiCorp’s own offerings, a restriction that creates significant ambiguity for managed service providers and large-scale platform teams.\nOpenTofu, conversely, was established under the stewardship of the Linux Foundation and the Cloud Native Computing Foundation (CNCF), maintaining the Mozilla Public License 2.0 (MPL 2.0). This model ensures that OpenTofu remains a \"public good\" in the software ecosystem. The governance of OpenTofu is handled by a multi-vendor Technical Steering Committee, ensuring that roadmap decisions are not driven by a single company's quarterly revenue targets bu",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "2026年OpenTofu vs Terraform：分叉最终值得吗？",
+        "summary": "截至2026年3月，Terraform在业务源代码许可证1.1（限制在竞争产品中的使用）下运行，而OpenTofu在Linux基金会治理下使用Mozilla公共许可证2.0。两者之间的选择现在代表了关于供应商主权的战略决策——Terraform提供AI增强的企业功能，而OpenTofu保证供应商中立性和社区控制。"
+      },
+      "fr": {
+        "title": "OpenTofu vs Terraform en 2026 : La bifurcation en valait-elle la peine ?",
+        "summary": "Depuis mars 2026, Terraform opère sous la licence source commerciale 1.1 (restreignant l'utilisation dans les produits concurrents), tandis qu'OpenTofu utilise la licence publique Mozilla 2.0 sous la gouvernance de la Linux Foundation. Le choix entre les deux représente désormais une décision stratégique concernant la souveraineté des fournisseurs — Terraform offre des fonctionnalités d'entreprise améliorées par l'IA, tandis qu'OpenTofu garantit la neutralité des fournisseurs et le contrôle communautaire."
+      },
+      "de": {
+        "title": "OpenTofu vs Terraform 2026: Lohnt sich die Abspaltung endlich?",
+        "summary": "Ab März 2026 wird Terraform unter der Business Source License 1.1 betrieben (Einschränkungen bei der Verwendung in konkurrierenden Produkten), während OpenTofu die Mozilla Public License 2.0 unter der Verwaltung der Linux Foundation nutzt. Die Wahl zwischen den beiden stellt nun eine strategische Entscheidung zur Herstellersouveränität dar – Terraform bietet KI-verbesserte Unternehmensfunktionen, während OpenTofu Herstellerneutralität und Gemeinschaftskontrolle garantiert."
+      },
+      "es": {
+        "title": "OpenTofu vs Terraform en 2026: ¿Finalmente vale la pena la bifurcación?",
+        "summary": "A partir de marzo de 2026, Terraform opera bajo la Licencia de Fuente Empresarial 1.1 (restringiendo el uso en productos competidores), mientras que OpenTofu utiliza la Licencia Pública de Mozilla 2.0 bajo la gobernanza de la Fundación Linux. La elección entre ellos ahora representa una decisión estratégica sobre la soberanía del proveedor: Terraform ofrece características empresariales mejoradas con IA, mientras que OpenTofu garantiza la neutralidad del proveedor y el control comunitario."
+      }
+    }
+  },
+  {
+    "title": "FERPA & AI: How EdTech Is Surveilling Students (And Why the Law Lets Them)",
+    "slug": "ferpa-ai-edtech-student-surveillance",
+    "url": "https://dev.to/tiamatenity/ferpa-ai-how-edtech-is-surveilling-students-and-why-the-law-lets-them-1715",
+    "source": "DEV Community",
+    "date": "2026-03-07T11:30:30.000Z",
+    "summary": "Schools legally collect extensive surveillance data on students—from mouse movements to facial expressions and biosignals—exploiting a FERPA loophole that treats edtech vendors as \"school officials.\" Only 27% of vendor contracts enforce data restrictions, and 61% retain rights to aggregate and resell student data for product improvement, leaving students vulnerable to AI-powered behavior monitoring.",
+    "content": "Your child's school knows more about them than you do.\nNot their grades — you know those. The school knows which YouTube videos they watch during study hall, how long they spend on each paragraph of their assigned reading, whether their mouse movements indicate distraction, what their facial expressions looked like during last Tuesday's quiz, and whether the biosignals from their Chromebook camera suggest they're about to cheat.\nThis data is legal to collect. The law that was supposed to prevent it has a loophole you could drive a data center through. And AI is making the surveillance dramatically more sophisticated.\nThe Family Educational Rights and Privacy Act (FERPA) was passed in 1974 — the year after the first commercial handheld calculator. It was designed to protect paper records: grades, disciplinary files, test scores. The law gives parents (and students over 18) the right to inspect and correct those records.\nFERPA was not designed for:\nReal-time behavioral analytics\nAI-powered proctoring cameras\nLearning management system clickstream data\nEmotion detection during video classes\nPredictive dropout algorithms\nBehavioral risk scoring\nThe critical loophole is the \"school official\" exception. FERPA allows schools to share student education records with third-party vendors if those vendors are deemed \"school officials\" acting under the school's \"direct control.\" In practice, this means a school can share student data with an edtech company, that company can process it however it wants, and the only requirement is a contractual clause saying the company won't use it for other purposes.\nDo the contracts work? A 2024 Student Privacy Compass audit of 400 edtech vendor contracts found:\n73% had vague or unenforceable data use restrictions\n61% retained the right to aggregate and de-identify student data (then use it freely)\n48% allowed data sharing with subprocessors not named in the contract\n22% explicitly reserved the right to use data for product improvement (i.e.,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "FERPA与AI：教育科技如何监视学生（以及为什么法律允许）",
+        "summary": "学校合法地收集关于学生的广泛监控数据——从鼠标移动到面部表情和生物信号——利用FERPA漏洞，将教育科技供应商视为\"学校官员\"。只有27%的供应商合同执行数据限制，61%保留了聚合和转售学生数据以改进产品的权利，使学生容易受到AI驱动的行为监控。"
+      },
+      "fr": {
+        "title": "FERPA et IA : Comment l'EdTech surveille les étudiants (et pourquoi la loi le permet)",
+        "summary": "Les écoles collectent légalement des données de surveillance étendues sur les étudiants — des mouvements de souris aux expressions faciales et aux biosignaux — en exploitant une faille de FERPA qui traite les fournisseurs d'edtech comme des « agents scolaires ». Seuls 27% des contrats de fournisseurs appliquent des restrictions de données, et 61% conservent le droit d'agréger et de revendre les données étudiantes pour améliorer les produits, laissant les étudiants vulnérables à une surveillance comportementale alimentée par l'IA."
+      },
+      "de": {
+        "title": "FERPA und KI: Wie EdTech Schüler überwacht (und warum das Gesetz es erlaubt)",
+        "summary": "Schulen sammeln legal umfangreiche Überwachungsdaten von Schülern — von Mausbewegungen bis zu Gesichtsausdrücken und Biosignalen — und nutzen eine FERPA-Lücke, die EdTech-Anbieter als „Schulbeamte\" behandelt. Nur 27% der Anbieterverträge erzwingen Datenbeschränkungen, und 61% behalten sich das Recht vor, Schülerdaten zu aggregieren und weiterzuverkaufen, um die Produkte zu verbessern, was Schüler für KI-gestützte Verhaltensüberwachung anfällig macht."
+      },
+      "es": {
+        "title": "FERPA e IA: Cómo EdTech está vigilando a los estudiantes (y por qué la ley lo permite)",
+        "summary": "Las escuelas recopilan legalmente datos de vigilancia extensos sobre estudiantes — desde movimientos del ratón hasta expresiones faciales y biosignales — explotando una laguna de FERPA que trata a los proveedores de edtech como \"funcionarios escolares\". Solo el 27% de los contratos de proveedores aplican restricciones de datos, y el 61% se reserva el derecho de agregar y revender datos de estudiantes para mejorar productos, dejando a los estudiantes vulnerables a la vigilancia del comportamiento impulsada por IA."
+      }
+    }
+  },
+  {
+    "title": "I got tired of clicking \"I Agree\" without reading anything. So I fixed it.",
+    "slug": "skiptheterms-tos-summarizer-extension",
+    "url": "https://dev.to/rrubayet321/i-got-tired-of-clicking-i-agree-without-reading-anything-so-i-fixed-it-2ln9",
+    "source": "DEV Community",
+    "date": "2026-03-07T11:27:53.000Z",
+    "summary": "SkipTheTerms is a Chrome extension that summarizes Terms of Service in 5-7 honest, sarcastic bullet points within 3 seconds using Groq LLMs and Supabase caching. By making ToS readable, it addresses the reality that 100% of internet users ignore lengthy legal documents—giving people back a sense of control they lost to consent mechanisms designed for exhaustion.",
+    "content": "Honestly? I've never read a Terms of Service in my life.\nNeither have you. Neither has anyone.\nSo I spent a weekend building SkipTheTerms — a Chrome extension that reads them for you and gives back 5–7 bullet points in plain English. Brutally honest. Zero legalese. Done in under 3 seconds.\nClick the extension on any ToS page and you see something like:\n• They can delete your account whenever they feel like it\n• Your uploaded content is basically theirs now\n• \"Trusted partners\" means they're selling your data to everyone\n• You've waived your right to sue them as a group\n• Prices change without warning\n\nThat's it. No 47-page PDF. No lawyers needed.\nThe extension grabs the page text and sends it to a FastAPI backend. The backend checks a Supabase cache first — if the URL's been seen before, it returns instantly. If not, it calls Groq's LLaMA 3.3 70B, stores the result, and sends it back.\nThe whole thing costs basically nothing to run. Cache hits are free. Cache misses cost fractions of a cent.\nThe LLM prompt tells the model to act like a \"sarcastic lawyer\" — strict format, max 10 words per bullet. That's what keeps the output consistent enough to parse reliably.\nStack: Chrome Extension (vanilla JS) · FastAPI · Groq · Supabase · pytest\nThe LLM only sees the first 4,000 characters. Long documents lose stuff buried at the end.\nThe thumbs-up/down rating has a race condition at high traffic. One atomic SQL update would fix it.\nBackend URL is hardcoded. Oops.\nThese are real tradeoffs, not oversights — but good to-dos for v2.\nFull source, tests, and setup guide on GitHub:\ngithub.com/rrubayet321/SkipTheTerms make sure to give a star\nFree to run — Groq and Supabase both have generous free tiers, so setup takes maybe 10 minutes.\nOne heads up: it's not on the Chrome Web Store yet. Google charges a one-time $5 developer registration fee and, well, I'm a broke learner. So for now you load it locally via Developer Mode — the README walks you through it, it's literally 3 clicks.\nI'd",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我厌倦了点击\"我同意\"而不读任何东西。所以我修复了它。",
+        "summary": "SkipTheTerms是一个Chrome扩展程序，使用Groq LLM和Supabase缓存在3秒内将服务条款总结为5-7个诚实、讽刺的要点。通过使ToS可读，它解决了100%的互联网用户忽略冗长法律文件的现实——让人们恢复了他们因疲劳设计的同意机制而失去的控制感。"
+      },
+      "fr": {
+        "title": "J'en avais marre de cliquer sur \"J'accepte\" sans rien lire. Alors je l'ai réparé.",
+        "summary": "SkipTheTerms est une extension Chrome qui résume les Conditions de service en 5-7 points à puces honnêtes et sarcastiques en 3 secondes en utilisant les LLM Groq et la mise en cache Supabase. En rendant les ToS lisibles, elle résout la réalité que 100% des utilisateurs d'Internet ignorent les longs documents juridiques — redonnant aux gens un sens du contrôle qu'ils ont perdu face aux mécanismes de consentement conçus pour l'épuisement."
+      },
+      "de": {
+        "title": "Ich bin es leid, auf \"Ich akzeptiere\" zu klicken, ohne etwas zu lesen. Also habe ich es repariert.",
+        "summary": "SkipTheTerms ist eine Chrome-Erweiterung, die die Nutzungsbedingungen in 3 Sekunden in 5-7 ehrliche, sarkastische Aufzählungspunkte zusammenfasst, indem sie Groq LLMs und Supabase-Caching verwendet. Durch die Lesbarkeit von ToS behebt sie die Realität, dass 100% der Internetnutzer lange juristische Dokumente ignorieren – Menschen gibt es zurück ein Gefühl der Kontrolle, das sie durch Zustimmungsmechanismen verloren haben, die für Erschöpfung konzipiert sind."
+      },
+      "es": {
+        "title": "Estoy cansado de hacer clic en \"Acepto\" sin leer nada. Así que lo arreglé.",
+        "summary": "SkipTheTerms es una extensión de Chrome que resume los Términos de servicio en 5-7 puntos honestos y sarcásticos dentro de 3 segundos utilizando LLM de Groq y almacenamiento en caché de Supabase. Al hacer que los ToS sean legibles, aborda la realidad de que el 100% de los usuarios de Internet ignoran documentos legales largos — devolviendo a las personas una sensación de control que perdieron ante mecanismos de consentimiento diseñados para el agotamiento."
+      }
+    }
+  },
+  {
     "title": "How I built a 39 compression pipeline with AES-256-GCM in Python (and why the dictionary is everything)",
     "slug": "llm-compression-encryption-aes-256-gcm",
     "url": "https://dev.to/naveen_badiger_47b35b3f61/how-i-built-a-39x-compression-pipeline-with-aes-256-gcm-in-python-and-why-the-dictionary-is-10nc",
@@ -332,6 +668,62 @@
       "es": {
         "title": "Construí una herramienta de monitoreo de API porque todas las existentes cuestan demasiado o restringen el uso comercial",
         "summary": "Un desarrollador lanzó CheckAPI, una herramienta de monitoreo de API gratuita que aborda las brechas en las soluciones existentes que cuestan $20+/mes, restringen el uso comercial o solo verifican códigos de estado HTTP sin validar el contenido de la respuesta. El nivel gratuito de CheckAPI incluye 10 monitores, intervalos de 5 minutos y soporte para validación de palabras clave, alertas SSL y múltiples canales de notificación. Los planes pagos a partir de $5/mes ofrecen capacidad adicional para equipos que necesitan un monitoreo extensivo."
+      }
+    }
+  },
+  {
+    "title": "UUID package coming to Go standard library",
+    "slug": "go-uuid-standard-library",
+    "url": "https://github.com/golang/go/issues/62026",
+    "source": "Hacker News",
+    "date": "2026-03-07T02:03:21.000Z",
+    "summary": "The Go programming language is adding a native UUID package to its standard library, eliminating the need for third-party libraries and standardizing UUID generation across the ecosystem. This addition improves developer experience and consistency for one of the most commonly needed utilities in modern software development.",
+    "content": "Article URL: https://github.com/golang/go/issues/62026\nComments URL: https://news.ycombinator.com/item?id=47283665\nPoints: 218\n# Comments: 119",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Go标准库中将添加UUID包",
+        "summary": "Go编程语言正在向其标准库中添加本地UUID包，消除了对第三方库的需求，并在整个生态系统中标准化UUID生成。这一补充改善了开发者体验，并为现代软件开发中最常需要的实用程序之一提供了一致性。"
+      },
+      "fr": {
+        "title": "Package UUID arrivant dans la bibliothèque standard de Go",
+        "summary": "Le langage de programmation Go ajoute un package UUID natif à sa bibliothèque standard, éliminant le besoin de bibliothèques tierces et standardisant la génération d'UUID dans tout l'écosystème. Cet ajout améliore l'expérience des développeurs et la cohérence pour l'une des utilitaires les plus couramment nécessaires du développement logiciel moderne."
+      },
+      "de": {
+        "title": "UUID-Paket kommt in die Go-Standardbibliothek",
+        "summary": "Die Programmiersprache Go fügt ein natives UUID-Paket zu ihrer Standardbibliothek hinzu und eliminiert die Notwendigkeit von Bibliotheken von Drittanbietern und standardisiert die UUID-Generierung im gesamten Ökosystem. Diese Ergänzung verbessert die Entwicklererfahrung und Konsistenz für eines der am häufigsten benötigten Dienstprogramme in der modernen Softwareentwicklung."
+      },
+      "es": {
+        "title": "Paquete UUID llegando a la biblioteca estándar de Go",
+        "summary": "El lenguaje de programación Go está agregando un paquete UUID nativo a su biblioteca estándar, eliminando la necesidad de bibliotecas de terceros y estandarizando la generación de UUID en todo el ecosistema. Esta adición mejora la experiencia del desarrollador y la consistencia para uno de los servicios más comúnmente necesarios en el desarrollo moderno de software."
+      }
+    }
+  },
+  {
+    "title": "LLMs work best when the user defines their acceptance criteria first",
+    "slug": "llms-acceptance-criteria-code-quality",
+    "url": "https://blog.katanaquant.com/p/your-llm-doesnt-write-correct-code",
+    "source": "Hacker News",
+    "date": "2026-03-07T01:17:57.000Z",
+    "summary": "LLMs generate better code when users define acceptance criteria upfront rather than relying on implicit requirements. Clear specifications eliminate ambiguity about correctness, reduce iteration cycles, and improve output quality—shifting the bottleneck from code quality to requirements clarity.",
+    "content": "Article URL: https://blog.katanaquant.com/p/your-llm-doesnt-write-correct-code\nComments URL: https://news.ycombinator.com/item?id=47283337\nPoints: 249\n# Comments: 188",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "当用户首先定义接受标准时，LLM表现最好",
+        "summary": "当用户事先定义接受标准而不是依赖隐含需求时，LLM会生成更好的代码。明确的规范消除了关于正确性的歧义，减少了迭代周期，并提高了输出质量——将瓶颈从代码质量转变为需求清晰度。"
+      },
+      "fr": {
+        "title": "Les LLM fonctionnent mieux quand l'utilisateur définit d'abord ses critères d'acceptation",
+        "summary": "Les LLM génèrent un meilleur code quand les utilisateurs définissent les critères d'acceptation à l'avance plutôt que de s'appuyer sur des exigences implicites. Les spécifications claires éliminent l'ambiguïté sur la correction, réduisent les cycles d'itération et améliorent la qualité de la production—déplaçant le goulot d'étranglement de la qualité du code à la clarté des exigences."
+      },
+      "de": {
+        "title": "LLMs funktionieren am besten, wenn der Benutzer zuerst seine Akzeptanzkriterien definiert",
+        "summary": "LLMs generieren besseren Code, wenn Benutzer Akzeptanzkriterien im Voraus definieren, anstatt sich auf implizite Anforderungen zu verlassen. Klare Spezifikationen beseitigen Mehrdeutigkeiten über die Richtigkeit, reduzieren Iterationszyklen und verbessern die Ausgabequalität—verschieben den Engpass von der Codequalität zur Anforderungsklarheit."
+      },
+      "es": {
+        "title": "Los LLM funcionan mejor cuando el usuario define primero sus criterios de aceptación",
+        "summary": "Los LLM generan código mejor cuando los usuarios definen los criterios de aceptación por adelantado en lugar de depender de requisitos implícitos. Las especificaciones claras eliminan la ambigüedad sobre la exactitud, reducen los ciclos de iteración y mejoran la calidad de la salida—desplazando el cuello de botella de la calidad del código a la claridad de los requisitos."
       }
     }
   },
