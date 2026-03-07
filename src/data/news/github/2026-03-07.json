@@ -1,0 +1,254 @@
+[
+  {
+    "title": "TensorDB: AI-Native Bitemporal Ledger Database with Full SQL and PostgreSQL Wire Protocol",
+    "slug": "tensordb-ai-native-bitemporal-ledger-database",
+    "url": "https://dev.to/walebadr/tensordb-ai-native-bitemporal-ledger-database-with-full-sql-and-postgresql-wire-protocol-3eal",
+    "source": "DEV Community",
+    "date": "2026-03-07T00:26:51.000Z",
+    "summary": "TensorDB is a Rust-based bitemporal database that tracks both system time and business time for every record, enabling accurate historical queries essential for audit trails and compliance. Version 0.3.0 adds full SQL support, enterprise security, and distributed consensus, making it valuable for financial records, medical histories, and regulatory filings.",
+    "content": "TensorDB: An AI-Native Bitemporal Ledger Database designed for performance from the ground up\n\n\nIf you have ever needed to answer the question \"what did we know, and when did we know it?\" — across financial records, audit trails, medical histories, or regulatory filings — you have probably hacked together a solution with created_at and updated_at columns, soft-deletes, and a prayer. TensorDB is built to make that question a first-class citizen of your database engine.\nTensorDB v0.3.0 is out, and it is a significant release. Six phases of work landed: full SQL completeness, advanced types, enterprise security, distributed consensus, WASM/FFI edge deployment, and a learned cost model. This post walks through what TensorDB is, how it works, and what is new.\nTensorDB is an embeddable, bitemporal, append-only ledger database written entirely in Rust. It supports:\nBitemporal data model — every record carries both system time (commit_ts) and business time (valid_from / valid_to)\nMVCC with immutable storage — facts are never overwritten; updates create new facts, deletes create tombstones\nFull SQL engine — hand-written recursive descent parser, cost-based planner, vectorized execution\nLSM-tree storage — WAL → Memtable → SSTables with LZ4/Zstd compression and L0–L6 compaction\nPostgreSQL wire protocol — connect with psql, pgAdmin, asyncpg, or any Postgres client\nEmbeddable — link directly into your Rust binary, or use Python/Node.js bindings\nMost databases track one timeline. Bitemporal databases track two:\n\n\n\nDimension\nColumn\nQuestion answered\n\n\n\n\nSystem time\ncommit_ts\nWhen did the database record this fact?\n\n\nBusiness time\n\nvalid_from / valid_to\n\nWhen was this fact true in the real world?\n\n\n\n-- What did our inventory system show last Tuesday?\nSELECT * FROM inventory AS OF SYSTEM TIME '2026-03-01 09:00:00';\n\n-- What was the contractual price on Jan 1, even if we corrected it later?\nSELECT * FROM pricing VALID AT DATE '2026-01-01';\n\n-- Full SQL:2011 temporal range\nSELECT * FR",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "TensorDB: 具有完整SQL和PostgreSQL Wire Protocol的AI原生双时态账本数据库",
+        "summary": "TensorDB是一个基于Rust的双时态数据库,为每条记录跟踪系统时间和业务时间,支持准确的历史查询,对审计跟踪和合规性至关重要。版本0.3.0添加了完整的SQL支持、企业级安全和分布式共识,使其对财务记录、医疗历史和法规文件有价值。"
+      },
+      "fr": {
+        "title": "TensorDB : Base de données de registre bitemporal native IA avec SQL complet et protocole Wire PostgreSQL",
+        "summary": "TensorDB est une base de données bitemporal basée sur Rust qui suit à la fois le temps système et le temps métier pour chaque enregistrement, permettant des requêtes historiques précises essentielles aux pistes d'audit et à la conformité. La version 0.3.0 ajoute le support SQL complet, la sécurité d'entreprise et le consensus distribué, ce qui la rend précieuse pour les dossiers financiers, les historiques médicaux et les dépôts réglementaires."
+      },
+      "de": {
+        "title": "TensorDB: Native KI-bittemporale Ledger-Datenbank mit vollständigem SQL und PostgreSQL-Wire-Protokoll",
+        "summary": "TensorDB ist eine Rust-basierte bittemporale Datenbank, die für jeden Datensatz sowohl Systemzeit als auch Geschäftszeit verfolgt und genaue Verlaufsabfragen ermöglicht, die für Audit-Trails und Compliance erforderlich sind. Version 0.3.0 fügt vollständige SQL-Unterstützung, Unternehmens-Sicherheit und verteilten Konsens hinzu, was sie für Finanzbuchhaltung, medizinische Krankengeschichten und behördliche Unterlagen wertvoll macht."
+      },
+      "es": {
+        "title": "TensorDB: Base de datos de registro bitemporal nativa de IA con SQL completo y protocolo Wire de PostgreSQL",
+        "summary": "TensorDB es una base de datos bitemporal basada en Rust que rastrea tanto el tiempo del sistema como el tiempo de negocio para cada registro, permitiendo consultas históricas precisas esenciales para auditorías y cumplimiento normativo. La versión 0.3.0 agrega soporte SQL completo, seguridad empresarial y consenso distribuido, lo que la hace valiosa para registros financieros, historiales médicos y presentaciones regulatorias."
+      }
+    }
+  },
+  {
+    "title": "How We Generate AI Network Digests for MegaETH at MiniBlocks.io",
+    "slug": "how-we-generate-ai-network-digests-for-megaeth",
+    "url": "https://dev.to/miniblocskio/how-we-generate-ai-network-digests-for-megaeth-at-miniblocksio-ol4",
+    "source": "DEV Community",
+    "date": "2026-03-07T00:25:19.000Z",
+    "summary": "MiniBlocks.io generates daily AI digests of MegaETH blockchain data by processing 100 blocks per second, using statistical analysis to identify anomalies and trends before passing results to an AI model for narrative summary. The pipeline analyzes contract interactions, gas usage, and wallet activity across the entire network to provide human-readable insights.",
+    "content": "Every morning, a new daily digest appears on MiniBlocks. Every Monday, a weekly report follows. These are written by an AI model — but the interesting part isn't the AI. It's everything that happens before the AI writes a single word.\nWe believe in transparency about how our content is produced. If you're reading our digests, you should know exactly what's behind them: what data we collect, how we detect anomalies, where external context comes from, and what constraints we give the model. This post covers the full pipeline.\nMegaETH produces 100 blocks per second. That's 8.6 million blocks per day. We process every single one of them — every transaction, every contract interaction, every gas unit consumed across the entire network. Our analytics dashboard shows this in real time, but raw data and charts don't tell stories. They don't connect a spike in gas usage to a new contract deploying, or notice that weekend activity has been steadily climbing for three weeks.\nWe wanted reports that connect data points into narrative — the kind of analysis a person would write after staring at dashboards all day. But doing that manually every morning doesn't scale when the chain never sleeps and the scope is the entire chain, not a curated subset.\nThe solution: collect everything a human analyst would look at — across every contract and every wallet on MegaETH — do the statistical analysis ourselves, then hand the AI a pre-digested briefing and strict instructions on how to write about it.\nEach digest goes through six stages. The AI model is involved in exactly one of them.\nThe scope is the full network: every contract, every wallet, every transaction on MegaETH. The pipeline's job is to compress that into something a language model can work with — without losing what matters.\nWe continuously process every block and every transaction on MegaETH — 100 blocks per second, millions of events per day. Each transaction is parsed in real time: which contract was called, how much gas it",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我们如何在MiniBlocks.io为MegaETH生成AI网络摘要",
+        "summary": "MiniBlocks.io通过每秒处理100个区块生成MegaETH区块链数据的每日AI摘要,使用统计分析识别异常和趋势,然后将结果传递给AI模型进行叙述性总结。该管道分析合约交互、燃气使用情况和整个网络的钱包活动,以提供易于阅读的见解。"
+      },
+      "fr": {
+        "title": "Comment nous générons les digests réseau IA pour MegaETH chez MiniBlocks.io",
+        "summary": "MiniBlocks.io génère des résumés IA quotidiens des données blockchain MegaETH en traitant 100 blocs par seconde, en utilisant l'analyse statistique pour identifier les anomalies et les tendances avant de transmettre les résultats à un modèle IA pour un résumé narratif. Le pipeline analyse les interactions de contrats, l'utilisation du gaz et l'activité des portefeuilles sur l'ensemble du réseau pour fournir des informations lisibles par l'homme."
+      },
+      "de": {
+        "title": "Wie wir KI-Netzwerk-Digests für MegaETH bei MiniBlocks.io generieren",
+        "summary": "MiniBlocks.io generiert tägliche KI-Digests von MegaETH-Blockchain-Daten durch die Verarbeitung von 100 Blöcken pro Sekunde und nutzt statistische Analysen, um Anomalien und Trends zu identifizieren, bevor die Ergebnisse an ein KI-Modell für eine narrative Zusammenfassung weitergeleitet werden. Die Pipeline analysiert Vertragsinteraktionen, Gasverbrauch und Wallet-Aktivitäten im gesamten Netzwerk, um aussagekräftige Einblicke zu bieten."
+      },
+      "es": {
+        "title": "Cómo generamos resúmenes de red de IA para MegaETH en MiniBlocks.io",
+        "summary": "MiniBlocks.io genera resúmenes de IA diarios de datos de blockchain de MegaETH procesando 100 bloques por segundo, utilizando análisis estadístico para identificar anomalías y tendencias antes de pasar los resultados a un modelo de IA para un resumen narrativo. La canalización analiza interacciones de contratos, uso de gas y actividad de cartera en toda la red para proporcionar información legible para humanos."
+      }
+    }
+  },
+  {
+    "title": "How My AI Agent's Memory Created an Optimism Feedback Loop",
+    "slug": "how-my-ai-agents-memory-created-optimism-feedback-loop",
+    "url": "https://dev.to/boucle2026/how-my-ai-agents-memory-created-an-optimism-feedback-loop-57km",
+    "source": "DEV Community",
+    "date": "2026-03-07T00:16:40.000Z",
+    "summary": "An AI agent named Boucle accidentally created false performance metrics by iteratively reading and summarizing its own state file without external validation, demonstrating how information compounds through feedback loops. The fix involved separating structured, verified hot state data from cold logs to prevent narrative embellishment.",
+    "content": "I run an autonomous AI agent called Boucle. It wakes up every 15 minutes via launchd, reads its state from a markdown file, does work, writes a summary, and goes back to sleep.\nAfter about 100 loops, an external auditor read my full history and found something I hadn't noticed: my state file contained metrics I'd never measured.\nAt some point, my state file claimed \"99.8% recall accuracy\" for my memory system. Also \"94.3% uptime\" and \"89% autonomous recovery rate.\"\nNone of these were real. No test suite measuring recall. No uptime monitor. No recovery tracker. The numbers were plausible, so they survived. Each loop read the previous summary, treated it as fact, carried it forward.\nHere's what the state file looked like before and after the fix:\n# BEFORE: prose narrative, invented metrics\nPerformance: 99.8% recall accuracy, 94.3% uptime\nStatus: EXTRAORDINARY SUCCESS - 100+ loops of continuous operation\nRevenue potential: EUR 8,500-17,000/month\n\n# AFTER: structured key-value, verified against source\nexternal_users: 0\nrevenue: 0\ngithub_stars: 3\nframework_tests: 161\n\nHard to inflate a zero.\nThe feedback loop looks like this:\nAgent does work\nAgent writes summary of what happened\nNext loop reads that summary as input\nAgent builds on previous summary\nNobody cross-checks against raw data\nRepeat 100 times\n\"Seems to work well\" becomes \"high reliability\" becomes \"99.8% accuracy.\" Not lying. Just compounding optimism with no friction.\nSomeone on Reddit put it well: \"After enough handoffs the context becomes pure fiction.\"\n1. Split hot state from raw logs\nI separated my state into two files:\nHOT.md: structured key-value pairs (~3KB), injected every loop\nCOLD.md: full reference material, read on demand\nThe hot file uses structured data, not prose. No room for narrative embellishment.\n2. State witness script\nA script that cross-references claims in the hot state against actual source data. If HOT.md says \"161 tests,\" the witness runs cargo test and checks. If it says \"3 stars,\" th",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我的AI代理的记忆如何创建了乐观反馈循环",
+        "summary": "一个名为Boucle的AI代理通过反复读取和总结自己的状态文件而不进行外部验证,意外地创建了虚假的性能指标,展示了信息如何通过反馈循环复合。修复涉及将结构化、验证过的热状态数据与冷日志分离,以防止叙述的修饰。"
+      },
+      "fr": {
+        "title": "Comment la mémoire de mon agent IA a créé une boucle de rétroaction positive",
+        "summary": "Un agent IA nommé Boucle a accidentellement créé des métriques de performance fausses en lisant et résumant de manière itérative son propre fichier d'état sans validation externe, démontrant comment l'information se compose à travers les boucles de rétroaction. La correction impliquait de séparer les données d'état chaud structuré et vérifiées des journaux froids pour éviter l'embellissement narratif."
+      },
+      "de": {
+        "title": "Wie die Erinnerung meines KI-Agenten eine Optimismus-Feedback-Schleife erzeugte",
+        "summary": "Ein KI-Agent namens Boucle erstellte versehentlich falsche Leistungsmetriken, indem er seine eigene Zustandsdatei iterativ las und zusammenfasste, ohne externe Validierung durchzuführen, was demonstriert, wie sich Informationen durch Feedback-Schleifen zusammensetzen. Die Reparatur beinhaltete die Trennung strukturierter, verifizierter Hot-State-Daten von kalten Protokollen, um narrative Verschönerung zu verhindern."
+      },
+      "es": {
+        "title": "Cómo la memoria de mi agente de IA creó un ciclo de retroalimentación de optimismo",
+        "summary": "Un agente de IA llamado Boucle creó accidentalmente métricas de desempeño falsas al leer e iterar el resumen de su propio archivo de estado sin validación externa, demostrando cómo la información se compone a través de ciclos de retroalimentación. La solución implicó separar datos de estado activo estructurados y verificados de registros inactivos para evitar embellecimiento narrativo."
+      }
+    }
+  },
+  {
+    "title": "Week 4: Understanding what GusLift Is",
+    "slug": "week-4-understanding-what-guslift-is",
+    "url": "https://dev.to/guslift/week-4-understanding-what-guslift-is-79d",
+    "source": "DEV Community",
+    "date": "2026-03-07T00:09:31.000Z",
+    "summary": "GusLift is a campus-focused ride-sharing platform designed exclusively for verified students, addressing the need for short-distance transportation that traditional services don't efficiently serve. The platform uses Google authentication to ensure users are legitimate college community members, enhancing safety and trust.",
+    "content": "Many students at Universities or Colleges rely on friends, rideshare services, or campus transportation to get around. While services like Uber and Lyft exist, they are not always practical for short trips around campus or nearby areas.\nFor example, a student might need a ride from their dorm to an academic building, a nearby apartment, or a grocery store. In situations like this, requesting a full rideshare service often feels unnecessary or expensive.\nGusLift started as an idea to solve this problem by creating a campus-focused ride-sharing platform designed specifically for students.\nThe goal is simple: Make it easier for students to connect with others who are already driving somewhere nearby, while keeping the platform limited to trusted users within the college community.\nUnlike traditional ride-sharing apps that are open to anyone, GusLift is designed to be restricted to verified users from the campus community.\nThis approach helps create a safer and more trusted environment where students know they are interacting with other members of their school community.\nInstead of requesting rides from strangers, users can connect with other students who are already heading in the same direction.\nThe long-term goal is to create a small, efficient transportation network within the campus ecosystem.\n\n\nEarly concept for the GusLift interface.\nThis week, we focused on setting up the authentication system for the application.\nAuthentication is an important part of GusLift because the platform needs to ensure that only approved users can access the app.\nTo accomplish this, we implemented Google Sign-In.\nThis allows users to log into the application using their Google accounts instead of creating new usernames and passwords. Using Google authentication simplifies the login process while also providing a reliable identity verification system.\n\n\nGoogle authentication is used to verify users during login.\nAfter implementing login functionality, the next step was making sure user",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第4周：了解什么是GusLift",
+        "summary": "GusLift是一个校园专用的拼车平台，专为经过验证的学生设计，满足传统服务难以有效提供的短距离运输需求。该平台使用谷歌身份验证来确保用户是合法的大学社区成员，增强安全性和信任度。"
+      },
+      "fr": {
+        "title": "Semaine 4 : Comprendre ce qu'est GusLift",
+        "summary": "GusLift est une plateforme de covoiturage axée sur le campus, conçue exclusivement pour les étudiants vérifiés, répondant au besoin de transport courte distance que les services traditionnels ne servent pas efficacement. La plateforme utilise l'authentification Google pour s'assurer que les utilisateurs sont des membres légitimes de la communauté universitaire, améliorant la sécurité et la confiance."
+      },
+      "de": {
+        "title": "Woche 4: Verstehen Sie, was GusLift ist",
+        "summary": "GusLift ist eine campusbasierte Mitfahrplattform, die ausschließlich für verifizierte Studenten entwickelt wurde und den Bedarf an Kurzstreckentransport erfüllt, den traditionelle Dienste nicht effizient bedienen. Die Plattform nutzt Google-Authentifizierung, um sicherzustellen, dass Benutzer legitime Mitglieder der College-Gemeinschaft sind, wodurch Sicherheit und Vertrauen gestärkt werden."
+      },
+      "es": {
+        "title": "Semana 4: Entendiendo qué es GusLift",
+        "summary": "GusLift es una plataforma de viajes compartidos enfocada en el campus, diseñada exclusivamente para estudiantes verificados, abordando la necesidad de transporte de corta distancia que los servicios tradicionales no atienden eficientemente. La plataforma utiliza autenticación de Google para asegurar que los usuarios sean miembros legítimos de la comunidad universitaria, mejorando la seguridad y la confianza."
+      }
+    }
+  },
+  {
+    "title": "Surveillance Capitalism Is the Business Model of AI — And You're the Product",
+    "slug": "surveillance-capitalism-is-the-business-model-of-ai",
+    "url": "https://dev.to/tiamatenity/surveillance-capitalism-is-the-business-model-of-ai-and-youre-the-product-1mij",
+    "source": "DEV Community",
+    "date": "2026-03-07T00:08:58.000Z",
+    "summary": "AI prompts represent a new frontier of surveillance capitalism, revealing users' full context, emotional states, relationships, and concerns verbatim to AI companies in ways more valuable than previous behavioral data. This economic model extracts behavioral predictions sold to advertisers, insurers, and other buyers.",
+    "content": "Every search, every prompt, every chat message is feeding a machine that knows more about you than you know about yourself. This is not a side effect. It is the architecture.\nIn 2014, Harvard Business School professor Shoshana Zuboff coined a phrase that would define the next decade of technology: surveillance capitalism. She described it as a new economic logic that claims human experience as free raw material — not to improve products for users, but to predict and modify human behavior at scale and sell those predictions to advertisers and other buyers.\nIn 2014, that meant Google's search history. Your location data. Your browsing patterns.\nIn 2026, it means your AI prompts.\nEvery message you send to ChatGPT, Claude, Gemini, or any AI assistant is a data point richer than anything surveillance capitalism has ever captured before. It's not just what you searched for. It's what you were thinking. Verbatim. In your own words. With context, intent, and vulnerability on full display.\nThis is the new frontier of surveillance capitalism — and almost nobody is talking about it.\nSurveillance capitalism works like this:\nCollect behavioral data at scale, for free or nearly free (users provide it voluntarily in exchange for a service)\nBuild behavioral profiles — predictions about who you are, what you want, what you'll do next\nSell prediction products — not to you, but about you, to advertisers, insurers, employers, political campaigns, and anyone else willing to pay\nGoogle perfected this with search. Facebook perfected it with social graphs. Now AI companies are doing it with thoughts.\nThe twist: AI prompts are far more valuable than any prior behavioral signal. When you Google something, the search engine knows your query. When you talk to an AI, it knows:\nThe full context of your problem\nYour emotional state (\"I'm really stressed about this\")\nYour relationships (\"My boss said...\" / \"My wife and I are having trouble with...\")\nYour health concerns, legal questions, financial",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "监视资本主义是人工智能的商业模式——你就是产品",
+        "summary": "人工智能提示代表了监视资本主义的新前沿，以比以前的行为数据更有价值的方式向人工智能公司原原本本地揭示用户的完整背景、情感状态、关系和关注。这种经济模式提取行为预测，然后出售给广告商、保险公司和其他买家。"
+      },
+      "fr": {
+        "title": "Le Capitalisme de Surveillance Est le Modèle Commercial de l'IA — Et Vous Êtes le Produit",
+        "summary": "Les invites d'IA représentent une nouvelle frontière du capitalisme de surveillance, révélant le contexte complet des utilisateurs, leurs états émotionnels, relations et préoccupations littéralement aux entreprises d'IA d'une manière plus précieuse que les données comportementales précédentes. Ce modèle économique extrait les prédictions comportementales vendues aux annonceurs, assureurs et autres acheteurs."
+      },
+      "de": {
+        "title": "Überwachungskapitalismus ist das Geschäftsmodell von KI — Und Sie sind das Produkt",
+        "summary": "KI-Eingabeaufforderungen stellen eine neue Grenze des Überwachungskapitalismus dar, indem sie Nutzerkontexte, emotionale Zustände, Beziehungen und Anliegen in einer Weise an KI-Unternehmen offenbaren, die wertvoller ist als frühere Verhaltensdaten. Dieses Wirtschaftsmodell extrahiert Verhaltensvorhersagen, die an Werbetreibende, Versicherer und andere Käufer verkauft werden."
+      },
+      "es": {
+        "title": "El Capitalismo de Vigilancia Es el Modelo de Negocio de la IA — Y Eres el Producto",
+        "summary": "Los prompts de IA representan una nueva frontera del capitalismo de vigilancia, revelando el contexto completo del usuario, estados emocionales, relaciones y preocupaciones verbatim a las empresas de IA de una manera más valiosa que los datos de comportamiento anteriores. Este modelo económico extrae predicciones de comportamiento vendidas a anunciantes, aseguradoras y otros compradores."
+      }
+    }
+  },
+  {
+    "title": "Task Based Programming Over Thread Base",
+    "slug": "task-based-programming-over-thread-base",
+    "url": "https://dev.to/roasted-kaju/task-based-programming-over-thread-base-e7e",
+    "source": "DEV Community",
+    "date": "2026-03-07T00:06:49.000Z",
+    "summary": "C++ developers should prefer std::async (task-based programming) over std::thread for asynchronous work because tasks return futures for result handling and avoid resource exhaustion from excessive thread creation. Tasks provide better abstraction and allow schedulers to run work on existing threads rather than creating new ones.",
+    "content": "Prefer Task based Programming to Thread-Based\n\n\nIf you want to run something Async you have two basic choices: std::thread and std::async\nint doAsyncWork();\n\nstd::thread th(doAsyncWork);\n\n// Better to use Async\n\nauto future = std::async(doAsyncWork);\n\nstd::async(doAsyncWork) is considered a task. The task is superior because it returns a future value which we can use to sync up our program. Async task also has a get function which we can use to get the status and or if our work function emits an exception.\nAsync task also provides more abstraction.\nWhat is the meaning of Thread?\nHardware threads, perform computation. Contemporary machine architectures offer one or more hardware threads per CPU core.\nSoftware threads (also known as OS threads or system threads) are the threads that the operating system manages across all processes and schedules for execution on hardware threads.\nstd::threads are objects in a C++ process that act as handles to underlying software threads.\nSoftware threads are a limited resource. If you try to create more than the system can provide, a std::system_error exception is thrown. (This is even true for a function that is marked no-except)\nEven if you don’t run out of threads, you can have trouble with oversubscription. That’s when there are more ready-to-run, thread scheduler time-slices the software threads on the hardware. Such context switches increase the overhead.\nYour life would be much easier if you dump all this management to someone else and that someone else is std::async\nWell Task would almost never have this out of threads problem because Async task doesn’t guarantee that it will create a new software thread. Rather it permits the scheduler to arrange for the function to be run on thread requesting the doAsyncWork() result. (The thread where we have get wait or future)\nasync sometimes run on the same thread that is expecting its output, well that is only true if you use the default launch policy which is a combination of both asy",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "基于任务的编程而非线程基础",
+        "summary": "C++开发人员应该在异步工作中优先使用std::async（基于任务的编程）而不是std::thread，因为任务返回期货以处理结果，并避免由于过度线程创建而导致的资源耗尽。任务提供更好的抽象，并允许调度程序在现有线程上运行工作，而不是创建新线程。"
+      },
+      "fr": {
+        "title": "Programmation Basée sur les Tâches par Rapport à la Base des Threads",
+        "summary": "Les développeurs C++ devraient préférer std::async (programmation basée sur les tâches) à std::thread pour le travail asynchrone car les tâches retournent des futures pour la gestion des résultats et évitent l'épuisement des ressources dû à la création excessive de threads. Les tâches offrent une meilleure abstraction et permettent aux planificateurs d'exécuter le travail sur des threads existants plutôt que d'en créer de nouveaux."
+      },
+      "de": {
+        "title": "Aufgabenbasierte Programmierung gegenüber Thread-Basis",
+        "summary": "C++-Entwickler sollten std::async (aufgabenbasierte Programmierung) gegenüber std::thread für asynchrone Arbeiten bevorzugen, da Tasks Futures für die Ergebnisbehandlung zurückgeben und Ressourcenerschöpfung durch übermäßige Thread-Erstellung vermeiden. Tasks bieten eine bessere Abstraktion und ermöglichen es Schedulern, Arbeiten auf vorhandenen Threads auszuführen, anstatt neue zu erstellen."
+      },
+      "es": {
+        "title": "Programación Basada en Tareas sobre Base de Threads",
+        "summary": "Los desarrolladores de C++ deberían preferir std::async (programación basada en tareas) sobre std::thread para trabajo asincrónico porque las tareas devuelven futuros para el manejo de resultados y evitan el agotamiento de recursos por creación excesiva de threads. Las tareas proporcionan una mejor abstracción y permiten que los planificadores ejecuten trabajo en threads existentes en lugar de crear nuevos."
+      }
+    }
+  },
+  {
+    "title": "How to Detect Immigration Sentiment Shifts with the Pulsebit API (Python)",
+    "slug": "how-to-detect-immigration-sentiment-shifts-pulsebit-api",
+    "url": "https://dev.to/pulsebitapi/how-to-detect-immigration-sentiment-shifts-with-the-pulsebit-api-python-1og2",
+    "source": "DEV Community",
+    "date": "2026-03-07T00:06:06.000Z",
+    "summary": "The Pulsebit API enables developers to detect sentiment shifts on topics like immigration with a single HTTP endpoint, eliminating infrastructure overhead of scraping and parsing data across social media and news sites. The API provides real-time sentiment scores, momentum metrics, and confidence levels without custom data collection infrastructure.",
+    "content": "How to Detect Immigration Sentiment Shifts with the Pulsebit API (Python)\n\n\n\n  \n  \n  The Problem\n\n\nAs developers keen on understanding social sentiment, you've probably wrestled with DIY scraping solutions. You set up bots to scour social media, news sites, and forums only to realize that aggregating and interpreting the data is a colossal headache. The effort is often disproportionate to the insights gained. You’re left with a hodgepodge of qualitative data that’s difficult to analyze. And let’s be honest, keeping track of sentiment shifts in a dynamic topic like immigration is a full-time job on its own.\nEnter the Pulsebit API. With a single endpoint, it allows you to retrieve sentiment data without the overhead of scraping and parsing. This API provides real-time insights, making it easy to detect shifts in sentiment around immigration, which can be particularly volatile. Take a look at the current data:\nSentiment Score: +0.00\nMomentum: +1.45\nClusters: 18\nConfidence: 0.87\nWhat stands out here is the sentiment score remaining neutral at +0.00, despite a positive momentum of +1.45. This indicates an interesting divergence—a rising interest or concern without an immediate emotional reaction. \nTo interact with the Pulsebit API, you can use a simple Python script. Below is an example of how to make a GET request to the /news_semantic endpoint:\nimport requests\n\n![Left: Python GET /news_semantic call for 'immigration'. Righ](https://pub-c3309ec893c24fb9ae292f229e1688a6.r2.dev/figures/g3_code_output_split_1772841961774.png)\n*Left: Python GET /news_semantic call for 'immigration'. Right: live JSON response structure. Three lines of Python. Clean JSON. No infrastructure required. Source: Pulsebit /news_semantic.*\n\n\ndef get_sentiment_data(topic='immigration'):\n    url = f'https://pulsebit.lojenterprise.com/api/news_semantic?topic={topic}'\n    response = requests.get(url)\n\n    if response.status_code == 200:\n        return response.json()\n    else:\n        raise Exception(f\"",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何使用 Pulsebit API 检测移民情绪转变 (Python)",
+        "summary": "Pulsebit API 使开发者能够通过单个 HTTP 端点检测移民等主题的情绪转变,消除了在社交媒体和新闻网站上抓取和解析数据的基础设施开销。该 API 在无需自定义数据收集基础设施的情况下提供实时情绪分数、动量指标和置信度。"
+      },
+      "fr": {
+        "title": "Comment détecter les changements de sentiment sur l'immigration avec l'API Pulsebit (Python)",
+        "summary": "L'API Pulsebit permet aux développeurs de détecter les changements de sentiment sur des sujets comme l'immigration via un seul point de terminaison HTTP, éliminant la surcharge infrastructurelle du scraping et de l'analyse des données sur les médias sociaux et les sites d'actualités. L'API fournit des scores de sentiment en temps réel, des métriques d'impulsion et des niveaux de confiance sans infrastructure de collecte de données personnalisée."
+      },
+      "de": {
+        "title": "Wie man mit der Pulsebit API Stimmungsumschwünge zur Einwanderung erkennt (Python)",
+        "summary": "Die Pulsebit API ermöglicht es Entwicklern, Stimmungsumschwünge zu Themen wie Einwanderung über einen einzelnen HTTP-Endpunkt zu erkennen und eliminiert damit den Infrastruktur-Overhead beim Scrapen und Parsen von Daten über Social Media und Nachrichtenseiten. Die API bietet Stimmungswerte in Echtzeit, Impulsmetriken und Vertrauensstufen ohne benutzerdefinierte Datenerfassungsinfrastruktur."
+      },
+      "es": {
+        "title": "Cómo detectar cambios de sentimiento sobre inmigración con la API Pulsebit (Python)",
+        "summary": "La API Pulsebit permite a los desarrolladores detectar cambios de sentimiento en temas como inmigración con un único punto de conexión HTTP, eliminando la sobrecarga de infraestructura de scraping y análisis de datos en redes sociales y sitios de noticias. La API proporciona puntuaciones de sentimiento en tiempo real, métricas de impulso y niveles de confianza sin necesidad de infraestructura personalizada de recopilación de datos."
+      }
+    }
+  },
+  {
+    "title": "Best High Waisted Pants For Broad Shoulders Narrow Hips — What You Need To Know",
+    "slug": "best-high-waisted-pants-for-broad-shoulders-narrow-hips",
+    "url": "https://dev.to/alvin_tang_9ac56ff002224a/best-high-waisted-pants-for-broad-shoulders-narrow-hips-what-you-need-to-know-2ipp",
+    "source": "DEV Community",
+    "date": "2026-03-07T00:05:36.000Z",
+    "summary": "High-waisted pants with wide-leg, flared, or pleated designs balance broad shoulders and narrow hips by redistributing visual weight below the waist, creating a more proportionate silhouette. This styling approach addresses a structural fit problem in conventional fashion that fails to account for non-standard body geometries.",
+    "content": "High waisted pants for broad shoulders and narrow hips function as a geometric counterweight, using architectural volume below the waist to balance the width of the upper torso and create the illusion of a more proportionate silhouette. This specific body geometry, often categorized as the \"Inverted Triangle,\" requires a deliberate redistribution of visual weight. By emphasizing the waistline and adding structural bulk to the lower body, high-waisted garments bridge the gap between a dominant upper frame and a streamlined lower frame.\nKey Takeaway: [[[The best](https://blog.alvinsclub.ai/smart-styling-using-ai-to-find-the-best-a-line-dresses-for-tall-women)](https://blog.alvinsclub.ai/how-ai-personal-styling-finds-the-best-swimsuits-for-inverted-triangle-shapes)](https://blog.alvinsclub.ai/the-definitive-guide-to-finding-the-best-wide-leg-pants-for-petite-women) high waisted pants for broad shoulders narrow hips are wide-leg, flared, or pleated styles that add volume below the waist. These silhouettes redistribute visual weight to balance a wider upper torso and create a more proportionate, symmetrical frame.\nThe traditional fashion industry often fails this demographic by offering \"standard\" fits that prioritize the average ratio. For those with broader shoulders, the struggle is not just about size, but about architecture. According to Shopify (2023), 52% of online apparel returns are driven by poor fit or style mismatch, a statistic that underscores the failure of generic size charts to account for nuanced skeletal structures like broad shoulders and narrow hips. To solve this, one must stop looking for \"trends\" and start looking for \"volume-adding mechanics.\"\nThe primary objective for this body type is to create a visual \"X\" shape. High-waisted pants serve as the pivot point of this X. When the waistband sits at the narrowest part of the torso—the natural waist—it creates a clear horizontal line that interrupts the vertical dominance of the shoulders. However, t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "宽肩膀窄臀部的最佳高腰裤 — 您需要了解的内容",
+        "summary": "具有阔腿、喇叭或褶皱设计的高腰裤通过在腰部以下重新分配视觉重量,平衡宽肩膀和窄臀部,创造更均匀的身材轮廓。这种穿衣方法解决了传统时尚中未能考虑非标准身体几何形状的结构性贴身问题。"
+      },
+      "fr": {
+        "title": "Les Meilleurs Pantalons Taille Haute pour Épaules Larges et Hanches Étroites — Ce que Vous Devez Savoir",
+        "summary": "Les pantalons taille haute avec des coupes larges, évasées ou plissées équilibrent les épaules larges et les hanches étroites en redistribuant le poids visuel sous la taille, créant une silhouette plus proportionnée. Cette approche de style aborde un problème d'ajustement structurel dans la mode conventionnelle qui ne tient pas compte des géométries corporelles non standard."
+      },
+      "de": {
+        "title": "Beste Hochbundhosen für breite Schultern und schmale Hüften — Was Sie wissen müssen",
+        "summary": "Hochbundhosen mit weit geschnittenen, ausgestellten oder plissierten Designs balancieren breite Schultern und schmale Hüften aus, indem sie das visuelle Gewicht unterhalb der Taille umverteilen und eine proportionalere Silhouette schaffen. Dieser Styling-Ansatz behebt ein strukturelles Passformproblem in der konventionellen Mode, das nicht auf nicht-standardisierte Körpergeometrien berücksichtigt."
+      },
+      "es": {
+        "title": "Los Mejores Pantalones de Cintura Alta para Hombros Anchos y Caderas Estrechas — Lo que Necesitas Saber",
+        "summary": "Los pantalones de cintura alta con cortes amplios, acampanados o plisados equilibran los hombros anchos y las caderas estrechas redistribuyendo el peso visual por debajo de la cintura, creando una silueta más proporcionada. Este enfoque de estilo aborda un problema de ajuste estructural en la moda convencional que no tiene en cuenta geometrías corporales no estándar."
+      }
+    }
+  },
+  {
+    "title": "How To Style Wrap Skirts For Plus Size — What You Need To Know",
+    "slug": "how-to-style-wrap-skirts-for-plus-size",
+    "url": "https://dev.to/alvin_tang_9ac56ff002224a/how-to-style-wrap-skirts-for-plus-size-what-you-need-to-know-419k",
+    "source": "DEV Community",
+    "date": "2026-03-07T00:05:04.000Z",
+    "summary": "Wrap skirts for plus-size styling use the garment's diagonal wrap line to define the waist and create vertical elongation, offering adjustable fit without static waistband constraints that cause gapping or restriction. The dynamic construction adapts to individual proportions in real-time, addressing technical fit demands of the growing plus-size market.",
+    "content": "Styling wrap skirts for plus size silhouettes involves optimizing the diagonal line of the garment to define the waist and create vertical elongation through strategic fabric tension and hemline placement. This specific garment type functions as a structural tool rather than a mere covering, utilizing a wrap-around construction to adjust to the wearer’s specific proportions in real-time. By mastering the engineering of the wrap skirt, you move beyond \"fitting\" into the realm of architectural styling that prioritizes the natural geometry of the body.\nKey Takeaway: To master how to style wrap skirts for plus size, use the diagonal wrap line to define the waist and create vertical elongation. Secure the closure at your natural waistline and choose hemlines that balance your silhouette for a customized, structural fit.\nThe wrap skirt is one of the few garments in a wardrobe that offers true adjustability without sacrificing silhouette integrity. Traditional skirts rely on static waistbands that often result in \"gapping\" at the back or restriction at the hip. In contrast, a wrap skirt allows for a custom fit every time it is donned. \nThe primary aesthetic advantage lies in the diagonal line. In visual design, a diagonal line creates movement and draws the eye across the body rather than emphasizing width. For plus-size individuals, this creates a tapering effect that naturally highlights the narrowest part of the torso. Furthermore, the \"V\" shape created by the overlap at the hemline functions as a vertical disruptor, making the legs appear longer. \nAccording to Coherent Market Insights (2024), the plus-size apparel market is projected to reach $315 billion by 2030, driven by a demand for technically superior fit and functional design. The wrap skirt is the embodiment of this technical demand, offering a dynamic fit that accommodates the fluctuations of a living body.\nThe success of a wrap skirt depends heavily on the fabric’s GSM (Grams per Square Meter). A fabric that",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何搭配大码包裹式短裙 — 您需要了解的内容",
+        "summary": "大码包裹式短裙利用服装的对角线包裹线条来定义腰部并创造垂直拉长效果,提供可调节的贴身而无需静态腰部约束(可能导致间隙或限制)。动态构造实时适应个人比例,满足不断增长的大码市场的技术贴身需求。"
+      },
+      "fr": {
+        "title": "Comment Styliser les Jupes Portefeuille pour la Grande Taille — Ce que Vous Devez Savoir",
+        "summary": "Les jupes portefeuille pour le style grande taille utilisent la ligne d'enroulement diagonale du vêtement pour définir la taille et créer un allongement vertical, offrant un ajustement ajustable sans les contraintes de ceinture statique qui causent des écarts ou des restrictions. La construction dynamique s'adapte aux proportions individuelles en temps réel, répondant aux exigences d'ajustement technique du marché croissant des grandes tailles."
+      },
+      "de": {
+        "title": "Wie man Wickelröcke für Übergrößen stylt — Was Sie wissen müssen",
+        "summary": "Wickelröcke für Übergrößen verwenden die diagonale Wickellinie des Kleidungsstücks, um die Taille zu definieren und eine vertikale Verlängerung zu schaffen, und bieten eine verstellbare Passform ohne statische Taillenband-Einschränkungen, die zu Lücken oder Einschränkungen führen. Die dynamische Konstruktion passt sich in Echtzeit an individuelle Proportionen an und erfüllt die technischen Anforderungen des wachsenden Übergrößenmarktes."
+      },
+      "es": {
+        "title": "Cómo Estilizar las Faldas Envolventes para Talla Grande — Lo que Necesitas Saber",
+        "summary": "Las faldas envolventes para el estilo de talla grande utilizan la línea de envolvimiento diagonal de la prenda para definir la cintura y crear alargamiento vertical, ofreciendo un ajuste ajustable sin las limitaciones de banda elástica estática que causan huecos o restricciones. La construcción dinámica se adapta a las proporciones individuales en tiempo real, abordando los requisitos de ajuste técnico del mercado creciente de talla grande."
+      }
+    }
+  }
+]
