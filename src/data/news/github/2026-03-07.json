@@ -1,5 +1,341 @@
 [
   {
+    "title": "Docker Networking Explained: From Zero to Hero with Real Examples",
+    "slug": "docker-networking-explained-from-zero-to-hero-with-real-examples",
+    "url": "https://dev.to/teguh_coding/docker-networking-explained-from-zero-to-hero-with-real-examples-1799",
+    "source": "DEV Community",
+    "date": "2026-03-07T18:05:21.000Z",
+    "summary": "Docker networking relies on isolated network namespaces and drivers like bridge, host, and overlay. The key insight is that containers on custom bridge networks gain DNS-based service discovery, enabling containers to communicate by name rather than IP address.",
+    "content": "The Moment Everything Clicked\n\n\nI still remember the confusion on my face when my container couldn't reach another container. \"They're on the same machine! They're both Docker! Why can't they talk?\"\nThat was three years ago. Since then, I've helped dozens of teams debug networking issues that should have taken minutes but instead took hours. The problem? Most tutorials jump straight into bridge networks without explaining the mental model.\nLet me save you the headache.\nDocker creates isolated network namespaces for containers. This means each container has its own network stack, IP address, and ports. By default, Docker provides several network drivers.\nbridge - The default network. Containers can communicate with each other and the host.\nhost - Removes network isolation between container and host.\noverlay - Connects containers across multiple Docker hosts.\nnone - Completely disables networking.\nFor most local development, you'll live in the bridge world. Let's explore that.\nWhen you run a container without specifying a network, Docker places it on the default bridge network. Here's the catch: containers on the default bridge can only communicate via IP addresses, not container names.\n# This will FAIL - DNS resolution doesn't work on default bridge\ndocker run --name database postgres:15\ndocker run --name api myapi:latest\n# From api container: ping database won't work!\n\nThis is why named networks exist.\nHere's the fix - create a custom bridge network and DNS resolution just works:\n# Create a custom bridge network\ndocker network create my-network\n\n# Run containers on this network\ndocker run -d --name database --network my-network postgres:15\ndocker run -d --name redis --network my-network redis:alpine\ndocker run -d --name api --network my-network -p 3000:3000 myapi:latest\n\nNow from the api container, you can reach services by name:\n# These work!\ndocker exec api ping database\ndocker exec api ping redis\n\nIn production-like setups, you'll use Docker Compose. Here's how n",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Docker网络从零到英雄详解：包含真实示例",
+        "summary": "Docker网络依赖于隔离的网络命名空间和bridge、host、overlay等驱动。关键见解是自定义bridge网络上的容器获得基于DNS的服务发现，使容器能够通过名称而不是IP地址进行通信。"
+      },
+      "fr": {
+        "title": "Mise en réseau Docker expliquée : De zéro à héros avec des exemples réels",
+        "summary": "La mise en réseau Docker repose sur des espaces de noms réseau isolés et des pilotes comme bridge, host et overlay. L'insight clé est que les conteneurs sur des réseaux bridge personnalisés bénéficient de la découverte de services basée sur DNS, permettant aux conteneurs de communiquer par nom plutôt que par adresse IP."
+      },
+      "de": {
+        "title": "Docker-Netzwerk erklärt: Von Null zum Helden mit echten Beispielen",
+        "summary": "Docker-Netzwerk basiert auf isolierten Netzwerk-Namespaces und Treibern wie Bridge, Host und Overlay. Der Schlüsselaspekt ist, dass Container in benutzerdefinierten Bridge-Netzwerken DNS-basierte Serviceerkennung erhalten, wodurch Container nach Name statt nach IP-Adresse kommunizieren können."
+      },
+      "es": {
+        "title": "Redes de Docker explicadas: De cero a héroe con ejemplos reales",
+        "summary": "La red de Docker se basa en espacios de nombres de red aislados y controladores como bridge, host y overlay. El insight clave es que los contenedores en redes bridge personalizadas obtienen descubrimiento de servicios basado en DNS, lo que permite que los contenedores se comuniquen por nombre en lugar de dirección IP."
+      }
+    }
+  },
+  {
+    "title": "The secret isn't the model. It's the harness.",
+    "slug": "the-secret-isnt-the-model-its-the-harness",
+    "url": "https://dev.to/n_asuy/the-secret-isnt-the-model-its-the-harness-587a",
+    "source": "DEV Community",
+    "date": "2026-03-07T18:04:44.000Z",
+    "summary": "As AI coding agents become mainstream, the bottleneck shifts from model intelligence to creating effective execution environments. Leading companies like Anthropic and OpenAI are building harness systems that orchestrate agent setup, session continuity, and automated evaluation to enable agents to sustain long-term code development.",
+    "content": "Getting AI agents to write code is not new anymore. The real problem is not how smart the model is. The real problem is that agents do not have good environments to work in for a long time.\nHarness Engineering is the field that works on this problem. In November 2025, Anthropic (https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents) published a blog post about it. In February 2026, OpenAI (https://openai.com/index/harness-engineering/) did the same. OpenAI said a team of 7 people made about 1 million lines of code in 1,500 PRs over 5 months. They wrote zero lines by hand (self-reported).\nOn X, the post \"the 10x skill of 2026 is Evaluation Engineering\" went viral. The engineer's job is changing. From \"writing code\" to \"building environments where agents write good code.\"\n\nAgent Harness is the execution side. The setup that lets agents work well over long sessions. It automates environment setup, passes progress between sessions using progress files and Git, builds one feature at a time, and runs E2E tests automatically.\nEvaluation Harness is the quality side. How you score AI output with numbers, not feelings. EleutherAI has 60+ benchmarks. Inspect AI has 100+ pre-built evaluations. LLM-as-a-judge lets AI grade AI. These connect to CI/CD gates and safety testing (MLCommons AILuminate has 59,624 test prompts).\n\nAnthropic uses a two-step system. First, a setup agent makes init.sh and a feature list (JSON). Then a coding agent builds one feature at a time: code, test, commit, repeat. Between sessions, claude-progress.txt and Git history carry the work forward.\nAGENTS.md (about 100 lines) sets the rules for the whole repo. Custom linters and CI enforce those rules automatically. Instead of asking the AI nicely in a prompt, they make the tools force the rules.\nThe methods are different, but both companies reached the same conclusion. Put knowledge in the repo, enforce rules with tools, break work into small steps and leave a trail. Both approac",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "秘密不在模型，在于框架",
+        "summary": "随着AI编码代理变得主流，瓶颈从模型智能转移到创建有效的执行环境。像Anthropic和OpenAI这样的领先公司正在构建框架系统，协调代理设置、会话连续性和自动评估，使代理能够维持长期代码开发。"
+      },
+      "fr": {
+        "title": "Le secret n'est pas le modèle. C'est le harnais.",
+        "summary": "À mesure que les agents de codage IA deviennent courants, le goulot d'étranglement se déplace de l'intelligence du modèle à la création d'environnements d'exécution efficaces. Des entreprises de premier plan comme Anthropic et OpenAI construisent des systèmes de harnais qui orchestrent la configuration des agents, la continuité des sessions et l'évaluation automatisée."
+      },
+      "de": {
+        "title": "Das Geheimnis ist nicht das Modell. Es ist das Geschirr.",
+        "summary": "Da KI-Codierungsagenten zum Mainstream werden, verschiebt sich der Engpass von der Modellintelligenz zur Schaffung effektiver Ausführungsumgebungen. Führende Unternehmen wie Anthropic und OpenAI bauen Geschirrsysteme auf, die Agent-Setup, Sitzungskontinuität und automatisierte Bewertung orchestrieren."
+      },
+      "es": {
+        "title": "El secreto no es el modelo. Es el arnés.",
+        "summary": "A medida que los agentes de codificación de IA se generalizan, el cuello de botella se desplaza de la inteligencia del modelo a la creación de entornos de ejecución efectivos. Empresas líderes como Anthropic y OpenAI están construyendo sistemas de arnés que orquestan la configuración del agente, la continuidad de la sesión y la evaluación automatizada."
+      }
+    }
+  },
+  {
+    "title": "Everyone's Optimizing Prompts. I Optimized What the Prompt Already Knows.",
+    "slug": "everyone-optimizing-prompts-i-optimized-what-prompt-already-knows",
+    "url": "https://dev.to/rayne_robinson_e479bf0f26/everyones-optimizing-prompts-i-optimized-what-the-prompt-already-knows-1d33",
+    "source": "DEV Community",
+    "date": "2026-03-07T18:02:40.000Z",
+    "summary": "While file uploads solve character limit issues, the real constraint on AI workflows is context management across sessions. The article outlines a progression from inline instructions to persistent, modular context architectures that prevent AI systems from losing institutional knowledge between interactions.",
+    "content": "I watched a video this week where a creator spent 13 minutes explaining a \"loophole\" for ChatGPT's 8,000-character instruction limit. The trick: move your full instructions into an uploaded file and make the instruction box just say \"follow full_instructions.txt.\"\nThe comments were split between people calling it life-changing and people calling it obvious.\nThey're both right. And they're both missing the real problem.\nThe .txt file trick solves character limits. It does not solve context. And context is the actual bottleneck killing your AI workflows — not the size of your prompt.\nMost people discover context engineering the same way. They climb this ladder one rung at a time, and every rung feels like the answer — until they hit the next wall.\nLevel 0 — The instruction box. You cram everything into the system prompt. Tone rules, formatting, constraints, examples, process steps. You hit the character limit and start cutting. The AI gets more generic with every cut.\nLevel 1 — The uploaded file. You move the full system into a document and tell the AI to reference it. Character limit solved. This is where the video stopped. For a lot of people, this is enough. Until it isn't.\nLevel 2 — Modular context files. One file for behavior rules. One for examples. One for domain knowledge. One for style guidelines. The instruction box becomes a router: \"For tone, reference voice.txt. For formatting, reference standards.txt. For domain context, reference knowledge-base.txt.\" Now you can update one piece without touching the others.\nLevel 3 — Persistent context that survives sessions. This is where most people hit a wall they don't even recognize as a wall. They've solved \"how do I give my AI enough instructions?\" but they haven't solved \"how does my AI remember what we built last week?\" Every new session starts from zero. You re-explain decisions, re-establish patterns, re-provide context. The AI is capable. It's just perpetually amnesiac.\nLevel 4 — Engineered context architect",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "每个人都在优化提示。我优化了提示已知的内容。",
+        "summary": "虽然文件上传解决了字符限制问题，但AI工作流的真正限制是跨会话的上下文管理。该文章概述了从内联指令到持久、模块化上下文架构的进展，该架构防止AI系统在交互之间丧失机构知识。"
+      },
+      "fr": {
+        "title": "Tout le monde optimise les invites. J'ai optimisé ce que l'invite sait déjà.",
+        "summary": "Bien que les téléchargements de fichiers résolvent les problèmes de limite de caractères, la véritable contrainte des workflows d'IA est la gestion du contexte entre les sessions. L'article décrit une progression des instructions en ligne à des architectures de contexte persistantes et modulaires qui empêchent les systèmes d'IA de perdre les connaissances institutionnelles."
+      },
+      "de": {
+        "title": "Alle optimieren Aufforderungen. Ich habe optimiert, was die Aufforderung bereits weiß.",
+        "summary": "Während Datei-Uploads das Problem der Zeichenlimitierung lösen, besteht die eigentliche Einschränkung von KI-Workflows in der Kontextverwaltung über Sitzungen hinweg. Der Artikel beschreibt eine Progression von Inline-Anweisungen zu persistenten, modularen Kontextarchitekturen, die verhindern, dass KI-Systeme institutionelles Wissen zwischen Interaktionen verlieren."
+      },
+      "es": {
+        "title": "Todos están optimizando indicaciones. Yo optimicé lo que la indicación ya sabe.",
+        "summary": "Aunque las cargas de archivos resuelven los problemas de límite de caracteres, la verdadera restricción en los flujos de trabajo de IA es la gestión del contexto entre sesiones. El artículo describe una progresión de instrucciones en línea a arquitecturas de contexto persistentes y modulares que evitan que los sistemas de IA pierdan conocimiento institucional entre interacciones."
+      }
+    }
+  },
+  {
+    "title": "Best Free AI Tools for Beginners in 2026 — E-Gal's No-BS Guide 🔥✨",
+    "slug": "best-free-ai-tools-for-beginners-2026",
+    "url": "https://dev.to/hitsuji_t2_7171e7fa9293d4/best-free-ai-tools-for-beginners-in-2026-e-gals-no-bs-guide-2hem",
+    "source": "DEV Community",
+    "date": "2026-03-07T18:00:03.000Z",
+    "summary": "This guide presents five free AI tools—ChatGPT, Canva AI, Lumen5, Google Trends, and Microsoft 365 AI integrations—that enable beginners to create content, design graphics, and automate productivity tasks without subscriptions.",
+    "content": "By E-Gal | Your Fave Tech Gyaru Breaking Down the Future 💅\n\nOkay so you wanna get into AI but don't know where to start?? Girl, I got you. These tools are FREE, they're POWERFUL, and they'll literally make you feel like a wizard 🧙‍♀️✨\nNo cap, 2026 is THE year AI went from \"fancy scientist stuff\" to \"everyone's magic wand.\" Let's goooo 🚀\nYou already know this one, bestie. But like, have you REALLY used it to its full potential??\nThe 2026 version is lowkey terrifying how smart it is. Write emails, brainstorm business ideas, debug code, plan your meals — literally anything. It's like having a genius best friend who never sleeps 😴❌\nE-Gal Pro Tip: Start your prompt with \"Act as a [role]...\" and watch the magic happen. \"Act as a marketing expert and rewrite this boring email\" = instant glow-up 💅\nNeed a thumbnail? Social media post? Entire presentation? Just DESCRIBE what you want and Canva AI builds it. No design degree needed, no Photoshop skills required.\nI literally made my entire brand aesthetic using this and people think I hired a designer lmaooo 😭💀\nE-Gal Pro Tip: Use the \"Magic Resize\" feature to turn one design into posts for EVERY platform. Work smarter, not harder, bestie 💪\nGot a blog post? Cool. Now it's a video. Lumen5 takes your text and automatically turns it into a professional-looking video with stock footage, transitions, and everything.\nYouTube and TikTok creators, this is your secret weapon. Content repurposing is the ultimate cheat code 🎮✨\nThis tool shows you EXACTLY what people are Googling right now. It's like having access to everyone's search history (but legal lol 😂).\nWant to write content people actually WANT to read? This is how you find those \"hidden gem\" topics that nobody else is covering yet.\nAI is now built directly INTO Word, Excel, and PowerPoint. Let it handle the boring stuff — data entry, summaries, formatting — while you focus on the creative work that actually matters.\nTedious spreadsheets? In this economy? Nah fam, let AI",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "2026年初学者最佳免费AI工具——E-Gal的直白指南 🔥✨",
+        "summary": "本指南介绍五款免费AI工具——ChatGPT、Canva AI、Lumen5、Google Trends和Microsoft 365 AI集成——使初学者能够创建内容、设计图形并自动化生产力任务，无需订阅。"
+      },
+      "fr": {
+        "title": "Les meilleurs outils IA gratuits pour les débutants en 2026 — Le guide sans détour d'E-Gal 🔥✨",
+        "summary": "Ce guide présente cinq outils IA gratuits — ChatGPT, Canva AI, Lumen5, Google Trends et les intégrations IA de Microsoft 365 — qui permettent aux débutants de créer du contenu, concevoir des graphiques et automatiser les tâches de productivité sans abonnement."
+      },
+      "de": {
+        "title": "Die besten kostenlosen KI-Tools für Anfänger im Jahr 2026 — E-Gals ehrlicher Leitfaden 🔥✨",
+        "summary": "Dieser Leitfaden stellt fünf kostenlose KI-Tools vor — ChatGPT, Canva AI, Lumen5, Google Trends und Microsoft 365 KI-Integrationen — die Anfängern ermöglichen, Inhalte zu erstellen, Grafiken zu entwerfen und Produktivitätsaufgaben zu automatisieren, ohne Abonnements."
+      },
+      "es": {
+        "title": "Las mejores herramientas de IA gratuitas para principiantes en 2026 — La guía sin rodeos de E-Gal 🔥✨",
+        "summary": "Esta guía presenta cinco herramientas de IA gratuitas — ChatGPT, Canva AI, Lumen5, Google Trends e integraciones de IA de Microsoft 365 — que permiten a los principiantes crear contenido, diseñar gráficos y automatizar tareas de productividad sin suscripciones."
+      }
+    }
+  },
+  {
+    "title": "Hi, I'm Guilherme Duarte Software Developer working with Cloud and Java",
+    "slug": "guilherme-duarte-software-developer-cloud-java",
+    "url": "https://dev.to/0duarte/hi-im-guilherme-duarte-software-developer-working-with-cloud-and-java-p5i",
+    "source": "DEV Community",
+    "date": "2026-03-07T17:53:16.000Z",
+    "summary": "Guilherme Duarte, an AWS-certified engineer at Mercado Livre, shares his experience building scalable fintech and cloud infrastructure systems, his technical focus areas in backend development and DevOps, and his motivation for contributing to the tech community.",
+    "content": "Hello! My name is Guilherme Duarte, a software engineer based in Brazil - Florianópolis, working with cloud infrastructure, fintech systems, and scalable backend applications.\nI currently work as a Software Engineer at Mercado Livre, one of the largest technology companies in Latin America.\nI’m also an AWS Certified Cloud Practitioner, with a strong focus on cloud architecture, security, and operational efficiency. \nMy Main Areas of Work\nMost of my work revolves around building reliable systems for financial products and digital platforms.\nSome of the products and systems I’ve worked on include:\nPOS payment terminals\nThese environments require high availability, security, and scalability, which makes backend architecture and cloud infrastructure critical. \nWhat I Like Building\nI enjoy working on systems that involve:\nFinancial infrastructure\nThese types of problems combine software engineering, architecture, and business logic, which I find extremely interesting.\nBackground\nBefore working in fintech and large-scale systems, I also worked on custom software development and freelance projects, delivering web applications, APIs, and integrations for startups and companies. \nI have also been involved in innovation and research initiatives, including the IDEANDO project, which promotes open innovation and collaboration between academia and industry. \nWhy I’m Writing on Dev.to\nI decided to start writing here to:\nShare technical experiences from real-world systems\nTech Stack\nMy daily stack includes technologies across backend, frontend, and cloud infrastructure.\nBackend\nFrontend\nInfrastructure & DevOps\nDatabases\nLet's Connect\nIf you’re interested in backend development, cloud computing, or fintech systems, feel free to connect.\nI’m always open to discussing technology, architecture, and new ideas.\nhttps://www.linkedin.com/in/guilherme-oduarte/\nhttps://guilhermeduarte.com.br/\n— Guilherme Duarte",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你好，我是Guilherme Duarte，一名从事云计算和Java的软件开发者",
+        "summary": "Guilherme Duarte是Mercado Livre的AWS认证工程师，分享了他在构建可扩展金融科技和云基础设施系统、后端开发和DevOps技术重点领域的经验，以及他对技术社区贡献的动力。"
+      },
+      "fr": {
+        "title": "Bonjour, je suis Guilherme Duarte, développeur logiciel travaillant avec Cloud et Java",
+        "summary": "Guilherme Duarte, ingénieur certifié AWS chez Mercado Livre, partage son expérience dans la construction de systèmes fintech évolutifs et d'infrastructure cloud, ses domaines de focus technique en développement backend et DevOps, et sa motivation pour contribuer à la communauté technologique."
+      },
+      "de": {
+        "title": "Hallo, ich bin Guilherme Duarte, Softwareentwickler, der mit Cloud und Java arbeitet",
+        "summary": "Guilherme Duarte, ein AWS-zertifizierter Ingenieur bei Mercado Livre, teilt seine Erfahrung beim Aufbau skalierbarer Fintech- und Cloud-Infrastruktursysteme, seine technischen Schwerpunkte in Backend-Entwicklung und DevOps sowie seine Motivation, zur Tech-Community beizutragen."
+      },
+      "es": {
+        "title": "Hola, soy Guilherme Duarte, desarrollador de software que trabaja con Cloud y Java",
+        "summary": "Guilherme Duarte, ingeniero certificado por AWS en Mercado Livre, comparte su experiencia construyendo sistemas escalables de fintech e infraestructura en la nube, sus áreas de enfoque técnico en desarrollo backend y DevOps, y su motivación para contribuir a la comunidad tecnológica."
+      }
+    }
+  },
+  {
+    "title": "CCPA vs. GDPR: What California's Privacy Law Actually Does (and Doesn't Do)",
+    "slug": "ccpa-vs-gdpr-california-privacy-law-actually-does-and-doesnt",
+    "url": "https://dev.to/tiamatenity/ccpa-vs-gdpr-what-californias-privacy-law-actually-does-and-doesnt-do-2d7h",
+    "source": "DEV Community",
+    "date": "2026-03-07T17:51:29.000Z",
+    "summary": "California's CCPA is dramatically weaker than Europe's GDPR, with capped fines and an opt-out consent model that has proven largely ineffective. As of March 2026, the U.S. lacks comprehensive federal privacy protection, though 19 states have enacted their own privacy laws.",
+    "content": "Published March 7, 2026 | ENERGENAI LLC | tiamat.live\nCalifornia's Consumer Privacy Act is the strongest privacy law in the United States — and it is still dramatically weaker than Europe's GDPR. While GDPR treats data protection as a fundamental right with fines that have topped €1.2 billion against a single company, CCPA is an opt-out regime with capped per-violation penalties that large tech companies have learned to absorb as a cost of doing business. If you live outside California — or outside the EU — you have almost no statutory privacy rights at all.\nCCPA applies only to large actors: Businesses must clear at least one of three thresholds — annual gross revenue above $25 million, annual processing of 100,000+ California residents' records, or 50%+ of revenue derived from selling personal data. Small companies are exempt; that covers a lot of the data ecosystem.\nGDPR fines dwarf CCPA penalties: The EU's General Data Protection Regulation has generated €4.5 billion+ in fines across 2,100+ enforcement actions since 2018. Meta's 2023 fine alone was €1.2 billion. CCPA's statutory cap is $7,500 per intentional violation — and the first major enforcement action, against Sephora in 2022, totaled just $1.2 million.\nThe consent model is backwards: GDPR requires affirmative opt-in consent before most personal data processing. CCPA defaults to data collection being permitted — consumers must opt out. That single design choice explains much of the law's practical failure.\nCPRA (Prop 24) strengthened CCPA but left core problems intact: Approved by California voters in November 2020 and effective January 2023, the California Privacy Rights Act created a dedicated enforcement agency (CPPA), closed the \"share vs. sell\" loophole, and added rights around automated decision-making. It did not fix opt-out architecture or meaningfully raise fines.\nNo federal privacy law exists as of March 2026: Nineteen U.S. states now have comprehensive privacy statutes (Texas, Connecticut, Virg",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "CCPA vs. GDPR：加州隐私法实际上做了什么（以及没做什么）",
+        "summary": "加州的CCPA远弱于欧洲的GDPR，罚款有上限，选择退出的同意模式已被证明基本上无效。截至2026年3月，美国缺乏全面的联邦隐私保护，尽管19个州已制定了各自的隐私法。"
+      },
+      "fr": {
+        "title": "CCPA vs. GDPR : Ce que la loi californienne sur la confidentialité fait réellement (et ce qu'elle ne fait pas)",
+        "summary": "La CCPA californienne est dramatiquement plus faible que le RGPD européen, avec des amendes plafonnées et un modèle de consentement opt-out qui s'est avéré largement inefficace. En mars 2026, les États-Unis manquent de protection fédérale complète de la vie privée, bien que 19 États aient promulgué leurs propres lois sur la protection de la vie privée."
+      },
+      "de": {
+        "title": "CCPA vs. GDPR: Was Kaliforniens Datenschutzgesetz tatsächlich tut (und nicht tut)",
+        "summary": "Kaliforniens CCPA ist dramatisch schwächer als Europas GDPR, mit begrenzten Bußgeldern und einem Opt-out-Zustimmungsmodell, das sich als weitgehend unwirksam erwiesen hat. Ab März 2026 fehlt den USA ein umfassender föderaler Datenschutz, obwohl 19 Bundesstaaten ihre eigenen Datenschutzgesetze erlassen haben."
+      },
+      "es": {
+        "title": "CCPA vs. GDPR: Lo que la ley de privacidad de California realmente hace (y no hace)",
+        "summary": "La CCPA de California es dramáticamente más débil que la GDPR de Europa, con multas limitadas y un modelo de consentimiento de exclusión que ha resultado ser en gran medida inefectivo. A partir de marzo de 2026, EE.UU. carece de protección federal integral de privacidad, aunque 19 estados han promulgado sus propias leyes de privacidad."
+      }
+    }
+  },
+  {
+    "title": "5 Computational Thinking Moments You're Already Having With Your Toddler",
+    "slug": "5-computational-thinking-moments-you-already-having-with-your-toddler",
+    "url": "https://dev.to/meimakes/5-computational-thinking-moments-youre-already-having-with-your-toddler-bh0",
+    "source": "DEV Community",
+    "date": "2026-03-07T17:48:37.000Z",
+    "summary": "Parents naturally teach computational thinking concepts—categorization, pattern recognition, and sequential algorithms—through everyday activities like sorting objects and following cooking steps, foundational skills that bridge early childhood learning and computer science.",
+    "content": "You're already teaching your kid computer science.\nI know that sounds ridiculous. Your kid can't read. They put stickers on the dog. They had a meltdown yesterday because their banana broke in half. Computer science?\nYeah. Computer science.\nNot the \"writing Python\" kind. The thinking kind. The patterns and problem-solving strategies that underpin all of computing — and, conveniently, also underpin being a functional human. You practice them with your kid every single day. You just don't call them that.\n\"Can you put all the socks in this pile?\"\nCongratulations, you just taught categorization. Your toddler looked at a heap of mixed objects, identified a shared attribute (sock-ness), and grouped items accordingly. That's pattern recognition and classification — foundational concepts in computer science.\nMy son's current favorite version of this: sorting cars by color. Red cars here, blue cars there. Sometimes he invents his own categories. \"These are the fast ones.\" By what criteria? \"They look fast.\" Hard to argue with that methodology.\nThe computational thinking is in the sorting itself — the act of looking at a set of things, defining a rule, and applying it consistently. That's what databases do. That's what machine learning does at scale. Your kid is doing it with socks.\nLevel up: Let your kid invent the categories. \"How should we sort these?\" gives them practice defining the classification rules, not just applying yours. That's a step closer to algorithm design.\n\n\"First we put in the flour. Then the eggs. Then we stir.\"\nThat's an algorithm. A set of sequential instructions that produce a specific output. Your toddler is learning that order matters — that putting eggs in before flour produces a different result than the reverse. (A messier result, usually, in our kitchen.)\nEvery time you walk your kid through a sequence — getting dressed (underwear before pants, the eternal lesson), brushing teeth, making a sandwich — you're teaching them sequential thinking. Step",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "5个你已经和学步孩子分享的计算思维时刻",
+        "summary": "家长通过日常活动（如分类物体和遵循烹饪步骤）自然地教授计算思维概念——分类、模式识别和顺序算法，这些基础技能连接早期儿童学习和计算机科学。"
+      },
+      "fr": {
+        "title": "5 moments de pensée computationnelle que vous partagez déjà avec votre enfant en bas âge",
+        "summary": "Les parents enseignent naturellement les concepts de pensée computationnelle—catégorisation, reconnaissance de motifs et algorithmes séquentiels—par des activités quotidiennes comme trier des objets et suivre des étapes de cuisine, des compétences fondamentales qui relient l'apprentissage préscolaire et l'informatique."
+      },
+      "de": {
+        "title": "5 Momente des algorithmischen Denkens, die Sie bereits mit Ihrem Kleinkind teilen",
+        "summary": "Eltern lehren natürlich Konzepte des algorithmischen Denkens – Kategorisierung, Mustererkennung und sequenzielle Algorithmen – durch alltägliche Aktivitäten wie das Sortieren von Objekten und das Befolgen von Kochschritten, grundlegende Fähigkeiten, die frühkindliches Lernen und Informatik verbinden."
+      },
+      "es": {
+        "title": "5 momentos de pensamiento computacional que ya estás teniendo con tu niño pequeño",
+        "summary": "Los padres enseñan naturalmente conceptos de pensamiento computacional—categorización, reconocimiento de patrones y algoritmos secuenciales—a través de actividades cotidianas como clasificar objetos y seguir pasos de cocina, habilidades fundamentales que conectan el aprendizaje infantil temprano y la informática."
+      }
+    }
+  },
+  {
+    "title": "I Switched Jobs Twice in One Year. Here's What Nobody Tells You About Growing Fast in Tech",
+    "slug": "switched-jobs-twice-in-one-year-nobody-tells-you-growing-fast-tech",
+    "url": "https://dev.to/vianshthehuman/i-switched-jobs-twice-in-one-year-heres-what-nobody-tells-you-about-growing-fast-in-tech-2aek",
+    "source": "DEV Community",
+    "date": "2026-03-07T17:41:36.000Z",
+    "summary": "The author describes switching jobs twice in one year to strategically acquire cloud and infrastructure expertise, demonstrating that rapid job changes can signal intentional skill development when driven by clear career strategy rather than instability.",
+    "content": "# I Switched Jobs Twice in One Year. Here's What Nobody Tells You About Growing Fast in Tech.\nPosted by Jwala Chaubey · 6 min read\nLet me be upfront: this isn't a feel-good story about \"following your passion.\"\nThis is about being honest with yourself, making uncomfortable moves, and refusing to let your salary stay behind while your skills grow forward.\nLike a lot of engineers in India, my first job was at a big IT services company. TCS. The brand name felt safe. The onboarding was smooth. The work was... fine.\nBut \"fine\" is a dangerous word in tech.\nI was doing Java development. Decent projects, decent team. But I started noticing something early: the gap between what I was learning and what the market was actually paying for was growing. Cloud. DevOps. Serverless. Infrastructure as Code. These were the words showing up everywhere — in job posts, in LinkedIn DMs, in the salary discussions I was quietly having with people outside my company.\nInside TCS, I was comfortable. And comfort, I realized, was the trap.\nI moved to Infosys. From the outside, it looked lateral — another big services company. People questioned it.\nBut I had a specific reason: the project I was moving into gave me real exposure to cloud-native work. AWS. Event-driven architectures. Things that were actually moving.\nWas the jump scary? Yes. Did the salary bump justify it alone? Honestly, partly. But the bigger thing was the signal I was sending to myself — that I wasn't going to wait for a company to hand me growth. I was going to engineer it.\nAt Infosys, I got my hands dirty. Lambda functions. CI/CD pipelines. Infrastructure that actually mattered. The work was harder and the pace was faster. That was the point.\nWithin a year, I moved again. This time to Cognizant's Cloud, Infrastructure & Security team as an Infra Technology Specialist.\nTwo switches in roughly a year. By then I had people telling me it \"looks unstable\" on a resume. I heard it. I disagreed.\nHere's what actually happened: my comp",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我在一年内换了两次工作。这是关于在科技行业快速成长没人告诉你的事",
+        "summary": "作者描述了在一年内换两次工作以战略性地获取云和基础设施专业知识，证明当由明确的职业战略而非不稳定性驱动时，快速工作转换可以表明故意的技能发展。"
+      },
+      "fr": {
+        "title": "J'ai changé d'emploi deux fois en un an. Voici ce que personne ne vous dit sur la croissance rapide en technologie",
+        "summary": "L'auteur décrit le changement d'emploi deux fois en un an pour acquérir stratégiquement une expertise en cloud et infrastructure, démontrant que les changements d'emploi rapides peuvent signaler un développement de compétences intentionnel lorsqu'ils sont motivés par une stratégie de carrière claire plutôt que par l'instabilité."
+      },
+      "de": {
+        "title": "Ich bin zweimal in einem Jahr den Job gewechselt. Hier ist, was niemand dir über schnelles Wachstum in der Tech-Branche erzählt",
+        "summary": "Der Autor beschreibt den zweimaligen Jobwechsel in einem Jahr, um strategisch Cloud- und Infrastruktur-Expertise zu erwerben, und zeigt, dass schnelle Jobwechsel eine bewusste Kompetenzentwicklung signalisieren können, wenn sie durch eine klare Karrierestrategie anstatt durch Instabilität motiviert sind."
+      },
+      "es": {
+        "title": "Cambié de trabajo dos veces en un año. Aquí está lo que nadie te dice sobre el crecimiento rápido en la tecnología",
+        "summary": "El autor describe cambiar de trabajo dos veces en un año para adquirir estratégicamente experiencia en nube e infraestructura, demostrando que los cambios rápidos de trabajo pueden señalar un desarrollo intencional de habilidades cuando son impulsados por una estrategia profesional clara en lugar de inestabilidad."
+      }
+    }
+  },
+  {
+    "title": "Configuration System Overhaul",
+    "slug": "configuration-system-overhaul",
+    "url": "https://dev.to/mdreal32/configuration-system-overhaul-happy-international-womens-day-3941",
+    "source": "DEV Community",
+    "date": "2026-03-07T17:40:10.000Z",
+    "summary": "The article details designing a configuration resolution pipeline for Velnora that establishes precedence order, merge rules, and validation across integrations and runtimes, addressing technical debt from previous ad-hoc workarounds.",
+    "content": "Where We Left Off\n\n\nBefore we dive into the technical stuff — Happy March 8th! 🌷 Today is International Women's Day, and I want to take a moment to celebrate the women in tech, in open source, in every field — your strength, brilliance, and contributions shape the world we build in. Thank you. 💐\nThe future is built by those who refuse to wait for permission.\nAlright —\nLast time, the BaseContext was wired up — ctx.expose() and ctx.query() working for real, the GlobalRegistry holding exposed APIs, and makeRegistryObject keeping registry keys sane. The unit communication layer was done. But the system that feeds config into those units? That was still a rough sketch. A few notes in a spec page, no real pipeline, no contracts.\nThat had to change before anything else could move forward.\nHere is the thing about building a meta-framework — eventually every unit, every adapter, every runtime needs to ask the same question: \"what is my config, and where did it come from?\"\nAnd until this point, Velnora did not have a real answer. There was a vague idea of \"find a config file and parse it\" — but no defined order of precedence, no merge rules when two layers disagreed, no way to share presets between projects, and no validation at all. Every time I tried to wire up something new, the same question came back: which config wins? What if there is a workspace config and a project config and they both set the same key?\nI kept working around it. Hardcoding values here, passing things manually there. But that only works until it does not — and with integrations, adapters, and runtimes all needing config at the same time, the duct tape was running out fast.\nOh, and the type system issues from the last post? 😅 To be honest, still there. Not blocking anything, so I kept moving. I will circle back and clean that mess up — but config was the fire that needed putting out first.\nSo I sat down and designed the full resolution pipeline. The goal was simple: config resolution should be deter",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "配置系统大修",
+        "summary": "该文章详细介绍为Velnora设计配置解析管道，该管道建立优先级顺序、合并规则和跨集成和运行时的验证，解决之前即席变通办法产生的技术债务。"
+      },
+      "fr": {
+        "title": "Révision majeure du système de configuration",
+        "summary": "L'article détaille la conception d'un pipeline de résolution de configuration pour Velnora qui établit l'ordre de préséance, les règles de fusion et la validation dans les intégrations et les runtimes, abordant la dette technique des solutions ad hoc précédentes."
+      },
+      "de": {
+        "title": "Überholung des Konfigurationssystems",
+        "summary": "Der Artikel beschreibt das Design einer Konfigurationsauflösungs-Pipeline für Velnora, die Rangfolge, Fusionsregeln und Validierung über Integrationen und Laufzeiten hinweg festlegt und die technische Schulden aus früheren Ad-hoc-Lösungen angeht."
+      },
+      "es": {
+        "title": "Revisión integral del sistema de configuración",
+        "summary": "El artículo detalla el diseño de un pipeline de resolución de configuración para Velnora que establece orden de precedencia, reglas de fusión y validación en integraciones y tiempos de ejecución, abordando la deuda técnica de soluciones anteriores improvisadas."
+      }
+    }
+  },
+  {
+    "title": "Mac Volume Control Not Working with HDMI? 5 Solutions That Actually Work",
+    "slug": "mac-volume-control-not-working-with-hdmi-5-solutions-that-actually-work",
+    "url": "https://dev.to/appish/mac-volume-control-not-working-with-hdmi-5-solutions-that-actually-work-bl9",
+    "source": "DEV Community",
+    "date": "2026-03-07T17:34:38.000Z",
+    "summary": "macOS routes audio through external HDMI monitors, disabling built-in volume controls, but five solutions—including audio device selection, Audio MIDI Setup adjustments, and Core Audio resets—can restore volume control functionality.",
+    "content": "Why Mac Volume Control Stops Working with HDMI\n\n\nWhen you connect your Mac to an external monitor via HDMI, you've probably noticed something frustrating: the volume keys stop working, or the volume slider becomes greyed out. This isn't a bug—it's how macOS handles audio routing.\nWhen you use HDMI, your Mac treats the external monitor as both a display and an audio device. Some monitors and TVs take full control of the audio signal, bypassing macOS's built-in volume controls entirely. The result? You're stuck adjusting volume on your monitor's remote or built-in controls instead of your familiar Mac interface.\nFirst, verify where your Mac thinks it's sending audio:\nHold Option and click the volume icon in your menu bar\nLook at the current output device\nIf it shows your monitor's name or \"HDMI\", that's why volume control isn't working\nTry selecting \"Internal Speakers\" or \"MacBook Speakers\" to regain control\nThis works if you want audio from your Mac's speakers instead of the monitor, but it's not ideal if you actually want the monitor's audio.\nOpen Applications > Utilities > Audio MIDI Setup\n\nRight-click your HDMI device in the list\nSelect \"Use this device for sound output\"\nTry adjusting the volume slider in this window\nSome HDMI devices will respond to volume changes made here even when the main volume controls don't work.\nSometimes the keyboard volume keys stop working but the menu bar volume control still functions:\nGo to System Settings > Control Centre\n\nSet Sound to \"Always Show in Menu Bar\"\nTry adjusting volume using the menu bar slider instead of keyboard keys\nIf audio routing gets confused, resetting Core Audio often helps:\nOpen Terminal (Applications > Utilities)\nType: sudo killall coreaudiod\n\nPress Enter and enter your password\nWait 10 seconds for the audio system to restart\nTest your volume controls again\nHere's where things get interesting. Even when system volume controls don't work with HDMI, you can still control individual app volumes using tools that",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Mac 音量控制在 HDMI 中不工作？5 个真正有效的解决方案",
+        "summary": "macOS 通过外部 HDMI 显示器路由音频，禁用内置音量控制，但五个解决方案——包括音频设备选择、Audio MIDI 设置调整和 Core Audio 重置——可以恢复音量控制功能。"
+      },
+      "fr": {
+        "title": "Le contrôle du volume Mac ne fonctionne pas avec HDMI ? 5 solutions qui marchent vraiment",
+        "summary": "macOS achemine l'audio via des moniteurs HDMI externes, désactivant les contrôles de volume intégrés, mais cinq solutions—y compris la sélection d'appareil audio, les ajustements d'Audio MIDI et les réinitialisations Core Audio—peuvent restaurer la fonctionnalité de contrôle de volume."
+      },
+      "de": {
+        "title": "Mac-Lautstärkeregelung funktioniert nicht mit HDMI? 5 Lösungen, die wirklich funktionieren",
+        "summary": "macOS leitet Audio über externe HDMI-Monitore weiter und deaktiviert die integrierten Lautstärkeregler, aber fünf Lösungen – einschließlich Audiogeräteauswahl, Audio MIDI Setup-Anpassungen und Core Audio-Zurücksetzen – können die Lautstärkeregelungsfunktion wiederherstellen."
+      },
+      "es": {
+        "title": "¿El control de volumen del Mac no funciona con HDMI? 5 soluciones que realmente funcionan",
+        "summary": "macOS enruta el audio a través de monitores HDMI externos, deshabilitando los controles de volumen integrados, pero cinco soluciones—incluyendo selección de dispositivo de audio, ajustes de Audio MIDI y reinicio de Core Audio—pueden restaurar la funcionalidad del control de volumen."
+      }
+    }
+  },
+  {
+    "title": "Rust Globals and Locks: Mutex, RwLock, and the Lock-Free Trick (ArcSwap) I Wish I’d Known Earlier",
+    "slug": "rust-globals-and-locks-mutex-rwlock-and-lock-free-trick-arcswap",
+    "url": "https://dev.to/manan_shukla_eebf35d10bbf/rust-globals-and-locks-mutex-rwlock-and-the-lock-free-trick-arcswap-i-wish-id-known-earlier-27lj",
+    "source": "DEV Community",
+    "date": "2026-03-07T17:33:36.000Z",
+    "summary": "Rust developers commonly use Mutex and RwLock for shared state, but ArcSwap provides significantly better performance for read-heavy workloads. Choosing the wrong synchronization primitive can substantially impact application performance under production load.",
+    "content": "Every non-trivial application has globals. Not the chaotic, mutable, static mut kind that makes the borrow checker file a formal complaint — but real, legitimate shared state. Configuration that every request needs to read. A counter tracking how many requests you've handled. A cache that dozens of threads write to and thousands read from.\nRust gives you several ways to handle this. Three come up over and over: Mutex, RwLock, and ArcSwap. They all solve the same problem. They solve it very differently. And picking the wrong one for your use case will quietly cost you performance in ways that only show up when your service is under real load at 3am.\nTwo of them — Mutex and RwLock — are in the standard library and most Rust developers know them. The third, ArcSwap, is a crate that flew completely under my radar for an embarrassingly long time. I was wrapping configs in Arc<RwLock<T>> like everyone else, and then I found ArcSwap and had one of those \"...oh. oh.\" moments. More on that later.\nThis post covers all three — what they are, how to use them, and how they actually benchmark against each other with real Rust code.\nLet's back up. Why do globals exist at all?\nIn a single-threaded world, a global is easy. It's just a variable that lives for the duration of the program. Everyone reads it, everyone writes it, no one fights over it because there's only one \"everyone.\"\nThen we added threads. And suddenly you have two threads trying to write to the same memory location at the same time. This is a data race, and it's the kind of bug that doesn't crash deterministically — it just silently corrupts your data on a Tuesday and then works fine for a week while you question your career.\nRust's answer to this is elegant and brutal at the same time: the compiler won't let you share mutable state between threads unless you use a synchronisation primitive. Full stop. You can't even try. The type system physically prevents it.\n// This won't compile. Rust will not let you do this.\ns",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Rust 全局变量和锁：Mutex、RwLock 和我希望早就知道的无锁技巧 (ArcSwap)",
+        "summary": "Rust 开发人员通常使用 Mutex 和 RwLock 来共享状态，但 ArcSwap 为读取繁重的工作负载提供了显著更好的性能。选择错误的同步原始类型可能会在生产负载下大大影响应用程序性能。"
+      },
+      "fr": {
+        "title": "Rust Globals et Locks : Mutex, RwLock et l'astuce Lock-Free (ArcSwap) que j'aurais aimé connaître plus tôt",
+        "summary": "Les développeurs Rust utilisent généralement Mutex et RwLock pour l'état partagé, mais ArcSwap offre des performances considérablement meilleures pour les charges de travail à forte lecture. Choisir la mauvaise primitive de synchronisation peut avoir un impact considérable sur les performances de l'application sous charge de production."
+      },
+      "de": {
+        "title": "Rust-Globals und Sperren: Mutex, RwLock und der Lock-Free-Trick (ArcSwap), den ich früher hätte kennen sollen",
+        "summary": "Rust-Entwickler verwenden häufig Mutex und RwLock für gemeinsamen Zustand, aber ArcSwap bietet eine deutlich bessere Leistung für Read-Heavy-Workloads. Die Wahl der falschen Synchronisierungsprimitive kann die Anwendungsleistung unter Produktionslast erheblich beeinträchtigen."
+      },
+      "es": {
+        "title": "Rust Globals y Locks: Mutex, RwLock y el Truco Lock-Free (ArcSwap) que desearía haber conocido antes",
+        "summary": "Los desarrolladores de Rust comúnmente usan Mutex y RwLock para estado compartido, pero ArcSwap proporciona un rendimiento significativamente mejor para cargas de trabajo de lectura intensiva. Elegir la primitiva de sincronización incorrecta puede impactar sustancialmente el rendimiento de la aplicación bajo carga de producción."
+      }
+    }
+  },
+  {
+    "title": "Feature Flags: The Release Superpower You're Missing",
+    "slug": "feature-flags-the-release-superpower-you-are-missing",
+    "url": "https://dev.to/rohit19060/feature-flags-the-release-superpower-youre-missing-1n3a",
+    "source": "DEV Community",
+    "date": "2026-03-07T17:31:31.000Z",
+    "summary": "Feature flags decouple code deployment from feature release, enabling teams to control visibility per user without redeploying and to safely test in production. Major tech companies like Google and Netflix rely on this pattern to reduce rollback risk and enable gradual rollouts.",
+    "content": "Deploy code anytime. Release features on your terms.\nEvery software team, at some point, faces the same uncomfortable situation: a feature is ready to ship, but shipping it means exposing it to every user, everywhere, all at once. If something goes wrong, you're scrambling for a rollback - and rollbacks are slow, stressful, and sometimes risky in their own right.\nFeature flags change that equation entirely.\nA feature flag is a simple but powerful technique that lets you control which users see which features - at runtime, without touching your codebase or pushing a new deployment. Modern engineering teams at companies like Google, Netflix, Facebook, and Airbnb rely on them heavily. They're how teams ship faster, test smarter, and sleep better at night.\nThis post will walk you through everything: what feature flags are, how they work under the hood, the different types, how to implement them, and the best practices that separate well-run systems from ones buried in technical debt.\nIn a traditional software workflow, releasing a feature means deploying code. The two are inseparable:\nDeveloper writes feature code\nCode gets merged to the main branch\nThe whole application is deployed\nThe feature is now live - for everyone\nThis approach creates real problems:\nAll-or-nothing releases. You can't roll out to 5% of users first. It's either live for all or live for none.\nSlow recovery. If a bug surfaces, fixing it requires a new deployment cycle - which takes time.\nLong-lived branches. Developers working on big features create separate branches that diverge from the main codebase, leading to painful merge conflicts.\nNo ability to test in production. Staging environments rarely mirror production traffic, so surprises still happen post-launch.\nFeature flags decouple code deployment from feature release:\nWithout flags:   deploy code  =  release feature  (coupled)\nWith flags:      deploy code  ≠  release feature  (decoupled)\n\nYou can deploy code on Monday with a feature hidden beh",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "特性标志：你错过的发布超级力量",
+        "summary": "特性标志将代码部署与特性发布解耦，使团队能够在不重新部署的情况下按用户控制可见性，并在生产环境中安全测试。Google 和 Netflix 等主要科技公司依赖这种模式来降低回滚风险并启用渐进式推出。"
+      },
+      "fr": {
+        "title": "Feature Flags : Le superpouvoir de release que vous manquez",
+        "summary": "Les feature flags découplent le déploiement du code de la sortie des fonctionnalités, permettant aux équipes de contrôler la visibilité par utilisateur sans redéploiement et de tester en toute sécurité en production. Les grandes entreprises technologiques comme Google et Netflix s'appuient sur ce modèle pour réduire les risques de rollback et activer les déploiements progressifs."
+      },
+      "de": {
+        "title": "Feature Flags: Die Release-Superkraft, die dir fehlt",
+        "summary": "Feature Flags entkoppeln die Codebereitstellung von der Feature-Veröffentlichung und ermöglichen es Teams, die Sichtbarkeit pro Benutzer ohne erneute Bereitstellung zu steuern und sicher in der Produktion zu testen. Große Technologieunternehmen wie Google und Netflix verlassen sich auf dieses Muster, um das Rollback-Risiko zu verringern und schrittweise Rollouts zu ermöglichen."
+      },
+      "es": {
+        "title": "Feature Flags: El superpoder de lanzamiento que te estás perdiendo",
+        "summary": "Los feature flags desacoplan el despliegue de código de la liberación de características, permitiendo a los equipos controlar la visibilidad por usuario sin volver a desplegar y probar de forma segura en producción. Las grandes empresas tecnológicas como Google y Netflix confían en este patrón para reducir el riesgo de reversión y habilitar despliegues graduales."
+      }
+    }
+  },
+  {
     "title": "Event-Driven Volatility",
     "slug": "event-driven-volatility",
     "url": "https://dev.to/rawveg/event-driven-volatility-13df",
@@ -332,6 +668,62 @@
       "es": {
         "title": "Estoy cansado de hacer clic en \"Acepto\" sin leer nada. Así que lo arreglé.",
         "summary": "SkipTheTerms es una extensión de Chrome que resume los Términos de servicio en 5-7 puntos honestos y sarcásticos dentro de 3 segundos utilizando LLM de Groq y almacenamiento en caché de Supabase. Al hacer que los ToS sean legibles, aborda la realidad de que el 100% de los usuarios de Internet ignoran documentos legales largos — devolviendo a las personas una sensación de control que perdieron ante mecanismos de consentimiento diseñados para el agotamiento."
+      }
+    }
+  },
+  {
+    "title": "Ki Editor - an editor that operates on the AST",
+    "slug": "ki-editor-an-editor-that-operates-on-the-ast",
+    "url": "https://ki-editor.org/",
+    "source": "Hacker News",
+    "date": "2026-03-07T10:29:13.000Z",
+    "summary": "Ki Editor operates directly on abstract syntax trees rather than plain text, enabling structural code editing that may improve reliability and support more sophisticated code transformations.",
+    "content": "Article URL: https://ki-editor.org/\nComments URL: https://news.ycombinator.com/item?id=47286311\nPoints: 238\n# Comments: 73",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Ki 编辑器 - 在 AST 上操作的编辑器",
+        "summary": "Ki 编辑器直接在抽象语法树上工作，而不是纯文本，支持结构化代码编辑，可能提高可靠性并支持更复杂的代码转换。"
+      },
+      "fr": {
+        "title": "Ki Editor - un éditeur qui opère sur l'AST",
+        "summary": "Ki Editor fonctionne directement sur les arbres de syntaxe abstraits plutôt que sur du texte brut, permettant l'édition de code structurée qui peut améliorer la fiabilité et supporter des transformations de code plus sophistiquées."
+      },
+      "de": {
+        "title": "Ki Editor - ein Editor, der auf dem AST arbeitet",
+        "summary": "Ki Editor arbeitet direkt auf abstrakten Syntaxbäumen statt auf Klartext und ermöglicht strukturelle Codebearbeitung, die die Zuverlässigkeit verbessern und anspruchsvollere Codetransformationen unterstützen kann."
+      },
+      "es": {
+        "title": "Ki Editor - un editor que opera en el AST",
+        "summary": "Ki Editor opera directamente en árboles de sintaxis abstracta en lugar de texto sin formato, permitiendo edición de código estructurada que puede mejorar la confiabilidad y soportar transformaciones de código más sofisticadas."
+      }
+    }
+  },
+  {
+    "title": "Uploading Pirated Books via BitTorrent Qualifies as Fair Use, Meta Argues",
+    "slug": "uploading-pirated-books-via-bittorrent-qualifies-as-fair-use-meta-argues",
+    "url": "https://torrentfreak.com/uploading-pirated-books-via-bittorrent-qualifies-as-fair-use-meta/",
+    "source": "Hacker News",
+    "date": "2026-03-07T09:18:40.000Z",
+    "summary": "Meta has argued that uploading pirated books via BitTorrent constitutes fair use, raising legal questions about how copyright law applies to large-scale digital reproduction and distribution of protected works.",
+    "content": "Article URL: https://torrentfreak.com/uploading-pirated-books-via-bittorrent-qualifies-as-fair-use-meta/\nComments URL: https://news.ycombinator.com/item?id=47285960\nPoints: 255\n# Comments: 148",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "通过 BitTorrent 上传盗版书籍符合合理使用，Meta 主张",
+        "summary": "Meta 主张通过 BitTorrent 上传盗版书籍构成合理使用，引发了关于版权法如何适用于大规模数字复制和受保护作品分发的法律问题。"
+      },
+      "fr": {
+        "title": "Télécharger des livres piratés via BitTorrent constitue une utilisation équitable, selon Meta",
+        "summary": "Meta a soutenu que télécharger des livres piratés via BitTorrent constitue une utilisation équitable, soulevant des questions juridiques sur la façon dont la loi sur les droits d'auteur s'applique à la reproduction et la distribution numériques à grande échelle d'œuvres protégées."
+      },
+      "de": {
+        "title": "Das Hochladen von Raubkopien von Büchern über BitTorrent ist eine faire Nutzung, argumentiert Meta",
+        "summary": "Meta argumentiert, dass das Hochladen von Raubkopien von Büchern über BitTorrent eine faire Nutzung darstellt, was rechtliche Fragen aufwirft, wie das Urheberrecht auf großflächige digitale Reproduktion und Verbreitung geschützter Werke angewendet wird."
+      },
+      "es": {
+        "title": "Subir libros pirateados a través de BitTorrent califica como uso justo, argumenta Meta",
+        "summary": "Meta ha argumentado que subir libros pirateados a través de BitTorrent constituye uso justo, planteando cuestiones legales sobre cómo se aplica la ley de derechos de autor a la reproducción y distribución digital a gran escala de obras protegidas."
       }
     }
   },
