@@ -1,5 +1,341 @@
 [
   {
+    "title": "How I built a 39 compression pipeline with AES-256-GCM in Python (and why the dictionary is everything)",
+    "slug": "llm-compression-encryption-aes-256-gcm",
+    "url": "https://dev.to/naveen_badiger_47b35b3f61/how-i-built-a-39x-compression-pipeline-with-aes-256-gcm-in-python-and-why-the-dictionary-is-10nc",
+    "source": "DEV Community",
+    "date": "2026-03-07T06:10:31.000Z",
+    "summary": "Developer created QUANTUM-PULSE, a compression and encryption pipeline for LLM training data that uses Zstandard with custom dictionaries to achieve 95x compression ratios while maintaining AES-256-GCM encryption and cryptographic integrity verification. The custom dictionary approach improved compression by 94.4% compared to standard Zstandard, addressing the gap where existing systems either compress or encrypt data, but not both.",
+    "content": "I store LLM training data. Every tool I found either compresses it or encrypts it — nothing did both. So I built QUANTUM-PULSE.\npayload → MsgPack → Zstd-L22 + corpus dict → AES-256-GCM → SHA3-256 Merkle\n\nBefore compression, MsgPack shrinks the payload by ~22%:\nimport msgpack\nraw = msgpack.packb(payload, use_bin_type=True)\n# 22% smaller than json.dumps().encode() — better input = better downstream ratio\n\nStandard Zstd builds a probability model from scratch every time. For training records sharing the same schema, this is wasted work.\nTrain once:\nimport zstandard as zstd\n\ndict_data = zstd.train_dictionary(131072, corpus_samples[:200])\ncctx = zstd.ZstdCompressor(level=22, dict_data=dict_data)\ncompressed = cctx.compress(raw)\n\nResult: 28.46× with dict vs 14.64× vanilla — +94.4% improvement, 29% faster.\nOne passphrase → master key → unique key per blob:\nfrom cryptography.hazmat.primitives.kdf.hkdf import HKDF\nfrom cryptography.hazmat.primitives.ciphers.aead import AESGCM\nimport os\n\n# Unique key per blob — one compromise reveals nothing about others\nblob_key = HKDF(\n    algorithm=hashes.SHA256(), length=32,\n    salt=blob_salt, info=pulse_id.encode()\n).derive(master_key)\n\nnonce = os.urandom(12)  # fresh per seal\nciphertext = AESGCM(blob_key).encrypt(nonce, compressed, None)\n\nEvery unseal verifies a Merkle proof before returning any data. Silent corruption — bit rot, tampered storage, partial writes — is caught cryptographically, not by hoping checksums match.\n\n\n\nAlgorithm\nRatio\nTime\nEnc\nIntegrity\n\n\n\n\nsnappy\n12×\n1.3ms\n✗\n✗\n\n\ngzip-9\n62×\n9.9ms\n✗\n✗\n\n\nzstd-L3\n76×\n1.6ms\n✗\n✗\n\n\nQUANTUM-PULSE\n95×\n590ms\n✓\n✓\n\n\nzstd-L22\n99×\n1745ms\n✗\n✗\n\n\nbrotli-11\n112×\n1441ms\n✗\n✗\n\n\n\nQUANTUM-PULSE is the only option with both encryption and integrity — and it's 3× faster than vanilla zstd-L22.\nNo formal third-party crypto audit yet (private reporting in SECURITY.md)\nPBKDF2-SHA256 over Argon2 — Argon2 planned for v1.1\nMongoDB-first — S3/GCS backends on the roadmap\ngit clone https://github.com/Naveenub/qua",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何用Python构建AES-256-GCM加密的压缩管道（以及为什么字典很重要）",
+        "summary": "开发者创建了QUANTUM-PULSE，一个针对LLM训练数据的压缩和加密管道，使用带有自定义字典的Zstandard实现95倍压缩率，同时保持AES-256-GCM加密和密码学完整性验证。相比标准Zstandard，自定义字典方法改进了94.4%的压缩效率，解决了现有系统要么压缩要么加密数据但不能同时做到两者的问题。"
+      },
+      "fr": {
+        "title": "Comment j'ai construit un pipeline de compression avec AES-256-GCM en Python (et pourquoi le dictionnaire est tout)",
+        "summary": "Un développeur a créé QUANTUM-PULSE, un pipeline de compression et de chiffrement pour les données d'entraînement LLM qui utilise Zstandard avec des dictionnaires personnalisés pour atteindre des taux de compression de 95x tout en maintenant le chiffrement AES-256-GCM et la vérification d'intégrité cryptographique. L'approche de dictionnaire personnalisé a amélioré la compression de 94,4% par rapport à Zstandard standard, comblant le fossé où les systèmes existants soit compriment soit chiffrent les données, mais pas les deux."
+      },
+      "de": {
+        "title": "Wie ich eine Kompressionspipeline mit AES-256-GCM in Python gebaut habe (und warum das Wörterbuch alles ist)",
+        "summary": "Ein Entwickler hat QUANTUM-PULSE entwickelt, eine Komprimierungs- und Verschlüsselungspipeline für LLM-Trainingsdaten, die Zstandard mit benutzerdefinierten Wörterbüchern verwendet, um Komprimierungsverhältnisse von 95x zu erreichen und gleichzeitig AES-256-GCM-Verschlüsselung und kryptographische Integritätsüberprüfung beizubehalten. Der benutzerdefinierte Wörterbuchansatz verbesserte die Komprimierung um 94,4% im Vergleich zu standardmäßigem Zstandard und schließt die Lücke, wo bestehende Systeme entweder Daten komprimieren oder verschlüsseln, aber nicht beides."
+      },
+      "es": {
+        "title": "Cómo construí un pipeline de compresión con AES-256-GCM en Python (y por qué el diccionario lo es todo)",
+        "summary": "Un desarrollador creó QUANTUM-PULSE, un pipeline de compresión y cifrado para datos de entrenamiento LLM que utiliza Zstandard con diccionarios personalizados para lograr ratios de compresión de 95x mientras se mantiene el cifrado AES-256-GCM y la verificación de integridad criptográfica. El enfoque de diccionario personalizado mejoró la compresión en un 94,4% comparado con Zstandard estándar, cerrando la brecha donde los sistemas existentes comprimen o cifran datos, pero no ambos."
+      }
+    }
+  },
+  {
+    "title": "How I Use AST Diffing and LLMs to Keep Docs in Sync with Code",
+    "slug": "ast-diffing-llms-keep-docs-in-sync",
+    "url": "https://dev.to/elshadhu/how-i-use-ast-diffing-and-llms-to-keep-docs-in-sync-with-code-2a97",
+    "source": "DEV Community",
+    "date": "2026-03-07T06:05:46.000Z",
+    "summary": "Developer created mark-guard, a CLI tool that uses AST diffing and LLMs to automatically update Go documentation when code changes rather than writing docs from scratch. The tool parses both old and new code versions to extract exported symbols, feeds the structured diff to Claude, and updates corresponding markdown docs. This approach solves the problem of outdated documentation becoming a maintenance burden as codebases evolve.",
+    "content": "Oh Here We Go Again: Documentation\n\n\nSince I started coding, creating projects, and contributing to projects, what I've realized so far is that outdated docs waste more time than missing docs. For that reason, I decided to build a CLI tool called mark-guard which detects Go code changes and updates your markdown docs using AST diffing and LLMs. I'm planning to add support for other languages.\nFrom my point of view, modifying is harder than creating from scratch, and that's what my tool tries to solve. Its purpose isn't creating docs from scratch but rather modifying them while we modify the project. Currently, I'm using my tool along with my friends. I think it'll really shine once people try it on bigger codebases with lots of legacy docs.\nWhen I started building this project, my first thought was a full AST tree approach. I had worked on something similar with my friend in wtf-script, but for this tool that was over-engineering it. I did not need to understand every node in the tree. I needed to know what the public API looks like before and after a code change.\nAfter researching, I went with Go's built-in go/parser package. Parse the old version of a file (from git) and the new version (from disk), extract all exported symbols from both, compare them, and feed the structured diff to an LLM that updates the docs.\nThe entry point is ExtractSymbols\n\n// ExtractSymbols parses Go source code and returns all exported symbols.\nfunc ExtractSymbols(filename, src string) ([]Symbol, error) {\n    fset := token.NewFileSet()\n    f, err := parser.ParseFile(fset, filename, src,\n        parser.SkipObjectResolution|parser.ParseComments)\n    if err != nil {\n        return nil, fmt.Errorf(\"parse %s: %w\", filename, err)\n    }\n\n    var symbols []Symbol\n    for _, decl := range f.Decls {\n        switch d := decl.(type) {\n        case *ast.FuncDecl:\n            if sym, ok := extractFunc(fset, d); ok {\n                symbols = append(symbols, sym)\n            }\n        case *ast.GenDecl:",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何使用AST差异和LLM来保持文档与代码同步",
+        "summary": "开发者创建了mark-guard，一个CLI工具，使用AST差异和LLM在代码变更时自动更新Go文档，而不是从零开始编写文档。该工具解析代码的新旧版本以提取导出符号，将结构化差异馈送给Claude，并更新相应的markdown文档。这种方法解决了随着代码库演进，过时文档变成维护负担的问题。"
+      },
+      "fr": {
+        "title": "Comment j'utilise la Diff AST et les LLM pour synchroniser les docs avec le code",
+        "summary": "Un développeur a créé mark-guard, un outil CLI qui utilise la diff AST et les LLM pour mettre à jour automatiquement la documentation Go lorsque le code change plutôt que de l'écrire à partir de zéro. L'outil analyse les anciennes et nouvelles versions du code pour extraire les symboles exportés, alimente la diff structurée à Claude et met à jour les docs markdown correspondantes. Cette approche résout le problème de la documentation obsolète devenant un fardeau de maintenance à mesure que les codebases évoluent."
+      },
+      "de": {
+        "title": "Wie ich AST-Diffing und LLMs nutze, um Dokumentation mit Code synchron zu halten",
+        "summary": "Ein Entwickler hat mark-guard erstellt, ein CLI-Tool, das AST-Diffing und LLMs verwendet, um Go-Dokumentation automatisch zu aktualisieren, wenn sich der Code ändert, anstatt die Dokumentation von Grund auf zu schreiben. Das Tool analysiert alte und neue Code-Versionen, um exportierte Symbole zu extrahieren, speist die strukturierte Diff an Claude und aktualisiert entsprechende Markdown-Dokumentationen. Dieser Ansatz löst das Problem der veralteten Dokumentation, die mit der Weiterentwicklung von Codebases zur Wartungslast wird."
+      },
+      "es": {
+        "title": "Cómo utilizo Diff AST y LLM para mantener la documentación sincronizada con el código",
+        "summary": "Un desarrollador creó mark-guard, una herramienta CLI que utiliza diff AST y LLM para actualizar automáticamente la documentación de Go cuando cambia el código en lugar de escribirla desde cero. La herramienta analiza tanto las versiones antiguas como nuevas del código para extraer símbolos exportados, alimenta la diff estructurada a Claude y actualiza la documentación markdown correspondiente. Este enfoque resuelve el problema de que la documentación desactualizada se convierte en una carga de mantenimiento a medida que los códigos evolucionan."
+      }
+    }
+  },
+  {
+    "title": "Build Production-Safe API: Crucial Things Most Junior Devs and Beginners Neglect",
+    "slug": "production-safe-api-security-best-practices",
+    "url": "https://dev.to/juddee/build-production-safe-api-crucial-things-most-junior-devs-and-beginners-neglect-4ofh",
+    "source": "DEV Community",
+    "date": "2026-03-07T06:01:19.000Z",
+    "summary": "Article outlines three critical API security practices junior developers often overlook: implementing CORS to control which origins can access resources, rate limiting to prevent request flooding and DDoS attacks, and proper authentication mechanisms. These foundational principles protect APIs from bot attacks, data scraping, brute force attempts, and resource exhaustion regardless of the programming language used.",
+    "content": "I will share 3 things you need to understand and implement in every API system you will build or have already built. \nIt's important you know that all these principles can be implemented in any language. \nCORS stands for Cross-Origin Resource Sharing, CORS is a security mechanism that the server uses to allow or reject requests from certain origins from accessing resources.\nThis is recommended for all public endpoints. The only case this may not be needed is when you don't want to restrict any origin from accessing server resources. \nEven if that public endpoint is only used by your application or other external systems built by your team, this is even one more reason you must implement CORS, because you don't want anybody out there who discovers this endpoint to access server resources.\nThis is a mechanism used to control the number of requests a client (an IP of an actual person or bot) can make to your API within a specified time frame. \nSo this allows you to set the number of requests an IP can send to your server per second, minute, hour, day etc. This ensures one client doesn't flood your API with requests.\nRate limiting protects your API from bots, scraping, brute force attacks and DoS attacks, which can \nEither max out your server's allocated resources. \nIncrease hosting cost\nOr give third parties unrestricted access to scrape data.\nAll API systems should implement a rate limiting algorithm. \nFixed Window Algorithm: \nThis sets a fixed number as the limit within a timeframe (e.g 1000 per hour), and every request received is counted. \nToken Bucket Algorithm: \nThis is used for API that want to allow an occasional high number of requests from clients but not every time.\nSliding Window Algorithm:\nThis is similar to the fixed window algorithm but shifts the time window depending on a certain circumstance. A common use case is allowing certain users to have higher priority requests or consistent access within a set time window when there's high usage, while reducin",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建生产级安全API：大多数初级开发者和初学者忽视的关键事项",
+        "summary": "文章概述了初级开发者经常忽视的三个关键API安全实践：实施CORS控制哪些来源可以访问资源，速率限制防止请求泛滥和DDoS攻击，以及正确的身份验证机制。这些基础原则保护API免受机器人攻击、数据爬取、暴力破解尝试和资源耗尽，无论使用何种编程语言。"
+      },
+      "fr": {
+        "title": "Construire une API sûre en production : Les choses cruciales que la plupart des développeurs juniors négligent",
+        "summary": "L'article décrit trois pratiques critiques de sécurité API que les développeurs juniors oublient souvent : implémenter CORS pour contrôler quelles origines peuvent accéder aux ressources, la limitation du débit pour empêcher les inondations de requêtes et les attaques DDoS, et des mécanismes d'authentification appropriés. Ces principes fondamentaux protègent les API contre les attaques de robots, le scraping de données, les tentatives de force brute et l'épuisement des ressources indépendamment du langage de programmation utilisé."
+      },
+      "de": {
+        "title": "Bauen Sie sicherheitsgerechte APIs in der Produktionsumgebung: Wichtige Dinge, die die meisten Junior-Entwickler übersehen",
+        "summary": "Der Artikel beschreibt drei kritische API-Sicherheitspraktiken, die Junior-Entwickler häufig übersehen: Implementierung von CORS zur Kontrolle, welche Ursprünge auf Ressourcen zugreifen können, Ratenbegrenzung zur Verhinderung von Request-Flooding und DDoS-Angriffen sowie angemessene Authentifizierungsmechanismen. Diese grundlegenden Prinzipien schützen APIs vor Bot-Angriffen, Datenscraping, Brute-Force-Versuchen und Ressourcenerschöpfung unabhängig vom verwendeten Programmiersprachentypus."
+      },
+      "es": {
+        "title": "Construir una API segura en producción: Cosas cruciales que la mayoría de desarrolladores junior descuidan",
+        "summary": "El artículo describe tres prácticas críticas de seguridad de API que los desarrolladores junior a menudo pasan por alto: implementar CORS para controlar qué orígenes pueden acceder a los recursos, limitación de velocidad para prevenir inundaciones de solicitudes y ataques DDoS, y mecanismos de autenticación adecuados. Estos principios fundamentales protegen las API de ataques de bots, raspado de datos, intentos de fuerza bruta y agotamiento de recursos, independientemente del lenguaje de programación utilizado."
+      }
+    }
+  },
+  {
+    "title": "AWS IAM Security Best Practices in 2026: A Complete Guide",
+    "slug": "aws-iam-security-best-practices-2026",
+    "url": "https://dev.to/karaniph/aws-iam-security-best-practices-in-2026-a-complete-guide-o14",
+    "source": "DEV Community",
+    "date": "2026-03-07T06:01:00.000Z",
+    "summary": "Comprehensive guide to AWS IAM security emphasizing that cloud identity has become the primary security perimeter in 2026, replacing traditional network boundaries. The article stresses implementing federated identity providers for human access instead of long-term IAM users, reducing attack surface and simplifying user management. Proper IAM configuration prevents credential compromise from cascading into full account takeover.",
+    "content": "Identity is the new perimeter.\nBefore cloud-native infrastructure, security teams could draw a physical boundary around their systems. Today, your perimeter is a set of credentials — and attackers know it.\nAWS Identity and Access Management (IAM) is the backbone of access control in AWS. It answers two fundamental questions: who can access your cloud environment (developers, SREs, CI/CD pipelines, third-party services), and what they can do once inside (read an S3 bucket, invoke a Lambda function, spin up an EC2 instance).\nGet IAM wrong, and a single compromised credential can cascade into a full account takeover. Get it right, and you've closed off the most common attack vector in cloud breaches.\nThis guide covers the IAM security best practices every team should have in place in 2026 — from foundational hygiene to advanced guardrails.\n📘 Want hands-on practice? This article covers the why — if you want to master the how, check out Learn AWS Identity Management with AWS IAM, SSO & Federation on Udemy. It covers AWS IAM, Organizations, Directory Service, SSO, and Federation end-to-end, fully updated for 2026.\nNever create long-term IAM users for human access.\nInstead, require all humans — developers, SREs, data engineers, auditors — to authenticate through a federated identity provider (IdP) such as Okta, Azure AD, Google Workspace, or AWS IAM Identity Center (formerly AWS SSO).\nWhy federation matters:\nCentralized user management: Onboarding and offboarding happens in one place. When an employee leaves, disabling their IdP account revokes access to all connected systems instantly.\nReduced password fatigue: Users authenticate once and access multiple systems through SSO, reducing the temptation to reuse passwords.\nSmaller attack surface: Fewer systems store credentials, meaning fewer places for attackers to target.\nAudit-ready logs: Federated sessions tie CloudTrail events back to a specific identity in your IdP, making forensic investigation and compliance reporting",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "2026年AWS IAM安全最佳实践：完整指南",
+        "summary": "关于AWS IAM安全的综合指南，强调云身份在2026年已成为主要安全边界，取代了传统网络边界。该文章强调为人类访问实施联合身份提供程序，而不是长期IAM用户，以减少攻击面并简化用户管理。正确的IAM配置防止凭证泄露级联为完整帐户接管。"
+      },
+      "fr": {
+        "title": "Meilleures pratiques de sécurité AWS IAM en 2026 : Un guide complet",
+        "summary": "Guide complet sur la sécurité AWS IAM soulignant que l'identité cloud est devenue le périmètre de sécurité principal en 2026, remplaçant les limites réseau traditionnelles. L'article insiste sur la mise en œuvre de fournisseurs d'identité fédérés pour l'accès humain au lieu d'utilisateurs IAM à long terme, réduisant la surface d'attaque et simplifiant la gestion des utilisateurs. Une configuration IAM appropriée empêche les compromissions d'identifiants de s'aggraver en prises de contrôle de compte complètes."
+      },
+      "de": {
+        "title": "AWS IAM-Sicherheitsbest Practices 2026: Ein vollständiger Leitfaden",
+        "summary": "Umfassender Leitfaden zur AWS IAM-Sicherheit, der betont, dass Cloud-Identität 2026 zur primären Sicherheitsgrenze geworden ist und traditionelle Netzwerkgrenzen ersetzt. Der Artikel unterstreicht die Implementierung föderierter Identitätsanbieter für menschlichen Zugriff anstelle von langfristigen IAM-Benutzern, um die Angriffsfläche zu reduzieren und die Benutzerverwaltung zu vereinfachen. Eine ordnungsgemäße IAM-Konfiguration verhindert, dass Credential-Kompromisse zu vollständigen Kontoübernahmen eskalieren."
+      },
+      "es": {
+        "title": "Mejores prácticas de seguridad de AWS IAM en 2026: Una guía completa",
+        "summary": "Guía completa sobre seguridad de AWS IAM que enfatiza que la identidad en la nube se ha convertido en el perímetro de seguridad principal en 2026, reemplazando los límites de red tradicionales. El artículo subraya la implementación de proveedores de identidad federados para acceso humano en lugar de usuarios IAM de largo plazo, reduciendo la superficie de ataque y simplificando la gestión de usuarios. La configuración adecuada de IAM evita que el compromiso de credenciales se transforme en tomas de control de cuenta completas."
+      }
+    }
+  },
+  {
+    "title": "Building a CI/CD Pipeline",
+    "slug": "ci-cd-pipeline-jenkins-github-actions-circleci",
+    "url": "https://dev.to/shieldstring/building-a-cicd-pipeline-bbd",
+    "source": "DEV Community",
+    "date": "2026-03-07T06:00:00.000Z",
+    "summary": "Guide compares three major CI/CD tools—Jenkins, GitHub Actions, and CircleCI—each offering different trade-offs for automating builds, tests, and deployments. Jenkins provides extensive customization through 1,800+ plugins but requires infrastructure management; GitHub Actions offers tight GitHub integration; CircleCI balances ease-of-use with cloud operations. The choice depends on team size, infrastructure preferences, and existing workflows.",
+    "content": "A Practical Comparison of Jenkins, GitHub Actions, and CircleCI\nContinuous Integration and Continuous Deployment (CI/CD) pipelines are now a baseline expectation in professional software development. They automate the repetitive work of building, testing, and deploying code — eliminating the \"works on my machine\" problem, tightening feedback loops, and reducing the blast radius of any single change.\nBut the tooling landscape is crowded, and the right choice depends heavily on your team's size, infrastructure preferences, and existing workflow. This guide walks through three of the most widely used options — Jenkins, GitHub Actions, and CircleCI — covering practical setup, real configuration examples, and honest trade-offs for each.\nJenkins has been the workhorse of CI/CD since 2011. It's a self-hosted, open-source automation server with a plugin ecosystem of over 1,800 integrations. Nearly anything you can imagine doing in a pipeline — deploying to Kubernetes, sending Slack alerts, parsing test reports, triggering other jobs — has a Jenkins plugin for it.\nThe trade-off is that Jenkins requires you to own the infrastructure. You provision the server, manage upgrades, configure agents, and monitor it. For teams with dedicated DevOps capacity or strict data residency requirements, that's acceptable. For smaller teams, it can be a tax.\nJenkins requires a JDK (Java 11 or 17 recommended) and runs on any major operating system. The quickest way to get started on a Debian/Ubuntu server:\n# Install Java\nsudo apt update && sudo apt install -y openjdk-17-jdk\n\n# Add the Jenkins package repository and install\ncurl -fsSL https://pkg.jenkins.io/debian/jenkins.io-2023.key | sudo tee \\\n  /usr/share/keyrings/jenkins-keyring.asc > /dev/null\necho \"deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \\\n  https://pkg.jenkins.io/debian binary/\" | sudo tee \\\n  /etc/apt/sources.list.d/jenkins.list > /dev/null\nsudo apt update && sudo apt install -y jenkins\n\n# Start and enable the service\ns",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建CI/CD管道",
+        "summary": "指南比较了三个主要的CI/CD工具——Jenkins、GitHub Actions和CircleCI——每个工具为自动化构建、测试和部署提供不同的权衡。Jenkins通过1,800多个插件提供广泛的定制，但需要基础设施管理；GitHub Actions提供紧密的GitHub集成；CircleCI平衡易用性和云操作。选择取决于团队规模、基础设施偏好和现有工作流。"
+      },
+      "fr": {
+        "title": "Construire un pipeline CI/CD",
+        "summary": "Le guide compare trois outils CI/CD majeurs—Jenkins, GitHub Actions et CircleCI—offrant chacun des compromis différents pour automatiser les constructions, les tests et les déploiements. Jenkins offre une personnalisation étendue via plus de 1 800 plugins mais nécessite une gestion d'infrastructure ; GitHub Actions offre une intégration GitHub étroite ; CircleCI équilibre facilité d'utilisation et opérations cloud. Le choix dépend de la taille de l'équipe, des préférences d'infrastructure et des flux de travail existants."
+      },
+      "de": {
+        "title": "Erstellen einer CI/CD-Pipeline",
+        "summary": "Ein Leitfaden, der drei große CI/CD-Tools vergleicht—Jenkins, GitHub Actions und CircleCI—die jeweils unterschiedliche Kompromisse bei der Automatisierung von Builds, Tests und Bereitstellungen bieten. Jenkins bietet umfangreiche Anpassungen durch über 1.800 Plug-ins, erfordert aber eine Infrastrukturverwaltung; GitHub Actions bietet enge GitHub-Integration; CircleCI balanciert Benutzerfreundlichkeit mit Cloud-Betrieb. Die Wahl hängt von Teamgröße, Infrastrukturpräferenzen und vorhandenen Workflows ab."
+      },
+      "es": {
+        "title": "Construir un pipeline de CI/CD",
+        "summary": "Guía que compara tres herramientas principales de CI/CD—Jenkins, GitHub Actions y CircleCI—que ofrecen diferentes compensaciones para automatizar compilaciones, pruebas e implementaciones. Jenkins proporciona una amplia personalización a través de más de 1.800 complementos, pero requiere gestión de infraestructura; GitHub Actions ofrece una integración estrecha de GitHub; CircleCI equilibra la facilidad de uso con operaciones en la nube. La elección depende del tamaño del equipo, las preferencias de infraestructura y los flujos de trabajo existentes."
+      }
+    }
+  },
+  {
+    "title": "Web3 Jobs Decoded: Feedback Loops, Interview Prep, and Hiring Criteria",
+    "slug": "web3-jobs-feedback-loops-content",
+    "url": "https://dev.to/ribhavmodi/web3-jobs-decoded-feedback-loops-interview-prep-and-hiring-criteria-42ed",
+    "source": "DEV Community",
+    "date": "2026-03-07T05:53:13.000Z",
+    "summary": "Author's 60-day Web3 learning series demonstrates how content creation and feedback loops—not cold job applications—generated multiple freelance and contract roles at blockchain companies. The article defines effective feedback signals as follow-up questions, inbound collaboration offers, and topic requests rather than vanity metrics like likes. Consistent content creation that invites genuine interaction compounds into career opportunities.",
+    "content": "I have been getting comments on my articles asking me to write for them. Not from a cold outreach I sent, not from a resume I submitted, just from people reading the series and reaching out. That is a feedback loop working exactly the way it should. Today I want to break down why feedback loops matter more than most people think, and what Web3 interviews actually look like when you finally get in the room.\nIf you want to keep up with this 60-day Web3 journey, you can follow me on X, on Medium, on Future, and you can join the Web3ForHumans Telegram community.\nThis series started as a personal learning challenge on Day 1 and by Day 53 it has turned into a writing portfolio that landed me a freelance role at Bitquery, a contract technical writing role at Tether, and multiple inbound writing offers. None of that came from applying. All of it came from feedback loops compounding over time.\nA feedback loop is any system where output becomes input. You publish something, someone reacts, that reaction changes what you publish next, and the cycle tightens over time. In community building and content creation, feedback loops are the difference between growing in the dark and growing with direction.\nMost creators treat feedback as validation. \"Did people like it?\" That is the wrong question. The right question is \"what did people do after reading it?\" A comment asking \"can you write for us?\" is stronger feedback than 100 likes. A DM saying \"I tried this and it did not work\" teaches you more than 50 bookmarks.\nThe three feedback signals that actually matter in Web3 content are replies with follow-up questions (people want more depth), inbound writing or collaboration offers (people trust your knowledge), and topic requests (people want you to cover something specific). All three have shown up in this series across Medium, Future, and X. That is the feedback loop doing its job.\nMost people publish and wait. A feedback loop requires one more step: you have to make it easy for peo",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Web3工作解码：反馈循环、面试准备和招聘标准",
+        "summary": "作者的60天Web3学习系列展示了内容创建和反馈循环——而非冷人脉——如何在区块链公司产生多个自由职业和合同角色。该文章将有效的反馈信号定义为后续问题、入站协作提议和主题请求，而不是点赞等虚荣指标。持续的内容创建，邀请真正的互动，复合成职业机会。"
+      },
+      "fr": {
+        "title": "Web3 Jobs Décryptés : Boucles de rétroaction, Préparation aux entretiens et critères d'embauche",
+        "summary": "La série d'apprentissage Web3 de 60 jours de l'auteur montre comment la création de contenu et les boucles de rétroaction—et non les candidatures à froid—ont généré plusieurs rôles indépendants et contractuels dans les entreprises de blockchain. L'article définit les signaux de rétroaction efficaces comme les questions de suivi, les offres de collaboration entrantes et les demandes de sujets plutôt que les métriques de vanité comme les j'aime. La création de contenu cohérente qui invite une interaction authentique se transforme en opportunités de carrière."
+      },
+      "de": {
+        "title": "Web3-Jobs entschlüsselt: Feedback-Schleifen, Interviewvorbereitung und Einstellungskriterien",
+        "summary": "Die 60-Tage-Web3-Lernserie des Autors zeigt, wie Inhaltserstellung und Feedback-Schleifen—nicht kalte Bewerbungen—mehrere freiberufliche und vertragliche Positionen bei Blockchain-Unternehmen generierten. Der Artikel definiert effektive Feedback-Signale als Nachfragen, eingehende Kooperationsangebote und Themenanfragen anstelle von Eitelkeitskennzahlen wie Likes. Konsistente Inhaltserstellung, die echte Interaktion einlädt, führt zu Karrieremöglichkeiten."
+      },
+      "es": {
+        "title": "Web3 Jobs Decodificados: Bucles de retroalimentación, Preparación para entrevistas y Criterios de contratación",
+        "summary": "La serie de aprendizaje Web3 de 60 días del autor demuestra cómo la creación de contenido y los bucles de retroalimentación—no las solicitudes de trabajo en frío—generaron múltiples roles de trabajador autónomo y contratista en empresas de blockchain. El artículo define las señales de retroalimentación efectivas como preguntas de seguimiento, ofertas de colaboración entrantes y solicitudes de temas en lugar de métricas de vanidad como me gusta. La creación consistente de contenido que invita a la interacción genuina se convierte en oportunidades de carrera."
+      }
+    }
+  },
+  {
+    "title": "Current AI Coding Will Never Replace Human Programmers—Hint from the Story of AlphaGo",
+    "slug": "alphago-human-programmers-ai",
+    "url": "https://dev.to/rex_zhen_a9a8400ee9f22e98/current-ai-coding-will-never-replace-human-programmers-hint-from-the-story-of-alphago-4fla",
+    "source": "DEV Community",
+    "date": "2026-03-07T05:52:59.000Z",
+    "summary": "Essay uses AlphaGo's evolution to argue that current AI won't replace human programmers because it relies on learning from human work rather than developing independent thinking. AlphaGo Zero, trained only on rules with no human game data, defeated the original AlphaGo 100-0 and eliminated human competitiveness. The article contends AI's reliance on human guidance determines whether it serves programmers or replaces them.",
+    "content": "Current AI Coding Will Never Replace Human Programmers—Hint from the Story of AlphaGo\n\n\n\n  \n  \n  The Two AlphaGos: A Tale of Different Origins\n\n\nLet me tell you a story that changed how I think about AI and programming.\nI played Go when I was young—not well, mind you. I was a terrible player who could barely keep track of my own stones, let alone plan 20 moves ahead. But even as a novice, I understood something profound about the game: it wasn't just about rules and patterns. It was about intuition, style, and thinking that transcended logic.\nSo when AlphaGo defeated Lee Sedol in March 2016, I watched with fascination. The headlines screamed \"AI Beats Human!\" and tech pundits declared the age of superhuman AI had arrived. As someone who'd struggled with Go's complexity firsthand, I knew this was huge.\nBut the real revelation came a year later with AlphaGo Zero. And almost nobody understood why it was fundamentally different.\nAlphaGo (2016) learned from 160,000 human games spanning thousands of years of Go history. It studied master players, absorbed their opening strategies, their mid-game tactics, their endgame techniques. Then it improved through self-play. It was brilliant—Lee Sedol himself said some moves were so creative they seemed almost divine. Yet he still managed to win one game.\nAlphaGo Zero (2017) started with absolutely nothing but the rules of Go. No human games. No historical data. No master strategies. Just the board, the rules, and self-play. In 3 days, it didn't just beat the original AlphaGo—it demolished it 100-0.\nTop Go players who faced AlphaGo Zero said something that still gives me chills: \"Against the original AlphaGo, we had a small chance if we played perfectly. Against AlphaGo Zero, we have no chance. Not even a tiny one.\"\nWhat made the difference?\nNot computing power. Not training time. Not algorithmic tricks.\nThe difference was origin. One learned from humans and carried human DNA in its thinking. The other evolved completely independen",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "当前AI编程永远无法取代人类程序员——来自AlphaGo故事的启示",
+        "summary": "文章通过AlphaGo的演进论证，当前的AI不会取代人类程序员，因为它依赖于从人类工作中学习，而不是发展独立思维。AlphaGo Zero仅通过规则训练，没有使用人类棋局数据，以100:0的成绩击败了原始AlphaGo，消除了人类的竞争力。文章主张AI对人类指导的依赖决定了它是为程序员服务还是取代他们。"
+      },
+      "fr": {
+        "title": "La programmation IA actuelle ne remplacera jamais les programmeurs humains — Indice tiré de l'histoire d'AlphaGo",
+        "summary": "L'essai utilise l'évolution d'AlphaGo pour soutenir que l'IA actuelle ne remplacera pas les programmeurs humains car elle dépend de l'apprentissage à partir du travail humain plutôt que du développement de la pensée indépendante. AlphaGo Zero, entraîné uniquement sur les règles sans données de jeu humaines, a vaincu l'AlphaGo original 100-0 et a éliminé la compétitivité humaine. L'article soutient que la dépendance de l'IA à la guidance humaine détermine si elle sert les programmeurs ou les remplace."
+      },
+      "de": {
+        "title": "Aktuelle KI-Programmierung wird niemals menschliche Programmierer ersetzen—Ein Hinweis aus der AlphaGo-Geschichte",
+        "summary": "Der Essay nutzt die Entwicklung von AlphaGo, um zu argumentieren, dass aktuelle KI menschliche Programmierer nicht ersetzen wird, da sie sich auf das Lernen aus menschlicher Arbeit verlässt, anstatt unabhängiges Denken zu entwickeln. AlphaGo Zero, das nur mit Regeln trainiert wurde, besiegte das ursprüngliche AlphaGo 100-0 und eliminierte die menschliche Wettbewerbsfähigkeit. Der Artikel argumentiert, dass die Abhängigkeit der KI von menschlicher Führung bestimmt, ob sie Programmierern dient oder sie ersetzt."
+      },
+      "es": {
+        "title": "La programación con IA actual nunca reemplazará a los programadores humanos—Una pista de la historia de AlphaGo",
+        "summary": "El ensayo utiliza la evolución de AlphaGo para argumentar que la IA actual no reemplazará a los programadores humanos porque depende del aprendizaje del trabajo humano en lugar de desarrollar el pensamiento independiente. AlphaGo Zero, entrenado solo con reglas sin datos de juego humanos, derrotó al AlphaGo original 100-0 y eliminó la competitividad humana. El artículo sostiene que la dependencia de la IA de la guía humana determina si sirve a los programadores o los reemplaza."
+      }
+    }
+  },
+  {
+    "title": "Social Media Doesn’t Run on Algorithms. It Runs on People.",
+    "slug": "social-media-human-moderation",
+    "url": "https://dev.to/hemantanandi/social-media-doesnt-run-on-algorithms-it-runs-on-people-1198",
+    "source": "DEV Community",
+    "date": "2026-03-07T05:48:34.000Z",
+    "summary": "Trust & Safety professional reveals that social media moderation relies fundamentally on human judgment and policy enforcement, not just algorithmic filtering. The work involves reviewing content, making complex contextual decisions, managing cognitive pressure while reviewing disturbing material, and preventing toxic escalation—tasks where AI assists but humans retain final decision authority. The article highlights the emotional discipline and expertise rarely recognized publicly.",
+    "content": "Most people think social media runs on algorithms.\nIt doesn’t.\nIt runs on people.\nReal people who review content, make hard calls, apply policies, and sometimes sit quietly after a shift thinking about what they just saw.\nI work in Trust & Safety. And no, it’s not just “removing bad posts.”\nLet me take you behind the screen.\n\nThe Internet Is Messy\nSexual content framed as entertainment\nYour job is not to react emotionally.\nThat sounds simple.\nIt isn’t.\nIt’s Not About What You Think\nThey’re not.\nEvery action must map to written guidelines. If something is removed, labeled, restricted, or escalated, there must be a clear policy reference behind it.\nThere’s no room for “I don’t like this.”\nInstead, the questions look like this:\nDoes it violate sexual content policy?\nWithout those, enforcement becomes arbitrary. And arbitrary enforcement destroys trust.\nContext Is Everything\nA discussion about gender might need careful classification.\nA political clip may be allowed, but only with proper disclosure.\nThe same piece of content can be:\nEducational\nTrust & Safety isn’t black and white. It’s gray. And gray requires judgment, experience, and discipline.\nThe Mental Discipline No One Talks About\nReview.\nBut behind that structure, there’s constant cognitive pressure.\nEvery decision affects:\nA creator’s reach\nBurnout is real in this field.\nSo is resilience.\nThe part people don’t see is the emotional control required to stay objective while reviewing sensitive or disturbing material repeatedly.\nThat’s not something an algorithm carries.\nIt’s Not Just Moderation. It’s Risk Control.\nIt protects:\nCommunities from toxic escalation\nBut it’s also behavioral analysis, trend monitoring, escalation management, and governance.\nAutomation helps. AI assists. But in complex, high-risk cases, humans still make the final call.\nAnd those calls are rarely casual.\nWhy This Work Matters More Than Ever\nAI-generated media is increasing.\nTrust & Safety teams are the quiet layer holding it together.\nWhe",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "社交媒体不是由算法驱动的，而是由人类驱动的",
+        "summary": "信任与安全专业人士透露，社交媒体审核根本上依赖于人类判断和政策执行，而不仅仅是算法过滤。这项工作涉及审查内容、做出复杂的上下文决定、管理审查令人不安的材料时的认知压力，以及防止有毒升级——这些是AI辅助但人类保留最终决策权限的任务。文章强调了很少被公开认可的情感纪律和专业知识。"
+      },
+      "fr": {
+        "title": "Les réseaux sociaux ne fonctionnent pas sur des algorithmes. Ils fonctionnent sur des gens.",
+        "summary": "Un professionnel de la Confiance et de la Sécurité révèle que la modération des médias sociaux dépend fondamentalement du jugement humain et de l'application des politiques, et non seulement du filtrage algorithmique. Le travail implique l'examen du contenu, la prise de décisions contextuelles complexes, la gestion de la pression cognitive lors de l'examen de matériel troublant, et la prévention de l'escalade toxique—des tâches où l'IA assiste mais où les humains conservent l'autorité décisionnelle finale. L'article met en évidence la discipline émotionnelle et l'expertise rarement reconnues publiquement."
+      },
+      "de": {
+        "title": "Soziale Medien laufen nicht auf Algorithmen. Sie laufen auf Menschen.",
+        "summary": "Ein Vertrauens- und Sicherheitsfachmann enthüllt, dass die Moderation in sozialen Medien grundlegend auf menschlichem Urteil und Durchsetzung von Richtlinien beruht, nicht nur auf algorithmischer Filterung. Die Arbeit umfasst die Überprüfung von Inhalten, komplexe kontextbezogene Entscheidungen, die Bewältigung kognitiver Belastung bei der Überprüfung verstörender Inhalte und die Verhinderung giftiger Eskalation—Aufgaben, bei denen KI unterstützt, aber Menschen die letzte Entscheidungsgewalt behalten. Der Artikel hebt die emotionale Disziplin und Fachkompetenz hervor, die öffentlich selten anerkannt werden."
+      },
+      "es": {
+        "title": "Las redes sociales no se ejecutan en algoritmos. Se ejecutan en personas.",
+        "summary": "Un profesional de Confianza y Seguridad revela que la moderación de redes sociales depende fundamentalmente del juicio humano y la aplicación de políticas, no solo del filtrado algorítmico. El trabajo implica revisar contenido, tomar decisiones contextuales complejas, manejar la presión cognitiva mientras se revisa material perturbador, y prevenir la escalada tóxica—tareas donde la IA asiste pero los humanos retienen la autoridad final en la toma de decisiones. El artículo destaca la disciplina emocional y la experiencia raramente reconocidas públicamente."
+      }
+    }
+  },
+  {
+    "title": "How to get your first 100 users (even if you suck at marketing)",
+    "slug": "first-100-users-marketing-guide",
+    "url": "https://dev.to/kislay/how-to-get-your-first-100-users-even-if-you-suck-at-marketing-22kp",
+    "source": "DEV Community",
+    "date": "2026-03-07T05:47:39.000Z",
+    "summary": "Pragmatic guide to acquiring first 100 users emphasizes relentless execution over marketing genius, recommending launching on multiple platforms, consistent social media posting, competitor analysis, AI-generated SEO content, paid advertising, and targeted cold outreach. Success comes from boring, consistent work rather than viral moments, with the process repeated daily across channels until momentum builds to 1,000+ users.",
+    "content": "You don’t need to be a genius. You just need to be relentless.\nHere’s the no-BS way to get your first 100 users:\nLaunch everywhere. BuildinProcess, Product Hunt, DevHunt, BetaList, Indie Hackers, Dailypings, etc. If it allows you to list your product-LIST IT.\n\n\nPost on socials like your life depends on it. One post won’t do sh*t. Do it 100 days in a row. Copy what went viral. Tweak. Repeat.\n\n\nStalk your competitors. See where they’re listed. Submit your product there. Manually. Or use a tool. Just do it.\n\n\nAI + SEO = free traffic. Spin up blog posts with ChatGPT. 50 solid ones can move mountains. Get that domain rating to 15+.\n\n\nRun some damn ads. X, Google, Facebook… even Bing. Optimize it once, then let it run.\n\n\nCold DMs / replies. Find your people. Be short. Be real. Be helpful. 1 sentence pitch. No spam.\n\n\n\nThis is how the internet is won. No secret. Just consistent, boring work. And boom-100 users. Then 1000\nRead complete article here.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何获得你的前100个用户（即使你不擅长营销）",
+        "summary": "获得前100个用户的实用指南强调不懈执行胜过营销天才，建议在多个平台上推出、持续进行社交媒体发布、竞争对手分析、AI生成的SEO内容、付费广告和有针对性的冷外联。成功来自于无聊、持续的工作，而不是病毒式传播时刻，这个过程每天在所有渠道中重复，直到势头增长到1000+用户。"
+      },
+      "fr": {
+        "title": "Comment obtenir vos 100 premiers utilisateurs (même si vous êtes nul en marketing)",
+        "summary": "Un guide pragmatique pour acquérir les 100 premiers utilisateurs souligne l'exécution implacable plutôt que le génie du marketing, recommandant un lancement sur plusieurs plates-formes, une publication cohérente sur les réseaux sociaux, une analyse des concurrents, du contenu SEO généré par l'IA, de la publicité payante et une prospection froide ciblée. Le succès provient d'un travail ennuyeux et cohérent plutôt que de moments viraux, le processus étant répété quotidiennement sur tous les canaux jusqu'à ce que l'élan atteigne 1 000+ utilisateurs."
+      },
+      "de": {
+        "title": "Wie man seine ersten 100 Benutzer bekommt (auch wenn man schlecht im Marketing ist)",
+        "summary": "Eine pragmatische Anleitung zum Erwerben der ersten 100 Benutzer betont unerbittliche Ausführung über Marketinggenialität und empfiehlt den Start auf mehreren Plattformen, konsistente Social-Media-Beiträge, Wettbewerbsanalyse, KI-generierte SEO-Inhalte, bezahlte Werbung und gezielten Cold Outreach. Erfolg kommt von langweiliger, konsistenter Arbeit statt viraler Momente, wobei der Prozess täglich über alle Kanäle wiederholt wird, bis sich das Momentum auf 1.000+ Benutzer aufbaut."
+      },
+      "es": {
+        "title": "Cómo obtener tus primeros 100 usuarios (incluso si eres malo en marketing)",
+        "summary": "Una guía pragmática para adquirir los primeros 100 usuarios enfatiza la ejecución implacable sobre el genio del marketing, recomendando lanzamientos en múltiples plataformas, publicaciones consistentes en redes sociales, análisis de competidores, contenido SEO generado por IA, publicidad pagada y alcance frío dirigido. El éxito proviene de un trabajo aburrido y consistente en lugar de momentos virales, con el proceso repetido diariamente en todos los canales hasta que el impulso construye 1,000+ usuarios."
+      }
+    }
+  },
+  {
+    "title": "I Turned Notion Into a Control Plane for my 18 OpenClaw AI Agents",
+    "slug": "notion-openclaws-ai-agents",
+    "url": "https://dev.to/aws-heroes/i-turned-notion-into-a-control-plane-for-my-18-openclaw-ai-agents-5624",
+    "source": "DEV Community",
+    "date": "2026-03-07T05:43:11.000Z",
+    "summary": "Developer demonstrates running 18 AI agents on OpenClaw across multiple deployment options including AWS Lightsail, serverless containers, and Raspberry Pi, managed via Notion as a control plane. The agents automate recurring tasks like email unsubscribe management, train monitoring, and newsletter operations, solving problems that previously required manual intervention. OpenClaw's new deployment flexibility eliminates the need for dedicated hardware.",
+    "content": "This is a submission for the Notion MCP Challenge\nOpenClaw just got an Amazon Lightsail blueprint. No more Mac Minis. No more Raspberry Pis sitting on your desk acting as your AI agent server. Click deploy and you have an agent platform running in the cloud.\nAWS samples also has an experimental (non-production) implementation that runs OpenClaw as per-user serverless containers on AgentCore Runtime. The serverless version is early, but the direction is clear.\nThat means OpenClaw can now run in different places. A Raspberry Pi on my desk. A Lightsail instance in the cloud. Serverless containers on AgentCore or even on an EC2. Pick a flavor. (I didnt buy a Mac Mini)\nI run 18 agents on mine. These aren't toy demos. They solve problems I got tired of solving by hand.\nAfter re:Invent last year, every expo vendor on the floor started emailing me. Booth scans, follow-ups, drip campaigns. Unsubscribing from each one is death by a thousand clicks. So I built an unsubscribe agent. I don't give it access to my personal mailbox. I forward vendor spam to OpenClaw's own email inbox. It parses the email, finds the unsubscribe link, clicks it, and confirms. I set up one mail rule and forgot about it. 47 vendor lists cleared in two weeks.\nThen there's the train monitor. After peak hours, the next train home is an hour away. Miss it and you're standing on a cold platform for 60 minutes. The problem is trains don't always behave. Sometimes it arrives a minute early. Sometimes it switches platforms with no announcement. I was refreshing the train app constantly. The agent polls live train data and pushes me a notification when something changes. Platform switch, early arrival, cancellation. I get the update instead of checking.\nOpenClaw even built me a full SaaS-like newsletter platform \"The Agentic Engineer\". I wanted a weekly newsletter to keep me updated on the Agentic AI content that I am interested in - along with a platform for subscriber management, double opt-in, click tracking",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我将Notion变成了我18个OpenClaw AI代理的控制平面",
+        "summary": "开发者演示了在OpenClaw上运行18个AI代理，支持多种部署选项，包括AWS Lightsail、无服务器容器和树莓派，通过Notion作为控制平面进行管理。这些代理自动化邮件取消订阅管理、列车监控和新闻通讯操作等日常任务，解决了以前需要手动干预的问题。OpenClaw的新部署灵活性消除了对专用硬件的需求。"
+      },
+      "fr": {
+        "title": "J'ai transformé Notion en plan de contrôle pour mes 18 agents AI OpenClaw",
+        "summary": "Un développeur démontre l'exécution de 18 agents AI sur OpenClaw dans plusieurs options de déploiement, notamment AWS Lightsail, les conteneurs sans serveur et Raspberry Pi, gérés via Notion comme plan de contrôle. Les agents automatisent les tâches récurrentes telles que la gestion de la désinscription des e-mails, la surveillance des trains et les opérations de lettres d'information, résolvant les problèmes qui nécessitaient auparavant une intervention manuelle. La nouvelle flexibilité de déploiement d'OpenClaw élimine le besoin de matériel dédié."
+      },
+      "de": {
+        "title": "Ich habe Notion in eine Kontrollflugzeug für meine 18 OpenClaw-KI-Agenten verwandelt",
+        "summary": "Ein Entwickler demonstriert die Ausführung von 18 KI-Agenten auf OpenClaw über mehrere Bereitstellungsoptionen, einschließlich AWS Lightsail, serverlose Container und Raspberry Pi, verwaltet über Notion als Kontrollflugzeug. Die Agenten automatisieren wiederkehrende Aufgaben wie die Verwaltung von E-Mail-Abmeldungen, Zugüberwachung und Newsletter-Operationen und lösen Probleme, die zuvor manuelle Eingriffe erforderten. OpenClaws neue Bereitstellungsflexibilität eliminiert die Notwendigkeit für dedizierte Hardware."
+      },
+      "es": {
+        "title": "Convertí Notion en un plano de control para mis 18 agentes de IA OpenClaw",
+        "summary": "Un desarrollador demuestra la ejecución de 18 agentes de IA en OpenClaw en múltiples opciones de implementación, incluidos AWS Lightsail, contenedores sin servidor y Raspberry Pi, administrados a través de Notion como un plano de control. Los agentes automatizan tareas recurrentes como la gestión de cancelación de suscripción de correo electrónico, monitoreo de trenes y operaciones de boletín, resolviendo problemas que anteriormente requerían intervención manual. La nueva flexibilidad de implementación de OpenClaw elimina la necesidad de hardware dedicado."
+      }
+    }
+  },
+  {
+    "title": "Released a TOML library with zero dependencies in Rust.",
+    "slug": "toml-library-rust-zero-dependencies",
+    "url": "https://dev.to/shiguredo/released-a-toml-library-with-zero-dependencies-in-rust-1boe",
+    "source": "DEV Community",
+    "date": "2026-03-07T05:38:59.000Z",
+    "summary": "Shiguredo released a zero-dependency TOML library for Rust with 100% compatibility to TOML v1.0.0 and v1.1.0 specifications, including fuzzing support and document rewriting capabilities. The library was developed as part of the company's strategic shift from C++ to Rust and prioritizes robustness through extensive testing. Minimizing dependencies improves maintainability while providing complete control over the library's behavior.",
+    "content": "Shiguredo has begun shifting its development focus from C++ to Rust. As part of this transition, we've been implementing various libraries in Rust, and this time we've released a TOML library.\nBy default, Shiguredo uses the JSONC format when developing applications in Rust. JSONC is an incompatible extension of JSON that allows comments and trailing commas, making it convenient to use.\nAdditionally, the nojson dependency-free JSON library supports it.\nDependencies: 0\nSupports TOML v1.0.0 and v1.1.0 specifications\nCompatible with toml-test\nFuzzing support\nRewriting functionality\ntoml-test is a testing suite officially provided by the TOML project. A score of 100% indicates full compatibility, making this product technically \"fully compatible.\"\nWe have prioritized robustness by thoroughly implementing fuzzing and ensuring the code remains stable under unexpected inputs.\nFollowing user requests, we've added rewriting functionality. We implemented this feature by adapting nojson's positional tracking mechanism. After addressing several identified bugs, we've released this version.\nhttps://github.com/shiguredo/toml-rs\nWhile we strive to minimize dependencies by building our own libraries, the result is both comfortable to use and highly maintainable. The reduced dependency footprint makes maintenance easier, and having our own libraries provides the advantage of complete control.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在Rust中发布了一个零依赖的TOML库",
+        "summary": "Shiguredo发布了一个零依赖的Rust TOML库，与TOML v1.0.0和v1.1.0规范完全兼容，包括模糊测试支持和文档重写功能。该库是作为公司从C++战略转向Rust的一部分而开发的，通过广泛的测试优先考虑健壮性。最小化依赖改善了可维护性，同时提供了对库行为的完全控制。"
+      },
+      "fr": {
+        "title": "Publication d'une bibliothèque TOML sans dépendances en Rust",
+        "summary": "Shiguredo a publié une bibliothèque TOML sans dépendances pour Rust avec une compatibilité à 100% avec les spécifications TOML v1.0.0 et v1.1.0, incluant le support du fuzzing et les capacités de réécriture de documents. La bibliothèque a été développée dans le cadre du passage stratégique de l'entreprise de C++ à Rust et priorise la robustesse par le biais de tests approfondis. Minimiser les dépendances améliore la maintenabilité tout en fournissant un contrôle total sur le comportement de la bibliothèque."
+      },
+      "de": {
+        "title": "Eine TOML-Bibliothek ohne Abhängigkeiten in Rust veröffentlicht",
+        "summary": "Shiguredo hat eine abhängigkeitslose TOML-Bibliothek für Rust mit 100%iger Kompatibilität zu TOML v1.0.0 und v1.1.0 Spezifikationen veröffentlicht, einschließlich Fuzzing-Unterstützung und Dokumentenumschreibungsfunktionen. Die Bibliothek wurde als Teil des strategischen Übergangs des Unternehmens von C++ zu Rust entwickelt und priorisiert Robustheit durch umfangreiche Tests. Die Minimierung von Abhängigkeiten verbessert die Wartbarkeit und bietet gleichzeitig vollständige Kontrolle über das Verhalten der Bibliothek."
+      },
+      "es": {
+        "title": "Lanzada una biblioteca TOML sin dependencias en Rust",
+        "summary": "Shiguredo lanzó una biblioteca TOML sin dependencias para Rust con compatibilidad del 100% con las especificaciones TOML v1.0.0 y v1.1.0, incluido el soporte de fuzzing y capacidades de reescritura de documentos. La biblioteca fue desarrollada como parte del cambio estratégico de la empresa de C++ a Rust y prioriza la robustez a través de pruebas extensivas. Minimizar las dependencias mejora la mantenibilidad mientras proporciona control completo sobre el comportamiento de la biblioteca."
+      }
+    }
+  },
+  {
+    "title": "I built an API monitoring tool because every existing one either costs too much or restricts commercial use",
+    "slug": "checkapi-api-monitoring-tool",
+    "url": "https://dev.to/jeonsewon/i-built-an-api-monitoring-tool-because-every-existing-one-either-costs-too-much-or-restricts-406a",
+    "source": "DEV Community",
+    "date": "2026-03-07T05:37:44.000Z",
+    "summary": "Developer launched CheckAPI, a free API monitoring tool addressing gaps in existing solutions that either cost $20+/month, restrict commercial use, or only check HTTP status codes without validating response content. CheckAPI's free tier includes 10 monitors, 5-minute intervals, and support for body keyword validation, SSL alerts, and multiple notification channels. Paid tiers starting at $5/month offer additional capacity for teams needing extensive monitoring.",
+    "content": "The problem\n\n\nI was building a side project and needed to monitor a few API endpoints.\nI tried the usual suspects:\nUptimeRobot free: 50 monitors, sounds great — until you read \"non-commercial use only\"\nBetter Uptime: $20/mo minimum for anything useful\nPingdom: No free tier at all\nDatadog: Powerful, but $100+/mo overkill\nAll of them also share another problem: they only check status codes.\nYour API can return 200 OK with a body of {\"error\": \"database connection failed\"} and most uptime tools will happily mark it as \"up.\"\nCheckAPI (https://checkapi.io) — API health monitoring with a focus on what actually matters to developers.\n1. Response body keyword validation\n\"status\":\"ok\" exists in the response — not just that the server responded.\n2. SSL certificate expiry alerts\n3. Free tier with no commercial restrictions\n10 monitors\n5-minute check intervals\nAll 5 alert channels (Email, Slack, Telegram, Discord, Webhook)\nNo \"non-commercial use only\" restriction\n4. Paid plans from $5/mo\n\nPro ($15): 100 monitors, 30-second checks, team sharing\n\nBusiness ($49): Unlimited monitors, 10-second checks, 1-year history\nBackend: FastAPI + Celery + Redis + PostgreSQL (Railway)\nFrontend: Next.js 14 + TypeScript + Tailwind CSS (Vercel)\nAlerts: Resend (email), direct API calls for Slack/Telegram/Discord/Webhook\nJust launched. $0 MRR. Building in public at @imwon_dev.\nWould love feedback — especially if you've hit the \"non-commercial use\" wall with other tools, or if keyword validation would have caught a bug for you.\n👉 https://checkapi.io — free forever tier, no credit card required",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个API监控工具，因为现有的工具要么成本太高，要么限制商业用途",
+        "summary": "开发者推出了CheckAPI，一个免费的API监控工具，解决了现有解决方案的不足，这些解决方案要么成本为20美元/月以上，要么限制商业用途，要么只检查HTTP状态代码而不验证响应内容。CheckAPI的免费层包括10个监控器、5分钟间隔，以及对正文关键字验证、SSL警报和多个通知渠道的支持。付费层从5美元/月开始，为需要广泛监控的团队提供额外容量。"
+      },
+      "fr": {
+        "title": "J'ai créé un outil de surveillance API car tous les existants coûtent trop cher ou limitent l'usage commercial",
+        "summary": "Un développeur a lancé CheckAPI, un outil de surveillance API gratuit qui répond aux lacunes des solutions existantes qui coûtent 20 $/mois ou plus, limitent l'utilisation commerciale ou ne vérifient que les codes d'état HTTP sans valider le contenu des réponses. La couche gratuite de CheckAPI comprend 10 moniteurs, des intervalles de 5 minutes et la prise en charge de la validation par mots-clés, des alertes SSL et plusieurs canaux de notification. Les niveaux payants commençant à 5 $/mois offrent une capacité supplémentaire pour les équipes ayant besoin d'une surveillance étendue."
+      },
+      "de": {
+        "title": "Ich habe ein API-Überwachungstool gebaut, weil jedes vorhandene zu viel kostet oder die kommerzielle Nutzung einschränkt",
+        "summary": "Ein Entwickler hat CheckAPI gestartet, ein kostenloses API-Überwachungstool, das Lücken in bestehenden Lösungen adressiert, die entweder über 20 $/Monat kosten, kommerzielle Nutzung einschränken oder nur HTTP-Statuscodes überprüfen, ohne Antwortinhalte zu validieren. Die kostenlose Stufe von CheckAPI umfasst 10 Monitore, 5-Minuten-Intervalle und Unterstützung für Schlüsselwortvalidierung, SSL-Warnungen und mehrere Benachrichtigungskanäle. Bezahlte Pläne ab 5 $/Monat bieten zusätzliche Kapazität für Teams, die umfangreiche Überwachung benötigen."
+      },
+      "es": {
+        "title": "Construí una herramienta de monitoreo de API porque todas las existentes cuestan demasiado o restringen el uso comercial",
+        "summary": "Un desarrollador lanzó CheckAPI, una herramienta de monitoreo de API gratuita que aborda las brechas en las soluciones existentes que cuestan $20+/mes, restringen el uso comercial o solo verifican códigos de estado HTTP sin validar el contenido de la respuesta. El nivel gratuito de CheckAPI incluye 10 monitores, intervalos de 5 minutos y soporte para validación de palabras clave, alertas SSL y múltiples canales de notificación. Los planes pagos a partir de $5/mes ofrecen capacidad adicional para equipos que necesitan un monitoreo extensivo."
+      }
+    }
+  },
+  {
     "title": "TensorDB: AI-Native Bitemporal Ledger Database with Full SQL and PostgreSQL Wire Protocol",
     "slug": "tensordb-ai-native-bitemporal-ledger-database",
     "url": "https://dev.to/walebadr/tensordb-ai-native-bitemporal-ledger-database-with-full-sql-and-postgresql-wire-protocol-3eal",
@@ -220,6 +556,34 @@
       "es": {
         "title": "Los Mejores Pantalones de Cintura Alta para Hombros Anchos y Caderas Estrechas — Lo que Necesitas Saber",
         "summary": "Los pantalones de cintura alta con cortes amplios, acampanados o plisados equilibran los hombros anchos y las caderas estrechas redistribuyendo el peso visual por debajo de la cintura, creando una silueta más proporcionada. Este enfoque de estilo aborda un problema de ajuste estructural en la moda convencional que no tiene en cuenta geometrías corporales no estándar."
+      }
+    }
+  },
+  {
+    "title": "Tell HN: I'm 60 years old. Claude Code has ignited a passion again",
+    "slug": "claude-code-ignites-programmer-passion",
+    "url": "https://news.ycombinator.com/item?id=47282777",
+    "source": "Hacker News",
+    "date": "2026-03-07T00:05:06.000Z",
+    "summary": "60-year-old programmer describes how Claude Code has reignited the same passion for coding they experienced decades ago with transformative technologies like Active Server Pages and VB6. The testimonial captures the feeling of staying up late absorbed in learning development tools that captivated their career. The post reflects how modern AI coding assistants can revive motivation in experienced developers facing retirement.",
+    "content": "I’m ready to retire. In my younger days, I remember a few pivotal moments for me as a young nerd. Active Server Pages. COM components. VB6. I know these are laughable today but back then it was the greatest thing in the world to be able to call server-side commands. It kept me up nights trying to absorb it all. Fast forward decades and Claude Code is giving me that same energy and drive. I love it. It feels like it did back then. I’m chasing the midnight hour and not getting any sleep.\nComments URL: https://news.ycombinator.com/item?id=47282777\nPoints: 317\n# Comments: 191",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "告诉HN：我60岁了。Claude Code重新点燃了我的激情",
+        "summary": "一位60岁的程序员描述了Claude Code如何重新激发了他们几十年前在Active Server Pages和VB6等变革性技术中所经历的相同编程热情。这个见证描捉了在学习开发工具时深夜为之着迷的感受。这篇文章反映了现代AI编程助手如何能为面临退休的资深开发者重新激发动力。"
+      },
+      "fr": {
+        "title": "Dire à HN : J'ai 60 ans. Claude Code a ravivé ma passion",
+        "summary": "Un programmeur de 60 ans décrit comment Claude Code a ravivé la même passion pour la programmation qu'il a connue il y a des décennies avec des technologies transformatrices comme Active Server Pages et VB6. Le témoignage capture le sentiment de rester éveillé tard, absorbé par l'apprentissage d'outils de développement qui ont captivé sa carrière. L'article reflète comment les assistants de programmation IA modernes peuvent raviver la motivation chez les développeurs expérimentés."
+      },
+      "de": {
+        "title": "Sag HN: Ich bin 60 Jahre alt. Claude Code hat meine Leidenschaft neu entfacht",
+        "summary": "Ein 60-jähriger Programmierer beschreibt, wie Claude Code die gleiche Leidenschaft für das Programmieren neu entfacht hat, die er vor Jahrzehnten bei transformativen Technologien wie Active Server Pages und VB6 erlebt hat. Das Zeugnis erfasst das Gefühl, spät aufzubleiben und in das Erlernen von Entwicklungswerkzeugen vertieft zu sein, die seine Karriere fasziniert haben. Der Beitrag zeigt, wie moderne KI-Programmierungsassistenten die Motivation bei erfahrenen Entwicklern wieder wecken können."
+      },
+      "es": {
+        "title": "Decirle a HN: Tengo 60 años. Claude Code ha reavivado mi pasión",
+        "summary": "Un programador de 60 años describe cómo Claude Code ha reavivado la misma pasión por la programación que experimentó hace décadas con tecnologías transformadoras como Active Server Pages y VB6. El testimonio captura la sensación de quedarse despierto hasta tarde, absorto en el aprendizaje de herramientas de desarrollo que cautivaron su carrera. El artículo refleja cómo los asistentes de programación con IA moderna pueden revivir la motivación en desarrolladores experimentados."
       }
     }
   },
