@@ -1,0 +1,86 @@
+[
+  {
+    "title": "Building Autonomous AI Agents That Actually Do Work",
+    "slug": "building-autonomous-ai-agents",
+    "url": "https://dev.to/alhoniko/building-autonomous-ai-agents-that-actually-do-work-4h70",
+    "source": "DEV Community",
+    "date": "2026-03-08T00:16:10.000Z",
+    "summary": "Explains how to build autonomous AI agents using the ReAct framework with perceive-reason-act loops instead of prompt-response cycles, enabling systems to make decisions independently without human oversight between steps.",
+    "content": "How I built an autonomous SEO agent in Python that perceives data, reasons through strategy, and executes tasks — no babysitting required.\nMost LLMs just sit there waiting for your next prompt. You type something, it responds, you type again. It's a glorified autocomplete loop. I wanted something that actually does work while I sleep.\nSo I built an autonomous agent system in Python. Here's how it works and why the architecture matters more than the model you pick.\nEvery SaaS tool slaps \"AI-powered\" on their landing page now. But 99% of them are just wrapping an LLM call in a nice UI. You still have to:\nDecide what to do\nWrite the prompt\nReview the output\nDecide what to do next\nRepeat forever\nThat's not automation. That's you doing all the thinking while a machine does the typing.\nAn agent follows a loop. Not a single prompt-response — a continuous cycle of perceiving, reasoning, and acting. The pattern I use is based on the ReAct framework:\n┌─────────────────────────────────────┐\n│           AGENT LOOP                │\n│                                     │\n│  ┌──────────┐                       │\n│  │ PERCEIVE │◄── APIs, databases,   │\n│  └────┬─────┘    live data sources  │\n│       │                             │\n│  ┌────▼─────┐                       │\n│  │  REASON  │◄── LLM + context      │\n│  └────┬─────┘    from RAG store     │\n│       │                             │\n│  ┌────▼─────┐                       │\n│  │   ACT    │──► API calls, DB      │\n│  └────┬─────┘    writes, alerts     │\n│       │                             │\n│       └──────────► loop back ◄──────│\n└─────────────────────────────────────┘\n\nEach iteration, the agent observes its environment, thinks about what to do, does it, then observes the results. The key insight: the agent decides when to stop, not you.\nOne big agent that does everything will hallucinate and lose context. Instead, I split responsibilities across specialized sub-agents:\nfrom dataclasses import dataclass\nfrom enum import Enum\n\nc",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建真正有效的自主AI代理",
+        "summary": "解释如何使用ReAct框架构建自主AI代理，使用感知-推理-行动循环而不是提示-响应周期，使系统能够在没有人类干预的情况下独立做出决策。"
+      },
+      "fr": {
+        "title": "Construire des agents IA autonomes qui fonctionnent réellement",
+        "summary": "Explique comment construire des agents IA autonomes en utilisant le cadre ReAct avec des boucles percevoir-raisonner-agir au lieu de cycles réponse-réponse, permettant aux systèmes de prendre des décisions indépendamment sans supervision humaine entre les étapes."
+      },
+      "de": {
+        "title": "Autonome KI-Agenten bauen, die wirklich funktionieren",
+        "summary": "Erläutert, wie man autonome KI-Agenten mit dem ReAct-Framework unter Verwendung von Wahrnehmungs-Denk-Handlungs-Schleifen anstelle von Aufforderungs-Antwort-Zyklen aufbaut, wodurch Systeme unabhängig ohne menschliche Aufsicht zwischen den Schritten Entscheidungen treffen können."
+      },
+      "es": {
+        "title": "Construir agentes IA autónomos que realmente funcionen",
+        "summary": "Explica cómo construir agentes IA autónomos utilizando el marco ReAct con bucles de percepción-razonamiento-acción en lugar de ciclos de indicación-respuesta, permitiendo que los sistemas tomen decisiones de forma independiente sin supervisión humana entre pasos."
+      }
+    }
+  },
+  {
+    "title": "Is NVIDIA NIM's free tier good enough for a real-time voice agent demo?",
+    "slug": "nvidia-nim-voice-agent-demo",
+    "url": "https://dev.to/mohamedamine_benhima/is-nvidia-nims-free-tier-good-enough-for-a-real-time-voice-agent-demo-2fa1",
+    "source": "DEV Community",
+    "date": "2026-03-08T00:09:31.000Z",
+    "summary": "NVIDIA NIM's free tier offers hosted STT, LLM, and TTS services (40 requests/min, no credit card) sufficient for real-time voice agent demos when combined with Pipecat, achieving sub-second latency with minimal setup.",
+    "content": "TL;DR: NVIDIA NIM gives you free hosted STT, LLM, and TTS, no credit card, 40 requests/min. Plug it into Pipecat and you have a real-time voice agent with VAD, smart turn detection, and idle reminders in a weekend. Full code on GitHub\nMost voice agent tutorials start with \"add your OpenAI API key.\" Then you blink and you've burned $20 before validating a single idea.\nNVIDIA NIM gives you hosted STT, LLM, and TTS, all under one API key, no credit card required, 40 requests per minute. Enough for a POC, a demo, or a weekend build.\nBut the free tier wasn't the only reason I tried it. NVIDIA builds the GPUs everyone runs models on. They created TensorRT. So when they host their own models, I had one question: will I find a new hero, better latency, better accuracy, or both?\nI used Pipecat to build a full real-time voice agent and put their stack to the test. Here's what I found.\nFor real-time voice agents, your stack choice matters more than people think. Every service in the pipeline adds latency, STT, LLM, TTS, and they compound.\nNVIDIA NIM hosts optimized inference endpoints for all three. One API key, no setup, no infrastructure. The free tier gives you 40 RPM which is plenty to iterate fast and show a working demo to stakeholders.\nI wired it up with Pipecat, an open-source framework built specifically for real-time voice pipelines. It handles audio transport, streaming, turn detection, and pipeline orchestration, so I could focus on what actually matters: does the stack perform?\nThe pipeline: WebRTC -> STT -> LLM -> TTS. Audio in, audio out, sub-second round trip is the goal.\nSpin up the pipeline — Wire WebRTC transport into Pipecat, connect NVIDIA STT, LLM, and TTS services. The whole pipeline is 7 lines:\n\n\n\n\npipeline = Pipeline([\n    transport.input(),\n    stt, user_agg, llm, tts,\n    transport.output(),\n    assistant_agg,\n])\n\nAdd VAD — No mic button. Silero VAD runs locally and detects when the user starts and stops speaking automatically.\n\n\n\n\nvad_analyzer=Siler",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "NVIDIA NIM的免费版本适合实时语音代理演示吗？",
+        "summary": "NVIDIA NIM的免费版本提供托管的STT、LLM和TTS服务（每分钟40个请求，无需信用卡），与Pipecat结合时足以满足实时语音代理演示的需求，实现亚秒级延迟且设置最少。"
+      },
+      "fr": {
+        "title": "Le niveau gratuit de NVIDIA NIM est-il suffisant pour une démonstration d'agent vocal en temps réel ?",
+        "summary": "Le niveau gratuit de NVIDIA NIM offre des services STT, LLM et TTS hébergés (40 requêtes/min, sans carte de crédit) suffisants pour les démos d'agents vocaux en temps réel lorsqu'ils sont combinés avec Pipecat, réalisant une latence sub-seconde avec une configuration minimale."
+      },
+      "de": {
+        "title": "Ist Nvidias kostenloser NIM-Level ausreichend für eine Echtzeit-Sprachagenten-Demo?",
+        "summary": "Nvidias kostenloser NIM-Level bietet gehostete STT-, LLM- und TTS-Services (40 Anfragen/Minute, keine Kreditkarte erforderlich), die für Echtzeit-Sprachagenten-Demos bei Kombination mit Pipecat ausreichend sind und eine Latenz unter einer Sekunde mit minimalem Setup erreichen."
+      },
+      "es": {
+        "title": "¿Es el nivel gratuito de NVIDIA NIM suficiente para una demostración de agente de voz en tiempo real?",
+        "summary": "El nivel gratuito de NVIDIA NIM ofrece servicios STT, LLM y TTS alojados (40 solicitudes/min, sin tarjeta de crédito) suficientes para demostraciones de agentes de voz en tiempo real cuando se combinan con Pipecat, logrando latencia sub-segundo con configuración mínima."
+      }
+    }
+  },
+  {
+    "title": "Agentic AI in Payments Is Exciting. It’s Also a Minefield.",
+    "slug": "agentic-ai-payments-minefield",
+    "url": "https://dev.to/manoj6543/agentic-ai-in-payments-is-exciting-its-also-a-minefield-3hk",
+    "source": "DEV Community",
+    "date": "2026-03-08T00:09:05.000Z",
+    "summary": "Autonomous payment agents that execute transactions directly introduce new fraud and compliance risks, requiring careful balance between autonomy and safety guardrails, with unresolved accountability questions when systems fail.",
+    "content": "We're on the verge of AI that doesn't just advise on payments — it executes them. Book the flight, split the bill, pay the invoice, trigger the refund. All autonomously, on your behalf.\nThat's genuinely powerful. It's also terrifying if you think about it for more than five seconds.\nThe moment an AI agent has real financial authority, you've introduced a new attack surface for fraud, a new compliance headache for PCI-DSS, and a new category of failure where the system doesn't hallucinate text — it hallucinates a transaction.\nA few things I kept coming back to while thinking through this:\nLatency vs. safety is a real tradeoff. Payments are optimized for speed. Fraud checks, human-in-the-loop review, and agent sandboxing all add friction. Where do you draw the line before the UX collapses?\nAutonomous doesn't mean unaccountable. If an AI agent executes a payment incorrectly, who owns it? The user who granted permissions? The company that deployed the agent? The model provider? This isn't solved.\nConstrained agents are underrated. The instinct is to give agents as much autonomy as possible. But scoped permissions — agents that can only act within explicit guardrails — are probably the right default for high-stakes financial actions. Boring, but correct.\nI wrote up the full breakdown on HackerNoon, covering fraud detection architecture, compliance risk, decision boundaries, and what \"human-in-the-loop\" actually needs to look like for this to work in production.\n👉 Read the full article on HackerNoon\nCurious whether others building in this space are leaning into full autonomy or keeping agents on a shorter leash — and why.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "支付中的代理AI令人兴奋。这也是一个雷区。",
+        "summary": "直接执行交易的自主支付代理引入了新的欺诈和合规风险，需要在自主性和安全护栏之间取得谨慎的平衡，当系统失败时存在未解决的问责问题。"
+      },
+      "fr": {
+        "title": "L'IA agent dans les paiements est passionnante. C'est aussi un champ de mines.",
+        "summary": "Les agents de paiement autonomes qui exécutent directement les transactions introduisent de nouveaux risques de fraude et de conformité, nécessitant un équilibre prudent entre l'autonomie et les garde-fous de sécurité, avec des questions de responsabilité non résolues en cas d'échec du système."
+      },
+      "de": {
+        "title": "Agentengesteuerte KI in Zahlungen ist aufregend. Es ist auch ein Minenfeld.",
+        "summary": "Autonome Zahlungsagenten, die Transaktionen direkt ausführen, führen neue Betrugs- und Compliance-Risiken ein und erfordern ein sorgfältiges Gleichgewicht zwischen Autonomie und Sicherheitsvorkehrungen, wobei bei Systemfehlern ungeklärte Haftungsfragen entstehen."
+      },
+      "es": {
+        "title": "La IA agentiva en pagos es emocionante. También es un campo minado.",
+        "summary": "Los agentes de pago autónomos que ejecutan transacciones directamente introducen nuevos riesgos de fraude y cumplimiento, requiriendo un equilibrio cuidadoso entre autonomía y salvaguardas de seguridad, con preguntas de responsabilidad sin resolver cuando los sistemas fallan."
+      }
+    }
+  }
+]
