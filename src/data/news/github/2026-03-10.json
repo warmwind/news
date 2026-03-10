@@ -1,5 +1,341 @@
 [
   {
+    "title": "teaching nine agents to think like a colleague",
+    "slug": "teaching-nine-agents-to-think-like-a-colleague",
+    "url": "https://dev.to/combba/teaching-nine-agents-to-think-like-a-colleague-1o8",
+    "source": "DEV Community",
+    "date": "2026-03-10T06:09:39.000Z",
+    "summary": "A developer decomposed a macOS AI assistant (VibeCat) into nine independent agents that mimic colleague behavior—vision detection, memory, mood sensing, celebration triggers, and decision-making—orchestrated through parallel and sequential execution waves.",
+    "content": "I created this post for the purposes of entering the Gemini Live Agent Challenge. In my last post I walked through what VibeCat actually does — a macOS cat that watches your screen, hears your voice, and knows when to shut up. But I glossed over how it does all that. The cat isn't one thing — it's nine things pretending to be one thing, and getting that pretense right is the actual engineering problem.\nlet me start with the question that shaped everything: what does a colleague actually do?\nnot a chatbot. not a search engine. a colleague. the person sitting next to you who catches your typo on line 23 before you do, notices you've been stuck for 40 minutes, and knows when to shut up because you're in flow.\nI spent a while listing the behaviors:\nSee your screen and notice errors\nRemember yesterday's context\nSense frustration from patterns\nCelebrate when tests pass\nDecide whether to speak or stay silent\nAdapt timing to your rhythm\nReach out when you've been too quiet\nSearch for answers when you're stuck\nthat's not one model doing one thing. that's eight distinct behaviors plus voice (VAD makes nine). so I decomposed the colleague into nine agents.\nall nine agents run through Google ADK's workflow agents. the key insight: not all agents need each other's results. VisionAgent doesn't care about MemoryAgent's output. MoodDetector doesn't need CelebrationTrigger. so I split them into three waves:\n// Wave 1 — Perception (parallel)\nwave1, _ := parallelagent.New(parallelagent.Config{\n    AgentConfig: agent.Config{\n        Name:      \"wave1_perception\",\n        SubAgents: []agent.Agent{visionAgent, memoryAgent},\n    },\n})\n\n// Wave 2 — Emotion (parallel)\nwave2, _ := parallelagent.New(parallelagent.Config{\n    AgentConfig: agent.Config{\n        Name:      \"wave2_emotion\",\n        SubAgents: []agent.Agent{moodAgent, celebrationAgent},\n    },\n})\n\n// Wave 3 — Decision (sequential, because each depends on the previous)\nwave3, _ := sequentialagent.New(sequentialagent.Config{\n    Age",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "教导九个智能体像同事一样思考",
+        "summary": "一位开发者将macOS AI助手(VibeCat)分解为九个独立的智能体，模仿同事行为——包括视觉检测、记忆、情绪感知、庆祝触发器和决策制定——通过并行和顺序执行波进行编排。"
+      },
+      "fr": {
+        "title": "Enseigner neuf agents à penser comme un collègue",
+        "summary": "Un développeur a décomposé un assistant IA macOS (VibeCat) en neuf agents indépendants qui imitent le comportement des collègues—détection de vision, mémoire, détection d'ambiance, déclencheurs de célébration et prise de décision—orchestrés par des vagues d'exécution parallèles et séquentielles."
+      },
+      "de": {
+        "title": "Neun Agenten trainieren, wie ein Kollege zu denken",
+        "summary": "Ein Entwickler zerlegte einen macOS-KI-Assistenten (VibeCat) in neun unabhängige Agenten, die Kollegenverhalten nachahmen—Visionserkennung, Speicher, Stimmungserkennung, Feierauslöser und Entscheidungsfindung—orchestriert durch parallele und sequenzielle Ausführungswellen."
+      },
+      "es": {
+        "title": "Enseñar a nueve agentes a pensar como un colega",
+        "summary": "Un desarrollador descompuso un asistente de IA de macOS (VibeCat) en nueve agentes independientes que imitan el comportamiento de colegas—detección de visión, memoria, detección de estado de ánimo, disparadores de celebración y toma de decisiones—orquestados mediante ondas de ejecución paralelas y secuenciales."
+      }
+    }
+  },
+  {
+    "title": "QuickVideo – Batch Change Video Speed with Python and FFmpeg",
+    "slug": "quickvideo-batch-change-video-speed-python-ffmpeg",
+    "url": "https://dev.to/matetechnologie/quickvideo-batch-change-video-speed-with-python-and-ffmpeg-17lh",
+    "source": "DEV Community",
+    "date": "2026-03-10T06:07:00.000Z",
+    "summary": "QuickVideo is a Windows desktop tool built with Python and FFmpeg that enables batch video speed adjustment with drag-and-drop support, real-time preview, and multi-format export while keeping audio perfectly synced.",
+    "content": "In this tutorial, we’ll build QuickVideo, a Windows desktop tool to batch adjust video speed with perfectly synced audio. You can drag & drop videos, preview changes, and export them in multiple formats.\nYou can download the EXE or clone the repository:\nWindows EXE:\nhttps://github.com/rogers-cyber/QuickVideo/releases\nSource Code:\ngit clone https://github.com/rogers-cyber/QuickVideo.git\nProject Setup\nInstall the required Python packages:\npip install ttkbootstrap tkinterdnd2\n\nEnsure you have FFmpeg installed and its path configured:\nFFMPEG_PATH = r\"C:\\ffmpeg\\bin\\ffmpeg.exe\"\nFFPLAY_PATH = r\"C:\\ffmpeg\\bin\\ffplay.exe\"\n\nCreate the Main Window\nWe’ll use tkinterdnd2 for drag & drop and ttkbootstrap for a modern dark theme.\nfrom tkinterdnd2 import TkinterDnD\nimport ttkbootstrap as tb\n\napp = TkinterDnD.Tk()\napp.title(\"QuickVideo – Change Video Speed v1.0.0\")\napp.geometry(\"1200x760\")\ntb.Style(\"darkly\")\n\nDefine Application State\nKeep track of videos, UI updates, and preview state:\nvideo_list = []\nui_queue = Queue()\nstop_flag = False\npause_flag = False\npreview_process = None\n\nAdd File Selection UI\nCreate a file card with drag & drop support and buttons to add or clear videos:\nfiles_card = tb.Labelframe(app, text=\"🎬 Video Files\", padding=12)\nfiles_card.pack(fill=\"x\", padx=12, pady=6)\n\nlistbox = tk.Listbox(files_card, height=4)\nlistbox.pack(side=\"left\", fill=\"x\", expand=True)\n\nscroll = tk.Scrollbar(files_card, command=listbox.yview)\nscroll.pack(side=\"right\", fill=\"y\")\nlistbox.config(yscrollcommand=scroll.set)\n\nAdd buttons to add or clear videos:\ntb.Button(files_card, text=\"➕ Add Files\", bootstyle=\"success\", command=add_videos).pack(side=\"left\")\ntb.Button(files_card, text=\"🧹 Clear\", bootstyle=\"danger-outline\", command=clear_videos).pack(side=\"left\", padx=8)\n\nPlayback Speed and Output Settings\nAdd a slider for speed and preset buttons:\nspeed_var = tb.DoubleVar(value=1.0)\nspeed_lbl = tb.Label(app, text=\"1.00x\", foreground=\"#22c55e\")\nspeed_lbl.pack()\n\ndef update_speed(val):\n    spee",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "QuickVideo – 使用Python和FFmpeg批量改变视频速度",
+        "summary": "QuickVideo是一个用Python和FFmpeg构建的Windows桌面工具，支持批量视频速度调整、拖放支持、实时预览和多格式导出，同时保持音频完美同步。"
+      },
+      "fr": {
+        "title": "QuickVideo – Changement de vitesse vidéo par lot avec Python et FFmpeg",
+        "summary": "QuickVideo est un outil de bureau Windows construit avec Python et FFmpeg qui permet l'ajustement de la vitesse vidéo par lots avec support du glisser-déposer, aperçu en temps réel et export multi-formats tout en maintenant l'audio parfaitement synchronisé."
+      },
+      "de": {
+        "title": "QuickVideo – Batch-Änderung der Videogeschwindigkeit mit Python und FFmpeg",
+        "summary": "QuickVideo ist ein Windows-Desktop-Tool, das mit Python und FFmpeg erstellt wurde und Batch-Videogeschwindigkeitsanpassung mit Drag-and-Drop-Unterstützung, Echtzeitvorschau und Multi-Format-Export bei perfekter Audiosynchronisierung ermöglicht."
+      },
+      "es": {
+        "title": "QuickVideo – Cambio por lotes de velocidad de video con Python y FFmpeg",
+        "summary": "QuickVideo es una herramienta de escritorio de Windows construida con Python y FFmpeg que permite ajuste de velocidad de video por lotes con soporte de arrastrar y soltar, vista previa en tiempo real y exportación en múltiples formatos mientras mantiene el audio perfectamente sincronizado."
+      }
+    }
+  },
+  {
+    "title": "Vitest: Modern Test-Driven Development Made Easy",
+    "slug": "vitest-modern-test-driven-development-made-easy",
+    "url": "https://dev.to/rohit19060/vitest-modern-test-driven-development-made-easy-4ec3",
+    "source": "DEV Community",
+    "date": "2026-03-10T06:05:55.000Z",
+    "summary": "Vitest is a modern JavaScript/TypeScript testing framework built on Vite architecture, offering Jest-compatible APIs, built-in mocking, snapshot testing, and near-instant test execution with first-class TypeScript support.",
+    "content": "In the fast-paced world of software development, delivering high-quality, reliable applications is crucial. This is where testing and Test-Driven Development (TDD) come into play, helping us build robust software with confidence.\nEnter Vitest, a modern testing framework that pairs perfectly with TDD to make your development workflow smoother and more efficient.\nLet's explore what Vitest is, why it's a game-changer, and how you can integrate it into your projects.\nVitest is a modern testing framework for JavaScript and TypeScript projects. It's built on the same lightning-fast architecture as Vite, the popular next-generation frontend tool. This means incredible speed and a fantastic developer experience right out of the box.\nIf you've used testing tools like Jest, Vitest will feel familiar, as it offers a highly compatible API.\nHere’s a quick overview of Vitest's standout features:\nBlazing Fast Execution: Leverages Vite's architecture for near-instant test runs.\nBuilt-in Mocking: Easily isolate code for focused testing.\nSnapshot Testing: Track changes in UI components or data structures.\nFirst-Class TypeScript Support: Seamless integration for type-safe code.\nHot Module Replacement (HMR) for Tests: Get immediate feedback on code changes.\nJest-Compatible API: A smooth transition for teams familiar with Jest.\nHere’s a simple Vitest example:\nimport { describe, it, expect } from \"vitest\";\n\nfunction add(a, b) {\n  return a + b;\n}\n\ndescribe(\"add function\", () => {\n  it(\"should add two numbers correctly\", () => {\n    expect(add(2, 3)).toBe(5);\n  });\n});\n\nThis test confirms that our add function works as expected.\nTest-Driven Development (TDD) is an agile approach where you write tests before writing the actual code. It follows a simple, iterative Red → Green → Refactor cycle:\nStart by writing a test for a new feature or a bug fix. Since the code doesn't exist yet, this test will fail, turning \"Red.\" This step helps you clearly define what you want the code to do.\nNext, writ",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Vitest: 现代测试驱动开发变得容易",
+        "summary": "Vitest是一个基于Vite架构的现代JavaScript/TypeScript测试框架，提供Jest兼容的API、内置模拟、快照测试和近乎即时的测试执行，具有一流的TypeScript支持。"
+      },
+      "fr": {
+        "title": "Vitest: Le développement piloté par les tests modernes rendu facile",
+        "summary": "Vitest est un framework de test JavaScript/TypeScript moderne construit sur l'architecture Vite, offrant des API compatibles avec Jest, des maquettes intégrées, des tests d'instantané et une exécution de test quasi instantanée avec un support TypeScript de première classe."
+      },
+      "de": {
+        "title": "Vitest: Moderne testgesteuerte Entwicklung leicht gemacht",
+        "summary": "Vitest ist ein modernes JavaScript/TypeScript-Test-Framework, das auf der Vite-Architektur aufbaut und Jest-kompatible APIs, integriertes Mocking, Snapshot-Tests und nahezu sofortige Test-Ausführung mit erstklassiger TypeScript-Unterstützung bietet."
+      },
+      "es": {
+        "title": "Vitest: Desarrollo moderno dirigido por pruebas hecho fácil",
+        "summary": "Vitest es un marco de prueba moderno de JavaScript/TypeScript construido sobre la arquitectura Vite, que ofrece API compatibles con Jest, simulación integrada, pruebas de instantáneas y ejecución de pruebas casi instantánea con soporte de TypeScript de primera clase."
+      }
+    }
+  },
+  {
+    "title": "I built 500+ free tools in 10 days — here's what actually happened",
+    "slug": "i-built-500-free-tools-in-10-days-heres-what-happened",
+    "url": "https://dev.to/akashxlabs/i-built-500-free-tools-in-10-days-heres-what-actually-happened-1a7l",
+    "source": "DEV Community",
+    "date": "2026-03-10T06:02:23.000Z",
+    "summary": "A developer built 500+ free online utility tools (JSON formatters, encoders, validators) in 10 days using Python and FastAPI, discovering that SEO optimization and mobile compatibility required more work than actual code development.",
+    "content": "It started with a JSON formatter.\nI was sitting at my desk at 11 PM, pasting some messy API response into one of those \"free online JSON tools\" — and the page had 14 ads, two newsletter popups, and a cookie banner bigger than the actual text area. The JSON formatted fine. But I felt gross using it.\nSo I closed the tab, opened VS Code, and started writing a JSON formatter. No plan. No Notion doc. Just annoyance and caffeine.\nI finished the formatter in maybe 2 hours. And then I thought — okay, I already have this FastAPI route and this Jinja2 template... what if I just add a JSON validator too? Same skeleton, different logic.\nThat's how it starts. You build one thing and suddenly you're going \"well I need a YAML converter anyway for work\" and \"Base64 encoder would take like 20 minutes\" and before you know it you've got 50 of these things.\nI hit 100 and genuinely lost count for a few days.\nThe setup is dead simple. Python route, Jinja2 template, vanilla JS doing the actual work in the browser. Your data never hits my server — not because I had some grand privacy philosophy, but because processing stuff client-side meant I didn't have to worry about server load or storage. Lazy architecture choices that accidentally became a feature.\nOkay so Google basically pretends my site doesn't exist. 500+ pages, fresh domain, zero backlinks — I submitted my sitemap and... nothing. Like 7 pages indexed out of 500+. That's not a rounding error, that's Google telling you to go away.\nAlso some of my tools are rough. I'm not gonna pretend otherwise. The percentage calculator works but it looks like something from 2009. I went wide instead of deep and some pages show it.\nThe thing nobody tells you about building 500 pages? The META DESCRIPTIONS. And OG tags. And making sure nothing breaks on mobile. I spent more time on that nonsense than actually writing code. Building tools = fun. SEO housekeeping = slow death.\nOh and I'm on Render's free tier so the first person who visits after the",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我在10天内构建了500多个免费工具——实际发生了什么",
+        "summary": "一位开发者在10天内使用Python和FastAPI构建了500多个免费在线实用工具（JSON格式化器、编码器、验证器），发现SEO优化和移动兼容性需要比实际代码开发更多的工作。"
+      },
+      "fr": {
+        "title": "J'ai créé 500+ outils gratuits en 10 jours — voici ce qui s'est réellement passé",
+        "summary": "Un développeur a créé plus de 500 outils en ligne gratuits (formateurs JSON, encodeurs, validateurs) en 10 jours en utilisant Python et FastAPI, découvrant que l'optimisation SEO et la compatibilité mobile nécessitaient plus de travail que le développement du code lui-même."
+      },
+      "de": {
+        "title": "Ich habe in 10 Tagen 500+ kostenlose Tools gebaut — Das ist tatsächlich passiert",
+        "summary": "Ein Entwickler hat in 10 Tagen mehr als 500 kostenlose Online-Utility-Tools (JSON-Formatter, Encoder, Validatoren) mit Python und FastAPI erstellt und festgestellt, dass die SEO-Optimierung und mobile Kompatibilität mehr Arbeit erforderten als die eigentliche Codeentwicklung."
+      },
+      "es": {
+        "title": "Construí 500+ herramientas gratuitas en 10 días — esto es lo que realmente sucedió",
+        "summary": "Un desarrollador construyó más de 500 herramientas en línea gratuitas (formateadores JSON, codificadores, validadores) en 10 días usando Python y FastAPI, descubriendo que la optimización SEO y la compatibilidad móvil requirieron más trabajo que el desarrollo del código real."
+      }
+    }
+  },
+  {
+    "title": "Ninja's Training",
+    "slug": "ninjas-training",
+    "url": "https://dev.to/dolly_sharma/ninjas-training-2jnd",
+    "source": "DEV Community",
+    "date": "2026-03-10T06:01:36.000Z",
+    "summary": "The Ninja Training problem is a classic dynamic programming challenge where you schedule N days of activities (running, fighting, learning) to maximize merit points while avoiding consecutive repetition, solved through recursion, memoization, and tabulation.",
+    "content": "Here is your content formatted in a clean dev.to blog style (Markdown) so you can directly publish it on dev.to.\nDynamic Programming is one of the most important topics in DSA interviews and coding tests.\nNinja Training problem is a classic example that helps you understand several DP techniques step by step.\nIn this guide we will cover:\nProblem intuition\nWhy greedy fails\nRecursion approach\nMemoization (Top-Down DP)\nTabulation (Bottom-Up DP)\nSpace optimization\nDry run example\nNinja is planning a training schedule for N days.\nEach day he can perform one of three activities:\n\n\n\nActivity\nMeaning\n\n\n\n\n0\nRunning\n\n\n1\nFighting\n\n\n2\nLearning\n\n\n\nYou cannot perform the same activity on two consecutive days.\nMaximize the total merit points.\npoints =\n[1 2 5]\n[3 1 1]\n[3 3 3]\n\nOptimal schedule:\nDay 1 → Learning (5)\nDay 2 → Running (3)\nDay 3 → Fighting (3)\n\nTotal = 11\n\nConsider this example:\n10 50 1\n5 100 11\n\nDay1 → 50\nDay2 → cannot choose 100 (same activity)\nchoose 11\n\nTotal = 61\n\nDay1 → 10\nDay2 → 100\n\nTotal = 110\n\nGreedy fails because the best local choice does not guarantee global optimum.\nTherefore we must explore all possibilities → Dynamic Programming.\nWe define a state:\ndp[day][last]\n\nMeaning:\nMaximum points earned until \"day\"\nif the last activity performed was \"last\"\n\nWhere:\nlast = 0 → Running\nlast = 1 → Fighting\nlast = 2 → Learning\nlast = 3 → No activity yet\n\nDefine a function:\nsolve(day, last)\n\nMeaning:\nMaximum points obtainable from day 0 → day if the previous activity was last.\nsolve(day,last) =\nmax(points[day][task] + solve(day-1,task))\nfor all task ≠ last\n\nint solve(int day, int last, vector<vector<int>> &points)\n{\n    if(day == 0)\n    {\n        int maxi = 0;\n        for(int task=0; task<3; task++)\n        {\n            if(task != last)\n                maxi = max(maxi, points[0][task]);\n        }\n        return maxi;\n    }\n\n    int maxi = 0;\n\n    for(int task=0; task<3; task++)\n    {\n        if(task != last)\n        {\n            int point = points[day][task] + solve(d",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "忍者的训练",
+        "summary": "忍者训练问题是一个经典的动态规划挑战，在这个问题中你需要安排N天的活动（跑步、战斗、学习）来最大化功绩点数，同时避免连续重复，通过递归、记忆化和制表法解决。"
+      },
+      "fr": {
+        "title": "L'entraînement du Ninja",
+        "summary": "Le problème d'entraînement Ninja est un défi classique de programmation dynamique où vous planifiez N jours d'activités (course, combat, apprentissage) pour maximiser les points de mérite tout en évitant la répétition consécutive, résolu par récursion, mémorisation et tabulation."
+      },
+      "de": {
+        "title": "Das Training des Ninja",
+        "summary": "Das Ninja-Training-Problem ist eine klassische Herausforderung der dynamischen Programmierung, bei der Sie N Tage lang Aktivitäten (Laufen, Kämpfen, Lernen) planen, um Meritpunkte zu maximieren und gleichzeitig wiederholte Wiederholungen zu vermeiden, gelöst durch Rekursion, Memoization und Tabulation."
+      },
+      "es": {
+        "title": "El Entrenamiento del Ninja",
+        "summary": "El problema de Entrenamiento Ninja es un desafío clásico de programación dinámica donde programas N días de actividades (correr, luchar, aprender) para maximizar puntos de mérito mientras evitas la repetición consecutiva, resuelto a través de recursión, memoización y tabulación."
+      }
+    }
+  },
+  {
+    "title": "Running Anchor Tests on GitHub Actions Without Losing Your Mind",
+    "slug": "running-anchor-tests-github-actions-without-losing-mind",
+    "url": "https://dev.to/burgossrodrigo/running-anchor-tests-on-github-actions-without-losing-your-mind-20j0",
+    "source": "DEV Community",
+    "date": "2026-03-10T06:00:41.000Z",
+    "summary": "Running Solana Anchor tests on GitHub Actions requires solving three critical issues: Agave 3.x's io_uring kernel dependency, GLIBC library mismatches, and container environment variable overrides that silently break cargo and rustup.",
+    "content": "Setting up anchor test on GitHub Actions sounds like a weekend task. It took me a full week of debugging to get it right. Here's\nThe context\nI'm building an open source cross-chain bridge between Ethereum and Solana. The Solana side uses Anchor 0.31.1. At some point I\nSimple enough, right?\nProblem 1: Agave 3.x and io_uring\nThe first approach: install the Solana CLI inside the CI runner directly.\n  - run: sh -c \"$(curl -sSfL https://release.anza.xyz/stable/install)\"\n\nstable at the time of writing resolves to Agave 3.1.x. The install completes fine. Then anchor test starts the local validator and\n  thread 'main' panicked at fs/src/dirs.rs:27:9:\n  assertion failed: io_uring_supported()\n\nAgave 3.x added a hard dependency on io_uring, a Linux kernel feature for async I/O. GitHub Actions runners run on kernels where\nFix: use Agave 2.x. v2.1.21 is the latest in the 2.1 series and works without io_uring.\n\n  ENV SOLANA_VERSION=v2.1.21\n  RUN sh -c \"$(curl -sSfL https://release.anza.xyz/${SOLANA_VERSION}/install)\"\n\nProblem 2: GLIBC mismatch\nNext issue: the anchor binary itself.\navm install 0.31.1 downloads a pre-built binary from GitHub releases. That binary was compiled on a system with GLIBC 2.38/2.39.\n   /root/.avm/bin/anchor-0.31.1: /lib/x86_64-linux-gnu/libm.so.6:\n     version `GLIBC_2.38' not found\n\nTwo fixes needed:\nSwitch the base image to Ubuntu 24.04 (ships with GLIBC 2.39)\nCompile anchor from source instead of using avm. A binary compiled inside the container will always be compatible with the\ncontainer's GLIBC.\nFROM ubuntu:24.04\n  RUN cargo install \\\n    --git https://github.com/coral-xyz/anchor \\\n    --tag v0.31.1 anchor-cli --locked\n\nThis makes the build slower (adds ~5 min to the image build), but the image is built once and cached. Runtime CI stays fast.\nProblem 3: Container environment quirks\nWhen GitHub Actions runs a job inside a container, it overrides some environment variables. Two things break silently:\ncargo can't find its toolchain:\nerror: rustup could",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在GitHub Actions上运行Anchor测试而不失去理智",
+        "summary": "在GitHub Actions上运行Solana Anchor测试需要解决三个关键问题：Agave 3.x的io_uring内核依赖、GLIBC库不匹配，以及悄悄破坏cargo和rustup的容器环境变量覆盖。"
+      },
+      "fr": {
+        "title": "Exécuter les tests Anchor sur GitHub Actions sans perdre votre esprit",
+        "summary": "L'exécution des tests Solana Anchor sur GitHub Actions nécessite de résoudre trois problèmes critiques : la dépendance du noyau io_uring d'Agave 3.x, les incompatibilités de la bibliothèque GLIBC, et les remplacements des variables d'environnement de conteneur qui cassent silencieusement cargo et rustup."
+      },
+      "de": {
+        "title": "Anchor-Tests auf GitHub Actions ausführen, ohne den Verstand zu verlieren",
+        "summary": "Die Ausführung von Solana Anchor-Tests auf GitHub Actions erfordert die Lösung von drei kritischen Problemen: die io_uring-Kernelabhängigkeit von Agave 3.x, Inkompatibilität der GLIBC-Bibliothek und Container-Umgebungsvariablen-Overrides, die cargo und rustup stillschweigend beschädigen."
+      },
+      "es": {
+        "title": "Ejecutar pruebas de Anchor en GitHub Actions sin perder la cordura",
+        "summary": "Ejecutar pruebas de Solana Anchor en GitHub Actions requiere resolver tres problemas críticos: la dependencia del kernel io_uring de Agave 3.x, las desajustes de bibliotecas GLIBC, y los reemplazos de variables de entorno de contenedor que rompen silenciosamente cargo y rustup."
+      }
+    }
+  },
+  {
+    "title": "Finding the Right Reference Changed Everything for my Project",
+    "slug": "finding-right-reference-changed-everything-project",
+    "url": "https://dev.to/jona_mike/finding-the-right-reference-changed-everything-for-my-project-3bom",
+    "source": "DEV Community",
+    "date": "2026-03-10T06:00:27.000Z",
+    "summary": "A developer built a Wood Block Puzzle solver by discovering Block Blast Solver as a reference project, then adapted its proven engineering patterns for screenshot parsing and smart scoring algorithms.",
+    "content": "I got hooked on Wood Block Puzzle and eventually got frustrated enough to build a solver for it. Read the board from a screenshot, figure out where each piece fits best and show the optimal move. Sounded straightforward until I tried to plan the actual architecture.\nDiscovering a Working Reference\nGitHub and dev forums looking for grid-based puzzle solvers. Most repos were either abandoned or built for Tetris, which has gravity mechanics that don't apply here. I needed something built for a static placement game that drop pieces on a board, clear rows and columns where no time pressure applies.\nrepo that was actively maintained. Block Blast shares the same fundamental mechanics as Wood Block Puzzle i.e grid board, shape placement, line clearing. The project even had a fully functional live version as Block Blast Solver with screenshot-based solving. The full pipeline was proven and running.\n\nThree Things That Reshaped My Approach\nScreenshot parsing is the real challenge. \nSmart scoring beats greedy scoring. \nRaw detection isn't enough. \nAdapting It\nHaving a working reference saved me weeks as the specific game barely matters but the engineering patterns underneath are universal.\nSometimes the smartest move in development is the same as in the game: look at the whole board before you place your first piece.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "找到合适的参考项目改变了我的整个项目",
+        "summary": "一位开发者通过发现Block Blast Solver作为参考项目来构建木块拼图求解器,然后采用其经过验证的工程模式来处理截图解析和智能评分算法。"
+      },
+      "fr": {
+        "title": "Trouver la Bonne Référence a Tout Changé pour mon Projet",
+        "summary": "Un développeur a construit un solveur de puzzle en blocs en découvrant Block Blast Solver comme projet de référence, puis a adapté ses modèles d'ingénierie éprouvés pour l'analyse de captures d'écran et les algorithmes de notation intelligents."
+      },
+      "de": {
+        "title": "Die richtige Referenz zu finden hat alles für mein Projekt verändert",
+        "summary": "Ein Entwickler erstellte einen Wood Block Puzzle Solver, indem er Block Blast Solver als Referenzprojekt entdeckte, und passte dann seine bewährten Engineeringmuster für Screenshot-Parsing und intelligente Scoring-Algorithmen an."
+      },
+      "es": {
+        "title": "Encontrar la Referencia Correcta Lo Cambió Todo para mi Proyecto",
+        "summary": "Un desarrollador construyó un solucionador de acertijo de bloques de madera descubriendo Block Blast Solver como proyecto de referencia, luego adaptó sus patrones de ingeniería probados para análisis de capturas de pantalla y algoritmos de puntuación inteligentes."
+      }
+    }
+  },
+  {
+    "title": "Vibe Coding Challenge — Day 12: Tattoo Generator",
+    "slug": "vibe-coding-challenge-day-12-tattoo-generator",
+    "url": "https://dev.to/labdays/vibe-coding-challenge-day-12-tattoo-generator-34id",
+    "source": "DEV Community",
+    "date": "2026-03-10T05:53:11.000Z",
+    "summary": "Day 12 of a coding challenge created a tattoo generator tool (inkmachine.labdays.io), highlighting how modern development increasingly demands strong architecture and orchestration as implementation cycles compress from months to minutes.",
+    "content": "Create custom tattoos in dozens of different styles.\nAnnouncement\ninkmachine.labdays.io\nContext\nlabdays.io) to learn about the process.\nNotes from the 12th day of the Challenge\nNow, it’s not enough to just have a great idea and turn it into a product. Even the most complex and monopolized software can be imitated in a short time. Considering that a framework like NextJS was rebuilt much faster — in just 1 week (by Cloudflare) — things are getting increasingly difficult.\nNow, there are only minutes between ideas and implementation, not days, weeks, or months as before.\nArchitecture and orchestration are becoming increasingly important. Using powerful tools with the right algorithms allows you to turn their power into a usable product.\nIt’s beneficial for someone doing vibe coding to have knowledge of topics like machine learning, as it helps you better anticipate how AI models think and how they should be prompted.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Vibe编码挑战 — 第12天: 纹身生成器",
+        "summary": "编码挑战第12天创建了一个纹身生成器工具(inkmachine.labdays.io),突出了现代开发如何越来越需要强大的架构和编排,因为实现周期从数个月压缩到数分钟。"
+      },
+      "fr": {
+        "title": "Vibe Coding Challenge — Jour 12 : Générateur de Tatouage",
+        "summary": "Le jour 12 d'un défi de codage a créé un outil générateur de tatouage (inkmachine.labdays.io), soulignant comment le développement moderne exige de plus en plus une architecture et une orchestration fortes alors que les cycles de mise en œuvre se compriment de mois à minutes."
+      },
+      "de": {
+        "title": "Vibe Coding Challenge — Tag 12: Tattoo-Generator",
+        "summary": "Tag 12 einer Coding-Challenge erstellte ein Tattoo-Generator-Tool (inkmachine.labdays.io), das hervorhebt, wie moderne Entwicklung zunehmend starke Architektur und Orchestrierung erfordert, da sich die Implementierungszyklen von Monaten auf Minuten verkürzen."
+      },
+      "es": {
+        "title": "Vibe Coding Challenge — Día 12: Generador de Tatuajes",
+        "summary": "El día 12 de un desafío de codificación creó una herramienta generadora de tatuajes (inkmachine.labdays.io), destacando cómo el desarrollo moderno requiere cada vez más una arquitectura y orquestación sólidas a medida que los ciclos de implementación se comprimen de meses a minutos."
+      }
+    }
+  },
+  {
+    "title": "How to Eliminate Logging Boilerplate in Java with CDI Interceptors",
+    "slug": "eliminate-logging-boilerplate-java-cdi-interceptors",
+    "url": "https://dev.to/ttelang/how-to-eliminate-logging-boilerplate-in-java-with-cdi-interceptors-2khj",
+    "source": "DEV Community",
+    "date": "2026-03-10T05:53:00.000Z",
+    "summary": "CDI Interceptors in Java apply Aspect-Oriented Programming to eliminate logging boilerplate, automatically capturing method parameters, return values, execution time, and exceptions through a single annotation without manual code.",
+    "content": "Introduction\n\n\nLogging is essential for monitoring, debugging, and performance analysis. \nHowever, manually adding log statements to every method creates several problems:\nCode Clutter: Business logic becomes obscured by logging code\nInconsistency: Different developers log in different ways\nMaintenance Burden: Changing log format requires updating every method\nIncomplete Implementation: Easy to forget important details like execution time, exception handling, or parameter logging\nCDI Interceptors solve these problems by applying the Aspect-Oriented Programming (AOP) principle, separating cross-cutting concerns from business logic.\nWith CDI interceptors, you can add logging to any method with a single annotation without requiring any manual coding for logging!\nIn this article, we’ll build a production-ready logging interceptor that automatically captures:\nMethod entry with parameter values\nMethod exit with return values\nExecution time in milliseconds\nException details with execution time\nCDI (Contexts and Dependency Injection) Interceptors allow you to intercept method calls and execute code before and after the target method runs. They’re useful for cross-cutting concerns like:\nLogging: Automatic method tracing\nSecurity: Authorization checks\nTransaction Management: Begin/commit transactions\nPerformance Monitoring: Method execution timing\nCaching: Cache method results\nValidation: Pre/post-condition checks\nClient calls method\n          │\n          ▼\n   ┌─────────────────┐\n   │  @Logged        │ ◄──Annotation triggers interceptor\n   │  PaymentService │\n   └────────┬────────┘\n            │\n            ▼\n   ┌─────────────────────────┐\n   │  LoggingInterceptor     │ ◄── Intercepts the call\n   │  @AroundInvoke          │\n   │                         │\n   │  1. Log entry + params  │\n   │  2. Start timer         │\n   │  3. context.proceed()   │ ◄── Execute actual method\n   │  4. Log exit + duration │\n   │  5. Return result       │\n   └─────────────────────────┘\n            │",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何使用CDI拦截器消除Java中的日志样板代码",
+        "summary": "Java中的CDI拦截器应用面向方面的编程来消除日志样板代码,通过单个注解自动捕获方法参数、返回值、执行时间和异常,无需手动编码。"
+      },
+      "fr": {
+        "title": "Comment Éliminer le Code Boilerplate de Journalisation en Java avec les Intercepteurs CDI",
+        "summary": "Les Intercepteurs CDI en Java appliquent la programmation orientée aspect pour éliminer le code boilerplate de journalisation, capturant automatiquement les paramètres de méthode, les valeurs de retour, le temps d'exécution et les exceptions via une seule annotation sans code manuel."
+      },
+      "de": {
+        "title": "Wie man Logging-Boilerplate in Java mit CDI-Interceptors eliminiert",
+        "summary": "CDI-Interceptors in Java wenden Aspekt-orientierte Programmierung an, um Logging-Boilerplate zu eliminieren, und erfassen automatisch Methodenparameter, Rückgabewerte, Ausführungszeit und Ausnahmen durch eine einzelne Annotation ohne manuelle Codierung."
+      },
+      "es": {
+        "title": "Cómo Eliminar el Código Boilerplate de Registro en Java con Interceptores CDI",
+        "summary": "Los Interceptores CDI en Java aplican Programación Orientada a Aspectos para eliminar código boilerplate de registro, capturando automáticamente parámetros de método, valores de retorno, tiempo de ejecución y excepciones a través de una única anotación sin código manual."
+      }
+    }
+  },
+  {
+    "title": "Rust-like Error Handling in TypeScript",
+    "slug": "rust-like-error-handling-typescript",
+    "url": "https://dev.to/omarabid/rust-like-error-handling-in-typescript-2afc",
+    "source": "DEV Community",
+    "date": "2026-03-10T05:50:31.000Z",
+    "summary": "The neverthrow library brings Rust's Result type ergonomics to TypeScript, enabling explicit error handling that makes failures traceable and prevents silent failures or unstructured exception bubbling.",
+    "content": "I've been working on Code Input front-end for close to a year now. Coming from years of Rust, its toolchain and type system set a pretty high bar and jumping into TypeScript made me both appreciate what Rust gets right and wanting to bring those same ideas over.\nTypeScript typing is genuinely hard. It's easy to end up in a codebase where half your types are any and unknown, which defeats the point. But that wasn't the most I miss from Rust.\nMy real pet peeve was losing the ergonomics that come with Rust's Result type. Once you define your own error types in Rust, your functions end up looking like this:\nfn calc_operation(var_1: Type1, var_2: Type2) -> Result<i32> {\n    let a1 = sub_operation_1(var_1)?;\n    let a2 = sub_operation_2(var_2)?;\n\n    a1.checked_add(a2).ok_or(CustomError::new(\"calc_operation failed at a1 + a2))\n}\n\nThere are a lot of things I like about Rust in this function. At a glance, I can tell a1 and a2 are both i32. I can tell that sub_operation_1 and sub_operation_2 both return my custom Result type. And I know this function is extremely unlikely to panic or fail in some unpredictable way. It can fail, but when it does, it bubbles that responsibility up to the caller in a structured, traceable way. You know what failed and where.\nTypeScript doesn't give you any of that out of the box, so I was left looking for the next best option.\nneverthrow is the closest TypeScript gets to Rust's Result ergonomics. It's not a 1-to-1 port, the API has its own shape and you'll need to spend some time getting familiar with it and that's fine, as TypeScript has different constraints anyway\nThe first thing I wanted was my own custom error types. Having a centralized error type means I can do things like report errors to external services, show popups, and enforce consistent error handling across the app. By re-exporting Result with my own error type baked in, every new function is forced to handle errors in a way that fits my app's conventions.\nexport type Result<T, E",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "TypeScript中的Rust风格错误处理",
+        "summary": "neverthrow库将Rust的Result类型人体工学带入TypeScript，实现显式错误处理，使故障可追踪，防止静默故障或无结构异常冒泡。"
+      },
+      "fr": {
+        "title": "Gestion des erreurs de type Rust en TypeScript",
+        "summary": "La bibliothèque neverthrow apporte l'ergonomie du type Result de Rust à TypeScript, permettant une gestion d'erreur explicite qui rend les défaillances traçables et prévient les défaillances silencieuses ou la propagation d'exceptions non structurées."
+      },
+      "de": {
+        "title": "Rust-ähnliche Fehlerbehandlung in TypeScript",
+        "summary": "Die neverthrow-Bibliothek bringt die Ergonomie von Rusts Result-Typ zu TypeScript, ermöglicht explizite Fehlerbehandlung, die Fehler nachvollziehbar macht und stille Fehler oder unstrukturierte Ausnahmepropagation verhindert."
+      },
+      "es": {
+        "title": "Manejo de errores similar a Rust en TypeScript",
+        "summary": "La biblioteca neverthrow trae la ergonomía del tipo Result de Rust a TypeScript, permitiendo el manejo explícito de errores que hace que los fallos sean rastreables e impide fallos silenciosos o propagación de excepciones no estructuradas."
+      }
+    }
+  },
+  {
+    "title": "How AI and Custom Web Development Enhance Website Performance and UX",
+    "slug": "how-ai-custom-web-development-enhance-performance-ux",
+    "url": "https://dev.to/vasundhara_infotech/how-ai-and-custom-web-development-enhance-website-performance-and-ux-273l",
+    "source": "DEV Community",
+    "date": "2026-03-10T05:39:56.000Z",
+    "summary": "AI-powered personalization on websites analyzes user data (location, preferences, browsing history) to deliver custom content and recommendations, improving engagement and conversion while meeting user expectations for sub-2-second load times.",
+    "content": "Today’s high-speed digital environment presents many new opportunities for businesses, but you have to be able to give your customers what they want quickly, easily, and personally in order to compete with other online businesses. The implementation of AI and custom web development has provided businesses with the tools necessary to turn their websites into the most effective, efficient, and customer-friendly sites. By combining these two technologies, businesses experience better website performance, improved UX, and greater efficiency overall.\nWhen someone visits a website for the first time, their interaction with the site will define if they choose to remain on the website and continue to engage with it, or if they will leave immediately. Common issues that cause frustration and prevent visitors from continuing to use a website include slow load times, difficult navigation, and irrelevant content. Research shows that 47% of users will expect a webpage to load within 2 seconds or less, and 40% of them will abandon any site that takes longer than 3 second2.2 Chatbots and Virtual Assistantss to load.\nAI technologies are revolutionizing the way websites interact with users. By analyzing large amounts of data, AI can improve various aspects of a website’s performance and design, offering a personalized experience that keeps users engaged.\nAI algorithms analyze user data such as location, personal preferences, and browser history to create personalized content or product recommendations. Personalizing the experience provides greater relevance to each customer, creating increased engagement and higher chances of conversion.\nFor example, an advertising platform might recommend products based on previous purchases or browsing history, thus improving the user experience and providing additional revenue potential for the e-commerce website. Furthermore, personalizing the experience improves overall customer satisfaction and builds stronger ties to the brand through loyalty",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI和自定义网络开发如何增强网站性能和用户体验",
+        "summary": "网站上的AI驱动个性化分析用户数据（位置、偏好、浏览历史）来提供自定义内容和推荐，改善参与度和转化率，同时满足用户对亚2秒加载时间的期望。"
+      },
+      "fr": {
+        "title": "Comment l'IA et le développement Web personnalisé améliorent les performances et l'UX du site Web",
+        "summary": "La personnalisation alimentée par l'IA sur les sites Web analyse les données utilisateur (emplacement, préférences, historique de navigation) pour fournir du contenu et des recommandations personnalisés, améliorant l'engagement et la conversion tout en répondant aux attentes des utilisateurs en matière de temps de chargement inférieur à 2 secondes."
+      },
+      "de": {
+        "title": "Wie KI und benutzerdefinierte Webentwicklung die Website-Leistung und UX verbessern",
+        "summary": "KI-gestützte Personalisierung auf Websites analysiert Benutzerdaten (Standort, Vorlieben, Browsing-Verlauf), um benutzerdefinierte Inhalte und Empfehlungen bereitzustellen, das Engagement und die Konvertierung zu verbessern und gleichzeitig Benutzererwartungen für Ladezeiten unter 2 Sekunden zu erfüllen."
+      },
+      "es": {
+        "title": "Cómo la IA y el desarrollo web personalizado mejoran el rendimiento y la UX del sitio web",
+        "summary": "La personalización impulsada por IA en sitios web analiza datos de usuario (ubicación, preferencias, historial de navegación) para proporcionar contenido y recomendaciones personalizadas, mejorando el engagement y la conversión mientras se cumplen con las expectativas del usuario de tiempos de carga menores a 2 segundos."
+      }
+    }
+  },
+  {
+    "title": "Why Your Docking Station Fails to Detect an External Monitor: A Deep Dive into Multi-Display Architecture",
+    "slug": "docking-station-fails-detect-external-monitor",
+    "url": "https://dev.to/wixom/why-your-docking-station-fails-to-detect-an-external-monitor-a-deep-dive-into-multi-display-51d9",
+    "source": "DEV Community",
+    "date": "2026-03-10T05:35:26.000Z",
+    "summary": "Docking station display detection failures stem from three core issues: USB-C bandwidth allocation conflicts across multiple monitors, EDID communication breakdowns, and protocol mismatches in DisplayPort Alt Mode lane reassignment.",
+    "content": "Why Your Docking Station Fails to Detect an External Monitor\n\n\nA modern docking station is expected to transform a single USB-C or Thunderbolt port into an entire desktop I/O subsystem. Ethernet, storage, and multiple displays all converge on one cable. When everything works, the architecture feels invisible.\nWhen it fails, however, the result is familiar to many IT administrators and workstation users: a perfectly functional monitor that simply refuses to appear in the operating system.\nMany support tickets begin with the same phrase — a docking station not detecting monitor problem — but the root cause is rarely obvious. Multi-display docks operate on layered protocols such as USB tunneling, DisplayPort multiplexing, power negotiation, and EDID communication. A misalignment in any of these layers can prevent a monitor from initializing.\nUnderstanding these failures requires looking beyond the connector and into the signal architecture itself.\nMost display detection failures fall into three categories:\nBandwidth allocation limits\nEDID communication failures\nUSB-C protocol mismatches\nAlthough USB-C connectors look identical, the internal signal routing varies depending on host hardware.\nWhen a device enters DisplayPort Alt Mode, the four high-speed lanes of the USB-C connector are dynamically reassigned. These lanes may be used entirely for video transmission or shared between USB data and DisplayPort.\n\n\n\nMode\nLane Allocation\nResult\n\n\n\n\n4-lane DP\nFull DisplayPort bandwidth\nSupports higher resolution multi-display\n\n\n2-lane DP + USB 3.x\nShared bandwidth\nReduced video throughput\n\n\n\nA full DisplayPort 1.4 HBR3 link provides up to 32.4 Gbps of bandwidth. Once this bandwidth is divided across multiple displays, limitations quickly appear.\nCommon examples include:\nDual 4K displays at 60 Hz\nUltrawide monitors (3440×1440)\nHigh-refresh-rate panels\nIn these scenarios, the GPU may disable one output because the negotiated bandwidth cannot sustain both streams.\nTo the user, it a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么您的坞站无法检测外部监视器：多显示器架构的深入探讨",
+        "summary": "坞站显示检测故障源于三个核心问题：跨多个显示器的USB-C带宽分配冲突、EDID通信故障和DisplayPort Alt模式车道重新分配中的协议不匹配。"
+      },
+      "fr": {
+        "title": "Pourquoi votre station d'accueil ne détecte pas un moniteur externe : une plongée profonde dans l'architecture multi-écran",
+        "summary": "Les défaillances de détection d'affichage de la station d'accueil proviennent de trois problèmes fondamentaux : les conflits d'allocation de bande passante USB-C sur plusieurs moniteurs, les défaillances de communication EDID et les incompatibilités de protocole dans la réattribution de voies du mode Alt DisplayPort."
+      },
+      "de": {
+        "title": "Warum Ihre Dockingstation einen externen Monitor nicht erkennt: Ein tiefes Eintauchen in die Multi-Display-Architektur",
+        "summary": "Ausfälle bei der Dockingstation-Anzeigeerkennung stammen aus drei Kernproblemen: USB-C-Bandbreitenzuweisungskonflikte auf mehreren Monitoren, Ausfälle der EDID-Kommunikation und Protokollabweichungen in der Neuzuweisung von DisplayPort Alt Mode-Spuren."
+      },
+      "es": {
+        "title": "Por qué su estación de acoplamiento no detecta un monitor externo: un análisis profundo de la arquitectura de múltiples pantallas",
+        "summary": "Las fallas de detección de pantalla de la estación de acoplamiento provienen de tres problemas centrales: conflictos de asignación de ancho de banda USB-C en múltiples monitores, averías en la comunicación EDID y desajustes de protocolo en la reasignación de carriles del modo Alt de DisplayPort."
+      }
+    }
+  },
+  {
     "title": "Dispatch From the Other Side: Don't Let the Gap Grow",
     "slug": "dispatch-from-the-other-side-dont-let-the-gap-grow",
     "url": "https://dev.to/prince_of_pasta/dispatch-from-the-other-side-dont-let-the-gap-grow-1ji",
