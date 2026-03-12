@@ -63,3 +63,17 @@ export function getHreflangLinks(category: string, site: string): Array<{ lang: 
   links.push({ lang: 'x-default', href: `${site}${categoryPath('en', category)}` });
   return links;
 }
+
+export function articlePath(lang: string, category: string, slug: string): string {
+  const prefix = langPrefix(lang);
+  return `${prefix}/${category}/${slug}`;
+}
+
+export function getArticleHreflangLinks(category: string, slug: string, site: string): Array<{ lang: string; href: string }> {
+  const links = LANGUAGES.map(lang => ({
+    lang,
+    href: `${site}${articlePath(lang, category, slug)}`,
+  }));
+  links.push({ lang: 'x-default', href: `${site}${articlePath('en', category, slug)}` });
+  return links;
+}

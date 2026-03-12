@@ -161,24 +161,28 @@ const logoHref = lang === 'en' ? '/' : `/${lang}/`;
     return document.documentElement.getAttribute('lang') || 'en';
   }
 
-  function getCategoryFromUrl() {
+  function getPathParts() {
     var path = window.location.pathname.replace(/\/$/, '') || '/';
     var parts = path.split('/').filter(Boolean);
     var langs = ['zh', 'fr', 'de', 'es'];
-    // If first segment is a language prefix, category is the second segment
     if (parts.length > 0 && langs.indexOf(parts[0]) !== -1) {
-      return parts[1] || 'all';
+      // /lang/... — category is parts[1], slug is parts[2]
+      return { category: parts[1] || 'all', slug: parts[2] || null };
     }
-    // Otherwise category is the first segment
-    return parts[0] || 'all';
+    // /... — category is parts[0], slug is parts[1]
+    return { category: parts[0] || 'all', slug: parts[1] || null };
   }
 
   function buildLangUrl(targetLang) {
-    var category = getCategoryFromUrl();
+    var p = getPathParts();
+    var base;
     if (targetLang === 'en') {
-      return category === 'all' ? '/' : '/' + category;
+      base = p.category === 'all' ? '/' : '/' + p.category;
+    } else {
+      base = p.category === 'all' ? '/' + targetLang + '/' : '/' + targetLang + '/' + p.category;
     }
-    return category === 'all' ? '/' + targetLang + '/' : '/' + targetLang + '/' + category;
+    if (p.slug) base += '/' + p.slug;
+    return base;
   }
 
   // Event delegation for theme and language controls — remove old before re-adding

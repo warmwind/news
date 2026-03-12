@@ -1,0 +1,198 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { NON_ENGLISH_LANGUAGES, CATEGORIES, CATEGORY_LABELS, OG_LOCALES, resolveTranslations, articlePath, getArticleHreflangLinks, categoryPath } from '../../../lib/i18n';
+
+type Article = {
+  title: string;
+  slug: string;
+  url: string;
+  source: string;
+  date: string;
+  summary: string;
+  content: string;
+  category: string;
+  translations?: Record<string, { title: string; summary: string }>;
+};
+
+export function getStaticPaths() {
+  const newsFiles = import.meta.glob('../../../data/news/*/*.json', { eager: true });
+  const articleMap = new Map<string, { article: Article; date: number }>();
+
+  for (const [, mod] of Object.entries(newsFiles)) {
+    const data = (mod as any).default || mod;
+    if (Array.isArray(data)) {
+      for (const article of data) {
+        const key = `${article.category}/${article.slug}`;
+        const dateNum = new Date(article.date).getTime();
+        const existing = articleMap.get(key);
+        if (!existing || dateNum > existing.date) {
+          articleMap.set(key, { article, date: dateNum });
+        }
+      }
+    }
+  }
+
+  const paths: Array<{ params: { lang: string; category: string; slug: string }; props: { article: Article } }> = [];
+  for (const { article } of articleMap.values()) {
+    if (!CATEGORIES.includes(article.category as any)) continue;
+    for (const lang of NON_ENGLISH_LANGUAGES) {
+      paths.push({
+        params: { lang, category: article.category, slug: article.slug },
+        props: { article },
+      });
+    }
+  }
+  return paths;
+}
+
+const { article } = Astro.props;
+const { lang, category, slug } = Astro.params;
+const label = CATEGORY_LABELS[category!] || category;
+const ogLocale = OG_LOCALES[lang!] || 'en_US';
+const site = 'https://news.oscarjiang.site';
+const hreflangLinks = getArticleHreflangLinks(category!, slug!, site);
+
+const [resolved] = resolveTranslations([article], lang!);
+
+const articleDate = new Date(article.date);
+const dateLocales: Record<string, string> = { zh: 'zh-CN', fr: 'fr-FR', de: 'de-DE', es: 'es-ES' };
+const formattedDate = articleDate.toLocaleDateString(dateLocales[lang!] || 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+const articleSchema = {
+  "@context": "https://schema.org",
+  "@type": "NewsArticle",
+  "headline": resolved.title,
+  "description": resolved.summary,
+  "url": `${site}${articlePath(lang!, article.category, article.slug)}`,
+  "datePublished": article.date,
+  "publisher": { "@type": "Organization", "name": "Oscar's News" },
+  "mainEntityOfPage": `${site}${articlePath(lang!, article.category, article.slug)}`,
+  "isBasedOn": article.url,
+};
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": `${site}/${lang}` },
+    { "@type": "ListItem", "position": 2, "name": label, "item": `${site}/${lang}/${category}` },
+    { "@type": "ListItem", "position": 3, "name": resolved.title },
+  ],
+};
+---
+<BaseLayout
+  title={`${resolved.title} - Oscar's News`}
+  description={resolved.summary}
+  lang={lang}
+  ogLocale={ogLocale}
+  hreflangLinks={hreflangLinks}
+  structuredData={[articleSchema, breadcrumbSchema]}
+>
+  <article class="article-detail">
+    <nav class="article-breadcrumb">
+      <a href={categoryPath(lang!, category!)}>
+        {label}
+      </a>
+    </nav>
+    <h1>{resolved.title}</h1>
+    <div class="article-meta">
+      <span class="article-source">{article.source}</span>
+      <span class="separator">&middot;</span>
+      <time datetime={article.date}>{formattedDate}</time>
+    </div>
+    <p class="article-summary">{resolved.summary}</p>
+    {article.content && article.content !== resolved.summary && (
+      <div class="article-content" set:html={article.content} />
+    )}
+    <a href={article.url} target="_blank" rel="noopener noreferrer" class="view-original">
+      View Original &rarr; {article.source}
+    </a>
+  </article>
+</BaseLayout>
+
+<style>
+  .article-detail {
+    max-width: 720px;
+    padding-bottom: 3rem;
+  }
+
+  .article-breadcrumb {
+    margin-bottom: 1.5rem;
+  }
+
+  .article-breadcrumb a {
+    display: inline-block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+    background: var(--pill-bg);
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+  }
+
+  .article-breadcrumb a:hover {
+    color: var(--accent-hover);
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--text);
+    margin: 0 0 0.75rem;
+  }
+
+  .article-meta {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+  }
+
+  .separator {
+    margin: 0 0.375rem;
+  }
+
+  .article-summary {
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 1.5rem;
+    font-weight: 500;
+  }
+
+  .article-content {
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+  }
+
+  .article-content :global(img) {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 1rem 0;
+  }
+
+  .article-content :global(p) {
+    margin-bottom: 1rem;
+  }
+
+  .view-original {
+    display: inline-block;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+    padding: 0.625rem 1.25rem;
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .view-original:hover {
+    background: var(--accent);
+    color: #fff;
+  }
+</style>
