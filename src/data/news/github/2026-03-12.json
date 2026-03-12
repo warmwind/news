@@ -1,0 +1,142 @@
+[
+  {
+    "title": "How to build a free HN data pipeline in 30 minutes",
+    "slug": "how-to-build-free-hn-data-pipeline-30-minutes",
+    "url": "https://dev.to/fairpricework/how-to-build-a-free-hn-data-pipeline-in-30-minutes-13k6",
+    "source": "DEV Community",
+    "date": "2026-03-12T00:10:35.000Z",
+    "summary": "This tutorial demonstrates building a lightweight Hacker News data pipeline using Apify's free tier to automatically fetch, store, and analyze top stories. The guide covers setup, SQLite storage, and basic trend detection—all without cost. It enables tracking how topics rise on HN over time for market and sentiment research.",
+    "content": "Hacker News is one of the richest sources of signal in tech. New frameworks, hiring waves, shifting sentiment — it all shows up on HN before it hits mainstream. But scraping HN yourself is tedious and fragile.\nIn this tutorial, I'll walk you through building a lightweight data pipeline that pulls structured HN data on a schedule, stores it locally, and runs basic trend detection — all for free.\nWe'll use the HN Top Stories actor on Apify, which returns clean JSON for top, new, best, ask, show, and job stories. It handles pagination, rate limits, and retries so you don't have to.\nApify's free tier gives you enough compute to run this daily without paying a cent.\nInstall the Apify client:\npip install apify-client\n\nThen pull the latest top stories:\nfrom apify_client import ApifyClient\nfrom datetime import datetime\n\nclient = ApifyClient(\"YOUR_APIFY_TOKEN\")\n\nrun = client.actor(\"cryptosignals/hn-top-stories\").call(\n    run_input={\"category\": \"topstories\", \"maxItems\": 100}\n)\n\nitems = list(\n    client.dataset(run[\"defaultDatasetId\"]).iterate_items()\n)\nprint(f\"Fetched {len(items)} stories\")\n\nEach item gives you the title, URL, score, author, comment count, and timestamp — everything you need for analysis.\nSave each run to a local database so you can track changes over time:\nimport sqlite3\n\ndb = sqlite3.connect(\"hn_pipeline.db\")\ndb.execute(\n    \"CREATE TABLE IF NOT EXISTS stories (\"\n    \"id INTEGER, title TEXT, url TEXT, score INTEGER, \"\n    \"comments INTEGER, author TEXT, fetched_at TEXT, \"\n    \"PRIMARY KEY (id, fetched_at))\"\n)\n\nfetched_at = datetime.utcnow().isoformat()\nfor item in items:\n    db.execute(\n        \"INSERT OR IGNORE INTO stories VALUES (?,?,?,?,?,?,?)\",\n        (item[\"id\"], item[\"title\"], item.get(\"url\", \"\"),\n         item[\"score\"], item.get(\"descendants\", 0),\n         item[\"by\"], fetched_at)\n    )\ndb.commit()\n\nWith a few days of data, you can spot rising topics:\nfrom collections import Counter\n\nrows = db.execute(\n    \"SELECT title FROM stories \"\n    \"WHERE fe",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何在30分钟内构建免费的HN数据管道",
+        "summary": "本教程演示了如何使用Apify的免费层构建轻量级黑客新闻数据管道，自动获取、存储和分析热门故事。该指南涵盖设置、SQLite存储和基本趋势检测，完全免费。它使您能够跟踪HN上的主题如何随时间变化，用于市场和情感研究。"
+      },
+      "fr": {
+        "title": "Comment construire un pipeline de données HN gratuit en 30 minutes",
+        "summary": "Ce tutoriel démontre la construction d'un pipeline de données Hacker News léger en utilisant le tier gratuit d'Apify pour récupérer, stocker et analyser automatiquement les meilleures histoires. Le guide couvre la configuration, le stockage SQLite et la détection des tendances de base, le tout sans frais. Il vous permet de suivre comment les sujets augmentent sur HN au fil du temps pour la recherche de marché et de sentiment."
+      },
+      "de": {
+        "title": "So erstellen Sie eine kostenlose HN-Datenpipeline in 30 Minuten",
+        "summary": "Dieses Tutorial zeigt, wie man eine leichte Hacker News-Datenpipeline mit der kostenlosen Stufe von Apify erstellt, um Top-Storys automatisch abzurufen, zu speichern und zu analysieren. Der Leitfaden behandelt Einrichtung, SQLite-Speicher und grundlegende Trendanalyse, alles kostenlos. Es ermöglicht das Verfolgen, wie Themen im Laufe der Zeit auf HN aufsteigen, für Markt- und Stimmungsforschung."
+      },
+      "es": {
+        "title": "Cómo construir un pipeline de datos HN gratuito en 30 minutos",
+        "summary": "Este tutorial demuestra cómo construir un pipeline de datos de Hacker News ligero usando el nivel gratuito de Apify para obtener, almacenar y analizar automáticamente las mejores historias. La guía cubre configuración, almacenamiento SQLite y detección básica de tendencias, todo sin costo. Le permite rastrear cómo los temas aumentan en HN a lo largo del tiempo para investigación de mercado y análisis de sentimiento."
+      }
+    }
+  },
+  {
+    "title": "Do commit ao deploy: CI/CD de uma API na AWS usando GitHub Actions, ECS e Terraform",
+    "slug": "do-commit-ao-deploy-cicd-api-aws-github-actions-ecs-terraform",
+    "url": "https://dev.to/fernandoandrade/do-commit-ao-deploy-cicd-de-uma-api-na-aws-usando-github-actions-ecs-e-terraform-433g",
+    "source": "DEV Community",
+    "date": "2026-03-12T00:07:27.000Z",
+    "summary": "This comprehensive guide walks through building a complete CI/CD pipeline from code commit to production deployment on AWS using GitHub Actions, Terraform, and ECS Fargate. It demonstrates language-agnostic infrastructure-as-code patterns and secure OIDC authentication without static credentials. A merge to main automatically deploys containerized applications to production with full automation.",
+    "content": "Sumário\n\n\n\nIntrodução\nPré-requisitos\nVisão Geral da Arquitetura\nConfigurando o IAM para o Terraform\nRecursos Provisionados\nIAM Role para Tarefas ECS\nTask Definition (Fargate)\nECS Service\nOIDC: Autenticação Sem Credenciais Estáticas\nDockerfile Multi-Stage\nPipeline de CI\nConfigurando as Secrets no GitHub\nPipeline de CD\nSegurança: OIDC em Detalhe\nFluxo Completo: Do Commit ao Deploy\nConsiderações Finais\nColocar uma aplicação em produção vai muito além de escrever código. Envolve compilar, testar, empacotar e entregar de forma confiável e repetível. Neste artigo, vou mostrar como construir uma pipeline completa — do commit ao deploy — usando GitHub Actions para CI/CD, Terraform para infraestrutura como código e AWS (ECR, ECS Fargate) como plataforma de execução.\nO conceito apresentado aqui é agnóstico de linguagem — funciona para qualquer stack que rode em um container Docker (Node.js, Go, Java, Python, etc.). Para os exemplos práticos, vamos utilizar .NET como referência, mas os workflows, a infraestrutura Terraform e o fluxo de deploy são os mesmos independente da tecnologia escolhida.\nO objetivo é demonstrar como essas ferramentas se conectam para formar um fluxo automatizado onde um simples merge na branch main resulta em uma nova versão rodando em produção, sem intervenção manual.\nAntes de começar, você precisa ter as seguintes ferramentas instaladas e configuradas:\n\n\n\nFerramenta\nDescrição\nLink de instalação\n\n\n\n\nDocker\nPara construir e executar containers\ndocs.docker.com/get-docker\n\n\nTerraform\nPara provisionar infraestrutura como código\ndeveloper.hashicorp.com/terraform/install\n\n\nAWS CLI\nPara interagir com os serviços da AWS via terminal\ndocs.aws.amazon.com/cli/latest/userguide/install-cliv2.html\n\n\nGit\nPara versionamento de código\ngit-scm.com/downloads\n\n\nConta AWS\nCom permissões para criar recursos (IAM, ECS, ECR)\naws.amazon.com/free\n\n\nConta GitHub\nPara hospedar o repositório e rodar os workflows\ngithub.com\n\n\n\nNota: Para o exemplo deste artigo, também é necessário o",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "从提交到部署：使用GitHub Actions、ECS和Terraform在AWS上进行CI/CD",
+        "summary": "这份全面的指南演示了如何使用GitHub Actions、Terraform和ECS Fargate构建从代码提交到生产部署的完整CI/CD管道。它展示了与语言无关的基础设施即代码模式和安全的OIDC认证，无需静态凭证。对main分支的合并会自动将容器化应用程序部署到生产环境，具有完全的自动化。"
+      },
+      "fr": {
+        "title": "Du commit au déploiement : CI/CD d'une API sur AWS avec GitHub Actions, ECS et Terraform",
+        "summary": "Ce guide complet vous guide dans la construction d'un pipeline CI/CD complet du commit de code au déploiement en production sur AWS en utilisant GitHub Actions, Terraform et ECS Fargate. Il démontre des modèles d'infrastructure en tant que code indépendants du langage et l'authentification OIDC sécurisée sans identifiants statiques. Une fusion vers main déploie automatiquement les applications conteneurisées en production avec une automatisation complète."
+      },
+      "de": {
+        "title": "Von Commit zum Deploy: CI/CD einer API auf AWS mit GitHub Actions, ECS und Terraform",
+        "summary": "Dieser umfassende Leitfaden führt Sie durch den Aufbau einer vollständigen CI/CD-Pipeline vom Code-Commit bis zur Produktionsbereitstellung auf AWS mit GitHub Actions, Terraform und ECS Fargate. Es demonstriert sprachunabhängige Infrastructure-as-Code-Muster und sichere OIDC-Authentifizierung ohne statische Anmeldedaten. Ein Merge zu main stellt containerisierte Anwendungen automatisch in der Produktion mit vollständiger Automatisierung bereit."
+      },
+      "es": {
+        "title": "De commit a despliegue: CI/CD de una API en AWS con GitHub Actions, ECS y Terraform",
+        "summary": "Esta guía completa le guía a través de la construcción de un pipeline CI/CD completo desde el commit del código hasta el despliegue en producción en AWS utilizando GitHub Actions, Terraform y ECS Fargate. Demuestra patrones agnósticos de lenguaje de infraestructura como código y autenticación OIDC segura sin credenciales estáticas. Una fusión a main despliega automáticamente aplicaciones containerizadas a producción con automatización completa."
+      }
+    }
+  },
+  {
+    "title": "How to find missing i18n keys without losing your mind (or your job)",
+    "slug": "how-to-find-missing-i18n-keys",
+    "url": "https://dev.to/dev_harry/how-to-find-missing-i18n-keys-without-losing-your-mind-or-your-job-1jff",
+    "source": "DEV Community",
+    "date": "2026-03-12T00:03:54.000Z",
+    "summary": "The Localization Scanner VS Code extension helps developers detect missing i18n translation keys and hardcoded strings that should be localized. It scans code, identifies broken references, finds forgotten translation wrappers, and navigates directly to problem lines. The tool prevents the embarrassing production bug where users see raw translation key placeholders instead of actual UI text.",
+    "content": "Look, we’ve all been there. You just pushed a massive feature, you’re feeling like a genius, and then the \"urgent\" Slack message hits.\nYour manager sends a screenshot from the production site, and instead of a nice \"Submit\" button, the users are seeing:\n{{ settings.labels.confirm_action_final_v2_FIXED }}\nIt’s embarrassing. It looks like the code is leaking. And honestly, trying to keep your source code and your en.json file in sync manually is a one-way ticket to burnout. I got tired of the manual \"Find in Files\" dance, so I built a tool to handle it.\nIntroducing Localization Scanner\nI created this VS Code extension because I wanted something that stayed out of the way until I actually needed it. It’s basically a safety net for your i18n workflow.\nWhat it actually does for you:\nFinds the \"Ghosts\": It scans your code and tells you exactly which keys you used that don't actually exist in your translation files.\nThe \"Did I really type that?\" Detector: It finds hardcoded strings that you forgot to wrap in a translation function. It’s smart enough to know that className=\"mb-4\" isn't a translation, but \"Are you sure you want to delete this?\" definitely is.\nRespects your RAM: I hate extensions that slow down my IDE. This has zero performance impact because it only runs when you hit the refresh button.\nClick and Fix: You see a missing key in the sidebar, you click it, and it takes you right to the line where you missed it.\nCheck it out\nMarketplace\nGitHub\nPlease download it, use it, and leave a nice review. If I see a 5-star rating, I might actually finish my other 14 pending side projects. If you leave a bad one, I’m telling my mom. lol. But seriously, your feedback keeps me going! \nLet me know if it saves you from a \"broken UI\" bug report. I'd love to hear your feedback or see a PR if you want to add more features!\n\n\n  \n  \n  vscodextensions #i18n #webdev #typescript #javascript #programming",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何找到缺失的i18n密钥而不失去理智（或工作）",
+        "summary": "Localization Scanner VS Code扩展帮助开发者检测缺失的i18n翻译密钥和应该被本地化的硬编码字符串。它扫描代码、识别损坏的引用、查找被遗忘的翻译包装器，并直接导航到问题行。该工具防止了令人尴尬的生产错误，即用户看到原始翻译密钥占位符而不是实际UI文本。"
+      },
+      "fr": {
+        "title": "Comment trouver les clés i18n manquantes sans perdre l'esprit (ni votre emploi)",
+        "summary": "L'extension Localization Scanner VS Code aide les développeurs à détecter les clés de traduction i18n manquantes et les chaînes codées en dur qui devraient être localisées. Il scanne le code, identifie les références cassées, trouve les wrappers de traduction oubliés et navigue directement vers les lignes problématiques. L'outil prévient le bug embarrassant de production où les utilisateurs voient les placeholders de clé de traduction bruts au lieu du texte UI réel."
+      },
+      "de": {
+        "title": "So finden Sie fehlende i18n-Schlüssel, ohne den Verstand zu verlieren (oder Ihren Job)",
+        "summary": "Die Localization Scanner VS Code-Erweiterung hilft Entwicklern, fehlende i18n-Übersetzungsschlüssel und hartcodierte Strings zu erkennen, die lokalisiert werden sollten. Sie scannt Code, identifiziert defekte Verweise, findet vergessene Übersetzungs-Wrapper und navigiert direkt zu Problemzeilen. Das Tool verhindert den peinlichen Produktionsfehler, bei dem Benutzer rohe Übersetzungsschlüssel-Platzhalter anstelle des tatsächlichen UI-Textes sehen."
+      },
+      "es": {
+        "title": "Cómo encontrar claves i18n faltantes sin perder la cordura (ni tu trabajo)",
+        "summary": "La extensión Localization Scanner de VS Code ayuda a los desarrolladores a detectar claves de traducción i18n faltantes y cadenas codificadas que deberían localizarse. Escanea código, identifica referencias rotas, encuentra envoltorios de traducción olvidados y navega directamente a las líneas problemáticas. La herramienta evita el error de producción vergonzoso donde los usuarios ven placeholders de claves de traducción sin procesar en lugar del texto UI real."
+      }
+    }
+  },
+  {
+    "title": "𝗪𝗵𝘆 𝗪𝗲𝗯𝗦𝗼𝗰𝗸𝗲𝘁 𝗠𝗶𝗱𝗱𝗹𝗲𝘄𝗮𝗿𝗲 𝗜𝘀 𝘁𝗵𝗲 𝗦𝗲𝗰𝗿𝗲𝘁 𝗪𝗲𝗮𝗽𝗼𝗻 𝗕𝗲𝗵𝗶𝗻𝗱 𝗦𝗰𝗮𝗹𝗮𝗯𝗹𝗲 𝗥𝗲𝗮𝗹‑𝗧𝗶𝗺𝗲 𝗔𝗽𝗽𝘀",
+    "slug": "why-websocket-middleware-secret-weapon-scalable-real-time-apps",
+    "url": "https://dev.to/ricardosaumeth/--2i0f",
+    "source": "DEV Community",
+    "date": "2026-03-12T00:03:25.000Z",
+    "summary": "WebSocket middleware transforms raw socket chaos into a production-grade system by routing messages to handlers, tracking connection health, detecting stale data, and enforcing memory bounds. Without middleware safeguards like bounded arrays, browsers crash after hours of real-time data streaming. Proper architecture enables systems handling millions in trading volume.",
+    "content": "Most developers treat WebSocket middleware as “plumbing.”\nRaw WebSockets Are Chaos\ninconsistent message formats\nno ordering guarantees\nno stale‑state detection\nno memory control\nno reconnection strategy\nno performance visibility\nMiddleware Turns Chaos Into Architecture\nroutes messages to specialized handlers\ntracks connection health\ndetects stale data\nenforces memory bounds\nmonitors processing latency\nmanages subscription lifecycles\nrecovers from failures gracefully\nHandler Architecture Is Everything\nhandleTradesData\nhandleTickerData\nhandleCandlesData\nhandleBookData\nEach handler processes only its domain.\nNo bottlenecks. No cross‑contamination. No surprises.\nStale‑State Detection Saves Users From Bad Decisions\nMemory‑Bounded Arrays Prevent Browser Death\n1,000 trades per pair\nstable memory\nno crashes\npredictable performance\nWithout bounds:\n8 hours = 288,000 objects and a browser that melts.\nPerformance Monitoring Is Non‑Negotiable\nSubscription Lifecycles Are a System of Their Own\npending\nactive\nstale\nfailed\nrecovering\nMiddleware orchestrates all of it — with timeouts, retries, and exponential backoff.\nThe Production Difference\nmiddleware layer\npure handlers\nmemory bounds\nstale detection\nreconnection logic\nperformance tracking\nlifecycle management\nThis is what turns a fragile prototype into a system that handles millions in trading volume.\nThe Bottom Line\n𝗪𝗿𝗶𝘁𝘁𝗲𝗻 𝗯𝘆 𝗥𝗶𝗰𝗮𝗿𝗱𝗼 𝗦𝗮𝘂𝗺𝗲𝘁𝗵 \n𝗦𝗲𝗻𝗶𝗼𝗿 𝗙𝗿𝗼𝗻𝘁‑𝗘𝗻𝗱 𝗘𝗻𝗴𝗶𝗻𝗲𝗲𝗿 | 𝗥𝗲𝗮𝗹‑𝗧𝗶𝗺𝗲 𝗨𝗜 𝗦𝗽𝗲𝗰𝗶𝗮𝗹𝗶𝘀𝘁",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么WebSocket中间件是可扩展实时应用的秘密武器",
+        "summary": "WebSocket中间件通过将原始套接字混乱转变为生产级系统，将消息路由到处理程序，跟踪连接健康状态，检测陈旧数据并强制执行内存限制。没有中间件保护措施（如有界数组），浏览器在数小时的实时数据流后会崩溃。适当的架构使系统能够处理数百万交易量。"
+      },
+      "fr": {
+        "title": "Pourquoi WebSocket Middleware Est l'Arme Secrète Derrière les Applications Temps Réel Évolutives",
+        "summary": "Le middleware WebSocket transforme le chaos des sockets bruts en un système de grade production en acheminant les messages vers les gestionnaires, en suivant la santé des connexions, en détectant les données obsolètes et en appliquant les limites de mémoire. Sans les protections du middleware comme les tableaux limités, les navigateurs s'arrêtent après des heures de streaming de données en temps réel. Une architecture appropriée permet aux systèmes de gérer des millions en volume de trading."
+      },
+      "de": {
+        "title": "Warum WebSocket-Middleware die Geheimwaffe für skalierbare Echtzeit-Apps ist",
+        "summary": "WebSocket-Middleware verwandelt rohes Socket-Chaos in ein produktionsreifes System, indem es Nachrichten an Handler weitergeleitet, die Verbindungsintegrität überwacht, veraltete Daten erkennt und Speichergrenzen durchsetzt. Ohne Middleware-Schutzmaßnahmen wie begrenzte Arrays stürzen Browser nach Stunden des Echtzeit-Datenstreamings ab. Angemessene Architektur ermöglicht Systemen, Millionen im Handelsvolumen zu bewältigen."
+      },
+      "es": {
+        "title": "Por Qué WebSocket Middleware Es el Arma Secreta Detrás de Aplicaciones en Tiempo Real Escalables",
+        "summary": "WebSocket middleware transforma el caos de socket bruto en un sistema de grado de producción enrutando mensajes a manejadores, rastreando la salud de la conexión, detectando datos obsoletos e imponiendo límites de memoria. Sin protecciones de middleware como matrices acotadas, los navegadores se cuelgan después de horas de transmisión de datos en tiempo real. La arquitectura adecuada permite que los sistemas manejen millones en volumen comercial."
+      }
+    }
+  },
+  {
+    "title": "How Do I Let My AI Agent Review My GitHub Repositories",
+    "slug": "how-do-i-let-my-ai-agent-review-github-repositories",
+    "url": "https://dev.to/aws-builders/how-do-i-let-my-ai-agent-review-my-github-repositories-2n8",
+    "source": "DEV Community",
+    "date": "2026-03-12T00:02:06.000Z",
+    "summary": "A Cloud Architect became a bottleneck reviewing infrastructure changes across multiple teams and automated the process using an AI assistant integrated with their codebase. The solution accelerates architectural reviews, infrastructure validation, and security approvals without manual delays. This pattern enables faster team velocity while maintaining quality oversight.",
+    "content": "👋 Hey there, tech enthusiasts! \nI'm Sarvar, a Cloud Architect with a passion for transforming complex technological challenges into elegant solutions. With extensive experience spanning Cloud Operations (AWS & Azure), Data Operations, Analytics, DevOps, and Generative AI, I've had the privilege of architecting solutions for global enterprises that drive real business impact. Through this article series, I'm excited to share practical insights, best practices, and hands-on experiences from my journey in the tech world. Whether you're a seasoned professional or just starting out, I aim to break down complex concepts into digestible pieces that you can apply in your projects.\nLet's dive in and explore the fascinating world of cloud technology together! 🚀\nWhen I became a Cloud Architect, I thought my bottleneck days were over. I assumed my role would shift from reviewing pull requests to designing scalable systems.\nI was wrong.\nCurrently, I lead two different teams within the same project, each responsible for managing its own infrastructure requirements:\nTeam A: Migrating a legacy monolithic application to microservices on Amazon Elastic Kubernetes Service (EKS)\nTeam B: Building a secure and scalable CI/CD platform\nBoth teams required architectural guidance, infrastructure reviews, security approvals, and cost validation. And naturally, most of those decisions came to me. Within three months, I realized I had become a bottleneck again. But this time, it was worse.\nPreviously, my delays affected a single team. Now, they were affecting two different teams working in parallel. Every architectural review, infrastructure change, and security approval had to pass through me.\nSomething had to change. And this time, I had the authority to change it.\nAs a Senior DevOps Engineer, I could only optimize my own workflow. As a Cloud Architect, I could design a system for everyone.\nI started asking questions:\nWhat if I had an AI assistant that understood our entire codebase?\nWhat i",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何让我的AI代理审查我的GitHub仓库",
+        "summary": "一位云架构师在审查多个团队的基础设施更改时成为瓶颈，并通过集成到其代码库中的AI助手自动化该过程。该解决方案加速了架构审查、基础设施验证和安全批准，无需手动延迟。这种模式在保持质量监督的同时实现更快的团队速度。"
+      },
+      "fr": {
+        "title": "Comment Laisser Mon Agent IA Examiner Mes Dépôts GitHub",
+        "summary": "Un architecte cloud est devenu un goulot d'étranglement lors de l'examen des modifications d'infrastructure dans plusieurs équipes et a automatisé le processus à l'aide d'un assistant IA intégré à leur base de code. La solution accélère les révisions architecturales, la validation de l'infrastructure et les approbations de sécurité sans délais manuels. Ce modèle permet une vélocité d'équipe plus rapide tout en maintenant une surveillance de la qualité."
+      },
+      "de": {
+        "title": "Wie Lasse Ich Meinen KI-Agenten Meine GitHub-Repositories Überprüfen",
+        "summary": "Ein Cloud-Architekt wurde zum Engpass bei der Überprüfung von Infrastrukturänderungen in mehreren Teams und automatisierte den Prozess mit einem KI-Assistenten, der in ihren Codebase integriert war. Die Lösung beschleunigt architektonische Überprüfungen, Infrastrukturvalidierung und Sicherheitsgenehmigungen ohne manuelle Verzögerungen. Dieses Muster ermöglicht eine schnellere Teamgeschwindigkeit und behält gleichzeitig Qualitätsüberwachung."
+      },
+      "es": {
+        "title": "¿Cómo Dejo Que Mi Agente de IA Revise Mis Repositorios de GitHub?",
+        "summary": "Un arquitecto en la nube se convirtió en un cuello de botella al revisar cambios de infraestructura en múltiples equipos y automatizó el proceso utilizando un asistente de IA integrado en su base de código. La solución acelera revisiones arquitectónicas, validación de infraestructura y aprobaciones de seguridad sin retrasos manuales. Este patrón permite una velocidad de equipo más rápida mientras se mantiene una supervisión de calidad."
+      }
+    }
+  }
+]
