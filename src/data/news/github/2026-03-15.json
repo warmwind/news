@@ -1,5 +1,369 @@
 [
   {
+    "title": "I got tired of building the same link preview function, so I made it an API",
+    "slug": "link-preview-api-developer-created",
+    "url": "https://dev.to/bengreenberg/i-got-tired-of-building-the-same-link-preview-function-so-i-made-it-an-api-47bg",
+    "source": "DEV Community",
+    "date": "2026-03-15T18:01:45.000Z",
+    "summary": "A developer extracted a common pattern—URL link preview functionality—into a standalone API that parses metadata across six layers including Open Graph, Twitter Cards, and JSON-LD. The API returns both merged and raw parsed metadata, reducing code duplication developers face when building preview features into their applications.",
+    "content": "Every app I've built in the last few years has needed the same thing: paste a URL, show a preview card. Slack does it. Discord does it. Every CMS does it. And every time, I end up writing the same cheerio scraping code, handling the same edge cases with Open Graph tags, and debugging the same issue where Twitter Cards use name instead of property and half the internet gets it wrong.\nA little while ago I finally extracted all of that into a standalone API and put it on RapidAPI. Figured other people are writing the same code too.\nYou pass a URL. You get back structured metadata across six layers:\nOpen Graph (title, description, images with dimensions, article metadata)\nTwitter Cards (card type, site, creator; only tags that are actually present, no fallback guessing)\nHTML meta (title tag, meta description, canonical, theme color)\nIcons (auto-selects the highest quality favicon with a priority chain)\nFeeds (discovers RSS, Atom, and JSON Feed links)\nJSON-LD (parses all script blocks, prefers Article/Product over BreadcrumbList)\nThe response gives you both a merged top-level view (where the title comes from whichever source has it; OG first, then Twitter, then the title tag) and the raw parsed layers, so you can do your own logic.\nHere's what GitHub returns:\n{\n  \"title\": \"GitHub · Build and ship software on a single, collaborative platform\",\n  \"description\": \"Join the world's most widely adopted...\",\n  \"image\": {\n    \"url\": \"https://github.githubassets.com/images/modules/site/social-cards/campaign-social.png\",\n    \"width\": 1200,\n    \"height\": 630\n  },\n  \"favicon\": \"https://github.githubassets.com/favicons/favicon.svg\",\n  \"siteName\": \"GitHub\",\n  \"type\": \"website\",\n  \"themeColor\": \"#1e2327\",\n  \"openGraph\": { ... },\n  \"twitter\": { ... },\n  \"feeds\": [],\n  \"jsonLd\": { \"@type\": \"WebSite\", ... },\n  \"responseTime\": 234\n}\n\nA few things I ran into while building this that I suspect anyone writing their own scraper will hit too:\nOG tags use property, Twitter uses name. The Open Gr",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我厌倦了重复编写相同的链接预览功能，所以我将其做成了一个API",
+        "summary": "一位开发者将常见的URL链接预览功能提取为独立的API，它可以跨越六个层级解析元数据，包括Open Graph、Twitter Cards和JSON-LD。该API返回合并后的和原始解析的元数据，减少了开发者在应用中构建预览功能时面临的代码重复。"
+      },
+      "fr": {
+        "title": "J'en ai eu assez de construire la même fonction d'aperçu de lien, alors j'en ai fait une API",
+        "summary": "Un développeur a extrait un modèle courant - la fonctionnalité d'aperçu de lien URL - dans une API autonome qui analyse les métadonnées sur six couches, y compris Open Graph, Twitter Cards et JSON-LD. L'API renvoie les métadonnées fusionnées et analysées brutes, réduisant la duplication de code à laquelle les développeurs sont confrontés lors de la création de fonctionnalités d'aperçu dans leurs applications."
+      },
+      "de": {
+        "title": "Ich war es leid, immer wieder die gleiche Link-Vorschau-Funktion zu entwickeln, also habe ich sie in eine API umgewandelt",
+        "summary": "Ein Entwickler hat ein häufiges Muster - die URL-Link-Vorschau-Funktionalität - in eine eigenständige API extrahiert, die Metadaten über sechs Schichten analysiert, einschließlich Open Graph, Twitter Cards und JSON-LD. Die API gibt sowohl zusammengeführte als auch rohgeparste Metadaten zurück und reduziert die Code-Duplizierung, mit der Entwickler bei der Integration von Vorschaufunktionen in ihre Anwendungen konfrontiert sind."
+      },
+      "es": {
+        "title": "Estoy cansado de construir la misma función de vista previa de enlaces, así que la convertí en una API",
+        "summary": "Un desarrollador extrajo un patrón común (funcionalidad de vista previa de enlaces URL) en una API independiente que analiza metadatos en seis capas, incluyendo Open Graph, Twitter Cards y JSON-LD. La API devuelve metadatos fusionados y metadatos analizados en bruto, reduciendo la duplicación de código que enfrentan los desarrolladores al crear funciones de vista previa en sus aplicaciones."
+      }
+    }
+  },
+  {
+    "title": "How I Built a Game Bot That Uses LLM Vision for $0.01/Hour (Not $1/Hour)",
+    "slug": "game-bot-llm-vision-cost-optimization",
+    "url": "https://dev.to/sonpiaz_40/how-i-built-a-game-bot-that-uses-llm-vision-for-001hour-not-1hour-3j6p",
+    "source": "DEV Community",
+    "date": "2026-03-15T17:57:34.000Z",
+    "summary": "A developer built a game automation framework that costs $0.01/hour instead of $1/hour by handling 98% of decisions locally through pixel analysis, OCR, and state machines, reserving expensive LLM calls for strategic decisions every 30 minutes. The approach layers perception, state detection, world modeling, scripted workflows, and strategic AI to minimize API costs.",
+    "content": "Most tutorials about using LLMs for game automation show you how to send screenshots to GPT-4 or Claude every few seconds. It works — but at $1+/hour, you'll burn through hundreds of dollars a month.\nI built a framework that gets the same results for $0.01/hour. Here's how.\nEvery 3 seconds:\n  1. Take screenshot\n  2. Send to Claude: \"What should I do?\"\n  3. Parse response\n  4. Execute action\n  5. Repeat\n\nCost: ~1,200 API calls/hour × $0.001 = $1.20/hour\n\nThis is how most LLM game agents work. It's simple, but the cost adds up fast — especially if you want to run 24/7.\nThe insight is that 98% of game decisions don't need AI. You can handle them locally, for free:\nLayer 5: STRATEGIC AI ──── LLM reviews strategy every 30 min ($0.004)\nLayer 4: WORKFLOWS ─────── Scripted tap sequences (FREE)\nLayer 3: WORLD MODEL ───── Tracks timers and predicts events (FREE)\nLayer 2: STATE MACHINE ─── Detects screens and handles popups (FREE)\nLayer 1: PERCEPTION ────── Pixel analysis + OCR (FREE)\n\nInstead of asking an AI \"what screen is this?\", I check pixel colors at known positions:\nBottom navigation bar is dark with colored icons? → Home screen\nDark overlay with bright center? → Popup\nBright panel in lower half? → Building menu\nThis takes 30-50ms vs 15-20 seconds for full OCR.\nFor the 20% of cases where pixels aren't enough, PaddleOCR runs locally to read text. Still free — no API calls.\nA simple FSM tracks which screen the bot is on. Popups are managed with a stack — when one appears, the previous state is pushed. When dismissed, it pops back.\nThis handles the #1 frustration with game bots: random purchase popups interrupting your workflow.\nInstead of re-discovering game state every cycle, the bot remembers:\nWhich buildings are upgrading and when they finish\nWhether research is active\nWhich troop training queues are idle\nIt predicts timer completions and acts at exactly the right moment — no polling.\nKnown tasks are scripted as deterministic tap sequences:\ndef upgrade_building(self, n",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何构建了一个使用LLM视觉的游戏机器人，成本仅为$0.01/小时（而非$1/小时）",
+        "summary": "一位开发者构建了一个游戏自动化框架，成本从$1/小时降至$0.01/小时，通过本地处理98%的决策（包括像素分析、OCR和状态机），仅在每30分钟预留昂贵的LLM调用用于战略决策。该方法层次化感知、状态检测、世界建模、脚本工作流和战略AI来最小化API成本。"
+      },
+      "fr": {
+        "title": "Comment j'ai construit un bot de jeu qui utilise la vision LLM pour 0,01 $/heure (pas 1 $/heure)",
+        "summary": "Un développeur a créé un framework d'automatisation de jeu qui coûte 0,01 $/heure au lieu de 1 $/heure en gérant 98% des décisions localement grâce à l'analyse de pixels, OCR et des machines à états, réservant les appels LLM coûteux pour les décisions stratégiques tous les 30 minutes. L'approche superpose la perception, la détection d'état, la modélisation du monde, les flux de travail scriptés et l'IA stratégique pour minimiser les coûts des API."
+      },
+      "de": {
+        "title": "Wie ich einen Game-Bot entwickelt habe, der LLM-Vision für 0,01 $/Stunde nutzt (nicht 1 $/Stunde)",
+        "summary": "Ein Entwickler hat ein Game-Automatisierungs-Framework entwickelt, das $0,01/Stunde statt $1/Stunde kostet, indem er 98% der Entscheidungen lokal durch Pixel-Analyse, OCR und Zustandsmaschinen verarbeitet und teure LLM-Aufrufe nur für strategische Entscheidungen alle 30 Minuten reserviert. Der Ansatz schichtet Wahrnehmung, Statuserkennung, Weltmodellierung, gescriptete Workflows und strategische KI, um API-Kosten zu minimieren."
+      },
+      "es": {
+        "title": "Cómo construí un bot de juego que usa visión LLM por $0.01/hora (no $1/hora)",
+        "summary": "Un desarrollador construyó un framework de automatización de juegos que cuesta $0.01/hora en lugar de $1/hora al manejar el 98% de las decisiones localmente mediante análisis de píxeles, OCR y máquinas de estado, reservando costosas llamadas LLM para decisiones estratégicas cada 30 minutos. El enfoque superpone percepción, detección de estado, modelado del mundo, flujos de trabajo secuenciados e IA estratégica para minimizar los costos de las API."
+      }
+    }
+  },
+  {
+    "title": "How to Add a Custom Form to Your Squarespace Site",
+    "slug": "custom-form-squarespace-site",
+    "url": "https://dev.to/allenarduino/how-to-add-a-custom-form-to-your-squarespace-site-ldp",
+    "source": "DEV Community",
+    "date": "2026-03-15T17:48:49.000Z",
+    "summary": "Squarespace's native form block has limitations including a 30-field limit and unreliable email notifications, so this guide demonstrates embedding custom HTML forms using Formgrid, a privacy-first form backend with a free tier supporting 50 submissions monthly. Formgrid enables full control over form logic, email formatting, and submission management without Squarespace's constraints.",
+    "content": "Squarespace makes it easy to build a beautiful website. \nThe native Squarespace form block is fine for simple contact \nSquarespace recommends adding no more than 30 fields to keep \nIn this guide, you'll learn how to add a fully custom HTML form \nFormgrid.dev.\nSquarespace's built-in form block covers the basics well. But \nLimited email formatting: The notification email you \nNo dynamic calculations: Squarespace's native form block \n30 field limit: Complex registration forms, event entries, \nUnreliable email notifications: Squarespace forum users \nNo submission dashboard: Squarespace stores submissions, but the interface for reviewing them is limited. No search, \nIf any of those hit home, keep reading.\nSquarespace allows you to embed custom HTML, CSS, and \nCode Block. \nThe only thing a custom HTML form needs is a backend to \nFormgrid.dev provides.\nFormgrid is a privacy-first form \nFree plan includes:\nUnlimited forms\n50 submissions/month\nEmail notifications on every submission\nBuilt-in spam protection (honeypot + rate limiting)\nSubmission dashboard\nPremium plan: $8/month\n5,000 submissions/month\nFile uploads\nCustom redirect after submission\nWebhook support\nBusiness plan: $19/month\n15,000 submissions/month\nCustom branded email templates\nPriority support\nUnlike Squarespace's native form, Formgrid lets you control \nHead to https://formgrid.dev and \nGoogle or Email.\n\nNo credit card required. You're on the free plan immediately.\nOnce logged in, click New Form from your dashboard.\n\nGive your form a descriptive name:\n\"Contact Form\"\n\"Event Registration\"\n\"Client Intake Form\"\nClick Create Form.\nGo to the Overview tab and copy your unique \n\nIt looks like this:\nhttps://formgrid.dev/api/f/your-form-id\n\nThis is the URL your HTML form will submit data to.\nIn your Squarespace dashboard:\nGo to Pages\n\nOpen the page where you want the form\nClick Edit\n\nClick the + button to add a new block\nSelect Code from the block options\n\nThis opens a code editor where you can paste raw HTML, \nHere is a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何向您的Squarespace网站添加自定义表单",
+        "summary": "Squarespace的原生表单块存在局限性，包括30字段限制和不可靠的电子邮件通知，因此本指南演示了使用Formgrid嵌入自定义HTML表单，Formgrid是一个隐私优先的表单后端，免费版本支持每月50次提交。Formgrid使您能够完全控制表单逻辑、电子邮件格式和提交管理，而不受Squarespace的限制。"
+      },
+      "fr": {
+        "title": "Comment ajouter un formulaire personnalisé à votre site Squarespace",
+        "summary": "Le bloc de formulaire natif de Squarespace a des limitations, notamment une limite de 30 champs et des notifications par email peu fiables. Ce guide montre comment intégrer des formulaires HTML personnalisés à l'aide de Formgrid, un backend de formulaire axé sur la confidentialité avec un niveau gratuit supportant 50 soumissions par mois. Formgrid permet un contrôle complet sur la logique du formulaire, le formatage des emails et la gestion des soumissions sans les contraintes de Squarespace."
+      },
+      "de": {
+        "title": "So fügen Sie ein benutzerdefiniertes Formular zu Ihrer Squarespace-Website hinzu",
+        "summary": "Der native Formular-Block von Squarespace hat Einschränkungen, einschließlich einer 30-Feld-Grenze und unzuverlässigen E-Mail-Benachrichtigungen. Dieser Leitfaden zeigt das Einbetten von benutzerdefinierten HTML-Formularen mit Formgrid, einem datenschutzorientierten Formulier-Backend mit kostenlosem Plan, der 50 Einreichungen monatlich unterstützt. Formgrid ermöglicht die vollständige Kontrolle über Formularlogik, E-Mail-Formatierung und Einreichungsverwaltung ohne die Einschränkungen von Squarespace."
+      },
+      "es": {
+        "title": "Cómo añadir un formulario personalizado a tu sitio de Squarespace",
+        "summary": "El bloque de formulario nativo de Squarespace tiene limitaciones, incluyendo un límite de 30 campos y notificaciones por correo electrónico no confiables. Esta guía demuestra la integración de formularios HTML personalizados usando Formgrid, un backend de formularios enfocado en privacidad con un nivel gratuito que admite 50 envíos mensuales. Formgrid permite control total sobre la lógica del formulario, el formato de correo electrónico y la gestión de envíos sin las limitaciones de Squarespace."
+      }
+    }
+  },
+  {
+    "title": "Async compaction: the race conditions nobody talks about",
+    "slug": "async-compaction-race-conditions-llm",
+    "url": "https://dev.to/openwalrus/async-compaction-the-race-conditions-nobody-talks-about-4ni",
+    "source": "DEV Community",
+    "date": "2026-03-15T17:47:07.000Z",
+    "summary": "Moving context compaction from synchronous to asynchronous processing introduces five categories of race conditions that can silently drop messages and cause data loss, as evidenced by production issues in frameworks like LangGraph and Google ADK. Most major frameworks default to synchronous compaction, accepting the safety guarantee over performance gains.",
+    "content": "Claude Code blocks the agent while compacting. LangGraph runs compaction in the background and silently drops messages. Aider spawns a background thread and hopes for the best. Async compaction sounds like the obvious optimization — until you try to build it.\nWe surveyed how major frameworks handle context compaction timing — synchronous, asynchronous, or not at all — and catalogued the concurrency hazards that emerge when you move compaction off the critical path. Here's what we found.\nMost frameworks run compaction synchronously. The agent stops, the LLM summarizes, the agent continues with a shorter context. It's slow but safe.\n\n\n\nFramework\nApproach\nAgent blocked\nRace risk\n\n\n\n\nClaude Code\nSync at 95% capacity\nYes\nNone\n\n\nLangChain\nSync after turn\nYes\nNone\n\n\nAutoGen\nSync between chats\nYes\nNone\n\n\nCursor\nNone (manual reset)\nN/A\nN/A\n\n\nChatGPT\nNone (manual)\nN/A\nN/A\n\n\nAider\nBackground thread\nNo\nMedium\n\n\nGoogle ADK\nAsync event-based\nNo\nMedium\n\n\nLangGraph\nAsync background\nNo\nHigh\n\n\n\nSix of eight frameworks either block or don't compact at all. The industry has voted with its implementations: synchronous compaction is the safe default.\nThe cost is real. LLM summarization takes 2–10 seconds depending on context size and model. During that window, the agent can't respond. For interactive use cases (coding assistants, chatbots), that's a noticeable hang. For background automation, it barely matters.\nMoving compaction to a background task introduces five categories of concurrency bugs. We found evidence of all five in production frameworks.\nCompaction reads the current message history, sends it to an LLM for summarization, and waits for the result. During that wait, new messages arrive. The compacted summary doesn't include them.\nWhen the summary replaces the original history, the new messages are silently lost.\nLangGraph's documented race: history is rebuilt from a stale snapshot then fully replaced, dropping items recorded during the compaction window. The proposed fix — ver",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "异步压缩：没有人谈论的竞争条件",
+        "summary": "将上下文压缩从同步处理转移到异步处理会引入五类竞争条件，可能会无声地丢弃消息并导致数据丢失，正如LangGraph和Google ADK等框架中的生产问题所证明的那样。大多数主要框架默认使用同步压缩，优先考虑安全保证而非性能收益。"
+      },
+      "fr": {
+        "title": "Compaction asynchrone : les conditions de course dont personne ne parle",
+        "summary": "Le déplacement de la compaction de contexte du traitement synchrone vers le traitement asynchrone introduit cinq catégories de conditions de course qui peuvent silencieusement supprimer des messages et causer une perte de données, comme en témoignent les problèmes de production dans des frameworks comme LangGraph et Google ADK. La plupart des grands frameworks utilisent par défaut la compaction synchrone, privilégiant la garantie de sécurité aux gains de performance."
+      },
+      "de": {
+        "title": "Asynchrone Komprimierung: Die Race Conditions, über die niemand spricht",
+        "summary": "Das Verschieben der Kontextkomprimierung von synchroner zu asynchroner Verarbeitung führt fünf Kategorien von Race Conditions ein, die Meldungen stillschweigend verwerfen und zu Datenverlust führen können, wie durch Produktionsprobleme in Frameworks wie LangGraph und Google ADK belegt. Die meisten großen Frameworks verwenden standardmäßig synchrone Komprimierung und akzeptieren die Sicherheitsgarantie gegenüber Leistungsgewinnen."
+      },
+      "es": {
+        "title": "Compactación asincrónica: las condiciones de carrera que nadie menciona",
+        "summary": "Mover la compactación de contexto del procesamiento síncrono al asincrónico introduce cinco categorías de condiciones de carrera que pueden descartar silenciosamente mensajes y causar pérdida de datos, como se evidencia en los problemas de producción en frameworks como LangGraph y Google ADK. La mayoría de los frameworks principales utilizan compactación sincrónica de forma predeterminada, aceptando la garantía de seguridad sobre las ganancias de rendimiento."
+      }
+    }
+  },
+  {
+    "title": "How Blaze Could Change Blade Component Rendering in Laravel",
+    "slug": "blaze-blade-component-rendering-laravel",
+    "url": "https://dev.to/thomas_emad/how-blaze-could-change-blade-component-rendering-in-laravel-272o",
+    "source": "DEV Community",
+    "date": "2026-03-15T17:42:45.000Z",
+    "summary": "Blaze proposes optimizing Laravel Blade component rendering by moving work from runtime to compile time, analyzing component structures into an AST and pre-compiling them similar to Vue.js. This approach mirrors industry trends in Vite and Inertia.js toward compile-time optimizations, reducing overhead of rendering many components on a single page.",
+    "content": "Recently, there has been an interesting trend in modern tooling: moving work from runtime to compile time to improve performance.\nWe can see this direction in multiple tools:\nVite 8 now moving toward Rolldown built by Rust\nContinuous improvements in Inertia.js\nA new idea around Laravel Blade components called Blaze\nIn this article, we'll explore the idea behind Blaze and why it could improve Blade component rendering.\nBefore talking about Blaze, we need to remember how Laravel Blade works.\nIn Laravel, Blade is a templating engine that allows developers to write directives such as:\n@if ($condition)\n    <p>Hello</p>\n@endif\n\nBut HTML does not understand @if or @php.\nSo the first time a page is loaded, Laravel runs the Blade compiler which transforms Blade directives into plain PHP:\n<?php if ($condition) { ?>\n<p>Hello</p>\n<?php } ?>\n\nAfter compilation, Laravel stores the compiled result inside:\nstorage/framework/views\n\nSo the next time the page is requested, Laravel simply loads the compiled PHP file instead of recompiling the Blade template.\nImagine your dashboard.blade.php becomes larger and contains multiple UI parts:\nCharts\nEmployee attendance\nCalendar\nWidgets\nYou will most likely start using Blade components.\n<x-charts :data=\"$data\" />\n\nWhen Laravel encounters this component, it resolves it internally. A simplified version of the process looks like this:\nRequest\n → Create Component\n → Render View\n → Return HTML\n\n\nThis process happens during runtime. If your page contains many components, this repeated rendering can introduce some overhead.\nBlaze is not a replacement for Blade. Instead, it aims to optimize how Blade components are rendered.\nThe key idea behind Blaze is something similar to folding and compilation. Instead of repeatedly rendering components during runtime, Blaze analyzes the component structure first.\nBlaze breaks the component into nodes and constructs something similar to an AST (Abstract Syntax Tree). This is similar to how frameworks like Vue.js",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Blaze如何改变Laravel Blade组件渲染",
+        "summary": "Blaze提议通过将工作从运行时转移到编译时来优化Laravel Blade组件渲染，将组件结构分析为AST并像Vue.js一样预编译它们。这种方法反映了Vite和Inertia.js在编译时优化方面的行业趋势，降低了在单个页面上渲染许多组件的开销。"
+      },
+      "fr": {
+        "title": "Comment Blaze pourrait changer le rendu des composants Blade dans Laravel",
+        "summary": "Blaze propose d'optimiser le rendu des composants Blade de Laravel en déplaçant le travail du temps d'exécution vers le temps de compilation, en analysant les structures de composants en AST et en les pré-compilant de manière similaire à Vue.js. Cette approche reflète les tendances de l'industrie chez Vite et Inertia.js vers les optimisations au moment de la compilation, réduisant la surcharge du rendu de nombreux composants sur une seule page."
+      },
+      "de": {
+        "title": "Wie Blaze das Rendering von Blade-Komponenten in Laravel verändern könnte",
+        "summary": "Blaze schlägt vor, das Rendering von Laravel-Blade-Komponenten zu optimieren, indem Arbeiten von der Laufzeit zur Kompilierungszeit verlagert werden, Komponentenstrukturen in ein AST analysiert werden und diese ähnlich wie Vue.js vorkompiliert werden. Dieser Ansatz spiegelt Branchentrends bei Vite und Inertia.js in Richtung Optimierungen zur Kompilierungszeit wider und reduziert den Aufwand beim Rendering vieler Komponenten auf einer einzelnen Seite."
+      },
+      "es": {
+        "title": "Cómo Blaze podría cambiar el renderizado de componentes Blade en Laravel",
+        "summary": "Blaze propone optimizar el renderizado de componentes Blade de Laravel moviendo el trabajo del tiempo de ejecución al tiempo de compilación, analizando estructuras de componentes en un AST y precompilándolos de manera similar a Vue.js. Este enfoque refleja las tendencias de la industria en Vite e Inertia.js hacia optimizaciones en tiempo de compilación, reduciendo la sobrecarga de renderizar muchos componentes en una sola página."
+      }
+    }
+  },
+  {
+    "title": "I Built a Local AI Podcast Editor Because I'm Done Renting My Own Workflow",
+    "slug": "local-ai-podcast-editor-darkroom",
+    "url": "https://dev.to/drjoanneskiles/i-built-a-local-ai-podcast-editor-because-im-done-renting-my-own-workflow-1mpk",
+    "source": "DEV Community",
+    "date": "2026-03-15T17:41:09.000Z",
+    "summary": "A developer built DarkRoom, a local-first podcast editor that keeps audio files and workflows on the user's machine rather than relying on cloud-based subscription services. The tool applies local-first design principles (similar to Obsidian and Excalidraw) to podcast production, giving creators full ownership and visibility over their content processing pipeline.",
+    "content": "Despite how much I post online, I'm pretty deliberate about where my data actually lives. Not in a tinfoil hat way, I use cloud services, I have accounts everywhere. But there's a difference between choosing to share something and having no other option.\nI started a podcast. Suddenly I needed to think about marketing, which means Shorts, Reels, vertical cuts, captions. The tools that do this are good. Genuinely good. But they all run on the same model: your files live on their servers, your workflow lives in their interface, and your access lives on their billing page. Cancel your subscription and you're starting over. Want to export your project? Hope they support that. Want to know what they're doing with your footage? Read the terms of service and good luck.\nI'm not interested in that trade. I want to own my pipeline the same way I own my code. So I built a POC called DarkRoom.\nThere's a growing conversation in software about local-first design, the idea that your data should live on your device by default and only sync or share when you explicitly choose to. Tools like Obsidian, Excalidraw, and a wave of newer apps are built around this. Your device is the source of truth, not some server you're renting space on.\nThe content creation space hasn't caught up. Almost everything assumes the cloud is the primary location and your device is just a thin client. That's great for collaboration. But it also means:\nYou're paying rent on your own data\nYour workflow can disappear when a company pivots, gets acquired, or raises prices\nYou have no real visibility into how your content is used after upload\nDarkRoom is an attempt to apply local-first thinking to podcast production. The processing happens on your machine. The files are yours. The workflow is just a Python server and some JSON. You can read every artifact it produces in a text editor, put it in git, move it to another machine, or delete it. No account required. No export wizard. No \"your project will be deleted in",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个本地AI播客编辑器，因为我已经厌倦了租赁自己的工作流程",
+        "summary": "一位开发者构建了DarkRoom，这是一个本地优先的播客编辑器，将音频文件和工作流保存在用户的机器上，而不是依赖于基于云的订阅服务。该工具将本地优先设计原则（类似于Obsidian和Excalidraw）应用于播客制作，使创意者能够完全拥有和可视化其内容处理管道。"
+      },
+      "fr": {
+        "title": "J'ai créé un éditeur de podcast IA local parce que j'en ai assez de louer mon propre flux de travail",
+        "summary": "Un développeur a créé DarkRoom, un éditeur de podcast local-first qui conserve les fichiers audio et les flux de travail sur la machine de l'utilisateur plutôt que de compter sur les services d'abonnement basés sur le cloud. L'outil applique les principes de conception local-first (similaires à Obsidian et Excalidraw) à la production de podcast, donnant aux créateurs la propriété totale et la visibilité sur leur pipeline de traitement de contenu."
+      },
+      "de": {
+        "title": "Ich habe einen lokalen KI-Podcast-Editor erstellt, weil ich es satt bin, meinen eigenen Arbeitsablauf zu mieten",
+        "summary": "Ein Entwickler hat DarkRoom erstellt, einen lokalen Podcast-Editor, der Audio-Dateien und Arbeitsabläufe auf dem Computer des Benutzers speichert, anstatt sich auf Cloud-basierte Abonnementdienste zu verlassen. Das Tool wendet Local-First-Designprinzipien (ähnlich wie Obsidian und Excalidraw) auf die Podcast-Produktion an und gibt Kreativen vollständiges Eigentum und Sichtbarkeit über ihre Content-Processing-Pipeline."
+      },
+      "es": {
+        "title": "Construí un editor de podcast de IA local porque estoy harto de alquilar mi propio flujo de trabajo",
+        "summary": "Un desarrollador construyó DarkRoom, un editor de podcast local-first que mantiene archivos de audio y flujos de trabajo en la máquina del usuario en lugar de depender de servicios de suscripción basados en la nube. La herramienta aplica principios de diseño local-first (similar a Obsidian y Excalidraw) a la producción de podcast, dando a los creadores propiedad total y visibilidad sobre su canalización de procesamiento de contenido."
+      }
+    }
+  },
+  {
+    "title": "The Developer's Daily Routine: What High-Output Builders Actually Do Differently",
+    "slug": "developer-daily-routine-high-output-builders",
+    "url": "https://dev.to/slowcommit/the-developers-daily-routine-what-high-output-builders-actually-do-differently-3649",
+    "source": "DEV Community",
+    "date": "2026-03-15T17:40:42.000Z",
+    "summary": "High-output developers structure their time around deep work principles rather than responding reactively to messages and meetings, dedicating specific time blocks to cognitively demanding tasks instead of defaulting to shallow work like email and Slack. The article explores how managing attention and timing matters more than raw hours spent.",
+    "content": "By a developer who's wasted enough time to know what not to do\nYou know the feeling.\nIt's 4 PM. You've been at your desk since 9. You've answered Slack messages, sat through two standups, reviewed a pull request, chased down a bug that turned out to be a missing semicolon, and watched your task list somehow grow longer than it was in the morning.\nAnd yet — looking back at the day — you've produced almost nothing you're proud of.\nNo meaningful feature shipped. No architectural thinking done. No learning. Just noise.\nThat creeping anxiety as the day ends isn't laziness. It isn't a skill gap. It's a systems problem. Most developers have never been taught how to structure their time. We're trained to write code, not to manage attention. So we default to reactive mode — responding to whatever pings loudest — and call it \"a busy day.\"\nHigh-output developers have figured out something most haven't: what you do with your time matters less than when and how you do it. They're not working more hours. They're not grinding 14-hour days. They're working differently — with a deliberately engineered developer daily routine built around the science of focus, the rhythm of human cognition, and a ruthless commitment to deep work.\nThis article is about what that actually looks like in practice.\nBefore we talk about what elite developers do right, let's be honest about what almost everyone does wrong.\nChecking email feels like work. Responding to Slack feels like work. Attending meetings feels like work. But none of these activities move a product forward. They create the sensation of productivity while consuming the capacity for it.\nCal Newport, in his landmark book Deep Work, draws a sharp distinction between deep work — cognitively demanding tasks that create real value — and shallow work — logistical and communicative tasks that feel urgent but are largely interruptible and low-impact. Most developers spend the majority of their day in shallow work mode without realizing it.\nThe re",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "开发者的日常日程：高效率构建者实际上做得不同的地方",
+        "summary": "高效率开发者根据深度工作原则来安排他们的时间，而不是被动地回应消息和会议，将特定的时间块专门用于认知需求高的任务，而不是默认浅层工作，如电子邮件和Slack。本文探讨了管理注意力和时间安排比花费的原始小时数更重要。"
+      },
+      "fr": {
+        "title": "La Routine Quotidienne du Développeur: Ce que les Constructeurs à Haut Rendement Font Réellement Différemment",
+        "summary": "Les développeurs à haut rendement structurent leur temps autour des principes de travail profond plutôt que de réagir passivement aux messages et aux réunions, en dédiant des blocs de temps spécifiques aux tâches cognitives exigeantes au lieu de privilégier le travail superficiel comme les e-mails et Slack. L'article explore comment la gestion de l'attention et le timing importent plus que les heures brutes dépensées."
+      },
+      "de": {
+        "title": "Die tägliche Routine des Entwicklers: Was High-Output-Builder wirklich anders machen",
+        "summary": "High-Output-Entwickler strukturieren ihre Zeit nach Deep-Work-Prinzipien, anstatt reaktiv auf Nachrichten und Meetings zu reagieren, und widmen spezifische Zeitblöcke kognitiv anspruchsvollen Aufgaben, anstatt sich auf oberflächliche Arbeit wie E-Mails und Slack zu konzentrieren. Der Artikel untersucht, wie das Management von Aufmerksamkeit und Timing wichtiger ist als die reine Stundenanzahl."
+      },
+      "es": {
+        "title": "La Rutina Diaria del Desarrollador: Lo Que los Constructores de Alto Rendimiento Realmente Hacen Diferente",
+        "summary": "Los desarrolladores de alto rendimiento estructuran su tiempo en torno a principios de trabajo profundo en lugar de responder reactivamente a mensajes y reuniones, dedicando bloques de tiempo específicos a tareas cognitivamente exigentes en lugar de optar por trabajo superficial como correo electrónico y Slack. El artículo explora cómo la gestión de la atención y el timing importa más que las horas brutas invertidas."
+      }
+    }
+  },
+  {
+    "title": "Build a Kubernetes Cluster at Home with Raspberry Pis",
+    "slug": "kubernetes-cluster-raspberry-pi-home",
+    "url": "https://dev.to/anavalo/building-a-kubernetes-cluster-at-home-with-raspberry-pis-1l8c",
+    "source": "DEV Community",
+    "date": "2026-03-15T17:40:01.000Z",
+    "summary": "This guide walks through building a four-node Kubernetes cluster on Raspberry Pi hardware for approximately €300, including board selection, networking setup, and cluster configuration with one Pi serving as a gateway and three as worker nodes. The hands-on approach provides intimate experience with Kubernetes workload rebalancing.",
+    "content": "Most people interact with Kubernetes through the cloud. They probably are as close to the cluster as they are to their laptop. Using a cluster in the cloud with a web browser or terminal is fine but there is something more intimate or rewarding to deploying a kubernetes cluster on bare metal. And even more rewarding is physically unplugging a node and watch Kubernetes rebalancing the workloads.\nThe total cost is roughly €300 depending on what you already own, the number of nodes you will choose to have and whether you will get a case to wrap everything nicely.\n4x Raspberry Pi 4 (or Pi 5) (4GB RAM or more). With 4GB per board, there's enough headroom to run workloads on top. 8GB model is nice to have but not necessary.\n\n\n4x microSD cards (32GB). The OS, container images, and Kubernetes binaries all live on these. 32GB gives you comfortable room.\n\n\nA multi-port USB-C charger (at least 15W per port). Each Pi 4 draws up to 15W under load. A 4-port USB-C PD GaN charger powers the whole cluster from a single wall outlet.\n\n\n4x USB-C cables.\n\n\nAn ethernet switch. \n\n\n4x ethernet cables.\n\n\nA microSD card reader, a monitor (the Pi 4 has two micro-HDMI ports) and a USB keyboard. You'll only need the monitor and keyboard briefly during initial setup. Once SSH is configured, everything happens remotely from your laptop.\n\n\nA cluster case. Something like the UCTRONICS Raspberry Pi cluster enclosure keeps your four boards stacked neatly with proper airflow. Optional but recommended plus it looks great on a desk.\n\n\n\n\nBefore we start plugging things in, let's understand what we're building and why it's shaped this way.\n\nPi 1 has a dual role. Its Wi-Fi interface connects to your home router and the internet. Its ethernet interface connects to a private switch where the three worker nodes live. Pi 1 acts as a gateway. It performs NAT (Network Address Translation) so the workers can reach the internet through it, the same way your home router lets your devices reach the internet through",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在家用树莓派搭建Kubernetes集群",
+        "summary": "本指南介绍了如何使用树莓派硬件以约€300的成本搭建四节点Kubernetes集群，包括主板选择、网络设置和集群配置，其中一个树莓派充当网关，三个充当工作节点。这种实践方法提供了对Kubernetes工作负载重新平衡的深入体验。"
+      },
+      "fr": {
+        "title": "Construire un Cluster Kubernetes à la Maison avec des Raspberry Pis",
+        "summary": "Ce guide montre comment construire un cluster Kubernetes à quatre nœuds sur du matériel Raspberry Pi pour environ €300, y compris la sélection de la carte, la configuration du réseau et la configuration du cluster avec un Pi servant de passerelle et trois comme nœuds de travail. L'approche pratique fournit une expérience intime avec l'équilibrage de la charge de travail Kubernetes."
+      },
+      "de": {
+        "title": "Ein Kubernetes-Cluster zu Hause mit Raspberry Pis aufbauen",
+        "summary": "Diese Anleitung führt durch den Aufbau eines vierteiligen Kubernetes-Clusters auf Raspberry-Pi-Hardware für etwa €300, einschließlich Boardauswahl, Netzwerkeinrichtung und Clusterkonfiguration mit einem Pi als Gateway und drei als Workerknoten. Der praktische Ansatz bietet intime Erfahrung mit der Lastverteilung von Kubernetes-Workloads."
+      },
+      "es": {
+        "title": "Construir un Cluster de Kubernetes en Casa con Raspberry Pis",
+        "summary": "Esta guía recorre la construcción de un cluster Kubernetes de cuatro nodos en hardware Raspberry Pi por aproximadamente €300, incluyendo la selección de placa, configuración de red y configuración de cluster con una Pi sirviendo como puerta de enlace y tres como nodos de trabajo. El enfoque práctico proporciona experiencia íntima con el reequilibrio de cargas de trabajo de Kubernetes."
+      }
+    }
+  },
+  {
+    "title": "Agentic AI Code Review: From Confidently Wrong to Evidence-Based",
+    "slug": "agentic-ai-code-review-evidence-based",
+    "url": "https://dev.to/alexandreamadocastro/agentic-ai-code-review-from-confidently-wrong-to-evidence-based-pne",
+    "source": "DEV Community",
+    "date": "2026-03-15T17:39:43.000Z",
+    "summary": "A developer found that static context selection for AI code reviewers led to confidently wrong conclusions, so they redesigned the system to give the AI tools to fetch evidence dynamically while reviewing. This agentic approach moves away from predicting needed context upfront toward letting the model discover relevant code as it analyzes.",
+    "content": "Archbot flagged a \"blocker\" on a PR. It cited the diff, built a plausible chain of reasoning, and suggested a fix.\nIt was completely wrong. Not \"LLMs are sometimes wrong\" wrong — more like convincing enough that a senior engineer spent 20 minutes disproving it.\nThe missing detail wasn't subtle. It was a guard clause sitting in a helper two files away.\nThat failure mode wasn't a prompt problem.\ncontext problem.\nSo I stopped trying to predict what context the model would need up-front, and switched to an agentic loop: give the model tools to fetch evidence as it goes, and require it to end with a structured \"submit review\" action.\nThis post is the architectural why and how (and the reliability plumbing that made it work). There are good hosted AI review tools now. This post is about the pattern underneath them.\n[!NOTE]\nIf you want the backstory on what Archbot is and why I built it, start with the original post: Building Archbot: AI Code Review for GitHub Enterprise.\nMy original design was what a lot of \"LLM workflow\" systems converge to:\nGive the model the PR diff.\nGive it some representation of the repo.\nAsk it to pick the files that matter.\nFeed only those files back in for the real review.\nOptionally run a second pass to critique the first pass.\nThat critique pass is helpful for catching obvious nonsense and reducing overconfident tone.\nIt looks like this:\nflowchart TB\n  A[PR opened/updated] --> B[Phase 1: select_files]\n  B --> C[\"Build focused context (diff + selected files)\"]\n  C --> D[Phase 2a: perform_code_review]\n  D --> E[Phase 2b: critique_review]\n  E --> F[Submit review]\n\nOn paper, it's elegant:\nThe model is great at prioritizing.\nKeeping context small should reduce hallucinations.\nA critique pass should catch the worst bad takes.\nIn practice, it fails in a very specific way.\nCode review isn't \"read these files\".\nAnd chains are not predictable.\nYou start in handler.go, notice it calls validate(), jump to validate.go, see it wraps a client, jump to client.g",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "代理AI代码审查：从自信错误到证据驱动",
+        "summary": "一位开发者发现静态上下文选择对AI代码审查员导致了自信的错误结论，因此他们重新设计了系统，为AI提供工具以在审查时动态获取证据。这种代理方法从提前预测所需的上下文转向让模型在分析时发现相关代码。"
+      },
+      "fr": {
+        "title": "Examen de Code IA Agentique: De Confiant à Tort à Basé sur des Preuves",
+        "summary": "Un développeur a découvert que la sélection de contexte statique pour les examinateurs de code IA menait à des conclusions confidentes mais erronées, il a donc restructuré le système pour donner à l'IA les outils pour récupérer les preuves de manière dynamique lors de l'examen. Cette approche agentique s'éloigne de la prédiction du contexte nécessaire à l'avance vers la découverte du code pertinent par le modèle lors de son analyse."
+      },
+      "de": {
+        "title": "Agentische KI-Code-Review: Von Selbstbewusst Falsch zu Evidence-Based",
+        "summary": "Ein Entwickler stellte fest, dass die statische Kontextauswahl für KI-Code-Reviewer zu selbstbewusst falschen Schlussfolgerungen führte, daher gestalteten sie das System so um, dass die KI Tools hat, um während der Überprüfung Beweise dynamisch abzurufen. Dieser agentische Ansatz entfernt sich davon, den erforderlichen Kontext im Voraus vorherzusagen, hin zu dem Lassen des Modells relevanten Code während der Analyse entdecken."
+      },
+      "es": {
+        "title": "Revisión de Código IA Agentiva: De Confiadamente Incorrecto a Basado en Evidencia",
+        "summary": "Un desarrollador descubrió que la selección estática de contexto para revisores de código IA conducía a conclusiones confiadamente incorrectas, por lo que rediseñó el sistema para dar a la IA herramientas para obtener evidencia dinámicamente mientras revisa. Este enfoque agentivo se aleja de predecir el contexto necesario por adelantado hacia permitir que el modelo descubra código relevante conforme analiza."
+      }
+    }
+  },
+  {
+    "title": "I built a VS Code extension to see what Claude Code is actually doing across all my projects",
+    "slug": "claude-code-dashboard-vs-code-extension",
+    "url": "https://dev.to/mh_shifat/i-built-a-vs-code-extension-to-see-what-claude-code-is-actually-doing-across-all-my-projects-4626",
+    "source": "DEV Community",
+    "date": "2026-03-15T17:36:03.000Z",
+    "summary": "A developer built Claude Code Dashboard, a VS Code extension that aggregates Claude Code session history, token usage, and project activity across multiple repositories in one view without external accounts or API keys. The extension helps heavy Claude Code users track spending, project history, and tool usage by reading local session data.",
+    "content": "If you use Claude Code heavily across multiple repos, you probably know this feeling.\nYou have Claude running in several projects at the same time and at some point you start wondering:\nHow much did I spend this week?\nWhich project burned the most tokens?\nWhat was that session from yesterday even about?\nI kept hitting this problem, so I built a small tool for it.\nIt's a VS Code extension called Claude Code Dashboard that shows everything Claude Code has been doing across your projects in one place.\nMain features:\n🗂️ See all Claude Code projects in one sidebar\n📝 Session history per project (shows the first prompt as preview)\n💰 Token and cost breakdown per session and per project\n📁 See which files Claude touched and which tools it used\n⚡ Detects when a Claude session is actively running\nThe nice part: there’s no setup.\nNo API keys, no accounts, nothing external.\n\nIt just reads the session data Claude Code already stores locally.\nI mainly built it because once you start using Claude Code a lot, you lose visibility pretty quickly.\nAvailable here:\nPromo Homepage: https://claude-code-dashboard-jspw.vercel.app\nVS Code Marketplace: https://marketplace.visualstudio.com/items?itemName=jspw.claude-code-dashboard\nOpen VSX (Cursor / Windsurf) -> https://open-vsx.org/extension/jspw/claude-code-dashboard\nSource Code -> https://github.com/jspw/Claude-Code-Dashboard\nIt's free and open source (AGPL-3.0).\nIf you're a heavy Claude Code user, I'm curious if this would actually be useful for you or if there are other things you'd want to see in a dashboard like this.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个VS Code扩展来查看Claude Code在我所有项目中实际在做什么",
+        "summary": "开发者构建了Claude Code Dashboard，一个VS Code扩展，可以在一个视图中聚合Claude Code会话历史、令牌使用情况和多个存储库的项目活动，无需外部账户或API密钥。该扩展通过读取本地会话数据，帮助重度Claude Code用户跟踪支出、项目历史和工具使用。"
+      },
+      "fr": {
+        "title": "J'ai créé une extension VS Code pour voir ce que Claude Code fait réellement dans tous mes projets",
+        "summary": "Un développeur a créé Claude Code Dashboard, une extension VS Code qui agrège l'historique des sessions Claude Code, l'utilisation des jetons et l'activité du projet sur plusieurs référentiels en une seule vue sans comptes externes ni clés API. L'extension aide les utilisateurs intensifs de Claude Code à suivre les dépenses, l'historique des projets et l'utilisation des outils en lisant les données de session locales."
+      },
+      "de": {
+        "title": "Ich habe eine VS Code-Erweiterung erstellt, um zu sehen, was Claude Code wirklich in all meinen Projekten tut",
+        "summary": "Ein Entwickler erstellte Claude Code Dashboard, eine VS Code-Erweiterung, die die Claude Code-Sitzungsverlauf, die Token-Nutzung und die Projektaktivität über mehrere Repositories in einer Ansicht aggregiert, ohne dass externe Konten oder API-Schlüssel erforderlich sind. Die Erweiterung hilft intensiven Claude Code-Benutzern, Ausgaben, Projekthistorie und Werkzeugnutzung zu verfolgen, indem sie lokale Sitzungsdaten liest."
+      },
+      "es": {
+        "title": "Construí una extensión de VS Code para ver qué está haciendo realmente Claude Code en todos mis proyectos",
+        "summary": "Un desarrollador creó Claude Code Dashboard, una extensión de VS Code que agrega el historial de sesiones de Claude Code, el uso de tokens y la actividad del proyecto en múltiples repositorios en una sola vista sin cuentas externas ni claves API. La extensión ayuda a los usuarios intensivos de Claude Code a rastrear gastos, historial de proyectos y uso de herramientas leyendo datos de sesión locales."
+      }
+    }
+  },
+  {
+    "title": "I Built a Lightweight i18n Library for JavaScript — Meet globaly-i18n",
+    "slug": "globaly-i18n-lightweight-javascript-i18n",
+    "url": "https://dev.to/rounaksharma19/i-built-a-lightweight-i18n-library-for-javascript-meet-globaly-i18n-eo2",
+    "source": "DEV Community",
+    "date": "2026-03-15T17:34:21.000Z",
+    "summary": "globaly-i18n is a lightweight, framework-agnostic internationalization library supporting Node.js, React, Vue, and Next.js with features including translation caching, language persistence, automatic language detection, and CLI tools for extracting and translating strings. The library emphasizes minimal bundle size and works seamlessly across frontend and backend applications.",
+    "content": "globaly-i18n\nDesigned to work seamlessly in frontend and backend applications, including Node.js, React, Vue, Next.js, Express, and NestJS.\nnpm version weekly downloads total downloads bundle size license typescript\n✨ Features\nnpm install globaly-i18n\nyarn add globaly-i18n\npnpm add globaly-i18n\nconst i18n = await createI18n({\n./locales/${lang}/${ns}.json).then((m) => m.default),\nconsole.log(i18n.t(\"common:home.title\", { name: \"Rounak\" }));\nWelcome Rounak\nlocales\nconsole.log(i18n.t(\"common:home.title\", { name: \"Rounak\" }));\nWillkommen Rounak\nYou have 5 items\nWelcome Rounak\nawait i18n.loadNamespace(\"dashboard\");\nconsole.log(i18n.t(\"dashboard:stats.users\"));\n⚡ Translation Caching\nRepeated calls like:\ni18n.t(\"common:home.title\");\n💾 Language Persistence\nawait i18n.setLanguage(\"de\");\n🧠 Language Detection\nBrowser settings\nconst i18n = await createI18n({\n./locales/${lang}/${ns}.json).then((m) => m.default)\nimport { I18nProvider } from \"globaly-i18n/react\";\n\n  \nimport { useTranslation } from \"globaly-i18n/react\";\nfunction Home() {\nreturn (\n{t(\"common:home.title\")}\nconst app = express();\nconst i18n = await createI18n({\n./locales/${lang}/${ns}.json).then((m) => m.default)\napp.use(i18nMiddleware(i18n));\napp.get(\"/\", (req, res) => {\napp.listen(3000);\nExample source code\nt(\"common:home.title\");\nnpx globaly-i18n extract src\nnpx globaly-i18n translate --from en --to de,fr,es\nlocales\ni18n.t(\"common:home.title\"); // valid\nOption  Type    Description\nconst i18n = await createI18n({\n./locales/${lang}/${ns}.json).then((m) => m.default)\nconsole.log(i18n.t(\"common:home.title\"));\nfunction Example() {\nreturn \n{t(\"common:home.title\")}\n;\n}\nglobaly-i18n focuses on:\n⚡ lightweight architecture\nnpm test\n🔑 Keywords\n📄 License\n⭐ Support\n⭐ Star the repository\n📦 Share it with other developers\n🐛 Report issues or suggest improvements",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我为JavaScript构建了一个轻量级i18n库——认识globaly-i18n",
+        "summary": "globaly-i18n是一个轻量级、框架无关的国际化库，支持Node.js、React、Vue和Next.js，具有翻译缓存、语言持久化、自动语言检测和用于提取和翻译字符串的CLI工具等功能。该库强调最小的捆绑包大小，并在前端和后端应用程序中无缝工作。"
+      },
+      "fr": {
+        "title": "J'ai créé une bibliothèque i18n légère pour JavaScript — Rencontrez globaly-i18n",
+        "summary": "globaly-i18n est une bibliothèque d'internationalisation légère et agnostique du framework, prenant en charge Node.js, React, Vue et Next.js avec des fonctionnalités incluant la mise en cache des traductions, la persistance des langues, la détection automatique de la langue et des outils CLI pour extraire et traduire des chaînes. La bibliothèque met l'accent sur la taille minimale du bundle et fonctionne de manière transparente sur les applications frontend et backend."
+      },
+      "de": {
+        "title": "Ich habe eine leichte i18n-Bibliothek für JavaScript erstellt — Treffen Sie globaly-i18n",
+        "summary": "globaly-i18n ist eine leichte, Framework-agnostische Internationalisierungsbibliothek, die Node.js, React, Vue und Next.js unterstützt und Funktionen wie Übersetzungs-Caching, Sprachpersistierung, automatische Spracherkennung und CLI-Tools zum Extrahieren und Übersetzen von Zeichenketten bietet. Die Bibliothek legt Wert auf minimale Bundle-Größe und funktioniert nahtlos über Frontend- und Backend-Anwendungen hinweg."
+      },
+      "es": {
+        "title": "Construí una biblioteca i18n ligera para JavaScript — Conoce globaly-i18n",
+        "summary": "globaly-i18n es una biblioteca de internacionalización ligera e independiente del framework que admite Node.js, React, Vue y Next.js con características que incluyen almacenamiento en caché de traducciones, persistencia de idiomas, detección automática de idiomas y herramientas CLI para extraer y traducir cadenas. La biblioteca enfatiza el tamaño mínimo del paquete y funciona sin problemas en aplicaciones frontend y backend."
+      }
+    }
+  },
+  {
+    "title": "Fortran meets AI",
+    "slug": "fortran-meets-ai-legacy-problems",
+    "url": "https://dev.to/viksaaskool/fortran-meets-ai-3oac",
+    "source": "DEV Community",
+    "date": "2026-03-15T17:32:51.000Z",
+    "summary": "A developer tested whether modern AI models (Claude Code, OpenAI Codex, MinMax) could solve 50-year-old Fortran exam problems from punch-card era computer science, and all three successfully analyzed the problems and created solutions in multiple languages. The experiment demonstrates how AI has made legacy language problems trivial compared to their original difficulty.",
+    "content": "Story time\n\n\nMy father studied at Faculty of Electrical Engineering at SS Cyril and Methodius University in Skopje in the late 70s. \n\nSome of you reading this might know what Fortran is (programming language), but I presume almost none of you seen problems solved in the language or punch cards. Yes, punch cards. Back in the days, people used to code on punch cards and that was included in this course. Punch cards meant that every line of code in a program had to have its own card. So if your program had 1000 LOC, then you had 1000 cards. How that looked, more in this video: \n  \n  \n\n\nMost interesting thing: there was an exam inside it, his exam from almost 50 years ago! Here it is (fyi, the language is Macedonian): \n\n\nAs you can see they weren't solving important problems back in the day like, recommendation algorithm or even more important and harder to grasp, CSS. It's mostly useless math. \nWith everything that's happening in the field of computer science and  AI, writing code and solving problems is the easy part. But an exam 50 years ago in Fortran? Would that be a problem for today's best models? You've guessed it right - it won't. \nI've made a small showcase GitHub Page with the solutions to these 5 problems, called Fortran meets AI you can visit here.\n\nThe same problem is solved by Claude Code (Opus 4.6), Codex  5.4 (by OpenAI) and MinMax 2.5 from China. \n\nCodex had no problem in reading, recognizing and solving the issues. The model was provided with the images, translated it to English and created two .svgs. It produced solutions in Fortran, Python and Kotlin. \nCladue Code had no issue to resolve this, provided the solutions for the problems in Fortran, Python and Kotlin.\nMinMax 2.5 the free version provided by OpenCode's OpenZen (which I've used) cannot read images, so I used the .svgs that Codex created. Had no issues \nI've added Python compiler (it was the easiest) so solutions can be compared in terms of compile speed and simplicity. And with that you ca",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Fortran遇见AI",
+        "summary": "一位开发者测试了现代AI模型（Claude Code、OpenAI Codex、MinMax）是否可以解决50年前的Fortran考试问题，这些问题来自打卡时代的计算机科学。所有三个模型都成功地分析了这些问题，并用多种语言创建了解决方案。该实验展示了AI如何使遗留语言问题与其原始难度相比变得微不足道。"
+      },
+      "fr": {
+        "title": "Fortran rencontre l'IA",
+        "summary": "Un développeur a testé si les modèles d'IA modernes (Claude Code, OpenAI Codex, MinMax) pouvaient résoudre des problèmes d'examen Fortran vieux de 50 ans de l'ère des cartes perforées de l'informatique, et les trois ont analysé avec succès les problèmes et créé des solutions dans plusieurs langues. L'expérience démontre comment l'IA a rendu les problèmes de langages hérités triviales par rapport à leur difficulté d'origine."
+      },
+      "de": {
+        "title": "Fortran trifft AI",
+        "summary": "Ein Entwickler testete, ob moderne KI-Modelle (Claude Code, OpenAI Codex, MinMax) 50 Jahre alte Fortran-Prüfungsprobleme aus der Lochkarten-Ära der Informatik lösen könnten, und alle drei analysierten die Probleme erfolgreich und erstellten Lösungen in mehreren Sprachen. Das Experiment zeigt, wie KI Legacy-Language-Probleme im Vergleich zu ihrer ursprünglichen Schwierigkeit trivial gemacht hat."
+      },
+      "es": {
+        "title": "Fortran se encuentra con la IA",
+        "summary": "Un desarrollador probó si los modelos de IA modernos (Claude Code, OpenAI Codex, MinMax) podrían resolver problemas de examen de Fortran de 50 años de la era de las tarjetas perforadas de la informática, y los tres analizaron exitosamente los problemas y crearon soluciones en múltiples idiomas. El experimento demuestra cómo la IA ha hecho que los problemas de lenguajes heredados sean triviales en comparación con su dificultad original."
+      }
+    }
+  },
+  {
+    "title": "Harold and George Destroy the World",
+    "slug": "harold-george-destroy-world",
+    "url": "https://tomclancy.info/harold-and-george.html",
+    "source": "Hacker News",
+    "date": "2026-03-15T12:48:17.000Z",
+    "summary": "Harold and George Destroy the World is a short story that generated significant discussion on Hacker News, accumulating 238 comments and 210 points from readers interested in exploring its narrative.",
+    "content": "Article URL: https://tomclancy.info/harold-and-george.html\nComments URL: https://news.ycombinator.com/item?id=47386908\nPoints: 210\n# Comments: 238",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "哈罗德和乔治摧毁世界",
+        "summary": "《哈罗德和乔治摧毁世界》是一部短篇故事，在黑客新闻上引发了广泛讨论，累积了238条评论和210个点赞，吸引了对探索其叙述感兴趣的读者。"
+      },
+      "fr": {
+        "title": "Harold et George Détruisent le Monde",
+        "summary": "Harold et George Détruisent le Monde est une courte histoire qui a généré une discussion importante sur Hacker News, accumulant 238 commentaires et 210 points de la part de lecteurs intéressés par l'exploration de son récit."
+      },
+      "de": {
+        "title": "Harold und George zerstören die Welt",
+        "summary": "Harold und George zerstören die Welt ist eine Kurzgeschichte, die eine bedeutende Diskussion auf Hacker News auslöste und 238 Kommentare sowie 210 Punkte von Lesern sammelte, die sich für die Erkundung ihrer Erzählung interessieren."
+      },
+      "es": {
+        "title": "Harold y George Destruyen el Mundo",
+        "summary": "Harold y George Destruyen el Mundo es un cuento que generó una discusión significativa en Hacker News, acumulando 238 comentarios y 210 puntos de lectores interesados en explorar su narrativa."
+      }
+    }
+  },
+  {
     "title": "Dica de Ferramentas: Como Visualizar seus Dados no MongoDB e Kafka",
     "slug": "mongodb-kafka-visualization-tools",
     "url": "https://dev.to/rvneto/dica-de-ferramentas-como-visualizar-seus-dados-no-mongodb-e-kafka-3hc",
@@ -332,6 +696,62 @@
       "es": {
         "title": "Power BI se encuentra con SQL: Todo lo que necesita saber sobre conexiones de bases de datos",
         "summary": "Esta guía cubre la conexión de Power BI a bases de datos PostgreSQL tanto localmente como en plataformas en la nube como Aiven, con énfasis en seguridad. Las conexiones en la nube requieren configuración de certificados SSL y gestión segura de credenciales para cifrar los datos en tránsito. Las instrucciones paso a paso cubren la obtención de detalles de conexión y el establecimiento de conexiones de bases de datos protegidas."
+      }
+    }
+  },
+  {
+    "title": "A Visual Introduction to Machine Learning (2015)",
+    "slug": "visual-introduction-machine-learning",
+    "url": "https://r2d3.us/visual-intro-to-machine-learning-part-1/",
+    "source": "Hacker News",
+    "date": "2026-03-15T10:47:35.000Z",
+    "summary": "A Visual Introduction to Machine Learning is a 2015 educational resource using visual explanations to introduce machine learning concepts, gaining traction on Hacker News with 242 points from developers interested in accessible ML learning materials.",
+    "content": "Article URL: https://r2d3.us/visual-intro-to-machine-learning-part-1/\nComments URL: https://news.ycombinator.com/item?id=47386116\nPoints: 242\n# Comments: 19",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "机器学习的可视化介绍（2015）",
+        "summary": "《机器学习的可视化介绍》是一个2015年的教育资源，使用可视化解释来介绍机器学习概念，在黑客新闻上获得了242个点赞，吸引了对易于接近的机器学习学习材料感兴趣的开发者。"
+      },
+      "fr": {
+        "title": "Une Introduction Visuelle à l'Apprentissage Automatique (2015)",
+        "summary": "Une Introduction Visuelle à l'Apprentissage Automatique est une ressource éducative de 2015 utilisant des explications visuelles pour introduire les concepts d'apprentissage automatique, gagnant de la traction sur Hacker News avec 242 points de la part des développeurs intéressés par des matériaux d'apprentissage ML accessibles."
+      },
+      "de": {
+        "title": "Eine Visuelle Einführung in Maschinelles Lernen (2015)",
+        "summary": "Eine Visuelle Einführung in Maschinelles Lernen ist eine Bildungsressource von 2015, die visuelle Erklärungen verwendet, um Konzepte des maschinellen Lernens einzuführen und Zugkraft auf Hacker News mit 242 Punkten von Entwicklern gewinnt, die an zugänglichen ML-Lernmaterialien interessiert sind."
+      },
+      "es": {
+        "title": "Una Introducción Visual al Aprendizaje Automático (2015)",
+        "summary": "Una Introducción Visual al Aprendizaje Automático es un recurso educativo de 2015 que utiliza explicaciones visuales para introducir conceptos de aprendizaje automático, ganando tracción en Hacker News con 242 puntos de desarrolladores interesados en materiales de aprendizaje de ML accesibles."
+      }
+    }
+  },
+  {
+    "title": "$96 3D-printed rocket that recalculates its mid-air trajectory using a $5 sensor",
+    "slug": "3d-printed-rocket-trajectory-sensor",
+    "url": "https://github.com/novatic14/MANPADS-System-Launcher-and-Rocket",
+    "source": "Hacker News",
+    "date": "2026-03-15T10:15:47.000Z",
+    "summary": "A developer created a 3D-printed rocket system for $96 that uses a $5 sensor to recalculate its mid-air trajectory in real-time, combining affordable hardware with adaptive flight control. The project demonstrates practical applications of budget sensors for autonomous vehicle guidance and precision amateur rocketry.",
+    "content": "Article URL: https://github.com/novatic14/MANPADS-System-Launcher-and-Rocket\nComments URL: https://news.ycombinator.com/item?id=47385935\nPoints: 295\n# Comments: 256",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "96美元3D打印火箭，使用5美元传感器重新计算空中轨迹",
+        "summary": "一位开发者创建了一个96美元的3D打印火箭系统，使用5美元的传感器实时重新计算其空中轨迹，将经济实惠的硬件与自适应飞行控制相结合。该项目展示了预算传感器在自主车辆导航和精密业余火箭学中的实际应用。"
+      },
+      "fr": {
+        "title": "Fusée imprimée en 3D de 96 $ qui recalcule sa trajectoire en vol à l'aide d'un capteur de 5 $",
+        "summary": "Un développeur a créé un système de fusée imprimée en 3D pour 96 $ qui utilise un capteur de 5 $ pour recalculer sa trajectoire en vol en temps réel, combinant du matériel abordable avec un contrôle de vol adaptatif. Le projet démontre les applications pratiques des capteurs bon marché pour le guidage des véhicules autonomes et la fusée amateur de précision."
+      },
+      "de": {
+        "title": "96-Dollar-3D-gedruckte Rakete, die ihre Flugbahn in der Luft mit einem 5-Dollar-Sensor neu berechnet",
+        "summary": "Ein Entwickler hat ein 3D-gedrucktes Raketensystem für 96 Dollar entwickelt, das einen 5-Dollar-Sensor verwendet, um seine Flugbahn in Echtzeit neu zu berechnen und erschwingliche Hardware mit adaptiver Flugkontrolle zu kombinieren. Das Projekt demonstriert praktische Anwendungen von günstigen Sensoren zur autonomen Fahrzeugführung und präziser Amateurraketentechnik."
+      },
+      "es": {
+        "title": "Cohete impreso en 3D de $96 que recalcula su trayectoria en vuelo usando un sensor de $5",
+        "summary": "Un desarrollador creó un sistema de cohete impreso en 3D por $96 que utiliza un sensor de $5 para recalcular su trayectoria en vuelo en tiempo real, combinando hardware asequible con control de vuelo adaptativo. El proyecto demuestra aplicaciones prácticas de sensores económicos para guía de vehículos autónomos y cohetería amateur de precisión."
       }
     }
   },
