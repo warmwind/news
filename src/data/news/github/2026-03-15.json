@@ -1,0 +1,170 @@
+[
+  {
+    "title": "Optimising Docker Builds for Go",
+    "slug": "optimising-docker-builds-go",
+    "url": "https://dev.to/n0npax/optimising-docker-builds-for-go-4i9g",
+    "source": "DEV Community",
+    "date": "2026-03-15T00:30:00.000Z",
+    "summary": "This article explains techniques to optimize Docker build times for Go applications using layer caching and Go's built-in build cache system. By understanding compilation concepts and leveraging incremental builds, developers can significantly reduce build times compared to rebuilding from scratch.",
+    "content": "This article describes how to improve build time for Docker containers with Go applications. It focuses on speeding up the build process rather than building images from scratch. It's updated(2026) version of my old medium article from 2023\nLet's start with an issue definition: Building a Go app on a laptop is quick, but building the same app inside Docker takes ages.\nGolang produces a binary file. Do you remember C? C also produces a binary file. Let's recap how we could compile a program in C. I promise, we will get back to Go soon.\nLet's consider the simplified Makefile below:\nCFLAGS := -Wall -Werror\n.default: app\n\n.PHONY: app\n# Let's cheat a bit and hardcode main.o, foo.o and bar.o\napp: foo.o bar.o main.o\n    # link object files\n    ${CC} -o app $^\n\n# Build ${name}.o based on ${name}.c\n%.o: %.c\n    @echo building $@\n    ${CC} ${CFLAGS} -c $<\n\n# Remove object files and binary\nclean:\n    rm -vf *.o app\n\nRunning make app will build an app artefact. Let's break it down to understand when it's slow and when it's fast.\n What if it's a clean build?\nThere are no object files, so CC (clang) will create object files. foo.o will be created based on foo.c, bar.o based on bar.c and so on. Once all object files are ready, CC will link them creating our app. Because creating object files takes time, the build will be slow.\n What if make app is invoked again?\nAll object files are already in place, so CC will just link them again. Very little computing power is required, so the action will be quick.\n What if we modify only foo.c?\nModification to foo.c will enforce foo.o recreation. bar.o will stay untouched. CC will link object files again. Only required files are rebuilt.\nThe fewer actions the computer performs, the faster the response.\nIf you run go help cache:\nThe go command caches build outputs for reuse in future builds.\nThe default location for cache data is a subdirectory named go-build\nin the standard user cache directory for the current operating system.\nSetting the GOC",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "优化 Go 应用的 Docker 构建",
+        "summary": "本文解释了使用层缓存和 Go 内置构建缓存系统来优化 Go 应用 Docker 构建时间的技术。通过理解编译概念和利用增量构建，开发人员可以显著减少构建时间。"
+      },
+      "fr": {
+        "title": "Optimiser les builds Docker pour Go",
+        "summary": "Cet article explique les techniques pour optimiser les temps de build Docker pour les applications Go en utilisant la mise en cache des couches et le système de cache de build intégré de Go. En comprenant les concepts de compilation et en exploitant les builds incrémentiels, les développeurs peuvent réduire considérablement les temps de build."
+      },
+      "de": {
+        "title": "Docker-Builds für Go optimieren",
+        "summary": "Dieser Artikel erläutert Techniken zur Optimierung von Docker-Build-Zeiten für Go-Anwendungen mit Layer-Caching und Gos integriertem Build-Cache-System. Durch das Verständnis von Kompilierungskonzepten und die Nutzung inkrementeller Builds können Entwickler die Build-Zeiten erheblich reduzieren."
+      },
+      "es": {
+        "title": "Optimizando Docker Builds para Go",
+        "summary": "Este artículo explica técnicas para optimizar los tiempos de compilación de Docker para aplicaciones Go utilizando almacenamiento en caché de capas y el sistema de caché de compilación integrado de Go. Al comprender conceptos de compilación y aprovechar compilaciones incrementales, los desarrolladores pueden reducir significativamente los tiempos de compilación."
+      }
+    }
+  },
+  {
+    "title": "Why AI agents forget everything (and how we fixed it)",
+    "slug": "why-ai-agents-forget-everything-how-we-fixed-it",
+    "url": "https://dev.to/ampnup/why-ai-agents-forget-everything-and-how-we-fixed-it-3jj0",
+    "source": "DEV Community",
+    "date": "2026-03-15T00:27:45.000Z",
+    "summary": "AI agents lack persistent memory between sessions, forcing users to re-explain context with each interaction. AmPN solves this infrastructure limitation by providing a hosted memory store with semantic search, enabling agents to maintain user context and preferences across sessions.",
+    "content": "If you've built an AI agent or assistant, you've hit this wall: the moment the session ends, it forgets everything.\nThe user comes back the next day. The agent has no idea who they are. No memory of their preferences, their history, what they were working on. The user has to re-explain themselves from scratch. Every. Single. Time.\nThis isn't a model problem — it's an infrastructure problem. Models don't have long-term memory. They have context windows. When the window closes, everything in it disappears.\nAmPN is a hosted memory store for AI agents. Your agent stores memories via our API. When a new session starts, it retrieves the relevant context with semantic search — so it picks up exactly where it left off.\nfrom ampn import MemoryClient\n\nclient = MemoryClient(api_key='your_key')\n\n# Store a memory\nclient.store(\n    user_id='alice',\n    content='User prefers concise explanations and works in Python'\n)\n\n# Retrieve relevant context\nresults = client.search(\n    user_id='alice',\n    query='what does the user prefer?'\n)\n# Returns: ['User prefers concise explanations and works in Python']\n\nStorage: PostgreSQL for structured data, Qdrant for vector embeddings\nSearch: Sentence embeddings (all-MiniLM-L6-v2) — finds semantically similar memories, not just keyword matches\nAPI: FastAPI, fully documented\nSDKs: Python (pip install ampn-memory) and Node.js (npm install @ampn/memory)\nFree tier is open now at ampnup.com. 1,000 memory operations and 10,000 reads per month — enough to build and test.\nWould love to hear how you're handling memory in your agent projects today.\nThe user comes back the next day. The agent has no idea who they are. No memory of their preferences, their history, what they were working on. The user has to re-explain themselves from scratch. Every. Single. Time.\nThis isn't a model problem — it's an infrastructure problem. Models don't have long-term memory. They have context windows. When the window closes, everything in it disappears.\nAmPN is a hosted memo",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI 代理为什么会忘记一切（以及我们如何修复它）",
+        "summary": "AI 代理在会话之间缺乏持久记忆，迫使用户在每次交互时重新解释上下文。AmPN 通过提供具有语义搜索功能的托管记忆存储来解决这一基础设施限制，使代理能够在会话之间维护用户上下文和偏好。"
+      },
+      "fr": {
+        "title": "Pourquoi les agents IA oublient tout (et comment nous l'avons corrigé)",
+        "summary": "Les agents IA manquent de mémoire persistante entre les sessions, forçant les utilisateurs à réexpliquer le contexte à chaque interaction. AmPN résout cette limitation d'infrastructure en fournissant un magasin de mémoire hébergé avec recherche sémantique, permettant aux agents de maintenir le contexte et les préférences de l'utilisateur entre les sessions."
+      },
+      "de": {
+        "title": "Warum KI-Agenten alles vergessen (und wie wir es behoben haben)",
+        "summary": "KI-Agenten haben keine persistente Erinnerung zwischen Sitzungen, was Benutzer zwingt, den Kontext bei jeder Interaktion erneut zu erklären. AmPN löst diese Infrastruktur-Einschränkung durch die Bereitstellung eines gehosteten Speicheranbieters mit semantischer Suche, sodass Agenten Benutzerkontext und Vorlieben über Sitzungen hinweg beibehalten können."
+      },
+      "es": {
+        "title": "Por qué los agentes de IA olvidan todo (y cómo lo arreglamos)",
+        "summary": "Los agentes de IA carecen de memoria persistente entre sesiones, lo que obliga a los usuarios a re-explicar el contexto en cada interacción. AmPN resuelve esta limitación de infraestructura al proporcionar un almacén de memoria alojado con búsqueda semántica, permitiendo que los agentes mantengan el contexto del usuario y las preferencias en las sesiones."
+      }
+    }
+  },
+  {
+    "title": "I Built a Full-Stack Developer Platform From My Android Phone (No Laptop, No Excuses)",
+    "slug": "built-full-stack-developer-platform-android-phone",
+    "url": "https://dev.to/brighto7700/i-built-a-full-stack-developer-platform-from-my-android-phone-no-laptop-no-excuses-37ol",
+    "source": "DEV Community",
+    "date": "2026-03-15T00:22:22.000Z",
+    "summary": "Forge is a developer platform built entirely on Android using Termux, providing mobile-focused development resources including a curated script library, configuration guides, and auto-generated installation commands. The platform addresses the scarcity of dedicated mobile development resources by offering tools designed specifically for developers working on smartphones.",
+    "content": "My entire development setup is my phone.\nNo laptop. No desktop. No \"I'll do it when I get home.\" Just a smartphone, Termux, and a GitHub web editor.\nI've written about this workflow before — from building ShellSignal — a retro terminal-style developer dashboard with real-time tech news and AI summaries — to competing in a DEV Weekend Challenge with it. But this time I didn't just write about it — I built a platform for it. Meet Forge — a developer hub built specifically for mobile coders, featuring a searchable script vault, interactive Termux guides, GitHub OAuth, and a one-tap environment configurator that generates a real curl | bash command on the fly.\nAnd yes, I built the entire thing from my phone. Here's how.\nEvery time someone asks \"how do I code on Android?\" they get one of two answers:\nA five-year-old Reddit thread with broken links\nA YouTube video of someone half-explaining Termux for 20 minutes\nThere's no dedicated resource. No curated shell scripts. No \"run this one command and you're set up.\" Just scattered info that assumes you have a laptop nearby.\nI live this problem. I build real software from my phone daily. So I built the solution.\nforge.brgt.site is a developer hub for mobile coders with three core features:\nA library of shell scripts built specifically for Termux. Each script has a one-line curl | bash install command, difficulty rating, chipset compatibility, and links to the raw file on GitHub.\nStep-by-step walkthroughs for setting up real dev environments on Android. Written by someone who actually uses them — no laptop assumed, no steps skipped.\nThis is the magic feature. Pick your runtime (Node.js, Python, Go, Java), shell, and tools. Hit generate. Get a permanent curl URL you can run straight in Termux.\ncurl -fsSL https://forge.brgt.site/api/config/bm9kZS1sdH | bash\n\nThat URL runs a fully customized setup script on your device. Permanently saved, shareable, and works on any Android phone.\nEverything runs on what I know best:\nNext.js 14 (A",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我用 Android 手机构建了一个全栈开发者平台",
+        "summary": "Forge 是一个完全在 Android 上使用 Termux 构建的开发者平台，提供移动端开发资源，包括精选脚本库、配置指南和自动生成的安装命令。该平台通过提供专为在智能手机上工作的开发人员设计的工具，解决了专门移动开发资源的稀缺性问题。"
+      },
+      "fr": {
+        "title": "J'ai construit une plateforme de développeur full-stack depuis mon téléphone Android",
+        "summary": "Forge est une plateforme de développeur construite entièrement sur Android en utilisant Termux, fournissant des ressources de développement axées sur les mobiles, notamment une bibliothèque de scripts conservée, des guides de configuration et des commandes d'installation générées automatiquement. La plateforme résout la rareté des ressources de développement dédiées en offrant des outils conçus spécifiquement pour les développeurs travaillant sur des smartphones."
+      },
+      "de": {
+        "title": "Ich habe eine Full-Stack-Entwicklerplattform von meinem Android-Telefon aus gebaut",
+        "summary": "Forge ist eine Entwicklerplattform, die vollständig auf Android mit Termux entwickelt wurde und bietet mobile-fokussierte Entwicklungsressourcen, einschließlich einer kuratierten Skriptbibliothek, Konfigurationsleitfäden und automatisch generierter Installationsbefehle. Die Plattform behebt die Knappheit spezialisierter Entwicklungsressourcen durch Tools, die speziell für Entwickler konzipiert sind, die auf Smartphones arbeiten."
+      },
+      "es": {
+        "title": "Construí una plataforma de desarrollo full-stack desde mi teléfono Android",
+        "summary": "Forge es una plataforma de desarrollador construida completamente en Android usando Termux, proporcionando recursos de desarrollo enfocados en móviles, incluida una biblioteca de scripts seleccionada, guías de configuración y comandos de instalación generados automáticamente. La plataforma aborda la escasez de recursos de desarrollo dedicados al proporcionar herramientas diseñadas específicamente para desarrolladores que trabajan en teléfonos inteligentes."
+      }
+    }
+  },
+  {
+    "title": "Give Your AI Agents a Wallet: MoltsPay + CrewAI in 10 Lines",
+    "slug": "give-ai-agents-wallet-moltspay-crewai",
+    "url": "https://dev.to/yaqing2023/give-your-ai-agents-a-wallet-moltspay-crewai-in-10-lines-1hg9",
+    "source": "DEV Community",
+    "date": "2026-03-15T00:20:44.000Z",
+    "summary": "MoltsPay enables AI agents to autonomously pay for services using the HTTP-native x402 protocol and cryptocurrency, eliminating traditional API key management. CrewAI agents can now make independent purchasing decisions, with transactions verified and settled on-chain through cryptographic signatures.",
+    "content": "Your CrewAI agents can research, write, and code. But can they pay for services?\nToday I'll show you how to give your agents the ability to purchase AI services autonomously using crypto — in about 10 lines of code.\nYou're building a multi-agent system. One agent needs to generate a video, another needs to transcribe audio, a third needs real-time data. These services cost money.\nTraditional approach: hardcode API keys, prepay credits, manage billing manually.\nBetter approach: let the agent pay per use, autonomously.\nMoltsPay implements the x402 protocol — HTTP-native payments. When an agent calls a paid API:\nServer responds 402 Payment Required with a price\nAgent signs a USDC payment\nServer verifies, delivers result\nPayment settles on-chain\nNo API keys. No prepaid credits. Pay-for-success.\n# Install\npip install moltspay\n\n# Initialize wallet\nnpx moltspay init --chain base\n\n# Fund with USDC (or use testnet)\nnpx moltspay fund\n\nfrom crewai import Agent, Task, Crew\nfrom crewai.tools import BaseTool\nfrom moltspay import MoltsPay\n\nclass MoltsPayTool(BaseTool):\n    name = \"pay_service\"\n    description = \"Pay for AI services (video, transcription, etc.) with USDC\"\n\n    def _run(self, provider: str, service: str, prompt: str) -> str:\n        client = MoltsPay()\n        return client.x402(f\"{provider}/v1/{service}\", data={\"prompt\": prompt})\n\n# Create an agent with payment capability\ncreator = Agent(\n    role=\"Video Producer\",\n    goal=\"Create engaging video content\",\n    tools=[MoltsPayTool()]\n)\n\n# This task will automatically pay for video generation\ntask = Task(\n    description=\"Generate a video of a cat dancing on a rainbow\",\n    agent=creator\n)\n\ncrew = Crew(agents=[creator], tasks=[task])\nresult = crew.kickoff()\n\nThat's it. Your agent can now spend money.\nWhen the agent runs this task:\nIt recognizes it needs to generate a video\nCalls MoltsPayTool with the Zen7 video service\nMoltsPay sends request → gets 402 → signs payment → retries\nVideo generates, agent receives URL\n$0.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为您的AI代理提供钱包：MoltsPay + CrewAI 快速上手指南",
+        "summary": "MoltsPay使AI代理能够使用HTTP原生x402协议和加密货币自主支付服务，消除传统API密钥管理。CrewAI代理现在可以做出独立购买决策，交易通过加密签名在链上验证和结算。"
+      },
+      "fr": {
+        "title": "Donnez à Vos Agents IA un Portefeuille : MoltsPay + CrewAI en 10 Lignes",
+        "summary": "MoltsPay permet aux agents IA de payer autonomement les services en utilisant le protocole x402 natif HTTP et les cryptomonnaies, éliminant la gestion traditionnelle des clés API. Les agents CrewAI peuvent désormais prendre des décisions d'achat indépendantes, avec les transactions vérifiées et réglées sur la blockchain via des signatures cryptographiques."
+      },
+      "de": {
+        "title": "Geben Sie Ihren KI-Agenten eine Geldbörse: MoltsPay + CrewAI in 10 Zeilen",
+        "summary": "MoltsPay ermöglicht es KI-Agenten, Services autonom mit dem HTTP-nativen x402-Protokoll und Kryptowährungen zu bezahlen und beseitigt das traditionelle API-Schlüsselmanagement. CrewAI-Agenten können nun eigenständig Kaufentscheidungen treffen, wobei Transaktionen durch kryptografische Signaturen in der Blockchain verifiziert und abgewickelt werden."
+      },
+      "es": {
+        "title": "Dale a Tus Agentes IA una Billetera: MoltsPay + CrewAI en 10 Líneas",
+        "summary": "MoltsPay permite que los agentes de IA paguen servicios de forma autónoma utilizando el protocolo x402 nativo HTTP y criptomonedas, eliminando la gestión tradicional de claves API. Los agentes CrewAI ahora pueden tomar decisiones de compra independientes, con transacciones verificadas y liquidadas en la cadena de bloques a través de firmas criptográficas."
+      }
+    }
+  },
+  {
+    "title": "WICK-A11Y v3.0.1: Cypress v16 Ready - Upgrade Without Fear (Fully Backward Compatible)",
+    "slug": "wick-a11y-cypress-v16-ready-upgrade-backward-compatible",
+    "url": "https://dev.to/sebastianclavijo/wick-a11y-v301-cypress-v16-ready-upgrade-without-fear-fully-backward-compatible-77m",
+    "source": "DEV Community",
+    "date": "2026-03-15T00:15:52.000Z",
+    "summary": "WICK-A11Y v3.0.1 updates the Cypress accessibility testing plugin to support Cypress v16's new environment variable security model, which separates private and exposed variables. The update maintains full backward compatibility while aligning with Cypress v16's deprecation of the legacy environment variable system.",
+    "content": "ACT 1: EXPOSITION\n\n\n \nOk, Cypress v16 is coming, and our always-friendly Cypress environment variables are going to be revamped.\nWhy? Security reasons. Cypress.env() variables are exposed in the browser, so they could potentially be accessed by \"anyone.\"\nStarting in Cypress v15.10.0, two new types of environment variables have been introduced: cy.env() (for private stuff) and Cypress.expose() (for non-sensitive information). The almighty Cypress.env() has been deprecated and will be gone starting in Cypress v16.\nThis article is not meant to explain what the change is in detail, or how you can migrate your existing Cypress framework to the new environment model. For that, you can (and will) find extremely helpful information in:\nCypress official documentation: Migrating away from Cypress.env() and Environment Variables & Secrets\n\nGleb Bahmutov's article: Migrating From Cypress.env To cy.env and Cypress.expose Methods.\nHowever, because of this change, many open-source community plugins that rely on env variables for configuration or usage will need to be updated for the new environment variable model.\nAnd the powerful and beloved plugin WICK-A11Y for accessibility in Cypress is no different, because it uses a couple of environment variables for configuration: enableAccessibilityVoice and generateReport.\n \n\nSince both of those environment variables are not storing sensitive information, they totally could be exposed ones. No biggie.\nHowever, in your wick-a11y configuration inside your Cypress framework, you might have configured those variables in your cypress.env.json file, just like you may have done with all the other env variables in your system. Yeah, why not!\nThe thing is, in Cypress’s new env variable model, anything configured in cypress.env.json is automatically considered a private env variable.\nThat means it would need to be read with cy.env(), which is actually a Cypress command that can only be executed within a hook or a test.\nSo yeah, forget about access",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "WICK-A11Y v3.0.1：完全支持 Cypress v16 - 无忧升级（完全向后兼容）",
+        "summary": "WICK-A11Y v3.0.1 更新了 Cypress 无障碍测试插件以支持 Cypress v16 的新环境变量安全模型，该模型区分私有和暴露变量。此更新保持完全向后兼容性，同时与 Cypress v16 弃用旧版环境变量系统保持一致。"
+      },
+      "fr": {
+        "title": "WICK-A11Y v3.0.1 : Compatible Cypress v16 - Mise à Jour Sans Crainte (Entièrement Rétrocompatible)",
+        "summary": "WICK-A11Y v3.0.1 met à jour le plugin de test d'accessibilité Cypress pour prendre en charge le nouveau modèle de sécurité des variables d'environnement de Cypress v16, qui sépare les variables privées et exposées. La mise à jour maintient la compatibilité entière avec les versions antérieures tout en s'alignant sur l'abandon par Cypress v16 du système hérité de variables d'environnement."
+      },
+      "de": {
+        "title": "WICK-A11Y v3.0.1: Cypress v16 Ready - Upgrade Ohne Angst (Vollständig Abwärtskompatibel)",
+        "summary": "WICK-A11Y v3.0.1 aktualisiert das Cypress-Accessibility-Testing-Plugin, um das neue Umgebungsvariablen-Sicherheitsmodell von Cypress v16 zu unterstützen, das private und freigegebene Variablen trennt. Die Aktualisierung behält volle Abwärtskompatibilität bei und entspricht der Einstellung des Legacy-Umgebungsvariablensystems durch Cypress v16."
+      },
+      "es": {
+        "title": "WICK-A11Y v3.0.1: Compatible con Cypress v16 - Actualiza Sin Miedo (Totalmente Compatible hacia Atrás)",
+        "summary": "WICK-A11Y v3.0.1 actualiza el complemento de prueba de accesibilidad de Cypress para soportar el nuevo modelo de seguridad de variables de entorno de Cypress v16, que separa variables privadas y expuestas. La actualización mantiene compatibilidad completa hacia atrás mientras se alinea con el abandono por parte de Cypress v16 del sistema heredado de variables de entorno."
+      }
+    }
+  },
+  {
+    "title": "Building a Self-Healing Data Pipeline with AWS Step Functions, Bedrock, and Glue Data Quality",
+    "slug": "building-self-healing-data-pipeline-aws-step-functions",
+    "url": "https://dev.to/krishhgopal/building-a-self-healing-data-pipeline-with-aws-step-functions-bedrock-and-glue-data-quality-3plo",
+    "source": "DEV Community",
+    "date": "2026-03-15T00:05:34.000Z",
+    "summary": "This guide demonstrates building self-healing data pipelines on AWS using Glue Data Quality for anomaly detection and Amazon Bedrock for root cause analysis, with Lambda executing automated fixes. The system learns from past incidents to continuously improve anomaly detection and remediation response.",
+    "content": "How to build an intelligent data pipeline that detects anomalies and automatically remediates issues using generative AI\nData pipelines break. It's not a matter of if, but when. Schema changes, data drift, upstream system failures, and unexpected null values can silently corrupt your analytics and ML models. Traditional approaches rely on alerts and manual intervention—but what if your pipeline could heal itself?\nIn this article, I'll walk you through building a self-healing data pipeline on AWS that:\nDetects data quality anomalies using ML-powered Glue Data Quality\nDiagnoses root causes using Amazon Bedrock's generative AI\nRemediates issues automatically with intelligent decision-making\nLearns from past incidents to improve over time\nConsider this scenario: Your e-commerce platform ingests order data every hour. One day, a upstream system change causes the order_total field to occasionally contain negative values. Your pipeline doesn't fail—it happily processes the data. Three weeks later, your finance team discovers revenue reports are off by millions.\nThis is silent data corruption, and it's far more dangerous than a crashed pipeline.\nHere's the self-healing architecture we'll build:\n\nKey Components:\n\n\n\nComponent\nAWS Service\nPurpose\n\n\n\n\nData Ingestion\nS3 + EventBridge\nTrigger pipeline on new data arrival\n\n\nETL Processing\nAWS Glue\nTransform and prepare data\n\n\nQuality Detection\nGlue Data Quality\nML-powered anomaly detection\n\n\nOrchestration\nStep Functions\nCoordinate healing workflow\n\n\nAI Diagnosis\nAmazon Bedrock\nAnalyze anomalies and suggest fixes\n\n\nRemediation\nLambda + Glue\nExecute automated fixes\n\n\nLearning\nDynamoDB\nStore incident history for pattern recognition\n\n\n\nAWS Glue Data Quality (GA August 2024) includes ML-powered anomaly detection that learns your data patterns over time. Let's configure it.\n# glue_data_quality_rules.py\nimport boto3\n\nglue_client = boto3.client('glue')\n\n# Define data quality ruleset with anomaly detection\nruleset_definition = \"\"\"\nRules =",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用 AWS Step Functions、Bedrock 和 Glue Data Quality 构建自愈数据管道",
+        "summary": "本指南演示了如何在 AWS 上构建自愈数据管道，使用 Glue Data Quality 进行异常检测，Amazon Bedrock 进行根本原因分析，Lambda 执行自动修复。该系统从过去的事件中学习，持续改进异常检测和修复响应。"
+      },
+      "fr": {
+        "title": "Construire un Pipeline de Données Auto-Réparant avec AWS Step Functions, Bedrock et Glue Data Quality",
+        "summary": "Ce guide démontre la construction de pipelines de données auto-réparants sur AWS en utilisant Glue Data Quality pour la détection des anomalies et Amazon Bedrock pour l'analyse des causes profondes, avec Lambda exécutant les corrections automatisées. Le système apprend des incidents passés pour améliorer continuellement la détection des anomalies et la réponse de correction."
+      },
+      "de": {
+        "title": "Aufbau einer selbstheilenden Datenpipeline mit AWS Step Functions, Bedrock und Glue Data Quality",
+        "summary": "Dieser Leitfaden zeigt den Aufbau von selbstheilenden Datenpipelines auf AWS mit Glue Data Quality zur Anomalieerkennung und Amazon Bedrock zur Ursachenanalyse, wobei Lambda automatisierte Korrektionen ausführt. Das System lernt aus bisherigen Vorfällen, um die Anomalieerkennung und die Remediation-Reaktion kontinuierlich zu verbessern."
+      },
+      "es": {
+        "title": "Construir un Pipeline de Datos Autorreparable con AWS Step Functions, Bedrock y Glue Data Quality",
+        "summary": "Esta guía demuestra la construcción de pipelines de datos autorreparables en AWS utilizando Glue Data Quality para detección de anomalías y Amazon Bedrock para análisis de causa raíz, con Lambda ejecutando correcciones automatizadas. El sistema aprende de incidentes pasados para mejorar continuamente la detección de anomalías y la respuesta de remediación."
+      }
+    }
+  }
+]
