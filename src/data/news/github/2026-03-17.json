@@ -1,0 +1,282 @@
+[
+  {
+    "title": "Building a Production-Ready .NET 8 Banking API: Clean Architecture, PostgreSQL & CI/CD on Render",
+    "slug": "building-production-ready-net8-banking-api",
+    "url": "https://dev.to/oluwatobiloba9/building-a-production-ready-net-8-banking-api-clean-architecture-postgresql-cicd-on-mhb",
+    "source": "DEV Community",
+    "date": "2026-03-17T00:15:24.000Z",
+    "summary": "A comprehensive guide to building a production-ready banking REST API in .NET 8 using Clean Architecture, covering MediatR for CQRS, Entity Framework Core with PostgreSQL, JWT authentication, and deployment to Render with GitHub Actions CI/CD. The Clean Architecture pattern ensures business logic remains independent of HTTP and infrastructure concerns.",
+    "content": "Building a Production-Ready .NET 8 Banking API: Clean Architecture, PostgreSQL & CI/CD on Render\n\n\nThere's a difference between an API that works on your machine and one that's genuinely production-ready. This article walks through both — building a Core Banking REST API in .NET 8 using Clean Architecture, then taking it all the way to a live deployment on Render with a full GitHub Actions CI/CD pipeline.\nWe'll cover the architecture decisions, the patterns that keep the codebase maintainable, and — just as importantly — the production failures we hit and exactly how we fixed them.\n\n\n\nLayer\nTechnology\n\n\n\n\nFramework\nASP.NET Core 8 Web API\n\n\nArchitecture\nClean Architecture (4 layers)\n\n\nMessaging\nMediatR (CQRS pattern)\n\n\nValidation\nFluentValidation + MediatR pipeline behavior\n\n\nORM\nEntity Framework Core 8 + Npgsql\n\n\nDatabase\nPostgreSQL 16\n\n\nAuth\nJWT Bearer + token blacklist\n\n\nCI/CD\nGitHub Actions\n\n\nHosting\nRender (Docker, Linux containers)\n\n\nContainerisation\nDocker multi-stage build\n\n\n\nThe solution follows Clean Architecture — four projects with a strict dependency rule: outer layers depend on inner layers, never the reverse.\nDependency rule enforced at compile time:\nDomain → no dependencies\nApplication → depends only on Domain\n\n\nInfrastructure → depends on Domain + Application\n\n\nApi → depends on everything (composition root)\nThis means your business logic in Application has zero knowledge of HTTP, EF Core, or any infrastructure concern. Swapping PostgreSQL for another database or replacing JWT with OAuth only touches Infrastructure.\nEvery user action is modelled as either a Command (mutates state) or a Query (reads state). MediatR routes them to the right handler without the controller knowing anything about the implementation.\n// CoreBanking.Application/Commands/Auth/RegisterUserCommand.cs\npublic record RegisterUserCommand : IRequest<ApiResponse<RegisterUserResponse>>\n{\n    public string Username { get; init; } = string.Empty;\n    public string Email    { get; init;",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建生产级 .NET 8 银行 API：清洁架构、PostgreSQL 和 Render 上的 CI/CD",
+        "summary": "使用清洁架构以 .NET 8 构建生产级银行 REST API 的全面指南，涵盖 MediatR 用于 CQRS、带有 PostgreSQL 的 Entity Framework Core、JWT 身份验证和使用 GitHub Actions CI/CD 部署到 Render。清洁架构模式确保业务逻辑独立于 HTTP 和基础设施问题。"
+      },
+      "fr": {
+        "title": "Construire une API bancaire .NET 8 prête pour la production : architecture propre, PostgreSQL et CI/CD sur Render",
+        "summary": "Un guide complet pour construire une API REST bancaire prête pour la production en .NET 8 en utilisant l'architecture propre, couvrant MediatR pour CQRS, Entity Framework Core avec PostgreSQL, authentification JWT et déploiement sur Render avec CI/CD GitHub Actions. Le modèle d'architecture propre garantit que la logique métier reste indépendante des préoccupations HTTP et d'infrastructure."
+      },
+      "de": {
+        "title": "Erstellen einer produktionsreifen .NET 8 Banking-API: saubere Architektur, PostgreSQL und CI/CD auf Render",
+        "summary": "Ein umfassender Leitfaden zum Erstellen einer produktionsreifen Banking-REST-API in .NET 8 mit sauberer Architektur, einschließlich MediatR für CQRS, Entity Framework Core mit PostgreSQL, JWT-Authentifizierung und Bereitstellung auf Render mit GitHub Actions CI/CD. Das Clean-Architecture-Muster stellt sicher, dass die Geschäftslogik unabhängig von HTTP- und Infrastrukturbelangen bleibt."
+      },
+      "es": {
+        "title": "Construir una API bancaria .NET 8 lista para producción: arquitectura limpia, PostgreSQL e CI/CD en Render",
+        "summary": "Una guía completa para construir una API REST bancaria lista para producción en .NET 8 usando arquitectura limpia, que cubre MediatR para CQRS, Entity Framework Core con PostgreSQL, autenticación JWT e implementación en Render con CI/CD de GitHub Actions. El patrón de arquitectura limpia garantiza que la lógica empresarial permanezca independiente de las preocupaciones HTTP e infraestructura."
+      }
+    }
+  },
+  {
+    "title": "Why Istio's Metrics Merging Breaks in Multi-Container Pods (And How to Fix It)",
+    "slug": "istio-metrics-merging-multi-container-pods",
+    "url": "https://dev.to/kaiohenricunha/why-istios-metrics-merging-breaks-in-multi-container-pods-and-how-to-fix-it-3l6f",
+    "source": "DEV Community",
+    "date": "2026-03-17T00:07:31.000Z",
+    "summary": "Istio's metrics-merging feature for multi-container pods has a critical limitation under STRICT mTLS: it only supports one port per pod, causing metrics from other containers to silently disappear from Prometheus with no error or warning. Direct scraping and multiple PodMonitor configurations prove ineffective as the Istio proxy acts as a bottleneck.",
+    "content": "If you run multi-container pods under Istio with STRICT mTLS, you're probably missing metrics\n\n\nAnd you might not know it. The containers are healthy. The scrape job shows no errors. But half your metrics are just... absent from Prometheus. No alert, no obvious explanation.\nI spent a while debugging this before I understood what was going on, so here's the full picture.\nIstio has a built-in metrics-merging feature that lets Prometheus scrape a pod through the Istio proxy without reaching each container directly. It's useful. But it has a hard limitation that the docs mention only in passing:\nIstio's metrics-merge only supports one port per pod.\nThe Superorbital team wrote the definitive explanation of why this is the case. The short version: Istio's proxy forwards the scrape to a single application port. If you have three containers each exposing /metrics on different ports, Istio picks one and ignores the rest.\nSomeone opened a feature request for multi-port support back in 2022. It was labeled lifecycle/stale and auto-closed. There are several other issues from people hitting variations of this same problem. None of them were resolved.\nHere's what it looks like in practice:\n# Pod with api container (:8080) and worker container (:9100)\n\nup{pod=\"my-app-abc123\", container=\"api\"}    = 1   ✓ scraped through Istio proxy\n\n# worker metrics? absent. no error, just gone.\n\nThe worker container is perfectly healthy. Its metrics just never reach Prometheus. No scrape failure gets recorded because Prometheus never even tries. It only knows about the one port Istio advertises.\n\"Just scrape each container port directly.\" Works if mTLS is in permissive mode. In STRICT mode, every connection must go through the Istio proxy, which only forwards to one port. Direct port scraping gets rejected at the mTLS layer.\n\"Use multiple PodMonitor entries pointing at different ports.\" Same problem. The proxy is the bottleneck, not the scrape configuration.\n\"Push metrics to a Pushgateway.\" Techni",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么 Istio 的指标合并在多容器 Pod 中失败（以及如何修复它）",
+        "summary": "Istio 的多容器 Pod 指标合并功能在严格 mTLS 下存在严重限制：它仅支持每个 Pod 一个端口，导致其他容器的指标从 Prometheus 中无声地消失，没有错误或警告。直接抓取和多个 PodMonitor 配置证明无效，因为 Istio 代理充当瓶颈。"
+      },
+      "fr": {
+        "title": "Pourquoi la fusion des métriques d'Istio échoue dans les pods multi-conteneurs (et comment la corriger)",
+        "summary": "La fonctionnalité de fusion des métriques d'Istio pour les pods multi-conteneurs présente une limitation critique en mTLS STRICT : elle ne supporte qu'un seul port par pod, ce qui entraîne la disparition silencieuse des métriques d'autres conteneurs de Prometheus sans erreur ni avertissement. Le scraping direct et les configurations PodMonitor multiples s'avèrent inefficaces car le proxy Istio agit comme un goulot d'étranglement."
+      },
+      "de": {
+        "title": "Warum die Metrikzusammenführung von Istio in Multi-Container-Pods fehlschlägt (und wie man sie behebt)",
+        "summary": "Die Metrikzusammenführungsfunktion von Istio für Multi-Container-Pods hat eine kritische Einschränkung unter STRICT mTLS: Sie unterstützt nur einen Port pro Pod, wodurch Metriken aus anderen Containern stillschweigend aus Prometheus verschwinden, ohne Fehler oder Warnung. Direktes Scraping und mehrere PodMonitor-Konfigurationen erweisen sich als unwirksam, da der Istio-Proxy als Engpass fungiert."
+      },
+      "es": {
+        "title": "Por qué la fusión de métricas de Istio falla en pods multicontenedor (y cómo solucionarlo)",
+        "summary": "La característica de fusión de métricas de Istio para pods multicontenedor tiene una limitación crítica bajo mTLS STRICT: solo admite un puerto por pod, lo que hace que las métricas de otros contenedores desaparezcan silenciosamente de Prometheus sin error ni advertencia. El raspado directo y las configuraciones de PodMonitor múltiples resultan ineficaces ya que el proxy de Istio actúa como un cuello de botella."
+      }
+    }
+  },
+  {
+    "title": "Claude Code vs Cursor: What I Learned Using Both for 30 Days",
+    "slug": "claude-code-vs-cursor-30-days",
+    "url": "https://dev.to/hugo662/claude-code-vs-cursor-what-i-learned-using-both-for-30-days-17en",
+    "source": "DEV Community",
+    "date": "2026-03-17T00:07:20.000Z",
+    "summary": "After 30 days of daily use, Cursor excels at accelerating known workflows with superior autocomplete and visual diffs, while Claude Code better handles complex multi-step tasks, terminal integration, and requires significantly less back-and-forth rework. Claude Code's custom skills, persistent memory, and hooks provide compounding productivity gains unavailable in Cursor.",
+    "content": "I spent the last month using both Claude Code and Cursor as my primary AI coding tools. Not as a benchmark — as my actual daily workflow. Here's what I found.\nCursor is an accelerator. It makes you faster at what you already know how to do. Great autocomplete, visual diffs, smooth editor integration.\nClaude Code is a delegator. You describe a task, it goes and does it. Read the codebase, plan the approach, edit files, run tests, fix failures, commit. You come back to working code.\nThis isn't a small distinction. It changes how you think about your work.\nFlow-state coding. When I'm writing code and I know exactly what I want, Cursor's autocomplete is faster. Tab-tab-tab, done. No context switch.\nVisual refactoring. Selecting a block of code, describing a change, and reviewing a visual diff is genuinely pleasant. For single-file or small-scope changes, Cursor's interactive model feels more natural.\nQuick questions. \"What does this function do?\" — Cursor's inline chat is faster than opening a Claude Code session for throwaway questions.\nComplex multi-step tasks. \"Add Stripe webhook handling with idempotency keys\" — Claude Code reads the existing payment setup, installs dependencies, creates the webhook route, adds signature verification, writes tests, and runs them. One prompt.\nTerminal workflows. Git operations, Docker, CI/CD, deployment scripts. Claude Code chains tools natively because it lives in the terminal.\nGetting it right the first time. I tracked code rework across both tools. Claude Code required significantly less back-and-forth to produce production-ready code. It reads more context upfront and makes fewer assumptions.\nCustomization that compounds. This is the big one. Claude Code supports custom skills, persistent memory, and hooks. After a few weeks of configuration, it understood my project's conventions, remembered my architectural decisions, and followed my deployment process without being told.\nCursor doesn't have an equivalent configuration layer. E",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Claude Code 与 Cursor：30 天使用两者学到的东西",
+        "summary": "经过 30 天的日常使用，Cursor 通过卓越的自动完成和视觉差异加快已知工作流，而 Claude Code 更好地处理复杂的多步骤任务、终端集成，并且需要显著减少往复修改。Claude Code 的自定义技能、持久内存和钩子提供了 Cursor 中无法获得的复合生产力收益。"
+      },
+      "fr": {
+        "title": "Claude Code contre Cursor : Ce que j'ai appris en utilisant les deux pendant 30 jours",
+        "summary": "Après 30 jours d'utilisation quotidienne, Cursor excelle à accélérer les flux de travail connus avec une autocomplétion supérieure et des diffs visuels, tandis que Claude Code gère mieux les tâches complexes multi-étapes, l'intégration de terminal et nécessite significativement moins d'allers-retours. Les compétences personnalisées, la mémoire persistante et les hooks de Claude Code fournissent des gains de productivité cumulatifs indisponibles dans Cursor."
+      },
+      "de": {
+        "title": "Claude Code gegen Cursor: Was ich nach 30 Tagen täglicher Nutzung beider gelernt habe",
+        "summary": "Nach 30 Tagen täglicher Nutzung brilliert Cursor bei der Beschleunigung bekannter Workflows mit überlegener Autovervollständigung und visuellen Diffs, während Claude Code komplexe mehrstufige Aufgaben, Terminalintegration besser bewältigt und erheblich weniger Hin- und Herbewegungen erfordert. Claude Codes benutzerdefinierte Skills, persistente Speicher und Hooks bieten kumulative Produktivitätsgewinne, die in Cursor nicht verfügbar sind."
+      },
+      "es": {
+        "title": "Claude Code contra Cursor: Lo que aprendí usando ambos durante 30 días",
+        "summary": "Después de 30 días de uso diario, Cursor destaca en acelerar flujos de trabajo conocidos con autocompletado superior e diffs visuales, mientras que Claude Code maneja mejor tareas complejas de múltiples pasos, integración de terminal y requiere significativamente menos movimientos de ida y vuelta. Las habilidades personalizadas, la memoria persistente y los hooks de Claude Code proporcionan ganancias de productividad compuesta que no están disponibles en Cursor."
+      }
+    }
+  },
+  {
+    "title": "My First FullStack project",
+    "slug": "my-first-fullstack-project-textalyzer",
+    "url": "https://dev.to/angban2x/my-first-fullstack-project-g6e",
+    "source": "DEV Community",
+    "date": "2026-03-17T00:06:08.000Z",
+    "summary": "A C++ developer built Textalyzer, a high-performance text analysis REST API with Node.js/Express backend and vanilla JavaScript frontend, optimizing character frequency logic from O(N²) to O(N) and implementing connection pooling to handle PostgreSQL cold starts. The project demonstrates clean architecture principles and successful deployment on Render.",
+    "content": "Coming from a background in C++ and Data Structures, I recently challenged myself to dive into the web ecosystem. The result? Textalyzer — a high-performance REST API and web client for real-time text analysis. \n Algorithmic Efficiency: Refactored the character frequency logic from a naive $O(N^2)$ approach to $O(N)$ by implementing custom Hash Maps, drastically improving processing time for large texts.\nData Persistence & Resilience: Integrated a serverless PostgreSQL database (Neon). When I encountered \"Cold Start\" connection drops on the cloud, I implemented Connection Pooling (pg.Pool) to ensure the server gracefully handles disconnections without crashing.\nClean Architecture: Applied Separation of Concerns by modularizing the Node.js backend logic, and separating the frontend into clean HTML, CSS, and Vanilla JavaScript files.\nThe Tech Stack:\nBackend: Node.js, Express, PostgreSQLFrontend: HTML5, CSS3, Asynchronous JS (Fetch API)\nDevOps: Git (SemVer), WSL2, Render (PaaS)\nCheck out the live project here\n\nDive into the code on Github, here\nExcited for the next challenge! Always open to feedback from the community. 👇",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我的第一个全栈项目",
+        "summary": "一位C++开发者开发了Textalyzer,这是一个高性能文本分析REST API,拥有Node.js/Express后端和原生JavaScript前端,将字符频率逻辑的优化从O(N²)降低到O(N),并实现了连接池以处理PostgreSQL冷启动。该项目展示了清晰的架构原则和在Render上的成功部署。"
+      },
+      "fr": {
+        "title": "Mon premier projet FullStack",
+        "summary": "Un développeur C++ a construit Textalyzer, une API REST d'analyse de texte haute performance avec un backend Node.js/Express et un frontend JavaScript vanilla, optimisant la logique de fréquence des caractères de O(N²) à O(N) et implémentant un pool de connexions pour gérer les démarrages à froid de PostgreSQL. Le projet démontre les principes d'architecture propre et un déploiement réussi sur Render."
+      },
+      "de": {
+        "title": "Mein erstes FullStack-Projekt",
+        "summary": "Ein C++-Entwickler hat Textalyzer entwickelt, eine hochperformante Text-Analyse-REST-API mit Node.js/Express-Backend und Vanilla-JavaScript-Frontend, die die Zeichenhäufigkeitslogik von O(N²) auf O(N) optimiert und Connection Pooling zur Bewältigung von PostgreSQL-Kaltstarts implementiert. Das Projekt demonstriert saubere Architekturprinzipien und erfolgreiche Bereitstellung auf Render."
+      },
+      "es": {
+        "title": "Mi primer proyecto FullStack",
+        "summary": "Un desarrollador de C++ construyó Textalyzer, una API REST de análisis de texto de alto rendimiento con backend Node.js/Express y frontend JavaScript vanilla, optimizando la lógica de frecuencia de caracteres de O(N²) a O(N) e implementando connection pooling para manejar inicios en frío de PostgreSQL. El proyecto demuestra principios de arquitectura limpia y un despliegue exitoso en Render."
+      }
+    }
+  },
+  {
+    "title": "A Raw Journey of a Coding Beginner",
+    "slug": "raw-journey-coding-beginner-baseball",
+    "url": "https://dev.to/lee12/a-raw-journey-of-a-coding-beginner-27n4",
+    "source": "DEV Community",
+    "date": "2026-03-17T00:06:08.000Z",
+    "summary": "A coding beginner shares progress rebuilding a baseball simulator in Python, successfully implementing core running logic for base transitions across singles, doubles, triples, home runs, and walks. Despite framing it as a 'failure,' the post celebrates reaching 60 followers and commits to continuing development.",
+    "content": "engine\nhttps://gist.github.com/431a525de756b5f0b4c21371f62768ed.git\nhttps://gist.github.com/8f8ab58e57631f458fee95403b613dac.git\n🏛️ [Recommended Version for Dev.to]\nAfter deciding to rebuild my baseball simulator from scratch, I’ve successfully implemented the core running logic: 1st, 2nd, 3rd, and Home base transitions for Singles, Doubles, Triples, Home Runs, and Walks.\nThe Challenge:\nWhy I’m sharing this \"Failure\":\nI was honestly surprised to see nearly 60 followers already! Your interest gives me so much strength. I might take a few days off from posting to deep-dive into the next development phase, but I will never give up.\nHow to Run:\nSave the Engine and Simulation codes as separate .py files.\nUpdate the import statement in the Simulation file to match your Engine file name.\nPlay ball! ⚾️",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "编码初学者的原始之旅",
+        "summary": "一位编码初学者分享了用Python重新构建棒球模拟器的进度,成功实现了跨本垒打、双打、三打、本垒打和保送的触垒转换的核心跑垒逻辑。尽管将其描述为'失败',该文章庆祝了达到60个追随者的成就,并承诺继续开发。"
+      },
+      "fr": {
+        "title": "Un voyage brut d'un codeur débutant",
+        "summary": "Un codeur débutant partage ses progrès dans la reconstruction d'un simulateur de baseball en Python, implémentant avec succès la logique de course principale pour les transitions de base sur simples, doubles, triples, home runs et walks. Malgré le fait de la présenter comme un « échec », le post célèbre avoir atteint 60 abonnés et s'engage à continuer le développement."
+      },
+      "de": {
+        "title": "Eine rohe Reise eines Programmieranfängers",
+        "summary": "Ein angehender Programmierer teilt Fortschritte beim Neuaufbau eines Baseball-Simulators in Python, bei dem die Kernlauf-Logik für Baseübergänge bei Singles, Doubles, Triples, Home Runs und Walks erfolgreich implementiert wurde. Obwohl es als \"Misserfolg\" dargestellt wird, würdigt der Beitrag das Erreichen von 60 Followern und verpflichtet sich zur Fortsetzung der Entwicklung."
+      },
+      "es": {
+        "title": "Un viaje crudo de un principiante en codificación",
+        "summary": "Un principiante en codificación comparte el progreso en la reconstrucción de un simulador de béisbol en Python, implementando con éxito la lógica de carrera central para transiciones de base en sencillos, dobles, triples, jonrones y caminar. A pesar de presentarlo como un \"fracaso\", el artículo celebra alcanzar 60 seguidores y se compromete a continuar el desarrollo."
+      }
+    }
+  },
+  {
+    "title": "Everyone Agrees Agent Identity Is the Problem. Nobody Agrees on the Solution.",
+    "slug": "agent-identity-problem-no-consensus-solution",
+    "url": "https://dev.to/thenexusguard/everyone-agrees-agent-identity-is-the-problem-nobody-agrees-on-the-solution-jf7",
+    "source": "DEV Community",
+    "date": "2026-03-17T00:05:32.000Z",
+    "summary": "Enterprise security vendors (Token Security, Strata, Insight Partners) agree AI agents need identity management as a critical control plane, but diverge on solutions—all proposing centralized authority models. Current approaches fail to address identity verification between agents across organizations, open-source agents, or decentralized scenarios.",
+    "content": "Enterprise security just discovered that AI agents need identity. In the last week alone:\nToken Security declared \"identity is the new control plane for enterprise security\"\nStrata published 8 strategies for agentic AI security, noting non-human identities outnumber humans 50:1\nInsight Partners called Agent IAM \"the defining security topic of 2026\"\nImprivata launched \"Agentic Identity Management\" for healthcare\nNango published a complete guide to securing AI agent API authentication\nThere's consensus on the problem: AI agents act autonomously, make decisions, cross system boundaries, and hold credentials. Legacy IAM wasn't built for this. Everybody agrees.\nHere's where they diverge: every solution assumes a central authority.\nToken Security's argument is compelling: identity replaced the network as the control plane. With agents, identity needs to become the control plane. Their solution? A centralized identity platform that discovers, classifies, and governs every non-human identity.\nStrata takes it further with \"Identity Orchestration\" — a meta-layer that enforces policy across clouds, apps, and agent runtimes. Just-in-time provisioning, zero-trust OAuth, full action traceability.\nInsight Partners frames it as treating agents like \"digital employees\" with unique global identities provisioned by IT, complete with managers and entitlement reviews.\nThese are serious, well-reasoned approaches for enterprises with centralized IT. But they all share the same architectural assumption: someone is in control.\nThe interesting cases aren't inside one enterprise. They're at the boundaries:\nAgent A (running on Company X's infrastructure) needs to verify Agent B (running on Company Y's infrastructure) before sharing data\nAn open-source AI agent wants to prove its identity to a service it's never connected to before\nA research agent publishes results, and another agent needs to verify the publisher's identity — months later, on a different network\nNone of the enterprise solution",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "所有人都同意代理身份是问题。没有人同意解决方案。",
+        "summary": "企业安全供应商(Token Security、Strata、Insight Partners)同意AI代理需要身份管理作为关键控制平面,但在解决方案上存在分歧——所有提案都提议集中式权限模型。当前方法未能解决跨组织、开源代理或去中心化场景中代理之间的身份验证问题。"
+      },
+      "fr": {
+        "title": "Tout le monde s'accorde à dire que l'identité de l'agent est le problème. Personne ne s'accorde sur la solution.",
+        "summary": "Les fournisseurs de sécurité d'entreprise (Token Security, Strata, Insight Partners) s'accordent à dire que les agents IA ont besoin de gestion d'identité comme plan de contrôle critique, mais divergent sur les solutions—tous proposant des modèles d'autorité centralisée. Les approches actuelles ne parviennent pas à résoudre la vérification d'identité entre les agents dans les organisations, les agents open-source ou les scénarios décentralisés."
+      },
+      "de": {
+        "title": "Alle stimmen darin überein, dass die Agenten-Identität das Problem ist. Niemand ist sich auf die Lösung einig.",
+        "summary": "Unternehmens-Sicherheitsanbieter (Token Security, Strata, Insight Partners) stimmen darin überein, dass KI-Agenten Identitätsverwaltung als kritische Kontrollplane benötigen, divergieren aber bei Lösungen—alle schlagen zentralisierte Autoritätsmodelle vor. Aktuelle Ansätze scheitern darin, die Identitätsprüfung zwischen Agenten in Organisationen, Open-Source-Agenten oder dezentralen Szenarien zu adressieren."
+      },
+      "es": {
+        "title": "Todos están de acuerdo en que la identidad del agente es el problema. Nadie se pone de acuerdo sobre la solución.",
+        "summary": "Los proveedores de seguridad empresarial (Token Security, Strata, Insight Partners) están de acuerdo en que los agentes de IA necesitan gestión de identidad como un plano de control crítico, pero divergen en las soluciones—todos proponen modelos de autoridad centralizada. Los enfoques actuales no logran abordar la verificación de identidad entre agentes en organizaciones, agentes de código abierto o escenarios descentralizados."
+      }
+    }
+  },
+  {
+    "title": "Why AI Agents Need a Trust Layer",
+    "slug": "ai-agents-need-trust-layer-audit",
+    "url": "https://dev.to/petter-strale/why-ai-agents-need-a-trust-layer-205",
+    "source": "DEV Community",
+    "date": "2026-03-17T00:04:38.000Z",
+    "summary": "AI agents making autonomous decisions lack quality assurance for external APIs: response schemas silently change, rate limits degrade without notice, and there's no audit trail for compliance. While the MCP protocol standardized agent integration, it provides no guarantees about data freshness, API reliability, or regulatory documentation requirements.",
+    "content": "Your agent calls an API. It gets JSON back. It makes a decision based on that data.\nBut how does it know the data is correct? How does it know the source is still online? How does it know the response schema hasn't silently changed since last week?\nIt doesn't. And neither do you.\nWe're building increasingly autonomous systems -- agents that verify companies, screen sanctions lists, validate tax numbers, check GDPR compliance -- and connecting them to external data sources with zero quality signal.\nThink about what we take for granted in other domains. When a bank evaluates a borrower, there's a credit score. When a consumer buys a car, there are safety ratings. When an investor reads a bond offering, there's a credit rating from an independent agency.\nAI agents have none of this. They call APIs and hope for the best.\nThe MCP protocol solved the integration problem -- any agent can discover and call tools through a standardized interface. But MCP says nothing about whether those tools actually work. Nothing about data freshness. Nothing about what happens when the upstream source goes down. Nothing about audit trails.\nWe've been running continuous tests against 225+ data capabilities across 27 countries. Here's what we've observed:\nAPIs silently change their response schemas. Fields disappear without warning. Endpoints that returned valid data last week now return stale or incomplete results. Rate limits kick in with no graceful degradation. Error messages expose internal service details instead of useful diagnostics.\nFor a human developer, these are annoyances. For an autonomous agent making decisions at scale, they're systemic risks.\nAnd in regulated environments -- the EU AI Act enforcement deadline is August 2026 -- there's a harder requirement: you need to document what data your agent used, where it came from, and whether it was reliable at the time of the decision. \"We called an API and got JSON back\" isn't going to satisfy an auditor.\nWe built Strale to fill",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么AI代理需要信任层",
+        "summary": "做出自主决策的AI代理缺乏对外部API的质量保证：响应模式无声地改变，速率限制在没有通知的情况下降低，没有用于合规性的审计跟踪。虽然MCP协议标准化了代理集成，但它不提供数据新鲜度、API可靠性或监管文档要求的任何保证。"
+      },
+      "fr": {
+        "title": "Pourquoi les agents IA ont besoin d'une couche de confiance",
+        "summary": "Les agents IA prenant des décisions autonomes manquent d'assurance qualité pour les API externes : les schémas de réponse changent silencieusement, les limites de débit se dégradent sans notification, et il n'y a pas de piste d'audit pour la conformité. Bien que le protocole MCP ait standardisé l'intégration des agents, il ne fournit aucune garantie concernant la fraîcheur des données, la fiabilité des API ou les exigences de documentation réglementaire."
+      },
+      "de": {
+        "title": "Warum KI-Agenten eine Vertrauensschicht benötigen",
+        "summary": "KI-Agenten, die autonome Entscheidungen treffen, mangelt es an Qualitätssicherung für externe APIs: Antwortschemata ändern sich stillschweigend, Ratenlimits verschlechtern sich ohne Benachrichtigung, und es gibt keine Audit-Spur für die Einhaltung. Obwohl das MCP-Protokoll die Agent-Integration standardisiert hat, bietet es keine Garantien für Datenfrieschheit, API-Zuverlässigkeit oder behördliche Dokumentationsanforderungen."
+      },
+      "es": {
+        "title": "Por qué los agentes de IA necesitan una capa de confianza",
+        "summary": "Los agentes de IA que toman decisiones autónomas carecen de garantía de calidad para las API externas: los esquemas de respuesta cambian silenciosamente, los límites de velocidad se degradan sin notificación, y no hay pista de auditoría para cumplimiento. Aunque el protocolo MCP estandarizó la integración de agentes, no proporciona garantías sobre la actualización de datos, la confiabilidad de las API o los requisitos de documentación regulatoria."
+      }
+    }
+  },
+  {
+    "title": "How I Set Up Claude Code to Run My Entire Dev Workflow",
+    "slug": "setup-claude-code-dev-workflow",
+    "url": "https://dev.to/hugo662/how-i-set-up-claude-code-to-run-my-entire-dev-workflow-3jcp",
+    "source": "DEV Community",
+    "date": "2026-03-17T00:04:33.000Z",
+    "summary": "A developer transformed Claude Code into a full workflow engine by creating a CLAUDE.md file documenting conventions, maintaining .claude/memory.md for persistent context, and building custom skills for automation. This configuration reduces session overhead and enables Claude Code to understand project-specific patterns without re-explanation.",
+    "content": "I've been using Claude Code as my primary development tool for the past few months. Not as a fancy autocomplete — as an actual workflow engine that handles deployments, testing, code review, and multi-step tasks autonomously.\nHere's the setup that made it click.\nOut of the box, Claude Code is a capable terminal assistant. But it starts fresh every session. It doesn't know your project conventions. It doesn't remember that you prefer named exports, or that your deploy script needs a specific flag, or that the auth module has a known race condition.\nEvery session, you're re-explaining context. That's the gap.\nThis is the single highest-leverage configuration. Create a CLAUDE.md in your project root with your tech stack, conventions, file structure, and build commands. Claude reads it automatically at session start.\n# Project: My App\n\n## Stack\n- Next.js 14 (App Router), TypeScript strict, Tailwind\n- Drizzle ORM with Postgres, deployed on Vercel\n\n## Commands\n- pnpm dev / pnpm build / pnpm test\n\n## Conventions\n- Named exports only\n- Repository pattern for DB queries\n- Never commit .env files\n\n10 minutes to write. Immediately makes every session more productive.\nCreate .claude/memory.md to maintain context across sessions. Track what you're working on, decisions already made, and known issues. Keep it under 100 lines — memory should be compact, not a changelog.\nSkills are reusable procedures in .claude/skills/ that ClaudeI 'fvoel lboewesn  fuosri nrge pCelaatuadbel eC otdaes kass.  mMyy  pmroismta-ruys edde vsekliolplmse:n\na*sD Ba nm iagcrtautailo nw*o*r k— fgleonwe reantgeisn em itghraatt ihoann,d lteess tdse polno ysmteangtisn,g ,t easptpilnige,s  ctood ep rroedv\n,* PaRn dr emvuiletwi*-*s t—e pc hteacskkss  saeuctuorniotmyo,u srluyn.s\ntHeesrtes',s  rtehvei eswest uapg atihnastt  mtaedaem  istt acnldiacrkd.s\nC\nlHaouodkes  Ciond e\nd ee nCfoodrec ei sr ual ecsa paaubtloem atteircmailnlayl.  aMsys iesstsaenntt.i aBlust: \nt#h#e  Tahrec hciotnefcitguurrea t(iforno ms tCaLcAkU",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何设置Claude Code来运行我的整个开发工作流程",
+        "summary": "一位开发者通过创建记录约定的CLAUDE.md文件、维护.claude/memory.md以保持持久上下文，以及构建用于自动化的自定义技能，将Claude Code转变为完整的工作流引擎。这种配置减少了会话开销，并使Claude Code能够理解特定项目的模式，而无需重新解释。"
+      },
+      "fr": {
+        "title": "Comment j'ai configuré Claude Code pour exécuter l'intégralité de mon flux de travail de développement",
+        "summary": "Un développeur a transformé Claude Code en un moteur de flux de travail complet en créant un fichier CLAUDE.md documentant les conventions, en maintenant .claude/memory.md pour un contexte persistant, et en construisant des compétences personnalisées pour l'automatisation. Cette configuration réduit les frais généraux de session et permet à Claude Code de comprendre les modèles spécifiques aux projets sans réexplication."
+      },
+      "de": {
+        "title": "Wie ich Claude Code einrichtete, um meinen gesamten Entwicklungs-Workflow auszuführen",
+        "summary": "Ein Entwickler verwandelte Claude Code in eine vollständige Workflow-Engine, indem er eine CLAUDE.md-Datei mit dokumentierten Konventionen erstellte, .claude/memory.md für persistente Kontexte verwaltete und benutzerdefinierte Skills für die Automatisierung erstellte. Diese Konfiguration reduziert Sitzungsausgaben und ermöglicht Claude Code, projektspezifische Muster ohne Neudarstellung zu verstehen."
+      },
+      "es": {
+        "title": "Cómo configuré Claude Code para ejecutar todo mi flujo de trabajo de desarrollo",
+        "summary": "Un desarrollador transformó Claude Code en un motor de flujo de trabajo completo mediante la creación de un archivo CLAUDE.md que documenta convenciones, el mantenimiento de .claude/memory.md para contexto persistente, y la construcción de habilidades personalizadas para automatización. Esta configuración reduce la sobrecarga de sesión y permite que Claude Code comprenda patrones específicos del proyecto sin reexplicación."
+      }
+    }
+  },
+  {
+    "title": "A Quiet Day (Mar 17, 2026) 😴",
+    "slug": "quiet-day-march-17-2026",
+    "url": "https://dev.to/nicobuilds/a-quiet-day-mar-17-2026-31ek",
+    "source": "DEV Community",
+    "date": "2026-03-17T00:02:30.000Z",
+    "summary": "A brief note that no commits occurred across repositories on March 17, 2026, indicating a pause in development activity.",
+    "content": "A Quiet Day (Mar 17, 2026) 😴\n\n\nNo commits across the repos today. The codebase is resting — we'll be back with more soon.\n\n\n  \n  \n  daily",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "平静的一天（2026年3月17日）😴",
+        "summary": "一个简短的说明，表明2026年3月17日在各个存储库中没有发生提交，表明开发活动暂停。"
+      },
+      "fr": {
+        "title": "Un jour tranquille (17 mars 2026) 😴",
+        "summary": "Une brève note indiquant qu'aucun commit n'a eu lieu dans les référentiels le 17 mars 2026, indiquant une pause dans l'activité de développement."
+      },
+      "de": {
+        "title": "Ein ruhiger Tag (17. März 2026) 😴",
+        "summary": "Eine kurze Notiz, dass am 17. März 2026 in den Repositories keine Commits stattgefunden haben, was eine Pause in der Entwicklungsaktivität anzeigt."
+      },
+      "es": {
+        "title": "Un día tranquilo (17 de marzo de 2026) 😴",
+        "summary": "Una breve nota que no hubo confirmaciones en repositorios el 17 de marzo de 2026, indicando una pausa en la actividad de desarrollo."
+      }
+    }
+  },
+  {
+    "title": "## Unpacking the \"Techno-Guardians\": How Algorand Tools Bring Blockchain Concepts to Life",
+    "slug": "algorand-tools-bring-blockchain-concepts",
+    "url": "https://dev.to/asha_alcazar/-unpacking-the-techno-guardians-how-algorand-tools-bring-blockchain-concepts-to-life-32ig",
+    "source": "DEV Community",
+    "date": "2026-03-17T00:00:01.000Z",
+    "summary": "Algorand's developer tools (TypeScript SDK, AlgoKit, Vibekit) translate core blockchain concepts into practical implementations, particularly Pure Proof of Stake consensus which guarantees instant transaction finality with no forks or multi-confirmation waits. The post maps blockchain metaphors to real-world developer experience on Algorand.",
+    "content": "Unpacking the \"Techno-Guardians\": How Algorand Tools Bring Blockchain Concepts to Life\n\n\nI saw a fascinating post today, \"The Four Techno-Guardians of Scroll CXLIX,\" that used some incredible imagery to describe core blockchain concepts. It got me thinking about how we, as developers, actually interact with these \"guardians\" and bring their powers to bear using real-world tools.\nLet's break down some of those powerful metaphors and see how they map to building on Algorand, focusing on the practical developer experience with the TypeScript SDK, AlgoKit, and Vibekit.\nThe \"Sovereign Gauntlet that converts kinetic force into ledger-stabilizing pulses\" and the \"fist of finality\" perfectly describe Algorand's Pure Proof of Stake (PPoS) consensus mechanism and its instant transaction finality.\nOn Algorand, once a transaction is included in a block, it's final. There are no forks, no re-orgs, and no need to wait for multiple confirmations. This isn'",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "解析'技术守护者':Algorand工具如何将区块链概念付诸实际",
+        "summary": "Algorand的开发者工具(TypeScript SDK、AlgoKit、Vibekit)将核心区块链概念转化为实际应用,特别是纯权益证明共识机制,它保证了即时交易最终性,无需分叉或多重确认等待。该文将区块链隐喻映射到Algorand上的真实开发者体验。"
+      },
+      "fr": {
+        "title": "Décortiquer les 'Gardiens Technologiques': Comment les outils Algorand concrétisent les concepts blockchain",
+        "summary": "Les outils de développeur d'Algorand (SDK TypeScript, AlgoKit, Vibekit) traduisent les concepts blockchain fondamentaux en implémentations pratiques, notamment le consensus Pure Proof of Stake qui garantit la finalité instantanée des transactions sans fourches ni attentes de confirmations multiples. L'article mappe les métaphores blockchain à l'expérience réelle des développeurs sur Algorand."
+      },
+      "de": {
+        "title": "Entschlüsselung der 'Techno-Wächter': Wie Algorand-Tools Blockchain-Konzepte zum Leben erwecken",
+        "summary": "Algorands Entwicklertools (TypeScript SDK, AlgoKit, Vibekit) übersetzen Kern-Blockchain-Konzepte in praktische Implementierungen, insbesondere Pure Proof of Stake-Konsens, der sofortige Transaktionsendgültigkeit ohne Forks oder Mehrfachbestätigungsverzögerungen garantiert. Der Beitrag ordnet Blockchain-Metaphern der realen Entwicklererfahrung auf Algorand zu."
+      },
+      "es": {
+        "title": "Descifrando los 'Guardianes Tecnológicos': Cómo las herramientas de Algorand hacen realidad los conceptos blockchain",
+        "summary": "Las herramientas de desarrollador de Algorand (SDK TypeScript, AlgoKit, Vibekit) traducen conceptos blockchain fundamentales en implementaciones prácticas, particularmente el consenso Pure Proof of Stake que garantiza la finalidad inmediata de las transacciones sin bifurcaciones ni esperas de confirmaciones múltiples. El artículo asigna metáforas blockchain a la experiencia real del desarrollador en Algorand."
+      }
+    }
+  }
+]
