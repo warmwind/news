@@ -1,5 +1,341 @@
 [
   {
+    "title": "Building a 1,056-Test Rust CLI Without Writing Rust — Claude Code Did It",
+    "slug": "building-1056-test-rust-cli-without-writing-rust",
+    "url": "https://dev.to/ji_ai/building-a-1056-test-rust-cli-without-writing-rust-claude-code-did-it-5a97",
+    "source": "DEV Community",
+    "date": "2026-03-19T12:07:18.000Z",
+    "summary": "Developer without Rust experience shipped a 1,056-test Rust CLI (ContextZip) entirely written by Claude Code through structured subagent prompts. The two-agent cycle of implementation and review caught 80% of bugs before human review. This showcases how AI coding tools can produce production-quality code when given clear, scoped task specifications.",
+    "content": "I don't write Rust. I can read it well enough to catch obvious bugs, but I've never typed impl or fn main() from scratch. Yet I shipped a 40-module Rust CLI with 1,056 tests in 3 weeks.\nClaude Code wrote every line of Rust. I wrote prompts, reviewed diffs, and made architecture decisions. The tool — ContextZip — compresses Claude Code's own context window. So the AI built a tool to make itself work better. That irony wasn't lost on me.\nHere's exactly how the process worked, including the parts that went wrong.\nI never gave Claude Code a vague instruction like \"build a context compressor.\" Every task was a subagent dispatch — a scoped prompt with clear inputs, expected outputs, and test requirements.\nA typical dispatch:\n\"Implement an error stacktrace filter for Node.js. Input: raw stderr with Express middleware frames. Output: error message + user code frames only. Write 20+ test cases covering nested errors, empty traces, and mixed stdout/stderr. Put the filter in src/filters/error_stacktrace.rs.\"\nThe subagent implements, writes tests, runs them. Then I dispatch a second subagent to review:\n\"Review the error_stacktrace filter. Check edge cases: what happens with zero frames? Frames with no file path? Stack traces inside JSON output?\"\nThis two-agent cycle — implement, then review — caught 80% of bugs before I even looked at the code.\nThe foundation was RTK (Rust Token Killer), an open-source CLI with 34 command modules, 60+ TOML filters, and 950 tests. I forked it and dispatched a subagent to rename every reference from \"rtk\" to \"contextzip\" across 70 files.\n1,544 insertions, 1,182 deletions. All 950 tests still passing. Then three agents worked in parallel: one on the install script, one on GitHub Actions CI/CD for 5 platforms, one extending the SQLite tracking system.\nBy Friday: curl | bash installs the binary on Linux or macOS, and contextzip gain --by-feature shows per-filter savings.\nThis is where ContextZip stops being a rename and starts being a product. Six n",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "无需编写 Rust 即可构建 1,056 测试 Rust CLI — Claude Code 做到了",
+        "summary": "一位没有 Rust 经验的开发者通过 Claude Code 的结构化子代理提示，完全由 Claude Code 编写了一个拥有 1,056 个测试的 Rust CLI（ContextZip）。实现和审查的双代理循环在人工审查前捕获了 80% 的错误。这展示了当给予明确、限定范围的任务规范时，AI 编码工具如何能够生成生产质量的代码。"
+      },
+      "fr": {
+        "title": "Construire une CLI Rust à 1 056 tests sans écrire de Rust — Claude Code l'a fait",
+        "summary": "Un développeur sans expérience Rust a livré une CLI Rust avec 1 056 tests (ContextZip) entièrement écrite par Claude Code via des invites de sous-agents structurées. Le cycle à deux agents d'implémentation et d'examen a capturé 80 % des bogues avant l'examen humain. Cela montre comment les outils de codage IA peuvent produire du code de qualité production lorsqu'on leur donne des spécifications de tâches claires et délimitées."
+      },
+      "de": {
+        "title": "Erstellen einer Rust-CLI mit 1.056 Tests ohne Rust zu schreiben — Claude Code hat es geschafft",
+        "summary": "Ein Entwickler ohne Rust-Erfahrung lieferte eine Rust-CLI mit 1.056 Tests (ContextZip) vollständig von Claude Code durch strukturierte Sub-Agent-Prompts geschrieben. Der Zwei-Agent-Zyklus von Implementierung und Überprüfung erfasste 80 % der Fehler vor der menschlichen Überprüfung. Dies zeigt, dass KI-Codierungstools Code in Produktionsqualität erstellen können, wenn ihnen klare, begrenzte Aufgabenspezifikationen gegeben werden."
+      },
+      "es": {
+        "title": "Construir una CLI de Rust de 1.056 pruebas sin escribir Rust — Claude Code lo hizo",
+        "summary": "Un desarrollador sin experiencia en Rust envió una CLI de Rust con 1.056 pruebas (ContextZip) escrita completamente por Claude Code a través de solicitudes de subobjetos estructuradas. El ciclo de dos agentes de implementación y revisión capturó el 80 % de los errores antes de la revisión humana. Esto demuestra cómo las herramientas de codificación de IA pueden producir código de calidad de producción cuando se les dan especificaciones de tareas claras y delimitadas."
+      }
+    }
+  },
+  {
+    "title": "RTK Saves 60% of Tokens. I Made It Save 90%.",
+    "slug": "rtk-saves-60-percent-tokens-i-made-it-save-90",
+    "url": "https://dev.to/ji_ai/rtk-saves-60-of-tokens-i-made-it-save-90-3ib1",
+    "source": "DEV Community",
+    "date": "2026-03-19T12:07:14.000Z",
+    "summary": "ContextZip extends RTK's token compression capabilities from 60% to 90% by adding filters for error stacktraces, ANSI escape codes, package manager noise, and Docker logs. It inherits all 34 of RTK's original command modules while introducing six new compression filters that work on previously unoptimized output. This reduces context waste and helps Claude maintain continuity in long debugging sessions.",
+    "content": "RTK is one of the best tools in the Claude Code ecosystem. 28k GitHub stars, 60-90% token savings on git, test, and ls output, 34 command modules with TOML-based filters. If you use Claude Code and don't have RTK installed, go install it now.\nBut RTK has blind spots. It doesn't compress error stacktraces. It doesn't touch npm install warnings. It passes Docker build logs through unchanged. And ANSI escape codes — spinners, progress bars, color codes — all of that noise flows straight into your context window.\nI forked RTK and built ContextZip to fill those gaps. Here's a direct comparison.\n\n\n\nCategory\nRTK\nContextZip\n\n\n\n\ngit diff/log/status\nYes\nYes (inherited)\n\n\nls/find/tree\nYes\nYes (inherited)\n\n\ntest output (Jest, pytest)\nYes\nYes (inherited)\n\n\ncargo/rustc output\nYes\nYes (inherited)\n\n\nError stacktraces\nNo\nYes — 5 languages\n\n\nANSI/spinner cleanup\nNo\nYes — preprocessor\n\n\nnpm/pip install noise\nNo\nYes — keeps security\n\n\nDocker build logs\nNo\nYes — 88% avg savings\n\n\nBuild error grouping\nNo\nYes — deduplicates\n\n\nWeb page extraction\nNo\nYes — article only\n\n\n\nContextZip inherits all 34 of RTK's command modules and 60+ TOML filters unchanged. Everything RTK compresses, ContextZip compresses identically. The 6 new filters run on output that RTK passes through untouched.\nError stacktrace compression. Node.js, Python, Rust, Go, Java. Strips framework and library frames, keeps your code frames and the error message. A 30-line Express stacktrace becomes 3 lines. 93% savings on Node.js, 80% on Rust, 58.7% average across all languages.\nANSI preprocessor. Runs before all other filters. Strips escape codes, cursor movement sequences, spinner characters (⠋⠙⠹⠸), progress bars, and decoration lines. Preserves error markers, timestamps, and warning prefixes. 82.5% average savings.\nPackage install compression. Removes npm warn deprecated spam (often 40+ identical lines), pip download progress, yarn resolution noise. Keeps the install summary, security audit results, and any vulnerability warn",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "RTK 节省 60% 的令牌。我让它节省 90%。",
+        "summary": "ContextZip 通过添加错误堆栈跟踪、ANSI 转义码、包管理器噪声和 Docker 日志的过滤器，将 RTK 的令牌压缩能力从 60% 扩展到 90%。它继承了 RTK 所有 34 个原始命令模块，同时引入了六个新的压缩过滤器，可以处理以前未优化的输出。这减少了上下文浪费，并帮助 Claude 在长时间调试会话中保持连续性。"
+      },
+      "fr": {
+        "title": "RTK Économise 60% des jetons. Je l'ai fait économiser 90%.",
+        "summary": "ContextZip étend les capacités de compression de jetons de RTK de 60 % à 90 % en ajoutant des filtres pour les traces de pile d'erreurs, les codes d'échappement ANSI, le bruit du gestionnaire de paquets et les journaux Docker. Il hérite de tous les 34 modules de commande originaux de RTK tout en introduisant six nouveaux filtres de compression qui fonctionnent sur une sortie précédemment non optimisée. Cela réduit le gaspillage de contexte et aide Claude à maintenir la continuité lors de longues sessions de débogage."
+      },
+      "de": {
+        "title": "RTK spart 60% der Token. Ich habe es auf 90% sparen lassen.",
+        "summary": "ContextZip erweitert RTKs Tokenkomprimierungsfähigkeiten von 60% auf 90%, indem es Filter für Fehler-Stapelverfolgungen, ANSI-Escape-Codes, Paketmanager-Rauschen und Docker-Protokolle hinzufügt. Es erbt alle 34 ursprünglichen Befehlsmodule von RTK und führt gleichzeitig sechs neue Kompressionsfil­ter ein, die auf zuvor nicht optimierte Ausgaben wirken. Dies reduziert Kontextverschwendung und hilft Claude, die Kontinuität in langen Debug-Sitzungen aufrechtzuerhalten."
+      },
+      "es": {
+        "title": "RTK Ahorra 60% de Tokens. Yo lo hice ahorrar 90%.",
+        "summary": "ContextZip amplía las capacidades de compresión de tokens de RTK del 60% al 90% al agregar filtros para seguimientos de pila de errores, códigos de escape ANSI, ruido del administrador de paquetes y registros de Docker. Hereda todos los 34 módulos de comando originales de RTK e introduce seis nuevos filtros de compresión que funcionan en salida previamente no optimizada. Esto reduce el desperdicio de contexto y ayuda a Claude a mantener la continuidad en sesiones de depuración prolongadas."
+      }
+    }
+  },
+  {
+    "title": "I Compressed Claude Code's Context by 90% — Here's How",
+    "slug": "i-compressed-claude-codes-context-by-90-percent-heres-how",
+    "url": "https://dev.to/ji_ai/i-compressed-claude-codes-context-by-90-heres-how-e1g",
+    "source": "DEV Community",
+    "date": "2026-03-19T12:07:06.000Z",
+    "summary": "A developer built ContextZip to compress command output by 90%, addressing the real cost of context waste when noise forces Claude to forget previously shown code. The tool filters error stacktraces (30 lines → 3), package manager warnings, and ANSI codes before they reach Claude Code's context window. Real-world testing shows typical Node.js debugging sessions generate 3,000-5,000 tokens, over 60% of which is non-essential noise.",
+    "content": "My Claude Code session died mid-debug. Not because the problem was hard — because npm install dumped 150 lines of deprecated warnings into the context window.\nThat's the real cost of context waste. It's not about money (though tokens aren't free). It's about Claude forgetting the code you showed it 5 minutes ago because the window is stuffed with noise.\nI measured it. A typical Node.js debugging session generates 3,000-5,000 tokens of command output. Over 60% is framework frames, ANSI escape codes, progress spinners, and package manager chatter. Claude reads all of it. Claude learns nothing from it.\nSo I built ContextZip. It sits between your shell and Claude Code, compressing every command output before it reaches the context window. Here are real before/after results.\n- TypeError: Cannot read properties of undefined (reading 'id')\n-     at getUserProfile (/app/src/api/users.ts:47:23)\n-     at processAuth (/app/src/middleware/auth.ts:12:5)\n-     at Layer.handle (/app/node_modules/express/lib/router/layer.js:95:5)\n-     at next (/app/node_modules/express/lib/router/route.js:149:13)\n-     at Route.dispatch (/app/node_modules/express/lib/router/route.js:119:3)\n-     ... 22 more node_modules frames\n\n+ TypeError: Cannot read properties of undefined (reading 'id')\n+   → src/api/users.ts:47         getUserProfile()\n+   → src/middleware/auth.ts:12   processAuth()\n+   (+ 27 framework frames hidden)\n\n30 lines become 3. Claude sees the error message and your code. Not Express internals.\n- npm warn deprecated inflight@1.0.6: This module is not supported...\n- npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4...\n- npm warn deprecated glob@7.2.3: Glob versions prior to v9...\n- npm warn deprecated @humanwhocodes/object-schema@2.0.3...\n- npm warn deprecated @humanwhocodes/config-array@0.13.0...\n- npm warn deprecated eslint@8.57.1: This version is no longer...\n- ... 40 more deprecation warnings\n- added 847 packages in 12s\n\n+ added 847 packages in 12s\n+ (46 deprecation wa",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我将 Claude Code 的上下文压缩了 90% — 以下是方法",
+        "summary": "一位开发者构建了 ContextZip 来将命令输出压缩 90%，解决了当噪声迫使 Claude 忘记之前显示的代码时上下文浪费的真实成本。该工具在错误进入 Claude Code 的上下文窗口之前过滤错误堆栈跟踪（30 行 → 3 行）、包管理器警告和 ANSI 代码。现实世界的测试表明，典型的 Node.js 调试会话生成 3,000-5,000 个令牌，其中 60% 以上是非必要的噪声。"
+      },
+      "fr": {
+        "title": "J'ai compressé le contexte de Claude Code de 90% — Voici comment",
+        "summary": "Un développeur a construit ContextZip pour compresser la sortie des commandes de 90%, abordant le coût réel du gaspillage de contexte lorsque le bruit force Claude à oublier le code précédemment affiché. L'outil filtre les traces de pile d'erreurs (30 lignes → 3), les avertissements du gestionnaire de paquets et les codes ANSI avant qu'ils n'atteignent la fenêtre de contexte de Claude Code. Les tests dans le monde réel montrent que les sessions de débogage Node.js typiques génèrent 3 000-5 000 jetons, dont plus de 60% sont du bruit non essentiel."
+      },
+      "de": {
+        "title": "Ich habe Clauds Code-Kontext um 90% komprimiert — So geht's",
+        "summary": "Ein Entwickler erstellte ContextZip, um die Befehlsausgabe um 90% zu komprimieren und die echten Kosten der Kontextverschwendung zu adressieren, wenn Rauschen Claude zwingt, zuvor angezeigten Code zu vergessen. Das Tool filtert Fehler-Stapelverfolgungen (30 Zeilen → 3), Paketmanager-Warnungen und ANSI-Codes, bevor sie das Kontextfenster von Claude Code erreichen. Tests in der realen Welt zeigen, dass typische Node.js-Debug-Sitzungen 3.000-5.000 Token generieren, von denen über 60% unnötiges Rauschen ist."
+      },
+      "es": {
+        "title": "Comprimí el contexto de Claude Code en un 90% — Así es cómo",
+        "summary": "Un desarrollador creó ContextZip para comprimir la salida de comandos en un 90%, abordando el costo real del desperdicio de contexto cuando el ruido obliga a Claude a olvidar el código mostrado anteriormente. La herramienta filtra seguimientos de pila de errores (30 líneas → 3), advertencias del administrador de paquetes y códigos ANSI antes de que lleguen a la ventana de contexto de Claude Code. Las pruebas en el mundo real muestran que las sesiones típicas de depuración de Node.js generan 3.000-5.000 tokens, más del 60% de los cuales es ruido no esencial."
+      }
+    }
+  },
+  {
+    "title": "Vibe Coding Is Real, and It's Creating Devs Who Can't Debug",
+    "slug": "vibe-coding-is-real-and-creating-devs-who-cant-debug",
+    "url": "https://dev.to/taskconcierge/vibe-coding-is-real-and-its-creating-devs-who-cant-debug-3je",
+    "source": "DEV Community",
+    "date": "2026-03-19T12:01:03.000Z",
+    "summary": "\"Vibe coding\"—using AI to generate code without understanding it—is spreading across teams using Cursor, Copilot, and Claude Code, creating developers who can't debug when problems arise. GitHub's 2025 data shows AI-assisted developers ship 55% more code weekly but experience 2-3x higher bug rates in production, with most failures being logic errors that only surface under real load. The lack of mental model building during code generation creates long-term velocity problems after 6-12 months.",
+    "content": "There's a certain kind of pull request I keep seeing.\nThe code works. Tests pass. The author can explain what it does in plain English. But ask them why a specific line is there, or what happens when the edge case hits, and you get the thousand-yard stare. They didn't write it. They described it to an AI, accepted the output, nudged it until CI went green, and shipped it.\nThis is vibe coding. And it's everywhere now.\nCursor, GitHub Copilot, Windsurf, Claude Code — pick your tool. The pitch is the same: describe what you want, the AI builds it, you move fast. It's genuinely impressive. I've watched engineers scaffold full CRUD APIs in twenty minutes. Things that would've taken an afternoon two years ago.\nBut there's a tax that nobody's accounting for.\nWhen you write code yourself — even bad code — you build a mental model. You know where the bodies are buried. You made the tradeoff between the clean solution and the pragmatic one. That knowledge is load-bearing. It's what makes debugging possible when 2 AM comes and production is on fire.\nVibe coding skips that. You end up with code that exists but isn't really understood. It's someone else's handwriting in your codebase.\nGitHub's own data from late 2025 showed AI-assisted developers ship about 55% more code per week. That sounds great until you look at the follow-on stats: bug rates in AI-assisted codebases are running 2-3x higher in production, with the bulk of those being logic errors — not syntax, not type mismatches, but wrong behavior. The kind of bug that only surfaces under real load or with real users doing unexpected things.\nAnecdotally, I've seen this pattern play out at three different companies. Fast initial development. Then, about 6-12 months in, a slowdown nobody can explain. The codebase has grown but velocity dropped. PRs take longer to review. Simple changes break unexpected things. The team doesn't have a mental map of their own system anymore because they didn't build it — they prompted it into e",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "代码直觉编程是真实的，它正在创造无法调试的开发者",
+        "summary": "\"代码直觉编程\"——使用AI生成代码而不理解它——正在使用Cursor、Copilot和Claude Code的团队中传播，造就了问题出现时无法调试的开发者。GitHub的2025年数据显示，使用AI辅助的开发者每周发布的代码增加55%，但在生产中的bug率高出2-3倍，大多数故障是只在真实负载下才会出现的逻辑错误。代码生成期间缺乏心智模型建设在6-12个月后会造成长期的速度问题。"
+      },
+      "fr": {
+        "title": "La Programmation par Intuition est Réelle et elle Crée des Développeurs qui ne Savent pas Déboguer",
+        "summary": "Le \"code par intuition\"—utiliser l'IA pour générer du code sans le comprendre—se propage dans les équipes utilisant Cursor, Copilot et Claude Code, créant des développeurs qui ne peuvent pas déboguer en cas de problème. Les données 2025 de GitHub montrent que les développeurs assistés par l'IA produisent 55% plus de code chaque semaine mais connaissent des taux de bugs 2-3 fois plus élevés en production, la plupart des défaillances étant des erreurs logiques qui ne surgissent que sous charge réelle. L'absence de construction de modèles mentaux lors de la génération de code crée des problèmes de productivité à long terme après 6-12 mois."
+      },
+      "de": {
+        "title": "Intuitive Codierung ist real und schafft Entwickler, die nicht debuggen können",
+        "summary": "\"Intuitive Codierung\"—AI zur Code-Generierung ohne Verständnis nutzen—breitet sich in Teams mit Cursor, Copilot und Claude Code aus und schafft Entwickler, die nicht debuggen können, wenn Probleme auftreten. GitHubs 2025-Daten zeigen, dass KI-gestützte Entwickler 55% mehr Code pro Woche liefern, aber 2-3x höhere Fehlerquoten in der Produktion aufweisen, wobei die meisten Ausfälle Logikfehler sind, die nur unter echter Last auftreten. Das Fehlen von mentalen Modellen während der Code-Generierung führt nach 6-12 Monaten zu langfristigen Geschwindigkeitsproblemen."
+      },
+      "es": {
+        "title": "La Programación por Intuición es Real y está Creando Desarrolladores que no Pueden Depurar",
+        "summary": "La \"programación por intuición\"—usar IA para generar código sin entenderlo—se está propagando en equipos que usan Cursor, Copilot y Claude Code, creando desarrolladores que no pueden depurar cuando surgen problemas. Los datos de 2025 de GitHub muestran que los desarrolladores asistidos por IA envían un 55% más de código semanalmente pero experimentan tasas de errores 2-3 veces más altas en producción, siendo la mayoría de las fallas errores lógicos que solo aparecen bajo carga real. La falta de construcción de modelos mentales durante la generación de código crea problemas de velocidad a largo plazo después de 6-12 meses."
+      }
+    }
+  },
+  {
+    "title": "Productivity Up, Expertise Down",
+    "slug": "productivity-up-expertise-down",
+    "url": "https://dev.to/rawveg/productivity-up-expertise-down-584k",
+    "source": "DEV Community",
+    "date": "2026-03-19T12:00:00.000Z",
+    "summary": "Enterprise AI tool deployments show a fundamental tension: developers complete tasks 55% faster with AI assistance and achieve up to 353% ROI, yet evidence suggests AI may accelerate skill decay and hinder skill acquisition without users realizing it. A 2025 randomized trial found some developers using AI actually took 19% longer on tasks due to over-reliance on poorly contextualized outputs and debugging overhead. Capturing AI productivity gains while preserving expertise requires governance frameworks and reskilling pathways.",
+    "content": "The promise of AI copilots sounds almost too good to be true: write code 55% faster, resolve customer issues 41% more quickly, slash content creation time by 70%, all whilst improving quality. Yet across enterprises deploying these tools, a quieter conversation is unfolding. Knowledge workers are completing tasks faster but questioning whether they're developing expertise or merely becoming efficient at prompt engineering. Finance teams are calculating impressive returns on investment whilst HR departments are quietly mapping skills that seem to be atrophying.\nThis tension between measurable productivity and less quantifiable expertise loss sits at the heart of enterprise AI adoption in 2025. A controlled experiment with GitHub Copilot found that developers completed tasks 55.8% faster than those without AI assistance. Microsoft's analysis revealed that their Copilot drove up to 353% ROI for small and medium businesses. Customer service representatives using AI training resolve issues 41% faster with higher satisfaction scores.\nYet these same organisations are grappling with contradictory evidence. A 2025 randomised controlled trial found developers using AI tools took 19% longer to complete tasks versus non-AI groups, attributed to over-reliance on under-contextualised outputs and debugging overhead. Research published in Cognitive Research: Principles and Implications in 2024 suggests that AI assistants might accelerate skill decay among experts and hinder skill acquisition among learners, often without users recognising these effects.\nThe copilot conundrum, then, is not whether these tools deliver value but how organisations can capture the productivity gains whilst preserving and developing human expertise. This requires understanding which tasks genuinely benefit from AI assistance, implementing governance frameworks that ensure quality without bureaucratic paralysis, and creating re-skilling pathways that prepare workers for a future where AI collaboration is",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "生产力上升，专业知识下降",
+        "summary": "企业AI工具部署显示了一个根本性的张力：开发者使用AI辅助完成任务速度快55%，获得高达353%的ROI，但证据表明AI可能会加速技能衰退并阻碍技能获取，用户往往没有意识到这一点。2025年的一项随机对照试验发现，一些使用AI的开发者在任务上实际耗时19%更长，原因是过度依赖上下文不足的输出和调试开销。在保留AI生产力收益的同时保护专业知识需要治理框架和重新培训途径。"
+      },
+      "fr": {
+        "title": "Productivité en Hausse, Expertise en Baisse",
+        "summary": "Les déploiements d'outils d'IA en entreprise révèlent une tension fondamentale : les développeurs complètent les tâches 55% plus vite avec l'assistance de l'IA et réalisent jusqu'à 353% de ROI, mais les preuves suggèrent que l'IA peut accélérer la décadence des compétences et entraver l'acquisition de compétences sans que les utilisateurs ne s'en rendent compte. Un essai contrôlé randomisé de 2025 a constaté que certains développeurs utilisant l'IA ont réellement pris 19% plus longtemps sur les tâches en raison d'une dépendance excessive aux résultats mal contextualisés et aux frais de débogage. Capturer les gains de productivité de l'IA tout en préservant l'expertise nécessite des cadres de gouvernance et des voies de recyclage."
+      },
+      "de": {
+        "title": "Produktivität Steigt, Fachwissen Sinkt",
+        "summary": "Unternehmensweite KI-Tool-Bereitstellungen zeigen eine grundlegende Spannung: Entwickler erledigen Aufgaben mit KI-Unterstützung 55% schneller und erzielen bis zu 353% ROI, doch Beweise deuten darauf hin, dass KI möglicherweise den Fachkompetenz-Verfall beschleunigt und den Fachkompetenz-Erwerb behindert, ohne dass Benutzer es bemerken. Ein randomisiertes kontrolliertes Experiment von 2025 ergab, dass einige Entwickler, die KI verwendeten, Aufgaben tatsächlich 19% länger brauchten, was auf übermäßige Abhängigkeit von schlecht kontextualisierten Ergebnissen und Debug-Kosten zurückzuführen ist. Um KI-Produktivitätsgewinne zu nutzen und gleichzeitig Fachwissen zu bewahren, sind Governance-Rahmen und Umschulungswege erforderlich."
+      },
+      "es": {
+        "title": "Productividad Aumenta, Experiencia Disminuye",
+        "summary": "Los despliegues de herramientas de IA empresarial muestran una tensión fundamental: los desarrolladores completan tareas un 55% más rápido con asistencia de IA y logran hasta un 353% de ROI, sin embargo la evidencia sugiere que la IA puede acelerar la degradación de habilidades e impedir la adquisición de habilidades sin que los usuarios se den cuenta. Un ensayo controlado aleatorizado de 2025 encontró que algunos desarrolladores que usan IA en realidad tardaron un 19% más en las tareas debido a la excesiva dependencia de resultados mal contextualizados y el costo de depuración. Capturar las ganancias de productividad de la IA mientras se preserva la experiencia requiere marcos de gobernanza y rutas de recapacitación."
+      }
+    }
+  },
+  {
+    "title": "Claude Codeで非同期ジョブパターンを設計する：長時間処理の非同期化・ポーリング・Webhook通知",
+    "slug": "claude-code-async-job-patterns-polling-webhooks",
+    "url": "https://dev.to/myougatheaxo/claude-codedefei-tong-qi-ziyobupatanwoshe-ji-suruchang-shi-jian-chu-li-nofei-tong-qi-hua-poringuwebhooktong-zhi-42em",
+    "source": "DEV Community",
+    "date": "2026-03-19T12:00:00.000Z",
+    "summary": "Tutorial on designing production async job systems using Claude Code, implementing job queues, status polling APIs, webhook notifications, and progress tracking. The JobManager pattern manages long-running tasks (>2 seconds) by returning a job ID immediately (202 Accepted) and allowing clients to poll status or receive webhook notifications on completion. Implementation includes job states (PENDING → RUNNING → COMPLETED/FAILED) with progress percentage tracking.",
+    "content": "はじめに\n\n\n「PDF生成処理が30秒かかってタイムアウトする」「レポート生成中にユーザーが待ちきれず何度もボタンを押す」——長時間処理を非同期ジョブとして切り出し、ポーリングまたはWebhookで完了を通知する設計をClaude Codeに生成させる。\n## 非同期ジョブパターン設計ルール\n\n### ジョブ登録\n- 長時間処理（>2秒）は非同期ジョブに変換\n- 即座にジョブIDを返す（202 Accepted）\n- ジョブIDでステータスをポーリング可能\n\n### ステータス管理\n- PENDING → RUNNING → COMPLETED / FAILED\n- 実行中は進捗率（0-100%）も提供\n- 失敗時はエラー詳細を記録\n\n### 通知\n- ポーリング: GET /jobs/{id} でステータス確認\n- Webhook: 完了時にクライアントのURLにPOST\n- SSE: クライアントが接続中はリアルタイムでプッシュ\n\n非同期ジョブシステムを設計してください。\n\n要件：\n- ジョブキューとワーカー\n- ステータスポーリングAPI\n- Webhook通知\n- 進捗追跡\n\n生成ファイル: src/jobs/\n\n// src/jobs/jobManager.ts — ジョブ管理\n\nexport type JobStatus = 'pending' | 'running' | 'completed' | 'failed';\n\nexport interface Job<TInput = unknown, TOutput = unknown> {\n  id: string;\n  type: string;\n  status: JobStatus;\n  input: TInput;\n  output?: TOutput;\n  progress: number;       // 0-100\n  errorMessage?: string;\n  createdAt: Date;\n  startedAt?: Date;\n  completedAt?: Date;\n  webhookUrl?: string;    // 完了時の通知先\n}\n\nexport class JobManager {\n  // ジョブを登録（即座にIDを返す）\n  async enqueue<TInput>(jobType: string, input: TInput, options: {\n    webhookUrl?: string;\n    priority?: 'normal' | 'high';\n  } = {}): Promise<{ jobId: string }> {\n    const jobId = ulid();\n    const job: Job<TInput> = {\n      id: jobId,\n      type: jobType,\n      status: 'pending',\n      input,\n      progress: 0,\n      createdAt: new Date(),\n      webhookUrl: options.webhookUrl,\n    };\n\n    // DBに保存\n    await prisma.job.create({\n      data: {\n        id: jobId,\n        type: jobType,\n        status: 'pending',\n        input: JSON.stringify(input),\n        progress: 0,\n        createdAt: new Date(),\n        webhookUrl: options.webhookUrl,\n      },\n    });\n\n    // ジョブキューに追加\n    const queueKey = options.priority === 'high' ? 'queue:jobs:high' : 'queue:jobs:normal';\n    await redis.xAdd(queueKey, '*', {\n      jobId,\n      jobType,\n      payload: JSON.stringify(input),\n    });\n\n    logger.info({ jobId, jobType }, 'Job enqueued');\n    return { jobId };\n  }\n\n  // ジョブステータスを取得\n  async getStatus(jobId: strin",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用Claude Code设计异步作业模式：长时间运行任务的异步化、轮询、Webhook通知",
+        "summary": "关于使用Claude Code设计生产异步作业系统的教程，实现作业队列、状态轮询API、webhook通知和进度跟踪。JobManager模式通过立即返回作业ID（202 Accepted）来管理长时间运行的任务（>2秒），并允许客户端轮询状态或在完成时接收webhook通知。实现包括作业状态（PENDING → RUNNING → COMPLETED/FAILED），带有进度百分比跟踪。"
+      },
+      "fr": {
+        "title": "Concevoir des Motifs de Travaux Asynchrones avec Claude Code : Asynchronisation des Tâches Longues, Sondage et Notifications Webhook",
+        "summary": "Tutoriel sur la conception de systèmes de travaux asynchrones de production utilisant Claude Code, implémentant des files d'attente de travaux, des API de sondage de statut, des notifications webhook et le suivi de la progression. Le motif JobManager gère les tâches longues (>2 secondes) en retournant un ID de travail immédiatement (202 Accepted) et en permettant aux clients de sonder le statut ou de recevoir des notifications webhook à l'achèvement. L'implémentation comprend les états de travail (PENDING → RUNNING → COMPLETED/FAILED) avec suivi du pourcentage de progression."
+      },
+      "de": {
+        "title": "Asynchrone Job-Muster mit Claude Code gestalten: Asynchronisierung von Langzeitaufgaben, Polling und Webhook-Benachrichtigungen",
+        "summary": "Anleitung zum Entwurf produktiver asynchroner Jobsysteme mit Claude Code, Implementierung von Jobwarteschlangen, Status-Polling-APIs, Webhook-Benachrichtigungen und Fortschrittverfolgung. Das JobManager-Muster verwaltet lang laufende Aufgaben (>2 Sekunden), indem es sofort eine Job-ID zurückgibt (202 Accepted) und Clients ermöglicht, den Status abzufragen oder Webhook-Benachrichtigungen bei Abschluss zu erhalten. Die Implementierung umfasst Job-Status (PENDING → RUNNING → COMPLETED/FAILED) mit Verfolgung des Fortschrittsprozentsatzes."
+      },
+      "es": {
+        "title": "Diseñar Patrones de Trabajos Asincronos con Claude Code: Asincronización de Tareas de Larga Duración, Sondeo y Notificaciones Webhook",
+        "summary": "Tutorial sobre el diseño de sistemas de trabajos asincronos de producción usando Claude Code, implementando colas de trabajos, APIs de sondeo de estado, notificaciones webhook y seguimiento del progreso. El patrón JobManager gestiona tareas de larga duración (>2 segundos) devolviendo un ID de trabajo inmediatamente (202 Accepted) y permitiendo que los clientes sondeen el estado o reciban notificaciones webhook al completarse. La implementación incluye estados de trabajo (PENDING → RUNNING → COMPLETED/FAILED) con seguimiento del porcentaje de progreso."
+      }
+    }
+  },
+  {
+    "title": "DeepSource vs Codacy: Code Quality Tools Compared (2026)",
+    "slug": "deepsource-vs-codacy-code-quality-tools-compared-2026",
+    "url": "https://dev.to/rahulxsingh/deepsource-vs-codacy-code-quality-tools-compared-2026-52dd",
+    "source": "DEV Community",
+    "date": "2026-03-19T12:00:00.000Z",
+    "summary": "DeepSource and Codacy are cloud-hosted code quality platforms with different strengths: DeepSource prioritizes precision with sub-5% false positives and AI-powered autofixes, while Codacy offers broader coverage across 49 languages and includes security scanning (SAST, SCA, DAST) at $15/user/month. The choice depends on priorities—select DeepSource for minimal noise and best autofix capabilities, or Codacy for comprehensive security coverage and lower per-seat cost.",
+    "content": "Quick verdict\n\n\n\n\nDeepSource and Codacy are both cloud-hosted code quality platforms that analyze pull requests, detect issues, and integrate with GitHub, GitLab, and Bitbucket. They occupy similar market positions but take fundamentally different approaches to the same problem. DeepSource prioritizes precision and AI-powered remediation - fewer findings, but nearly every one is worth acting on. Codacy prioritizes breadth and all-in-one coverage - more languages, more security dimensions, and a lower per-seat price.\nIf you want the fewest false positives and the best autofix capabilities, choose DeepSource. Its sub-5% false positive rate means developers trust the findings, and Autofix AI generates working, context-aware fixes for nearly all detected issues. The five-dimension PR report cards provide structured feedback that is easy to scan and act on.\nIf you want the broadest coverage at the lowest per-seat cost, choose Codacy. Its 49-language support, combined SAST + SCA + DAST + secrets detection security suite, and $15/user/month pricing deliver more functional coverage per dollar than DeepSource. The free AI Guardrails IDE extension for scanning AI-generated code is a unique feature no competitor matches.\nIf security scanning is your primary concern, Codacy covers more ground in a single platform with its four-pillar security suite. But if finding and fixing the highest-priority issues with minimal noise is more important than comprehensive scanning, DeepSource's accuracy-first approach produces better real-world outcomes.\n\n\n\nDimension\nDeepSource\nCodacy\n\n\n\n\nPrimary focus\nPrecision code quality + AI remediation\nBroad code quality + security coverage\n\n\nUsers\n2,000+ teams\n15,000+ organizations\n\n\nAnalysis rules\n5,000+\nThousands across 49 languages\n\n\nLanguages (GA)\n16\n49\n\n\nFalse positive rate\nSub-5% (industry-leading)\nModerate (requires tuning)\n\n\nAI code review\nFive-dimension PR report cards\nAI Reviewer (hybrid rule + AI)\n\n\nAutofix\nAutofix AI (LLM-powered, context-a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "DeepSource vs Codacy：代码质量工具比较 (2026)",
+        "summary": "DeepSource 和 Codacy 是云托管的代码质量平台，各有优势：DeepSource 优先考虑精准性，误报率低于 5%，具有 AI 驱动的自动修复功能，而 Codacy 提供跨 49 种语言的更广泛覆盖，包括安全扫描（SAST、SCA、DAST），每用户每月 $15。选择取决于优先级——选择 DeepSource 可获得最少的噪音和最佳的自动修复功能，或选择 Codacy 获得全面的安全覆盖和更低的每座位成本。"
+      },
+      "fr": {
+        "title": "DeepSource vs Codacy : Comparaison des outils de qualité de code (2026)",
+        "summary": "DeepSource et Codacy sont des plateformes de qualité de code hébergées dans le cloud avec des forces différentes : DeepSource privilégie la précision avec moins de 5% de faux positifs et des corrections automatisées alimentées par l'IA, tandis que Codacy offre une couverture plus large sur 49 langues et comprend l'analyse de sécurité (SAST, SCA, DAST) à 15 $/utilisateur/mois. Le choix dépend des priorités : sélectionnez DeepSource pour un bruit minimal et les meilleures capacités de correction automatique, ou Codacy pour une couverture de sécurité complète et un coût par siège inférieur."
+      },
+      "de": {
+        "title": "DeepSource vs Codacy: Vergleich von Code-Qualitätstools (2026)",
+        "summary": "DeepSource und Codacy sind Cloud-gehostete Code-Qualitätsplattformen mit unterschiedlichen Stärken: DeepSource priorisiert Genauigkeit mit weniger als 5% falsch positiven Ergebnissen und KI-gestützten automatischen Korrektionen, während Codacy eine breitere Abdeckung über 49 Sprachen bietet und Sicherheitsscannung (SAST, SCA, DAST) für 15 USD/Benutzer/Monat umfasst. Die Wahl hängt von den Prioritäten ab – wählen Sie DeepSource für minimales Rauschen und beste automatische Korrekturfunktionen oder Codacy für umfassende Sicherheitsabdeckung und niedrigere Pro-Benutzer-Kosten."
+      },
+      "es": {
+        "title": "DeepSource vs Codacy: Herramientas de calidad de código comparadas (2026)",
+        "summary": "DeepSource y Codacy son plataformas de calidad de código alojadas en la nube con diferentes fortalezas: DeepSource prioriza la precisión con menos del 5% de falsos positivos y correcciones automáticas impulsadas por IA, mientras que Codacy ofrece una cobertura más amplia en 49 idiomas e incluye análisis de seguridad (SAST, SCA, DAST) a $15/usuario/mes. La elección depende de las prioridades: seleccione DeepSource para el mínimo ruido y las mejores capacidades de corrección automática, o Codacy para una cobertura de seguridad integral y un costo por usuario menor."
+      }
+    }
+  },
+  {
+    "title": "Amazon S3 Bucket Names Aren’t Always Globally Unique Anymore — Here’s What Changed (and Why I’m Excited)",
+    "slug": "amazon-s3-bucket-names-arent-always-globally-unique-anymore",
+    "url": "https://dev.to/rufilboss/amazon-s3-bucket-names-arent-always-globally-unique-anymore-heres-what-changed-and-why-im-3a1f",
+    "source": "DEV Community",
+    "date": "2026-03-19T11:54:35.000Z",
+    "summary": "Amazon S3 now supports creating general-purpose buckets within account-regional namespaces, eliminating the need to find globally unique bucket names across all AWS accounts. Announced March 12, 2026, this feature allows bucket names like \"my-company-logs\" to exist within a single account's namespace rather than competing for global uniqueness. The change simplifies workload design patterns like \"one bucket per customer\" and reduces naming friction for platform teams.",
+    "content": "I still remember the first time S3 humbled me.\nI was following a “hello AWS” tutorial, feeling confident, and then S3 hit me with:\nBucket name already exists\nI tried again. And again. And again.\n\nDifferent names, different variations, still taken!\nThat’s when I learned the “classic rule”:\nS3 bucket names are globally unique (within an AWS partition).\n\nMeaning: if someone anywhere already owns that bucket name, you can’t have it.\nBut here’s the big update I recently learned, and it’s huge for builders, platform teams, and security folks:\nAmazon S3 now supports creating general-purpose buckets inside an “account regional namespace”, which removes the “find a globally unique name” pain.\nAWS announced this on Mar 12, 2026:\nhttps://aws.amazon.com/about-aws/whats-new/2026/03/amazon-s3-account-regional-namespaces/\nIn this article, I’ll break down what changed, how it works, why it matters, and how I’d explain it if I were designing bucket naming at scale.\nBy default, general purpose buckets exist in a global namespace.\nAWS puts it plainly:\n“Each bucket name must be unique across all AWS accounts in all the AWS Regions within a partition.”\nOfficial docs: https://docs.aws.amazon.com/AmazonS3/latest/userguide/gpbucketnamespaces.html\n\n\n\nThat means:\nmy-company-logs can only exist once (in that partition).\nIf the bucket is deleted, the name becomes available again — and someone else could recreate it later.\n\nAWS introduced a second option:\nYou can now create a general purpose bucket in a namespace reserved only for your account:\n“You can also choose to create a bucket in your account regional namespace. Your account regional namespace is a subdivision of the global namespace that only your account can create buckets in.”\n\nOfficial docs: https://docs.aws.amazon.com/AmazonS3/latest/userguide/gpbucketnamespaces.html\nAWS also summarizes the “why” in the announcement:\neliminates the need to find globally unique bucket names\n\nmakes it easier to build workloads like “one bucket per cus",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Amazon S3 存储桶名称不再总是全局唯一的 — 以下是更改内容（以及我为什么兴奋）",
+        "summary": "Amazon S3 现在支持在账户区域命名空间内创建通用目的存储桶，消除了在所有 AWS 账户中查找全局唯一存储桶名称的需求。该功能于 2026 年 3 月 12 日宣布，允许像\"my-company-logs\"这样的存储桶名称在单个账户的命名空间内存在，而不是竞争全局唯一性。这一变化简化了\"每个客户一个存储桶\"等工作负载设计模式，并减少了平台团队的命名摩擦。"
+      },
+      "fr": {
+        "title": "Les noms de compartiments Amazon S3 ne sont plus toujours uniques mondialement — Voici ce qui a changé (et pourquoi je suis enthousiaste)",
+        "summary": "Amazon S3 supporte désormais la création de compartiments à usage général dans des espaces de noms compte-régional, éliminant le besoin de trouver des noms de compartiments uniques mondialement sur tous les comptes AWS. Annoncée le 12 mars 2026, cette fonctionnalité permet à des noms de compartiments tels que \"my-company-logs\" d'exister dans l'espace de noms d'un seul compte plutôt que de concourir pour l'unicité mondiale. Le changement simplifie les modèles de conception de charge de travail comme \"un compartiment par client\" et réduit les frictions d'attribution de noms pour les équipes de plateforme."
+      },
+      "de": {
+        "title": "Amazon S3-Bucket-Namen sind nicht mehr immer global eindeutig — Das hat sich geändert (und warum ich begeistert bin)",
+        "summary": "Amazon S3 unterstützt nun die Erstellung von universellen Buckets innerhalb von Konto-regionalen Namespaces, wodurch die Notwendigkeit entfällt, global eindeutige Bucket-Namen über alle AWS-Konten hinweg zu finden. Diese Funktion wurde am 12. März 2026 angekündigt und ermöglicht es, dass Bucket-Namen wie \"my-company-logs\" im Namespace eines einzelnen Kontos existieren, anstatt um globale Eindeutigkeit zu konkurrieren. Die Änderung vereinfacht Workload-Designmuster wie \"ein Bucket pro Kunde\" und reduziert die Naming-Reibung für Platform-Teams."
+      },
+      "es": {
+        "title": "Los nombres de buckets de Amazon S3 ya no son siempre únicos globalmente — Esto es lo que cambió (y por qué estoy emocionado)",
+        "summary": "Amazon S3 ahora admite la creación de buckets de propósito general dentro de espacios de nombres regionales de cuenta, eliminando la necesidad de encontrar nombres de buckets globalmente únicos en todas las cuentas de AWS. Anunciada el 12 de marzo de 2026, esta característica permite que nombres de buckets como \"my-company-logs\" existan dentro del espacio de nombres de una sola cuenta en lugar de competir por la unicidad global. El cambio simplifica patrones de diseño de cargas de trabajo como \"un bucket por cliente\" y reduce la fricción de nombres para equipos de plataforma."
+      }
+    }
+  },
+  {
+    "title": "Building a Production-Ready Multi-Agent Investment Committee with AgentField",
+    "slug": "building-production-ready-multi-agent-investment-committee-agentfield",
+    "url": "https://dev.to/astrodevil/building-a-production-ready-multi-agent-investment-committee-with-agentfield-md7",
+    "source": "DEV Community",
+    "date": "2026-03-19T11:49:06.000Z",
+    "summary": "Tutorial on building Argus, a production-grade multi-agent system for stock research using AgentField, which structures agents as independent microservices with typed skills rather than relying on single monolithic orchestrators. The architecture implements an \"investment committee\" pattern where multiple agents analyze from different perspectives and combine outputs into structured reports. AgentField enables parallel analysis, clearer failure tracing, and full observability compared to traditional frameworks like LangChain.",
+    "content": "TL;DR\n\n\n\nThis tutorial walks through building Argus, a multi-agent system that performs automated stock research.\nUsing AgentField, agents run as modular microservices with typed skills and reasoners.\nThe architecture enables parallel analysis, structured workflows, and full observability for production-ready AI systems.\nMany early Agentic applications start with high-level orchestrators like LangChain or CrewAI. For simple use cases, these frameworks work well and are often the fastest way to prototype an idea.\nHowever, as the complexity of the task grows, especially when moving from a notebook to a production service, this pattern begins to break down.\nTraditional agent frameworks often focus on \"agentic reasoning\" but neglect the \"production engineering.\" In a real-world system, you can't just have one model or orchestrator responsible for multiple stages of a workflow in a sequential, opaque loop. Failures are harder to trace because the entire workflow is coupled to a single orchestration logic. Evaluating or improving individual stages becomes difficult without a clear separation of concerns.\nA more robust alternative is to structure the system as a set of specialized, independent components.\nIn this tutorial we will build Argus, an AI agent system that performs stock research using a coordinated set of specialized agents. Argus operates similarly to an investment committee: multiple agents analyze the same company from different perspectives and their outputs are combined into a structured research report.\nArgus is built using AgentField, an open-source backend framework designed for building and orchestrating AI agents as production services.\nMany early AI applications rely on a single prompt that attempts to complete an entire task in one step. This pattern is simple to prototype but introduces several issues in production systems.\nHigh hallucination risk: When a single prompt performs research, reasoning, and reporting at the same time, the model lacks rel",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用 AgentField 构建生产级多代理投资委员会",
+        "summary": "关于构建 Argus 的教程，这是一个使用 AgentField 进行股票研究的生产级多代理系统，它将代理结构化为具有类型化技能的独立微服务，而不是依赖单一的单体编排器。该架构实现了一种\"投资委员会\"模式，其中多个代理从不同角度进行分析并将输出组合成结构化报告。与 LangChain 等传统框架相比，AgentField 支持并行分析、更清晰的故障追踪和完整的可观测性。"
+      },
+      "fr": {
+        "title": "Construire un Comité d'Investissement Multi-Agent Prêt pour la Production avec AgentField",
+        "summary": "Tutoriel sur la construction d'Argus, un système multi-agent de niveau production pour la recherche d'actions utilisant AgentField, qui structure les agents en tant que microservices indépendants avec des compétences typées plutôt que de s'appuyer sur un orchestrateur monolithique unique. L'architecture implémente un modèle de \"comité d'investissement\" où plusieurs agents analysent sous différentes perspectives et combinent les résultats en rapports structurés. AgentField permet l'analyse parallèle, le traçage des défaillances plus clairs et la complète observabilité par rapport aux frameworks traditionnels comme LangChain."
+      },
+      "de": {
+        "title": "Aufbau eines produktionsreifen Multi-Agent-Investitionskomitees mit AgentField",
+        "summary": "Anleitung zum Aufbau von Argus, einem produktionsreifen Multi-Agent-System für die Aktienforschung mit AgentField, das Agenten als unabhängige Microservices mit typisierten Fähigkeiten strukturiert, anstatt sich auf einen einzigen monolithischen Orchestrator zu verlassen. Die Architektur implementiert ein \"Investitionskomitee\"-Muster, bei dem mehrere Agenten aus verschiedenen Perspektiven analysieren und Ergebnisse in strukturierte Berichte kombinieren. AgentField ermöglicht parallele Analyse, klarere Fehlerablaufverfolgung und vollständige Überwachbarkeit im Vergleich zu traditionellen Frameworks wie LangChain."
+      },
+      "es": {
+        "title": "Construir un Comité de Inversión Multi-Agente Listo para Producción con AgentField",
+        "summary": "Tutorial sobre la construcción de Argus, un sistema multi-agente de grado de producción para investigación de acciones utilizando AgentField, que estructura agentes como microservicios independientes con habilidades tipadas en lugar de depender de un orquestador monolítico único. La arquitectura implementa un patrón de \"comité de inversión\" donde múltiples agentes analizan desde diferentes perspectivas y combinan salidas en informes estructurados. AgentField permite análisis paralelo, seguimiento de fallos más claro y observabilidad completa en comparación con frameworks tradicionales como LangChain."
+      }
+    }
+  },
+  {
+    "title": "Goroutine leaks in Go: detect, understand, fix",
+    "slug": "goroutine-leaks-in-go-detect-understand-fix",
+    "url": "https://dev.to/ohugonnot/goroutine-leaks-in-go-detect-understand-fix-86j",
+    "source": "DEV Community",
+    "date": "2026-03-19T11:45:01.000Z",
+    "summary": "Goroutine leaks occur when started goroutines never terminate, blocking on channels or infinite loops, causing slow memory growth and eventual process termination without visible errors. The most common case is sending on unbuffered channels when receivers have timed out or returned early; the fix typically involves using buffered channels or context cancellation. Leaks are precise and reproducible once identified, making them quick to fix compared to traditional memory leaks.",
+    "content": "The program has been running for 3 days. Memory is climbing slowly, requests are starting to slow down, and at some point the process gets killed by the OOM. No panic, no visible error log, nothing in Sentry. Just a gradual degradation. Nine times out of ten: goroutine leak.\nWhat makes leaks hard to catch is that they don't make noise. A blocked goroutine consumes between 2 and 8 KB of stack depending on its state. Alone, it's nothing. At a few thousand, it's a problem.\nA goroutine leak is a goroutine that was started and never terminates — because it's waiting for something that will never arrive, or because it's running in an infinite loop with no exit mechanism. The Go runtime does not collect blocked goroutines: they stay in memory until the process ends.\nUnlike classic memory leaks (unreleased objects), goroutine leaks often have a precise, reproducible cause. Once you know what to look for, they're quick to find.\nThe most common case. You send on an unbuffered channel, but the receiver has stopped (timeout, error, early return):\nfunc fetchResult() (string, error) {\n    ch := make(chan string) // unbuffered\n\n    go func() {\n        result := doExpensiveWork()\n        ch <- result // ← blocked if nobody is reading anymore\n    }()\n\n    select {\n    case result := <-ch:\n        return result, nil\n    case <-time.After(2 * time.Second):\n        return \"\", errors.New(\"timeout\")\n        // the goroutine is now blocked on ch <- forever\n    }\n}\n\nEvery call that times out leaves a goroutine blocked. Fix: buffered channel with size 1, which lets the goroutine write and exit even if nobody reads:\nfunc fetchResult(ctx context.Context) (string, error) {\n    ch := make(chan string, 1) // buffered — the goroutine can always write\n\n    go func() {\n        result := doExpensiveWork()\n        select {\n        case ch <- result:\n        case <-ctx.Done(): // if the context is cancelled, exit cleanly\n        }\n    }()\n\n    select {\n    case result := <-ch:\n        return result, n",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Go中的Goroutine泄漏：检测、理解、修复",
+        "summary": "Goroutine泄漏发生在启动的Goroutine永不终止时，它们会在通道上阻塞或陷入无限循环，导致缓慢的内存增长和最终进程终止而没有明显的错误。最常见的情况是在接收器超时或提前返回时向无缓冲通道发送数据；修复通常涉及使用缓冲通道或上下文取消。一旦识别，泄漏是精确和可重现的，与传统内存泄漏相比，修复速度很快。"
+      },
+      "fr": {
+        "title": "Les fuites de Goroutine en Go: détecter, comprendre, corriger",
+        "summary": "Les fuites de Goroutine se produisent lorsque les goroutines démarrées ne se terminent jamais, se bloquant sur les canaux ou boucles infinies, causant une croissance lente de la mémoire et une terminaison du processus sans erreurs visibles. Le cas le plus courant est l'envoi sur des canaux non bufferisés lorsque les récepteurs ont dépassé le délai ou sont revenus plus tôt; la correction implique généralement d'utiliser des canaux bufferisés ou l'annulation de contexte. Les fuites sont précises et reproductibles une fois identifiées, ce qui les rend rapides à corriger par rapport aux fuites mémoire traditionnelles."
+      },
+      "de": {
+        "title": "Goroutine-Lecks in Go: Erkennung, Verständnis, Behebung",
+        "summary": "Goroutine-Lecks treten auf, wenn gestartete Goroutinen nie beendet werden, auf Kanälen blockieren oder sich in Endlosschleifen befinden, was zu langsamem Speicherwachstum und eventueller Prozessbeendigung ohne sichtbare Fehler führt. Der häufigste Fall ist das Senden auf ungepufferte Kanäle, wenn Empfänger das Zeitlimit überschritten haben oder vorzeitig zurückgekehrt sind; die Behebung beinhaltet typischerweise die Verwendung gepufferter Kanäle oder Kontextstornierung. Lecks sind präzise und reproduzierbar, sobald sie identifiziert sind, was sie im Vergleich zu traditionellen Speicherlecks schnell zu beheben macht."
+      },
+      "es": {
+        "title": "Fugas de Goroutine en Go: detectar, entender, arreglar",
+        "summary": "Las fugas de Goroutine ocurren cuando las goroutines iniciadas nunca se terminan, bloquean en canales o bucles infinitos, causando un crecimiento lento de la memoria y eventual terminación del proceso sin errores visibles. El caso más común es enviar en canales sin búfer cuando los receptores han agotado el tiempo o regresado temprano; la corrección típicamente implica usar canales con búfer o cancelación de contexto. Las fugas son precisas y reproducibles una vez identificadas, lo que las hace rápidas de arreglar comparadas con fugas de memoria tradicionales."
+      }
+    }
+  },
+  {
+    "title": "The Ultimate Edge Cluster: Setting up a 3-Node Swarm on Raspberry Pi 5 (2026)",
+    "slug": "ultimate-edge-cluster-3-node-swarm-raspberry-pi-5-2026",
+    "url": "https://dev.to/eldara/the-ultimate-edge-cluster-setting-up-a-3-node-swarm-on-raspberry-pi-5-2026-4a7j",
+    "source": "DEV Community",
+    "date": "2026-03-19T11:42:36.000Z",
+    "summary": "Guide to building a production-ready 3-node Docker Swarm cluster on Raspberry Pi 5 (8GB models) with NVMe storage and PoE+ HATs, eliminating Kubernetes overhead while providing true edge reliability. Docker Swarm uses minimal overhead compared to K8s control planes, leaving 8GB RAM for actual workloads suitable for localized AI, smart home hubs, and private cloud storage. Setup involves initializing swarm on a manager node and joining worker nodes using the provided join-token.",
+    "content": "By 2026, the Raspberry Pi 5 has become the undisputed king of the \"Prosumer Edge.\" With its PCIe support for NVMe drives and significantly improved thermal management, it’s no longer just a toy—it’s a viable production environment for localized AI, smart home hubs, and private cloud storage.\nBut running a single Pi is a single point of failure. To get true reliability at the edge, you need a cluster. In this guide, we’ll build a 3-node \"Pikube\" (without the K8s overhead) that fits in the palm of your hand.\nIf you’ve tried running Kubernetes on a Pi, you know the pain: the control plane can consume 1.5GB of RAM before you even deploy a single container.\nDocker Swarm is different. It is baked into the Docker engine. On a Raspberry Pi 5, the Swarm overhead is nearly invisible, leaving all those glorious 8GB of RAM for your actual workloads.\nFor a Production-Ready Edge cluster, we recommend:\n 3x Raspberry Pi 5 (8GB RAM models): The extra headroom is vital for AI sidecars and real-time observability.\n NVMe Base/HAT: Skip the SD cards. They will fail under heavy Docker logging. Use NVMe SSDs for boot and data storage.\n PoE+ HATs: This allows you to power all three nodes via a single ethernet switch—keeping your \"cluster\" cable-managed and professional.\nStick with Raspberry Pi OS (64-bit) or Ubuntu Server 26.04 LTS. Ensure you enable cgroups in cmdline.txt if they aren't on by default.\nOn all three nodes, run the standard convenience script:\ncurl -fsSL https://get.docker.com -o get-docker.sh\nsudo sh get-docker.sh\n\n[!TIP]\ndocker group so you don't have to type sudo for every command:\nsudo usermod -aG docker $USER (Log out and back in for this to take effect).\nPick your \"Lead\" Pi (let's call it pi-manager-01) and run:\ndocker swarm init --advertise-addr <YOUR-PI-IP>\n\nDocker will provide a join-token. Copy that, SSH into your other two Pis, and paste it.\nThis is where SwarmCLI saves you from opening multiple terminal windows. From your laptop, connect to your manager node and",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "终极边缘集群：在树莓派5上设置3节点Swarm (2026)",
+        "summary": "在树莓派5 (8GB型号)上构建生产就绪的3节点Docker Swarm集群的指南，配备NVMe存储和PoE+ HAT，消除了Kubernetes开销，同时提供真正的边缘可靠性。Docker Swarm相比K8s控制平面使用最小开销，为实际工作负载留下8GB RAM，适合本地化AI、智能家居中心和私有云存储。设置涉及在管理节点上初始化swarm并使用提供的join-token加入工作节点。"
+      },
+      "fr": {
+        "title": "Le Cluster Edge Ultime: Configuration d'un Swarm à 3 Nœuds sur Raspberry Pi 5 (2026)",
+        "summary": "Guide pour construire un cluster Docker Swarm à 3 nœuds prêt pour la production sur Raspberry Pi 5 (modèles 8GB) avec stockage NVMe et HATs PoE+, éliminant les frais généraux de Kubernetes tout en fournissant une vraie fiabilité de périphérie. Docker Swarm utilise un surcoût minimal par rapport aux plans de contrôle K8s, laissant 8GB RAM pour les charges de travail réelles adaptées à l'IA localisée, aux hubs de maison intelligente et au stockage en nuage privé. La configuration implique d'initialiser le swarm sur un nœud gestionnaire et de rejoindre les nœuds de travail en utilisant le jeton de jointure fourni."
+      },
+      "de": {
+        "title": "Der ultimative Edge-Cluster: Einrichtung eines 3-Knoten-Schwarms auf Raspberry Pi 5 (2026)",
+        "summary": "Anleitung zum Erstellen eines produktionsreifen 3-Knoten-Docker-Swarm-Clusters auf Raspberry Pi 5 (8-GB-Modelle) mit NVMe-Speicher und PoE+-HATs, was Kubernetes-Overhead eliminiert und gleichzeitig echte Edge-Zuverlässigkeit bietet. Docker Swarm verwendet minimalen Overhead im Vergleich zu K8s-Kontrollflugzeugen und lässt 8 GB RAM für tatsächliche Arbeitslasten übrig, die für lokalisierte KI, Smart-Home-Hubs und Private-Cloud-Speicher geeignet sind. Das Setup umfasst die Initialisierung des Schwarms auf einem Manager-Knoten und das Beitreten von Worker-Knoten mit dem bereitgestellten Join-Token."
+      },
+      "es": {
+        "title": "El Clúster Edge Definitivo: Configuración de un Swarm de 3 Nodos en Raspberry Pi 5 (2026)",
+        "summary": "Guía para construir un clúster Docker Swarm de 3 nodos listo para producción en Raspberry Pi 5 (modelos de 8GB) con almacenamiento NVMe y HATs PoE+, eliminando la sobrecarga de Kubernetes mientras proporciona verdadera confiabilidad de borde. Docker Swarm utiliza una sobrecarga mínima en comparación con los planos de control K8s, dejando 8GB de RAM para cargas de trabajo reales adecuadas para IA localizada, centros de hogar inteligente y almacenamiento en la nube privada. La configuración implica inicializar el swarm en un nodo administrador y unirse a los nodos trabajadores usando el token de unión proporcionado."
+      }
+    }
+  },
+  {
+    "title": "Ethereum Tests Native Rollups, Vitalik Pushes One-Click Staking, Native Account Abstraction, ACDE #232 Delays Hegota",
+    "slug": "ethereum-tests-native-rollups-vitalik-one-click-staking",
+    "url": "https://dev.to/etherspot/ethereum-tests-native-rollups-vitalik-pushes-one-click-staking-native-account-abstraction-acde-5d98",
+    "source": "DEV Community",
+    "date": "2026-03-19T11:42:23.000Z",
+    "summary": "Ethereum researchers presented a proof-of-concept for \"native rollups\" that simplify Layer 2 verification by moving processing back to Ethereum's base layer using the EXECUTE precompile. The approach removes fraud/validity proof complexity by having Ethereum directly re-execute Layer 2 blocks, though the system remains experimental. The digest also covers ongoing debates about native account abstraction ahead of the Hegota fork and Vitalik Buterin's proposal for one-click staking via DVT-Lite for institutions.",
+    "content": "We are welcoming you to our weekly digest! Here, we discuss the latest trends and advancements in account abstraction, chain abstraction and everything related, as well as bring some insights from Etherspot’s kitchen.\nThe latest news we'll cover:\nEthereum Tests Native Rollups to Simplify Layer 2 Verification Model\nNative Account Abstraction Debate Intensifies Ahead of Hegota Fork\nACDE #232: No Decision on Hegota Headliner as Native AA Debate Continues\nVitalik Buterin Pushes “One-Click” Staking with DVT-Lite for Institutions\nPlease fasten your belts!\nEthereum researchers have presented a proof-of-concept for “native rollups,” a new design that could simplify how Layer 2 networks are verified by moving parts of the process back onto Ethereum itself. The prototype, built using the Ethrex execution client, demonstrates how Ethereum could directly re-execute Layer 2 transactions instead of relying on external proof systems.\nThe experiment implements EIP-8079 and introduces a new mechanism called the EXECUTE precompile, which allows Ethereum’s base layer to replay Layer 2 blocks and verify their correctness natively. In this model, rollup transactions are submitted to Ethereum and executed within its own environment, while deposits, cross-layer interactions, and withdrawals are handled through onchain contracts and state proofs.\nThis approach contrasts with the current rollup ecosystem, where verification depends on either fraud proofs (optimistic rollups) or validity proofs (zero-knowledge rollups). Native rollups aim to remove this additional layer of complexity by letting Ethereum’s own state transition function handle verification, potentially reducing infrastructure overhead and simplifying long-term maintenance.\nDevelopers behind the prototype, including contributors from the Ethereum Foundation and L2BEAT, demonstrated a full rollup lifecycle, from block submission to withdrawal validation. They emphasized that the system remains experimental and is not intended fo",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "以太坊测试原生Rollups，Vitalik推动一键质押，原生账户抽象，ACDE #232延迟Hegota",
+        "summary": "以太坊研究人员为\"原生rollups\"提出了概念证明，通过使用EXECUTE预编译将处理移回以太坊基层来简化第2层验证。该方法通过让以太坊直接重新执行第2层区块来消除欺诈/有效性证明的复杂性，尽管该系统仍处于试验阶段。摘要还涵盖了在Hegota分叉之前关于原生账户抽象的持续辩论，以及Vitalik Buterin关于通过DVT-Lite为机构进行一键质押的提议。"
+      },
+      "fr": {
+        "title": "Ethereum teste les Rollups natifs, Vitalik pousse le Staking en un clic, Abstraction de compte natif, ACDE #232 retarde Hegota",
+        "summary": "Les chercheurs d'Ethereum ont présenté une preuve de concept pour les \"rollups natifs\" qui simplifient la vérification de la couche 2 en ramenant le traitement à la couche de base d'Ethereum en utilisant la précompilation EXECUTE. L'approche supprime la complexité de la preuve de fraude/validité en ayant Ethereum réexécuter directement les blocs de la couche 2, bien que le système reste expérimental. Le résumé couvre également les débats en cours sur l'abstraction de compte natif avant le fork Hegota et la proposition de Vitalik Buterin pour le jalonnement en un clic via DVT-Lite pour les institutions."
+      },
+      "de": {
+        "title": "Ethereum testet Native Rollups, Vitalik treibt One-Click-Staking voran, Native Account Abstraction, ACDE #232 verzögert Hegota",
+        "summary": "Ethereum-Forscher präsentierten einen Proof-of-Concept für \"native Rollups\", die die Layer-2-Verifizierung vereinfachen, indem die Verarbeitung mithilfe der EXECUTE-Vorcompilation zurück zur Basis-Layer von Ethereum verschoben wird. Der Ansatz entfernt die Komplexität des Betrugs-/Gültigkeitsnachweises, indem Ethereum Layer-2-Blöcke direkt erneut ausführt, obwohl das System noch experimentell ist. Die Zusammenfassung behandelt auch laufende Debatten über die native Kontostratifizierung vor dem Hegota-Fork und Vitalik Buterins Vorschlag für One-Click-Staking über DVT-Lite für Institutionen."
+      },
+      "es": {
+        "title": "Ethereum prueba Rollups nativos, Vitalik impulsa Staking de un clic, Abstracción de cuenta nativa, ACDE #232 retrasa Hegota",
+        "summary": "Los investigadores de Ethereum presentaron una prueba de concepto para \"rollups nativos\" que simplifican la verificación de capa 2 moviendo el procesamiento de nuevo a la capa base de Ethereum mediante la precompilación EXECUTE. El enfoque elimina la complejidad de la prueba de fraude/validez haciendo que Ethereum reejute directamente bloques de capa 2, aunque el sistema sigue siendo experimental. El resumen también cubre debates en curso sobre la abstracción de cuenta nativa antes del fork Hegota y la propuesta de Vitalik Buterin para staking de un clic a través de DVT-Lite para instituciones."
+      }
+    }
+  },
+  {
     "title": "The Open Source Revolution: How Community-Driven Software is Reshaping Tech in 2026",
     "slug": "open-source-revolution-community-driven-software-reshaping-tech-2026",
     "url": "https://dev.to/georgey_8/the-open-source-revolution-how-community-driven-software-is-reshaping-tech-in-2026-6b6",
@@ -332,6 +668,34 @@
       "es": {
         "title": "4.000 Ejecuciones en 7 Días: El Patrón Nocturno que Demostró la Demanda Empresarial de Datos Coreanos",
         "summary": "Un desarrollador monetizó 13 web scrapers coreanos y generó 4.000 ejecuciones en siete días, con patrones de uso que revelaron una demanda empresarial clara de un flujo de trabajo de automatización corporativa con horas de oficina. El análisis de patrones de uso nocturno (de 6 PM a 6 AM KST) reveló qué herramientas fueron impulsadas por usuarios humanos versus procesos automatizados, mostrando un usuario influyente impulsando el 47% de las ejecuciones durante el horario comercial. Esto demuestra cómo los patrones de uso pueden revelar segmentos de clientes y validar el ajuste del mercado del producto."
+      }
+    }
+  },
+  {
+    "title": "A sufficiently detailed spec is code",
+    "slug": "a-sufficiently-detailed-spec-is-code",
+    "url": "https://haskellforall.com/2026/03/a-sufficiently-detailed-spec-is-code",
+    "source": "Hacker News",
+    "date": "2026-03-19T02:23:17.000Z",
+    "summary": "Discussion on Hacker News exploring the philosophical boundary between detailed specifications and executable code. The linked article from Haskellforall.com generates 400 points and 205 comments, suggesting significant interest in how specification precision relates to code generation and formalism. The topic appears relevant to discussions around AI code generation and specification-driven development.",
+    "content": "Article URL: https://haskellforall.com/2026/03/a-sufficiently-detailed-spec-is-code\nComments URL: https://news.ycombinator.com/item?id=47434047\nPoints: 400\n# Comments: 205",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "足够详细的规范就是代码",
+        "summary": "Hacker News上的讨论，探讨详细规范和可执行代码之间的哲学边界。Haskellforall.com上的相关文章获得400分和205条评论，表明人们对规范精度与代码生成和形式化的关系的兴趣很大。该主题与AI代码生成和规范驱动开发的讨论相关。"
+      },
+      "fr": {
+        "title": "Une spécification suffisamment détaillée est du code",
+        "summary": "Une discussion sur Hacker News explorant la frontière philosophique entre les spécifications détaillées et le code exécutable. L'article lié sur Haskellforall.com génère 400 points et 205 commentaires, suggérant un intérêt significatif pour la relation entre la précision des spécifications et la génération de code et le formalisme. Le sujet semble pertinent pour les discussions sur la génération de code par IA et le développement piloté par les spécifications."
+      },
+      "de": {
+        "title": "Eine ausreichend detaillierte Spezifikation ist Code",
+        "summary": "Eine Diskussion auf Hacker News, die die philosophische Grenze zwischen detaillierten Spezifikationen und ausführbarem Code erkundet. Der verlinkte Artikel von Haskellforall.com erzielt 400 Punkte und 205 Kommentare, was großes Interesse an der Beziehung zwischen Spezifikationspräzision und Code-Generierung und Formalismus zeigt. Das Thema scheint relevant für Diskussionen über KI-Code-Generierung und spezifikationsgesteuerte Entwicklung zu sein."
+      },
+      "es": {
+        "title": "Una especificación suficientemente detallada es código",
+        "summary": "Una discusión en Hacker News que explora la frontera filosófica entre especificaciones detalladas y código ejecutable. El artículo vinculado de Haskellforall.com genera 400 puntos y 205 comentarios, lo que sugiere un gran interés en cómo la precisión de la especificación se relaciona con la generación de código y el formalismo. El tema parece relevante para las discusiones sobre generación de código impulsada por IA y desarrollo impulsado por especificaciones."
       }
     }
   },
