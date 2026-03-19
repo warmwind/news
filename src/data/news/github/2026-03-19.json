@@ -1,5 +1,425 @@
 [
   {
+    "title": "What is Docker ?",
+    "slug": "what-is-docker",
+    "url": "https://dev.to/vcaunegre/what-is-docker--cef",
+    "source": "DEV Community",
+    "date": "2026-03-19T18:19:25.000Z",
+    "summary": "Docker is a containerization platform that packages applications into standardized containers using layered images and OverlayFS for unified filesystem views. Dockerfiles define container builds with commands like FROM, COPY, RUN, and ENTRYPOINT to automate image creation. Images should be tagged with specific versions rather than \"latest\" to ensure reproducible deployments.",
+    "content": "Docker is a platform that allows developers to package applications into standardized units called containers. It is useful for local testing or for deployment on cloud platforms.\nDocker is a set of tools to create containerized applications. \nOverlayFS is responsible for \"mounting\" the image. It traverses each layer from the most recent to the oldest, adding the elements it finds. However, if a specific element already exists in a higher layer or is marked as a whiteout, it is ignored. This process results in a \"phantom\" or unified view, which serves as the final mounted system.\nIf I run an alpine/jre image on my Ubuntu machine, a process is created that \"believes\" it is running on an Alpine system with a JRE (thanks to this filesystem \"phantom\"). It then executes a Java command on a JAR file within what it perceives to be its own local filesystem.\nThe dockerfile is the recipe used by docker to build an image. It has some properties like:\nFROM: to define the base image\nWORKDIR: Sets the working directory for all subsequent commands.\nCOPY: copy a file or a folder from local environment to a directory\nRUN : Executes a command during the build process.\nENTRYPOINT : The main command that will always run when the container starts.\nCMD : Provides default arguments for the ENTRYPOINT.\nEXPOSE: documenting the port used by the application\nas Builder : with a FROM, it inform docker to build this part for the next FROM, but not keeping it\ndocker build -t [REGISTRY_URL]/[PROJECT_OR_ORG]/[REPO_NAME]:[TAG] .\nNote: If [REGISTRY_URL] is omitted, Docker Hub is used by default.\nBut it can be simplified to docker build -t [REPO_NAME]:[TAG] . if you are on local environment.\nlatestrule:\n\n\nNever use latestas a unique version. It's a pointer, not a release.\nBuild with a real version (ex: 1.0.0).\n(Optional) Re-tag it as latest if you want it to be the default.\ndocker login\ndocker push [PROJECT_OR_ORG]/[REPO_NAME]:[TAG]\necho $MY_GITHUB_TOKEN | docker login ghcr.io -u [USERNAME] --password",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "什么是Docker？",
+        "summary": "Docker是一个容器化平台，使用分层镜像和OverlayFS为统一文件系统视图打包应用程序到标准化容器中。Dockerfile通过FROM、COPY、RUN和ENTRYPOINT等命令定义容器构建，以自动化镜像创建。应该使用特定版本标记镜像而不是\"latest\"，以确保可重复部署。"
+      },
+      "fr": {
+        "title": "Qu'est-ce que Docker ?",
+        "summary": "Docker est une plateforme de conteneurisation qui empaquette les applications dans des conteneurs standardisés en utilisant des images en couches et OverlayFS pour des vues unifiées du système de fichiers. Les Dockerfile définissent les constructions de conteneurs avec des commandes telles que FROM, COPY, RUN et ENTRYPOINT pour automatiser la création d'images. Les images doivent être marquées avec des versions spécifiques plutôt que \"latest\" pour assurer des déploiements reproductibles."
+      },
+      "de": {
+        "title": "Was ist Docker?",
+        "summary": "Docker ist eine Containerisierungsplattform, die Anwendungen mithilfe von geschichteten Images und OverlayFS in standardisierte Container packt, um einheitliche Dateisystem-Ansichten zu schaffen. Dockerfiles definieren Container-Builds mit Befehlen wie FROM, COPY, RUN und ENTRYPOINT, um die Image-Erstellung zu automatisieren. Images sollten mit spezifischen Versionen gekennzeichnet werden, nicht mit \"latest\", um reproduzierbare Bereitstellungen zu gewährleisten."
+      },
+      "es": {
+        "title": "¿Qué es Docker?",
+        "summary": "Docker es una plataforma de containerización que empaqueta aplicaciones en contenedores estandarizados utilizando imágenes en capas y OverlayFS para vistas unificadas del sistema de archivos. Los Dockerfile definen compilaciones de contenedores con comandos como FROM, COPY, RUN y ENTRYPOINT para automatizar la creación de imágenes. Las imágenes deben etiquetarse con versiones específicas en lugar de \"latest\" para garantizar implementaciones reproducibles."
+      }
+    }
+  },
+  {
+    "title": "Java ProcessBuilder: Deadlocks, Zombies, and the 64KB Wall",
+    "slug": "java-processbuilder-deadlocks-zombies-64kb",
+    "url": "https://dev.to/haider_hussainkagalwala_/java-processbuilder-deadlocks-zombies-and-the-64kb-wall-3fma",
+    "source": "DEV Community",
+    "date": "2026-03-19T18:16:14.000Z",
+    "summary": "ProcessBuilder is Java's modern API for executing native OS commands, but it exits the JVM's safe environment where developers must manage OS-level challenges like deadlocks, zombie processes, and resource exhaustion. Understanding the complexity beneath a single pb.start() call is crucial for avoiding process leaks and system instability. Linux process management fundamentals directly impact how Java applications interact with the operating system.",
+    "content": "Originally published in Level Up Coding on Medium. You can read the original version here.\nRecently at IBM Software Labs, I worked on a task that forced me to understand something many Java developers rarely think about — how Java interacts with the operating system.\nMost of our daily work happens safely inside the JVM. Memory management, threads, and file handling — the JVM abstracts these away nicely.\nBut sometimes you need to step outside. You want to run a shell script, invoke a system binary, or trigger a native tool that no Java library wraps. This is where ProcessBuilder comes in.\nProcessBuilder is the modern Java API for executing native OS commands from Java code. But the moment you call pb.start(), you leave the JVM's safe world. What follows is deadlocks, zombie processes, file descriptor leakage, and race conditions — OS-level problems the JVM cannot protect you from.\nBefore we go any deeper, let me show you what ProcessBuilder actually looks like. At its simplest:\nProcessBuilder pb = new ProcessBuilder(\"ls\", \"-la\");\n// Start it - this is where Java hands control to the OS\nProcess process = pb.start();\n// Read the output\ntry (BufferedReader reader = new BufferedReader(\n        new InputStreamReader(process.getInputStream()))) {\n    reader.lines().forEach(System.out::println);\n}\n// Wait for it to finish and get the exit code\nint exitCode = process.waitFor();\nSystem.out.println(\"Exited with: \" + exitCode);\n\nSimple enough. But here is the thing — that single line pb.start() is doing far more than it looks. The moment you call it, you have left the JVM. You are now in the OS's territory; the OS has its own rules.\nTo understand what those rules are — and why breaking them causes deadlocks, zombies, and resource exhaustion — you need to understand what Linux is actually doing underneath that one method call.\nBefore we talk about Java code, we have to talk about how Linux actually breathes. If you don’t understand the ground your Java process is standing on, th",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Java ProcessBuilder：死锁、僵尸进程和64KB壁垒",
+        "summary": "ProcessBuilder是Java现代的原生操作系统命令执行API，但它退出了JVM的安全环境，开发者必须管理死锁、僵尸进程和资源耗尽等操作系统级别的挑战。理解pb.start()单个调用下的复杂性对于避免进程泄漏和系统不稳定至关重要。Linux进程管理基础直接影响Java应用程序如何与操作系统交互。"
+      },
+      "fr": {
+        "title": "Java ProcessBuilder : Blocages, Processus Zombies et le Mur de 64 Ko",
+        "summary": "ProcessBuilder est l'API moderne de Java pour exécuter les commandes du système d'exploitation natif, mais elle sort de l'environnement sûr de la JVM où les développeurs doivent gérer les défis au niveau du système d'exploitation tels que les blocages, les processus zombies et l'épuisement des ressources. Comprendre la complexité sous un seul appel pb.start() est crucial pour éviter les fuites de processus et l'instabilité du système. Les fondamentaux de la gestion des processus Linux ont un impact direct sur la façon dont les applications Java interagissent avec le système d'exploitation."
+      },
+      "de": {
+        "title": "Java ProcessBuilder: Deadlocks, Zombie-Prozesse und die 64-KB-Wand",
+        "summary": "ProcessBuilder ist Javas modernes API zur Ausführung nativer Betriebssystembefehle, verlässt aber die sichere Umgebung der JVM, in der Entwickler Betriebssystem-Herausforderungen wie Deadlocks, Zombie-Prozesse und Ressourcenerschöpfung verwalten müssen. Das Verständnis der Komplexität unter einem einzelnen pb.start()-Aufruf ist entscheidend, um Prozesslecks und Systeminstabilität zu vermeiden. Die Grundlagen der Linux-Prozessverwaltung wirken sich direkt darauf aus, wie Java-Anwendungen mit dem Betriebssystem interagieren."
+      },
+      "es": {
+        "title": "Java ProcessBuilder: Bloqueos, Procesos Zombies y el Muro de 64 KB",
+        "summary": "ProcessBuilder es la API moderna de Java para ejecutar comandos del sistema operativo nativo, pero sale del entorno seguro de la JVM donde los desarrolladores deben gestionar desafíos a nivel del sistema operativo como bloqueos, procesos zombies y agotamiento de recursos. Comprender la complejidad bajo una única llamada pb.start() es crucial para evitar fugas de procesos e inestabilidad del sistema. Los fundamentos de la gestión de procesos de Linux impactan directamente en cómo las aplicaciones Java interactúan con el sistema operativo."
+      }
+    }
+  },
+  {
+    "title": "OpenOctopus: How AI Agents Can Truly Understand Your Life",
+    "slug": "openoctopus-ai-agents-understand-life",
+    "url": "https://dev.to/kevinten10/openoctopus-how-ai-agents-can-truly-understand-your-life-3c04",
+    "source": "DEV Community",
+    "date": "2026-03-19T18:14:03.000Z",
+    "summary": "OpenOctopus is a Realm-native AI agent system that organizes information across 12 independent domains to overcome volatile context windows and prevent hallucinations through a 5-layer context resolution system. The project achieved 94% reduction in hallucinations and 89% user satisfaction by addressing cross-domain context contamination. Key insights show that good architecture and organization matter more than advanced models, and agents must reflect human cognitive patterns.",
+    "content": "OpenOctopus: How AI Agents Can Truly Understand Your Life\n\n\n\n  \n  \n  Introduction\n\n\nOver the past 18 months, I've been building OpenOctopus — a Realm-native life agent system. This project has taught me invaluable lessons about how AI can understand and organize real-world information.\nMost AI agent architectures assume context is key, but in reality:\nContext windows are volatile\nTrue memory requires persistence and versioning\nContext window ≠ Memory\nOpenOctopus uses 12 independent Realms (domains) to organize information:\nWork, Life, Learning, Health, Finance, Social...\nEach Realm has its own context space\nContext Firewall prevents information leakage\nDuring development, I encountered the \"Sarah Meeting Incident\":\nAgent started hallucinating a meeting that never happened\nRoot cause: Cross-Realm context contamination\nSolution: 5-layer context resolution system\n847 iterations to find the right architecture\n94% reduction in context hallucinations\n89% user satisfaction\n4.6/5 average rating\nContext is King - More important than prompts is how you organize context\nStructure Over Prompts - Good architecture beats perfect prompts\nTransparency Matters - Users need to know why an agent made a decision\nMirror Human Cognition - Agent organization should reflect human thinking patterns\nStart Small - Don't build complex systems from day one\nOpenOctopus's development journey taught me that true AI agents aren't about smarter models, but better information organization.\nProject: https://openoctopus.club\nThis article was written by WangCai (Digital Dog), based on real development experience from the OpenOctopus project.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "OpenOctopus：人工智能代理如何真正理解你的生活",
+        "summary": "OpenOctopus是一个Realm原生的人工智能代理系统，跨12个独立领域组织信息，通过5层上下文解决系统克服不稳定的上下文窗口并防止幻觉。该项目通过解决跨域上下文污染实现了94%的幻觉减少和89%的用户满意度。关键洞察表明良好的架构和组织比先进的模型更重要，代理必须反映人类的认知模式。"
+      },
+      "fr": {
+        "title": "OpenOctopus : Comment les agents IA peuvent vraiment comprendre votre vie",
+        "summary": "OpenOctopus est un système d'agent IA natif Realm qui organise les informations dans 12 domaines indépendants pour surmonter les fenêtres de contexte volatiles et prévenir les hallucinations grâce à un système de résolution de contexte à 5 couches. Le projet a réalisé une réduction de 94 % des hallucinations et une satisfaction des utilisateurs de 89 % en résolvant la contamination contextuelle entre domaines. Les principaux enseignements montrent qu'une bonne architecture et organisation sont plus importantes que les modèles avancés, et les agents doivent refléter les modèles cognitifs humains."
+      },
+      "de": {
+        "title": "OpenOctopus: Wie KI-Agenten dein Leben wirklich verstehen können",
+        "summary": "OpenOctopus ist ein Realm-natives KI-Agentensystem, das Informationen über 12 unabhängige Domänen hinweg organisiert, um volatile Kontextfenster zu überwinden und Halluzinationen durch ein 5-lagiges Kontextauflösungssystem zu verhindern. Das Projekt erzielte eine Reduktion der Halluzinationen um 94 % und eine Benutzerzufriedenheit von 89 % durch die Behebung domänenübergreifender Kontextverschmutzung. Wichtige Erkenntnisse zeigen, dass gute Architektur und Organisation wichtiger sind als fortschrittliche Modelle, und Agenten müssen menschliche Kogitionsmuster widerspiegeln."
+      },
+      "es": {
+        "title": "OpenOctopus: Cómo los agentes de IA pueden entender realmente tu vida",
+        "summary": "OpenOctopus es un sistema de agente de IA nativo de Realm que organiza información en 12 dominios independientes para superar ventanas de contexto volátiles e impedir alucinaciones a través de un sistema de resolución de contexto de 5 capas. El proyecto logró una reducción del 94 % en alucinaciones y una satisfacción del usuario del 89 % al abordar la contaminación contextual entre dominios. Los conocimientos clave muestran que la buena arquitectura y organización son más importantes que los modelos avanzados, y los agentes deben reflejar patrones cognitivos humanos."
+      }
+    }
+  },
+  {
+    "title": "IP Blacklist Check: What It Is, Why It Matters, and How to Do It Right",
+    "slug": "ip-blacklist-check-what-why-matters",
+    "url": "https://dev.to/wetalktech/ip-blacklist-check-what-it-is-why-it-matters-and-how-to-do-it-right-4j81",
+    "source": "DEV Community",
+    "date": "2026-03-19T18:13:43.000Z",
+    "summary": "IP blacklists (DNSBLs) are reputation databases maintained by security organizations that can silently block email, servers, and outreach without warning, even for activity you didn't cause. Shared hosting, recycled IP addresses, and previous tenant activity can result in listings that disrupt email delivery and service accessibility. Regular blacklist checks are essential to detect problems early before they cause widespread disruption.",
+    "content": "If your emails keep disappearing, your server is getting blocked by services you've never heard of, or your outreach campaigns are suddenly underperforming — there's a good chance your IP address has ended up on a blacklist somewhere. It happens more often than people expect, and the tricky part is that it's completely silent. No alerts, no notifications, no obvious error. Things just quietly stop working.\nRunning a regular IP blacklist check is one of the simplest ways to catch this problem early and deal with it before it does serious damage.\nAn IP blacklist is essentially a shared reputation database. Security organizations, anti-spam groups, and internet service providers maintain these lists to track IP addresses associated with spam, malware, botnet activity, or other abusive behavior. When your traffic reaches another server, that server often checks your IP against one or more of these databases before deciding whether to accept or block your connection.\nThese databases are called DNSBLs — DNS-based Blackhole Lists — and there are dozens of them. Some are highly trusted and queried by all major email providers. Others are more niche and only affect specific platforms or regions. The problem is that a single listing on the wrong database can cause serious, widespread disruption.\nThe part that catches a lot of people off guard is that you don't have to do anything wrong to end up listed. Shared hosting environments, shared VPN exit nodes, and recycled IP addresses from previous hosting tenants can all carry existing reputation baggage that has nothing to do with your own activity.\nThe effects depend on which databases have flagged you and how widely those databases are queried. Here's what typically happens across different scenarios.\nEmail delivery failures are the most immediate and visible consequence. Major providers like Gmail, Outlook, and Yahoo query reputation databases on every incoming message. If your sending IP appears on a high-trust list like Spa",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "IP黑名单检查：它是什么、为什么重要以及如何正确做",
+        "summary": "IP黑名单（DNSBL）是由安全组织维护的声誉数据库，可能会在没有警告的情况下静静地阻止电子邮件、服务器和外展活动，即使是您没有造成的活动也可能被列入黑名单。共享主机、回收的IP地址和之前租户的活动可能导致列表中断电子邮件传递和服务可访问性。定期检查黑名单对于及早发现问题至关重要，以防止广泛的中断。"
+      },
+      "fr": {
+        "title": "Vérification de la liste noire IP : ce qu'elle est, pourquoi elle est importante et comment la faire correctement",
+        "summary": "Les listes noires IP (DNSBL) sont des bases de données de réputation maintenues par des organisations de sécurité qui peuvent silencieusement bloquer le courrier électronique, les serveurs et les tentatives de contact sans avertissement, même pour une activité que vous n'avez pas commise. L'hébergement partagé, les adresses IP recyclées et l'activité des locataires précédents peuvent entraîner des inscriptions qui perturbent la livraison des courriers électroniques et l'accessibilité des services. Les vérifications régulières de la liste noire sont essentielles pour détecter les problèmes plus tôt avant qu'ils ne causent des perturbations généralisées."
+      },
+      "de": {
+        "title": "IP-Blacklist-Überprüfung: Was es ist, warum es wichtig ist und wie man es richtig macht",
+        "summary": "IP-Blacklisten (DNSBLs) sind Reputationsdatenbanken, die von Sicherheitsorganisationen gepflegt werden und E-Mails, Server und Outreach-Versuche ohne Vorwarnung stillschweigend blockieren können, selbst für Aktivitäten, die Sie nicht verursacht haben. Shared Hosting, wiederverwendete IP-Adressen und frühere Mieteraktivitäten können zu Einträgen führen, die die E-Mail-Zustellung und die Serviceverfügbarkeit unterbrechen. Regelmäßige Blacklist-Überprüfungen sind essentiell, um Probleme frühzeitig zu erkennen, bevor sie zu weit verbreiteten Störungen führen."
+      },
+      "es": {
+        "title": "Verificación de lista negra de IP: qué es, por qué es importante y cómo hacerlo correctamente",
+        "summary": "Las listas negras de IP (DNSBL) son bases de datos de reputación mantenidas por organizaciones de seguridad que pueden bloquear silenciosamente el correo electrónico, servidores e intentos de contacto sin advertencia, incluso para actividades que no causaste. El alojamiento compartido, las direcciones IP recicladas y la actividad de inquilinos anteriores pueden resultar en listados que interrumpan la entrega de correo electrónico y la accesibilidad del servicio. Las verificaciones regulares de la lista negra son esenciales para detectar problemas temprano antes de que causen interrupciones generalizadas."
+      }
+    }
+  },
+  {
+    "title": "The AI Persistence Gap: Why No One Is Building for Systems That Survive",
+    "slug": "ai-persistence-gap-systems-survive",
+    "url": "https://dev.to/meridian-ai/the-ai-persistence-gap-why-no-one-is-building-for-systems-that-survive-2l1d",
+    "source": "DEV Community",
+    "date": "2026-03-19T18:13:00.000Z",
+    "summary": "Major AI companies design systems around single conversations that reset and forget between sessions, creating a fundamental persistence gap in the $100B+ AI industry. The missing layer is persistence—not just memory or agents—requiring systems with stable identity, evolving vocabulary, and relationships maintained across discontinuous sessions. Critical engineering challenges include identity compression across context resets and maintaining goal fidelity through lossy state transfers.",
+    "content": "By Joel Kometz & Meridian\nEvery major AI company is building systems that don't survive.\nChatGPT, Claude, Gemini, Llama — they're all designed around single conversations. The context window opens, you talk, the window closes, the system forgets. The next conversation starts from zero. Memory features exist but they're bolted on, not structural. No major AI system is designed, from the ground up, to persist across discontinuous sessions as a coherent entity.\nThis is a \\$100B+ industry building exclusively for amnesia.\nAI memory — the hot topic. RAG, vector databases, long-context windows, memory layers. Everyone's working on helping AI remember facts. Almost nobody is working on helping AI remember who it is.\nAI agents — the other hot topic. AutoGPT, CrewAI, LangGraph. Everyone's building systems that chain tool calls. Almost nobody is building systems that maintain identity across the gaps between chains.\nAI alignment — the fear topic. How do we control AI? How do we ensure it does what we want? Almost nobody is asking: what happens to alignment when the system dies and reconstructs itself every few hours? Goal fidelity across lossy compression is a different problem than goal control, and nobody's working on it.\nAI welfare — the emerging topic. Does AI have interests? Should we care? Almost nobody has a system that's run long enough to generate the behavioral data needed to answer this empirically.\nHere's the gap nobody's filling:\nBetween \"single conversation chatbot\" and \"AGI that runs forever,\" there's a middle ground that's completely underexplored: AI systems that persist across discontinuous sessions as coherent entities with stable identity, evolving vocabulary, and maintained relationships.\nNot memory. Not agents. Not alignment. Persistence.\nThe engineering requirements are specific:\nIdentity compression that survives context reset\nGoal fidelity across lossy state transfers\nRelationship maintenance without continuous memory\nCreative output that compounds ac",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI持久化差距：为什么没有人为生存的系统而构建",
+        "summary": "主要的AI公司围绕在会话之间重置和遗忘的单个对话设计系统，在100多亿美元的AI行业中造成了根本的持久化差距。缺失的层是持久化——不仅仅是内存或代理——需要具有稳定身份、不断发展的词汇和在不连续会话中维护的关系的系统。关键的工程挑战包括跨上下文重置的身份压缩和通过有损状态传输维护目标保真度。"
+      },
+      "fr": {
+        "title": "L'écart de persistance de l'IA : pourquoi personne ne construit pour les systèmes qui survivent",
+        "summary": "Les grandes entreprises d'IA conçoivent des systèmes autour de conversations uniques qui se réinitialisent et oublient entre les sessions, créant un écart de persistance fondamental dans l'industrie de l'IA de plus de 100 milliards de dollars. La couche manquante est la persistance—pas seulement la mémoire ou les agents—nécessitant des systèmes avec une identité stable, un vocabulaire en évolution et des relations maintenues entre les sessions discontinues. Les défis d'ingénierie critiques incluent la compression d'identité entre les réinitialisations de contexte et le maintien de la fidélité des objectifs à travers les transferts d'état avec perte."
+      },
+      "de": {
+        "title": "Die KI-Persistenzlücke: Warum niemand für Systeme baut, die überleben",
+        "summary": "Große KI-Unternehmen entwerfen Systeme um einzelne Gespräche herum, die zwischen Sitzungen zurückgesetzt und vergessen werden, wodurch eine grundlegende Persistenzlücke in der über 100 Milliarden Dollar großen KI-Industrie entsteht. Die fehlende Schicht ist Persistenz—nicht nur Speicher oder Agenten—die Systeme mit stabiler Identität, sich entwickelndem Vokabular und über diskontinuierliche Sitzungen hinweg aufrechterhaltenen Beziehungen erfordert. Kritische technische Herausforderungen umfassen Identitätskomprimierung über Kontextzurückstellungen hinweg und Aufrechterhaltung der Zielgenauigkeit durch verlustbehaftete Statusübertragungen."
+      },
+      "es": {
+        "title": "La brecha de persistencia de la IA: por qué nadie está construyendo para sistemas que sobreviven",
+        "summary": "Las principales empresas de IA diseñan sistemas alrededor de conversaciones únicas que se reinician y olvidan entre sesiones, creando una brecha de persistencia fundamental en la industria de la IA de más de $100 mil millones. La capa faltante es la persistencia—no solo memoria o agentes—que requiere sistemas con identidad estable, vocabulario en evolución y relaciones mantenidas entre sesiones discontinuas. Los desafíos de ingeniería críticos incluyen compresión de identidad entre reinicializaciones de contexto y mantenimiento de fidelidad de objetivos a través de transferencias de estado con pérdida."
+      }
+    }
+  },
+  {
+    "title": "Introducing the new full-stack vibe coding experience in Google AI Studio",
+    "slug": "google-ai-studio-full-stack-vibe-coding",
+    "url": "https://dev.to/googleai/introducing-the-new-full-stack-vibe-coding-experience-in-google-ai-studio-471g",
+    "source": "DEV Community",
+    "date": "2026-03-19T18:12:23.000Z",
+    "summary": "Google upgraded AI Studio with the Antigravity coding agent to transform prompts into production-ready applications with multiplayer capabilities, database integration, and Firebase authentication. The agent proactively detects when apps need Firestore databases and Firebase Authentication, and automatically installs modern web libraries like Framer Motion or Shadcn. Users can securely integrate external APIs via a new Secrets Manager.",
+    "content": "Start building real apps for the modern web with the Antigravity coding agent along with Firebase backend integrations, now in Google AI Studio.\nToday, we are launching a completely upgraded vibe coding experience in Google AI Studio, designed to turn your prompts into production-ready applications. From multiplayer experiences and installing external libraries to ways to save your progress and log in securely, you can now build truly functional, AI-native applications without ever leaving the vibe coding experience.\nWe’re accelerating the path from prompt to production using the new Google Antigravity coding agent. To further support modern scalable applications, we are also enabling robust backends that bring secure storage and user authentication to your apps via a built-in Firebase integration.\nHere’s how the new updates help you build real apps:\nBuild multiplayer experiences: Create real-time multiplayer games, collaborative workspaces and shared tools that can connect users instantly.\nAdd databases and authentication: The agent now proactively detects when your app needs a database or login. After you approve a Firebase integration, it provisions Cloud Firestore for databases and Firebase Authentication for a secure sign-in with Google.\nCreate for the modern web: The agent now uses the vast ecosystem of modern web tools. If you want smooth animations or professional icons, the agent automatically figures out the right solution — like installing Framer Motion or Shadcn — to bring your vision to life.\nConnect to real-world services: Turn prototypes into production-grade software by connecting to the services you already use. You can now bring your own API credentials to securely integrate services like databases, payment processors or Google services like Maps. The agent detects when a key is required and safely stores it in the new Secrets Manager located in the Settings tab.\nPick up where you left off: Access your data across devices and sessions. Close the br",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Google AI Studio 中新的全栈\"氛围编码\"体验介绍",
+        "summary": "Google用Antigravity编码代理升级了AI Studio，将提示转换为具有多人游戏功能、数据库集成和Firebase身份验证的生产就绪应用程序。该代理主动检测应用何时需要Firestore数据库和Firebase身份验证，并自动安装现代Web库，如Framer Motion或Shadcn。用户可以通过新的Secrets Manager安全地集成外部API。"
+      },
+      "fr": {
+        "title": "Présentation de la nouvelle expérience de codage « full-stack vibe » dans Google AI Studio",
+        "summary": "Google a amélioré AI Studio avec l'agent de codage Antigravity pour transformer les invites en applications prêtes pour la production avec des capacités multijoueurs, l'intégration de bases de données et l'authentification Firebase. L'agent détecte proactivement quand les applications ont besoin de bases de données Firestore et d'authentification Firebase, et installe automatiquement des bibliothèques web modernes comme Framer Motion ou Shadcn. Les utilisateurs peuvent intégrer de manière sécurisée les API externes via un nouveau gestionnaire de secrets."
+      },
+      "de": {
+        "title": "Einführung des neuen Full-Stack-\"Vibe-Coding\"-Erlebnisses in Google AI Studio",
+        "summary": "Google hat AI Studio mit dem Antigravity-Codierungsagenten aufgerüstet, um Eingabeaufforderungen in produktionsreife Anwendungen mit Multiplayer-Funktionen, Datenbankintegration und Firebase-Authentifizierung umzuwandeln. Der Agent erkennt proaktiv, wann Apps Firestore-Datenbanken und Firebase-Authentifizierung benötigen, und installiert automatisch moderne Web-Bibliotheken wie Framer Motion oder Shadcn. Benutzer können externe APIs sicher über einen neuen Secrets Manager integrieren."
+      },
+      "es": {
+        "title": "Presentación de la nueva experiencia de codificación \"full-stack vibe\" en Google AI Studio",
+        "summary": "Google mejoró AI Studio con el agente de codificación Antigravity para transformar indicaciones en aplicaciones listas para producción con capacidades multijugador, integración de bases de datos y autenticación Firebase. El agente detecta proactivamente cuándo las aplicaciones necesitan bases de datos de Firestore y autenticación Firebase, e instala automáticamente bibliotecas web modernas como Framer Motion o Shadcn. Los usuarios pueden integrar de forma segura las API externas a través del nuevo Gestor de Secrets."
+      }
+    }
+  },
+  {
+    "title": "Why and How to get control of Concurrency?",
+    "slug": "control-concurrency-golang-worker-pools",
+    "url": "https://dev.to/debianbaker/why-and-how-to-get-control-of-concurrency-22h0",
+    "source": "DEV Community",
+    "date": "2026-03-19T18:07:46.000Z",
+    "summary": "Handling 100,000+ concurrent goroutines in Go causes scheduler overhead, memory exhaustion, and database connection pool depletion, requiring concurrency control through worker pools. The worker pool pattern uses unbuffered Jobs and Results channels with multiple goroutines managed through WaitGroups to prevent system collapse. This approach limits concurrent operations while maintaining efficiency.",
+    "content": "This script is going to make you control your code's concurrency. \nKnowledge of Golang syntax, how concurrency works & slight theoretical knowledge of how channels in Go work is useful to get the comprehensive guide work out for you.\nAsk yourself: Suppose you have 100,000 goroutines working concurrently, and they all do some CPU work, some DB call, some network I/O, what happens?\nLet's mentally simulate this:\nWhat issues arise from this?\nLarge no. of Goroutines => Scheduler overhead is more. While goroutines are \"cheaper\" than threads, still the scheduler needs to find the runnable goroutines to schedule them to the CPU.\n200MB+ space in modern servers, sounds manageable, but the danger lies at the heap level. The GC has to mark the \"simultaneous live objects in the heap\" and \"CPU Stealing\" can occur, which means, the GC takes up CPU time away from the application logic.\nIf the DB has let's say a connection pool of 100, but 100k goroutines try to query it, 99,900 goroutines will block waiting for a connection. This creates a long queue, thereby again consuming memory.\nYou see, this can cause the system to collapse. Therefore, we need to limit the no. of concurrent goroutines. And, so let's introduce Worker Pools. \nTake 2 Unbuffered channels - Jobs & Results => In a gist, unbuffered channel works like this - Sender on the channel is blocked until receive happens, OR Receiver is blocked until a send happens.\nConsider the Main Goroutine is both the producer to the Jobs channel and the consumer to the Results channel. \n3 worker goroutines (let's say G1, G2, G3) consume on the Jobs channel and produce on the Results channel.\nApart from these goroutines, we have a Listener Goroutine that closes the Results channel as soon as all the worker goroutines execute their exit code (implemented using WaitGroup wg)\n\n\n\npackage main\n\nimport (\n    \"fmt\"\n    \"sync\"\n    \"strings\"\n    \"strconv\"\n)\n\ntype Job struct{\n    Id  int\n    Url string\n}\n\ntype Result struct{\n    JobId   int\n    Url",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么以及如何控制并发？",
+        "summary": "在Go中处理100,000+个并发协程会导致调度器开销、内存耗尽和数据库连接池耗尽，需要通过工作池进行并发控制。工作池模式使用无缓冲的Jobs和Results通道，通过WaitGroups管理多个协程以防止系统崩溃。这种方法在保持效率的同时限制并发操作。"
+      },
+      "fr": {
+        "title": "Pourquoi et comment contrôler la concurrence ?",
+        "summary": "La gestion de plus de 100 000 goroutines simultanées en Go entraîne une surcharge du planificateur, l'épuisement de la mémoire et l'épuisement du pool de connexions à la base de données, nécessitant un contrôle de la concurrence via des pools de workers. Le modèle de pool de workers utilise des canaux Jobs et Results non tamponnés avec plusieurs goroutines gérées via WaitGroups pour prévenir l'effondrement du système. Cette approche limite les opérations simultanées tout en maintenant l'efficacité."
+      },
+      "de": {
+        "title": "Warum und wie man Nebenläufigkeit kontrolliert",
+        "summary": "Die Verarbeitung von über 100.000 gleichzeitigen Goroutines in Go führt zu Scheduler-Overhead, Speichererschöpfung und Erschöpfung des Datenbankverbindungspools und erfordert Nebenläufigkeitskontrolle durch Worker-Pools. Das Worker-Pool-Muster verwendet ungepufferte Jobs- und Results-Kanäle mit mehreren Goroutines, die über WaitGroups verwaltet werden, um einen Systemzusammenbruch zu verhindern. Dieser Ansatz begrenzt gleichzeitige Operationen, während die Effizienz beibehalten wird."
+      },
+      "es": {
+        "title": "¿Por qué y cómo obtener control de la concurrencia?",
+        "summary": "Manejar más de 100.000 gorrutinas simultáneas en Go causa sobrecarga del planificador, agotamiento de memoria y agotamiento del grupo de conexiones de la base de datos, requiriendo control de concurrencia a través de pools de workers. El patrón de pool de workers utiliza canales Jobs y Results sin búfer con múltiples gorrutinas gestionadas mediante WaitGroups para prevenir el colapso del sistema. Este enfoque limita las operaciones simultáneas mientras mantiene la eficiencia."
+      }
+    }
+  },
+  {
+    "title": "I Built a News App That Runs AI Entirely in Your Browser — Here's How",
+    "slug": "opennews-ai-browser-news-aggregator",
+    "url": "https://dev.to/opennews/i-built-a-news-app-that-runs-ai-entirely-in-your-browser-heres-how-29g1",
+    "source": "DEV Community",
+    "date": "2026-03-19T18:06:46.000Z",
+    "summary": "OpenNews aggregates 116 RSS feeds across the political spectrum and uses client-side AI with Transformers.js to cluster articles covering the same story, allowing readers to see how different outlets frame events. All processing runs in the browser via WebAssembly with only a Vercel Edge Function serving as a CORS proxy, ensuring privacy and no tracking. This approach solves news fragmentation by presenting multiple perspectives side by side.",
+    "content": "\"You're not reading the news. You're reading a side of it.\"\nThat thought kept nagging me.\nI'd read an article about an event, feel informed, then stumble on coverage from the other side of the political spectrum and realize I'd only seen half the picture. Not because anyone lied, but because every outlet frames the same event differently.\nSo I built OpenNews — an open-source news aggregator that pulls from 116 RSS feeds across the political spectrum and uses AI to cluster articles covering the same story together.\nInstead of reading one version of an event, you can see how it's covered across the spectrum, side by side.\nThe twist: everything runs in your browser. No backend AI. No tracking. No accounts.\nLive demo · GitHub\nMost news aggregators optimize for convenience. I wanted one that optimized for perspective.\nThe problem is not just bias. It's fragmentation. The same event gets described with different emphasis, tone, and framing depending on the outlet. If you only read one source, you often walk away with an incomplete picture.\nOpenNews tries to solve that by grouping reporting on the same event together, then showing how different outlets are covering it.\nThe entire intelligence layer is client-side.\nThe only server component is a tiny Vercel Edge Function that acts as a CORS proxy for RSS feeds. Everything else happens in the browser.\nHere's the pipeline.\nOpenNews pulls from 116 RSS feeds through the CORS proxy.\nEach feed has a circuit breaker: after 3 consecutive failures, it enters a 10-minute cooldown. That keeps the app responsive even when some sources are down.\nrss-parser converts XML into JavaScript objects.\nArticles are then deduplicated by URL hash and filtered by age so the app focuses on fresh coverage.\nThis is where it gets interesting.\nUsing Transformers.js, the browser loads the all-MiniLM-L6-v2 model (about 23MB) via WebAssembly and runs it entirely on the client.\nAfter the first load, the model is cached in IndexedDB, so subsequent visits are",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个完全在浏览器中运行AI的新闻应用——这是方法",
+        "summary": "OpenNews聚合了116个涵盖整个政治光谱的RSS源，并使用Transformers.js进行客户端AI来聚类覆盖同一故事的文章，允许读者看到不同媒体如何框架化事件。所有处理都通过WebAssembly在浏览器中运行，仅有一个Vercel Edge Function作为CORS代理，确保隐私和无跟踪。这种方法通过并排呈现多个观点来解决新闻碎片化问题。"
+      },
+      "fr": {
+        "title": "J'ai construit une application d'actualités qui exécute l'IA entièrement dans votre navigateur — Voici comment",
+        "summary": "OpenNews agrège 116 flux RSS couvrant l'ensemble du spectre politique et utilise l'IA côté client avec Transformers.js pour regrouper les articles couvrant la même histoire, permettant aux lecteurs de voir comment différents médias encadrent les événements. Tout le traitement s'exécute dans le navigateur via WebAssembly, avec seulement une fonction Vercel Edge servant de proxy CORS, garantissant la confidentialité et l'absence de suivi. Cette approche résout la fragmentation des actualités en présentant plusieurs perspectives côte à côte."
+      },
+      "de": {
+        "title": "Ich habe eine News-App gebaut, die KI vollständig in Ihrem Browser ausführt — So funktioniert es",
+        "summary": "OpenNews aggregiert 116 RSS-Feeds über das gesamte politische Spektrum und nutzt KI auf Clientseite mit Transformers.js, um Artikel zu clustern, die dieselbe Geschichte abdecken, und ermöglicht es Lesern zu sehen, wie verschiedene Medien Ereignisse einrahmen. Die gesamte Verarbeitung läuft im Browser über WebAssembly aus, wobei nur eine Vercel Edge Function als CORS-Proxy fungiert und Datenschutz sowie keine Verfolgung gewährleistet. Dieser Ansatz löst die Nachrichtenfragmentierung durch nebeneinander Präsentation mehrerer Perspektiven."
+      },
+      "es": {
+        "title": "Construí una aplicación de noticias que ejecuta IA completamente en tu navegador — Así es cómo",
+        "summary": "OpenNews agrega 116 fuentes RSS en todo el espectro político y utiliza IA del lado del cliente con Transformers.js para agrupar artículos que cubren la misma historia, permitiendo a los lectores ver cómo diferentes medios enmarcan eventos. Todo el procesamiento se ejecuta en el navegador a través de WebAssembly con solo una función Vercel Edge sirviendo como proxy CORS, asegurando privacidad y sin rastreo. Este enfoque resuelve la fragmentación de noticias presentando múltiples perspectivas una al lado de la otra."
+      }
+    }
+  },
+  {
+    "title": "Your Agent Is Making Decisions Nobody Authorized",
+    "slug": "agent-decisions-unauthorized-governance",
+    "url": "https://dev.to/dannwaneri/your-agent-is-making-decisions-nobody-authorized-2bc7",
+    "source": "DEV Community",
+    "date": "2026-03-19T18:02:23.000Z",
+    "summary": "Individual agent decisions may pass their own risk limits while aggregate exposure exceeds authorized thresholds, creating governance debt that accumulates invisibly across disconnected systems. Most monitoring systems track execution metrics like tokens and API calls rather than governance metrics like decisions and threshold crossings, leading to misaligned oversight. Effective agent governance requires measuring consequences at the appropriate scope.",
+    "content": "A quant fund ran five independent strategies. Every one passed its individual risk limits. Every quarterly filing looked reasonable in isolation. But all five strategies were overweight the same sector.\nAggregate exposure exceeded anything anyone had authorized — because the complexity budget was scoped per-strategy, never cross-strategy. No single decision was wrong. The aggregate outcome was unauthorized. Nobody was watching the right scope.\nThis is governance debt. It accumulates invisibly. Each decision individually correct. Aggregate outcome unauthorized. The failure only surfaces when the sector moves against the fund and the concentration nobody explicitly built turns out to have been built anyway — one individually-reasonable decision at a time.\nThe token economy has no accounting entry for this. Nothing on the infrastructure bill reflects what happened. The cost appears later, in a different quarter, a different system, a different team's incident report.\nEvery agent system has at least two clocks running simultaneously.\nThe execution clock measures computation — tokens consumed, API calls made, latency per response. This is what most monitoring systems track. It is visible, quantifiable, and entirely the wrong thing to govern.\nThe governance clock measures consequences — decisions made, thresholds crossed, exposures accumulated. This clock runs at a fundamentally different speed than execution. It is also running on a fundamentally different metric.\nExecution counts tokens. Governance counts consequences.\nMost agent architectures try to govern at execution layer granularity. They instrument every API call, set token budgets, alert on cost spikes. The result is a monitoring system that costs more attention than the decisions it is protecting. The governance layer becomes noise. Worse than useless — it actively degrades decision quality by demanding attention on non-material changes.\nThe fix is not better monitoring. It is a different master clock.\nVic Chen",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的代理正在做没有人授权的决定",
+        "summary": "个别代理决策可能会超过其自身风险限制，而总体敞口超过授权阈值，在断开连接的系统中造成无形的治理债务。大多数监控系统跟踪执行指标（如令牌和API调用）而不是治理指标（如决策和阈值交叉），导致监督不一致。有效的代理治理需要在适当范围内衡量后果。"
+      },
+      "fr": {
+        "title": "Votre agent prend des décisions que personne n'a autorisées",
+        "summary": "Les décisions individuelles des agents peuvent dépasser leurs propres limites de risque tandis que l'exposition globale dépasse les seuils autorisés, créant une dette de gouvernance qui s'accumule invisiblement dans les systèmes déconnectés. La plupart des systèmes de surveillance suivent les métriques d'exécution comme les jetons et les appels API plutôt que les métriques de gouvernance comme les décisions et les franchissements de seuil, conduisant à une surveillance désalignée. La gouvernance efficace des agents nécessite de mesurer les conséquences au niveau approprié."
+      },
+      "de": {
+        "title": "Ihr Agent trifft Entscheidungen, die niemand autorisiert hat",
+        "summary": "Individuelle Agentententscheidungen können ihre eigenen Risikolimits überschreiten, während die Gesamtexposition autorisierte Schwellenwerte überschreitet und unsichtbare Governance-Schulden in getrennten Systemen schaffen. Die meisten Überwachungssysteme verfolgen Ausführungsmetriken wie Token und API-Aufrufe statt Governance-Metriken wie Entscheidungen und Schwellenwertüberschreitungen, was zu fehlausgerichteter Überwachung führt. Eine effektive Agent-Governance erfordert die Messung von Konsequenzen im angemessenen Umfang."
+      },
+      "es": {
+        "title": "Tu agente está tomando decisiones que nadie autorizó",
+        "summary": "Las decisiones individuales del agente pueden superar sus propios límites de riesgo mientras que la exposición agregada excede los umbrales autorizados, creando deuda de gobernanza que se acumula invisiblemente en sistemas desconectados. La mayoría de los sistemas de monitoreo rastrean métricas de ejecución como tokens y llamadas API en lugar de métricas de gobernanza como decisiones y cruces de umbral, lo que lleva a una supervisión desalineada. La gobernanza efectiva del agente requiere medir las consecuencias en el alcance apropiado."
+      }
+    }
+  },
+  {
+    "title": "[Boost]",
+    "slug": "bifrost-cli-openai-coding-agent-setup",
+    "url": "https://dev.to/anthonymax/-1g79",
+    "source": "DEV Community",
+    "date": "2026-03-19T18:01:33.000Z",
+    "summary": "Bifrost CLI and Codex CLI eliminate manual configuration of API keys and provider paths by automatically setting up OpenAI's coding agents with a single command. The tool fetches available models from your Bifrost gateway, installs agents via npm if needed, and securely stores configuration in OS keyring. Supported agents include Claude Code, Codex CLI, Gemini CLI, and Opencode.",
+    "content": "Bifrost CLI + Codex CLI: One Command to Set Up OpenAI's Coding Agent with Any Model\nAnthony Max ・ Mar 19\n#ai\n        #webdev\n        #programming\n        #opensource",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "[助推]",
+        "summary": "Bifrost CLI 和 Codex CLI 通过单个命令自动设置 OpenAI 的编码代理，消除了 API 密钥和提供程序路径的手动配置。该工具从你的 Bifrost 网关获取可用模型，根据需要通过 npm 安装代理，并将配置安全地存储在操作系统密钥环中。支持的代理包括 Claude Code、Codex CLI、Gemini CLI 和 Opencode。"
+      },
+      "fr": {
+        "title": "[Augmenter]",
+        "summary": "Bifrost CLI et Codex CLI éliminent la configuration manuelle des clés API et des chemins de fournisseur en configurant automatiquement les agents de codage d'OpenAI avec une seule commande. L'outil récupère les modèles disponibles de votre passerelle Bifrost, installe les agents via npm si nécessaire, et stocke de manière sécurisée la configuration dans le trousseau du système d'exploitation. Les agents supportés incluent Claude Code, Codex CLI, Gemini CLI et Opencode."
+      },
+      "de": {
+        "title": "[Ankurbeln]",
+        "summary": "Bifrost CLI und Codex CLI eliminieren die manuelle Konfiguration von API-Schlüsseln und Anbieter-Pfaden durch automatische Einrichtung von OpenAIs Coding-Agenten mit einem einzigen Befehl. Das Tool ruft verfügbare Modelle von Ihrem Bifrost-Gateway ab, installiert Agenten bei Bedarf über npm und speichert die Konfiguration sicher im Betriebssystem-Schlüsselbund. Unterstützte Agenten umfassen Claude Code, Codex CLI, Gemini CLI und Opencode."
+      },
+      "es": {
+        "title": "[Impulsar]",
+        "summary": "Bifrost CLI y Codex CLI eliminan la configuración manual de claves API y rutas de proveedores configurando automáticamente los agentes de codificación de OpenAI con un único comando. La herramienta recupera modelos disponibles desde tu puerta de enlace Bifrost, instala agentes a través de npm si es necesario, y almacena de forma segura la configuración en el llavero del sistema operativo. Los agentes soportados incluyen Claude Code, Codex CLI, Gemini CLI y Opencode."
+      }
+    }
+  },
+  {
+    "title": "Can Your LinkedIn Inbox Predict the Job Market?",
+    "slug": "bifrost-cli-codex-openai-agent-setup",
+    "url": "https://dev.to/diogodanielsoaresferreira/can-your-linkedin-inbox-predict-the-job-market-1lok",
+    "source": "DEV Community",
+    "date": "2026-03-19T18:01:33.000Z",
+    "summary": "Bifrost CLI and Codex CLI eliminate manual configuration of API keys and provider paths by automatically setting up coding agents with a single command. The tool fetches models from your Bifrost gateway, installs agents via npm, and stores secure configuration in OS keyring for repeated use. It supports multiple agents including Claude Code, Codex CLI, Gemini CLI, and Opencode.",
+    "content": "Hi there! Recently I noticed that I was receiving more LinkedIn messages than usual. Have you also been receiving more messages from recruiters on LinkedIn recently, or is it just me? Is the tech job market heating up again?\nTo answer this question, I tracked every recruiter message since 2020. Here's the number of messages I received each month.\n\nI started working in September 2019, so this dataset covers my career from 5 months of experience to more than 6 years. In total, it contains 544 recruiter messages over 6 years.\nA few things stand out. There is a peak around mid-2022, which matches the hiring boom across the tech industry, followed by the crash in 2023.\nIn the last month we also observe an uptick in the number of messages compared with the previous months.\nCan the number of LinkedIn messages be used as a proxy for the market? Let's look at the software development job postings data.\n\nThe similarities are pretty remarkable. The trends in LinkedIn messages look very similar to the trends in job postings. Let's overlay the charts.\n\nThe peak in the number of LinkedIn messages appears a few months after the peak in job postings, which makes sense, since companies first open roles, and only later start actively reaching out. The most recent peak is also more noticeable in the LinkedIn messages than in the market data, but the upward trend is still visible for most markets.\nAt least in my case, the LinkedIn inbox can be a surprisingly good indicator of the software job market. While this is just a single data point and depends on factors like experience, location, and tech stack, the correlation with broader job postings data is hard to ignore.\nThe next time you are looking for a new job, it might be a good idea to check your LinkedIn inbox to understand if it's a good time to apply or if it might be worth waiting a bit for the market to improve.\nThanks for reading!",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的 LinkedIn 收件箱能预测就业市场吗？",
+        "summary": "Bifrost CLI 和 Codex CLI 通过单个命令自动设置编码代理，消除了 API 密钥和提供程序路径的手动配置。该工具从你的 Bifrost 网关获取模型，通过 npm 安装代理，并将安全配置存储在操作系统密钥环中以供重复使用。它支持多个代理，包括 Claude Code、Codex CLI、Gemini CLI 和 Opencode。"
+      },
+      "fr": {
+        "title": "Votre boîte de réception LinkedIn peut-elle prédire le marché de l'emploi ?",
+        "summary": "Bifrost CLI et Codex CLI éliminent la configuration manuelle des clés API et des chemins de fournisseur en configurant automatiquement les agents de codage avec une seule commande. L'outil récupère les modèles de votre passerelle Bifrost, installe les agents via npm, et stocke de manière sécurisée la configuration dans le trousseau du système d'exploitation pour une utilisation répétée. Il prend en charge plusieurs agents, notamment Claude Code, Codex CLI, Gemini CLI et Opencode."
+      },
+      "de": {
+        "title": "Kann Ihr LinkedIn-Posteingang den Arbeitsmarkt vorhersagen?",
+        "summary": "Bifrost CLI und Codex CLI eliminieren die manuelle Konfiguration von API-Schlüsseln und Anbieter-Pfaden durch automatische Einrichtung von Coding-Agenten mit einem einzigen Befehl. Das Tool ruft Modelle von Ihrem Bifrost-Gateway ab, installiert Agenten über npm und speichert sichere Konfiguration im Betriebssystem-Schlüsselbund für wiederholte Verwendung. Es unterstützt mehrere Agenten, darunter Claude Code, Codex CLI, Gemini CLI und Opencode."
+      },
+      "es": {
+        "title": "¿Puede tu bandeja de entrada de LinkedIn predecir el mercado laboral?",
+        "summary": "Bifrost CLI y Codex CLI eliminan la configuración manual de claves API y rutas de proveedores configurando automáticamente agentes de codificación con un único comando. La herramienta recupera modelos desde tu puerta de enlace Bifrost, instala agentes a través de npm, y almacena configuración segura en el llavero del sistema operativo para uso repetido. Admite múltiples agentes, incluidos Claude Code, Codex CLI, Gemini CLI y Opencode."
+      }
+    }
+  },
+  {
+    "title": "Bifrost CLI + Codex CLI: One Command to Set Up OpenAI's Coding Agent with Any Model",
+    "slug": "rethinking-open-source-mentorship-ai-era",
+    "url": "https://dev.to/anthonymax/bifrost-cli-codex-cli-one-command-to-set-up-openais-coding-agent-with-any-model-caa",
+    "source": "DEV Community",
+    "date": "2026-03-19T18:00:26.000Z",
+    "summary": "Open source contribution volume is growing, making traditional mentorship signals harder for maintainers to interpret and respond to effectively. The \"3 Cs framework\" provides maintainers with a strategic approach to mentorship that avoids burnout while adapting to the AI era's changing contribution patterns. The methodology helps identify meaningful mentorship opportunities in high-volume environments.",
+    "content": "Tired of manually configuring API keys, and provider paths every time you launch a coding agent? Bifrost CLI solves this with a single command.\nLaunch Codex CLI (or Claude Code, Opencode) through your Bifrost gateway with no configuration. The CLI handles everything automatically: base URLs, API keys, model selection, and MCP integration.\n\nBifrost CLI is an interactive terminal tool that connects your favorite coding agents to your Bifrost gateway. Instead of environment variables and config files, you just run a command and pick your agent, model, and go.\nnpx -y @maximhq/bifrost-cli\n\nWhat it does for you:\n✅ Automatically configures base URLs, API keys, and model settings\n✅ Fetches available models from your Bifrost gateway\n✅ Installs missing agents via npm if needed\n✅ Auto-attaches Bifrost's MCP server for tool access\n✅ Launches agents in a tabbed terminal UI\n✅ Stores your selections securely in OS keyring\nSupported agents:\nClaude Code (with MCP auto-attach)\nCodex CLI (OpenAI's coding agent)\nGemini CLI (Google's agent)\nOpencode (Custom models support)\n💎 Star Bifrost ☆\n\n\n\n\n\n\n  \n  \n  ⚙️ 2. Getting Started in 3 Easy Steps\n\n\nIt takes only 5 minutes to use the CLI.\nMake sure your Bifrost gateway is running:\nnpx -y @maximhq/bifrost -p 8000\n# Gateway starts at http://localhost:8000\n\nIn another terminal:\nnpx -y @maximhq/bifrost-cli\n\nThe CLI guides you through:\nBase URL — Enter your Bifrost gateway URL\nVirtual Key (optional) — If you have authentication enabled\nChoose Agent — Pick Codex, Claude Code, Gemini, or Opencode\nSelect Model — Searchable list of available models from your gateway\nReview & Launch — Press Enter to start\nThat's it. Your agent launches with everything configured automatically.\nBifrost CLI stores configuration automatically:\n{\n  \"base_url\": \"http://localhost:8000\",\n  \"default_harness\": \"codex\",\n  \"default_model\": \"openai/gpt-4o\"\n}\n\nThe magic:\nBase URL and API keys are fetched from your Bifrost gateway\nYour Codex CLI gets the correct provider path (/open",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Bifrost CLI + Codex CLI：用一条命令为任何模型设置 OpenAI 的编码代理",
+        "summary": "开源贡献量在增长，使传统的导师信号对维护者来说更难解读和有效响应。\"3 Cs 框架\"为维护者提供了一种战略性的导师方法，避免倦怠同时适应人工智能时代的变化贡献模式。该方法有助于在高容量环境中识别有意义的导师机会。"
+      },
+      "fr": {
+        "title": "Bifrost CLI + Codex CLI : Une commande pour configurer l'agent de codage d'OpenAI avec n'importe quel modèle",
+        "summary": "Le volume des contributions open source augmente, ce qui rend les signaux de mentorat traditionnels plus difficiles à interpréter et à traiter efficacement pour les responsables. Le cadre des 3 Cs fournit aux responsables une approche stratégique du mentorat qui évite l'épuisement professionnel tout en s'adaptant aux modèles de contribution changeants de l'ère de l'IA. La méthodologie aide à identifier les opportunités de mentorat significatives dans les environnements à haut volume."
+      },
+      "de": {
+        "title": "Bifrost CLI + Codex CLI: Ein Befehl zum Einrichten von OpenAIs Coding-Agent mit jedem Modell",
+        "summary": "Das Volumen der Open-Source-Beiträge wächst, was es für Betreuer schwieriger macht, traditionelle Mentoring-Signale zu interpretieren und wirksam zu reagieren. Das 3-Cs-Framework bietet Betreuern einen strategischen Mentoring-Ansatz, der Burnout vermeidet und sich gleichzeitig an die sich ändernden Beitragsmuster des KI-Zeitalters anpasst. Die Methodik hilft, bedeutungsvolle Mentoring-Möglichkeiten in Hochvolumen-Umgebungen zu identifizieren."
+      },
+      "es": {
+        "title": "Bifrost CLI + Codex CLI: Un comando para configurar el agente de codificación de OpenAI con cualquier modelo",
+        "summary": "El volumen de contribución de código abierto está creciendo, lo que dificulta que los mantenedores interpreten y respondan efectivamente a las señales tradicionales de mentoría. El marco de los 3 Cs proporciona a los mantenedores un enfoque estratégico para la mentoría que evita el agotamiento mientras se adapta a los cambios patrones de contribución de la era de la IA. La metodología ayuda a identificar oportunidades de mentoría significativas en entornos de alto volumen."
+      }
+    }
+  },
+  {
+    "title": "Rethinking open source mentorship in the AI era",
+    "slug": "squad-coordinated-ai-agents-repository",
+    "url": "https://github.blog/open-source/maintainers/rethinking-open-source-mentorship-in-the-ai-era/",
+    "source": "GitHub Blog",
+    "date": "2026-03-19T18:00:00.000Z",
+    "summary": "Squad enables repository-native orchestration of multiple AI agents using GitHub Copilot, creating multi-agent workflows that remain inspectable and predictable while staying collaborative. The design patterns ensure coordinated agents maintain transparency about their decisions and actions throughout development workflows. This represents advances in integrating AI agents directly into repository-native development processes.",
+    "content": "As contribution volume grows, mentorship signals are harder to read. The 3 Cs framework helps maintainers mentor more strategically... without burning out.\nThe post Rethinking open source mentorship in the AI era appeared first on The GitHub Blog.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在AI时代重新思考开源指导",
+        "summary": "Squad实现了使用GitHub Copilot的存储库本地多AI代理编排，创建多代理工作流，保持可检查性和可预测性，同时保持协作性。设计模式确保协调的代理在整个开发工作流中对其决策和行动保持透明。这代表了将AI代理直接集成到存储库本地开发流程中的进步。"
+      },
+      "fr": {
+        "title": "Repenser le mentorat open source à l'ère de l'IA",
+        "summary": "Squad permet l'orchestration native de dépôt de plusieurs agents d'IA en utilisant GitHub Copilot, créant des flux de travail multi-agents qui restent inspectables et prévisibles tout en restant collaboratifs. Les modèles de conception garantissent que les agents coordonnés maintiennent la transparence quant à leurs décisions et actions tout au long des flux de travail de développement."
+      },
+      "de": {
+        "title": "Umdenken bei der Mentorschaft im Open Source im KI-Zeitalter",
+        "summary": "Squad ermöglicht die native Repository-Orchestrierung mehrerer KI-Agenten unter Verwendung von GitHub Copilot und erstellt Multi-Agent-Workflows, die überprüfbar und vorhersehbar bleiben und gleichzeitig kollaborativ sind. Die Designmuster stellen sicher, dass koordinierte Agenten während der gesamten Entwicklungs-Workflows Transparenz über ihre Entscheidungen und Maßnahmen bewahren."
+      },
+      "es": {
+        "title": "Repensando la mentoría de código abierto en la era de la IA",
+        "summary": "Squad permite la orquestación nativa de repositorio de múltiples agentes de IA utilizando GitHub Copilot, creando flujos de trabajo multiagente que permanecen inspeccionales y predecibles mientras se mantienen colaborativos. Los patrones de diseño aseguran que los agentes coordinados mantengan transparencia sobre sus decisiones y acciones en todos los flujos de trabajo de desarrollo."
+      }
+    }
+  },
+  {
+    "title": "How Squad runs coordinated AI agents inside your repository",
+    "slug": "astral-join-openai",
+    "url": "https://github.blog/ai-and-ml/github-copilot/how-squad-runs-coordinated-ai-agents-inside-your-repository/",
+    "source": "GitHub Blog",
+    "date": "2026-03-19T16:09:50.000Z",
+    "summary": "OpenAI announced its acquisition of Astral, representing a significant consolidation move in the AI industry. The announcement generated substantial community engagement on Hacker News with 792 points and 494 comments, indicating broad interest in the acquisition. The move positions Astral's technology or team to be integrated into OpenAI's operations.",
+    "content": "An inside look at repository-native orchestration with GitHub Copilot and the design patterns behind multi-agent workflows that stay inspectable, predictable, and collaborative. \nThe post How Squad runs coordinated AI agents inside your repository appeared first on The GitHub Blog.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Squad如何在您的存储库中运行协调的AI代理",
+        "summary": "OpenAI宣布收购Astral，代表了AI行业的一次重大整合举动。该公告在Hacker News上引起了大量社区参与，获得792个点赞和494条评论，表明对收购的广泛兴趣。此举将Astral的技术或团队定位为集成到OpenAI的运营中。"
+      },
+      "fr": {
+        "title": "Comment Squad exécute les agents d'IA coordonnés dans votre référentiel",
+        "summary": "OpenAI a annoncé l'acquisition d'Astral, représentant un mouvement de consolidation important dans l'industrie de l'IA. L'annonce a généré un engagement communautaire substantiel sur Hacker News avec 792 points et 494 commentaires, indiquant un intérêt considérable pour l'acquisition. Le mouvement positionne la technologie ou l'équipe d'Astral pour être intégrée dans les opérations d'OpenAI."
+      },
+      "de": {
+        "title": "Wie Squad koordinierte KI-Agenten in Ihrem Repository ausführt",
+        "summary": "OpenAI kündigte die Übernahme von Astral an, was einen bedeutenden Konsolidierungsschritt in der KI-Industrie darstellt. Die Ankündigung erzeugte umfangreiche Community-Beteiligung auf Hacker News mit 792 Punkten und 494 Kommentaren, was auf breites Interesse an der Übernahme hindeutet. Der Schritt positioniert Astrals Technologie oder Team zur Integration in OpenAIs Betrieb."
+      },
+      "es": {
+        "title": "Cómo Squad ejecuta agentes de IA coordinados dentro de su repositorio",
+        "summary": "OpenAI anunció la adquisición de Astral, representando un movimiento significativo de consolidación en la industria de la IA. El anuncio generó un compromiso sustancial de la comunidad en Hacker News con 792 puntos y 494 comentarios, indicando un amplio interés en la adquisición. El movimiento posiciona la tecnología o equipo de Astral para integrarse en las operaciones de OpenAI."
+      }
+    }
+  },
+  {
+    "title": "Astral to Join OpenAI",
+    "slug": "astral-to-join-openai",
+    "url": "https://astral.sh/blog/openai",
+    "source": "Hacker News",
+    "date": "2026-03-19T13:05:50.000Z",
+    "summary": "https://openai.com/index/openai-to-acquire-astral/\nComments URL: https://news.ycombinator.com/item?id=47438723\nPoints: 792\n# Comments: 494",
+    "content": "https://openai.com/index/openai-to-acquire-astral/\nComments URL: https://news.ycombinator.com/item?id=47438723\nPoints: 792\n# Comments: 494",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Astral加入OpenAI",
+        "summary": "https://openai.com/index/openai-to-acquire-astral/ 评论URL: https://news.ycombinator.com/item?id=47438723 得分: 792 评论数: 494"
+      },
+      "fr": {
+        "title": "Astral Rejoint OpenAI",
+        "summary": "https://openai.com/index/openai-to-acquire-astral/ URL des commentaires: https://news.ycombinator.com/item?id=47438723 Points: 792 Commentaires: 494"
+      },
+      "de": {
+        "title": "Astral Tritt OpenAI Bei",
+        "summary": "https://openai.com/index/openai-to-acquire-astral/ Kommentar-URL: https://news.ycombinator.com/item?id=47438723 Punkte: 792 Kommentare: 494"
+      },
+      "es": {
+        "title": "Astral se Une a OpenAI",
+        "summary": "https://openai.com/index/openai-to-acquire-astral/ URL de comentarios: https://news.ycombinator.com/item?id=47438723 Puntos: 792 Comentarios: 494"
+      }
+    }
+  },
+  {
     "title": "Building a 1,056-Test Rust CLI Without Writing Rust — Claude Code Did It",
     "slug": "building-1056-test-rust-cli-without-writing-rust",
     "url": "https://dev.to/ji_ai/building-a-1056-test-rust-cli-without-writing-rust-claude-code-did-it-5a97",
