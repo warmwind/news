@@ -1,0 +1,170 @@
+[
+  {
+    "title": "Day 16 – Designing Agent Prompts That Actually Work",
+    "slug": "designing-agent-prompts-that-actually-work",
+    "url": "https://dev.to/swatigoyal911/day-16-designing-agent-prompts-that-actually-work-2mno",
+    "source": "DEV Community",
+    "date": "2026-03-23T00:30:00.000Z",
+    "summary": "Agent prompts require fundamentally different structure than chat prompts, with 70% of agent failures stemming from poor prompt design rather than weak models or tools. Effective agent prompts must include role, objective, constraints, tools, and completion criteria—missing any section causes the agent to drift unpredictably.",
+    "content": "Why Most Agents Fail (It’s Not the Model)\n\n\nTeams blame:\nweak models\n\nbad tools\n\nmissing memory\n\n\n\nBut in practice, 70% of agent failures come from poor prompts.\nAn agent prompt is not a chat prompt.\nIt is:\na behavior contract + decision policy + execution guide\n\n\n\nChat Prompt\nAgent Prompt\n\n\n\n\nOne-shot answer\nMulti-step behavior\n\n\nOutput-focused\nProcess-focused\n\n\nFlexible tone\nStrict rules\n\n\nNo memory assumptions\nMemory-aware\n\n\n\nIf you prompt an agent like a chatbot, it will behave like one.\nEvery effective agent prompt contains five sections.\nRole\n\nObjective\n\nConstraints\n\nTools\n\nCompletion Criteria\n\n\n\nMiss one — and the agent drifts.\n❌ Weak role\n“You are a helpful assistant.”\n✅ Strong role\n“You are an AI research agent specialized in analyzing technical risks in production AI systems.”\nroles anchor decision-making\n\nagents infer what not to do\n\n\n\n🎯 Rule: Role = expertise + boundaries.\n❌ Bad objective\n“Research agentic AI.”\n✅ Good objective\n“Identify and summarize the top 3 recurring risks of deploying agentic AI in production systems.”\nA good objective answers:\nwhat is success?\n\nhow many outputs?\n\nat what depth?\n\n\n\n\n\n\n\n  \n  \n  3️⃣ Constraints: Where Real Control Lives 🚧\n\n\nConstraints prevent runaway agents.\nExamples:\nMax reasoning steps: 5\n\nUse only provided tools\n\nCite sources if uncertain\n\nDo not invent facts\n\n\n\nWithout constraints:\ncosts explode\n\nbehavior becomes unpredictable\n\n\n\nConstraints = safety rails.\nBad instruction ❌\n“You can use web search.”\nGood instruction ✅\n“If information is missing or outdated, use web search before answering.”\nAgents need tool triggers, not just tool lists.\nThis is the most overlooked section.\nExample:\nStop when you have:\nexactly 3 distinct risks\n\neach explained in 2–3 sentences\n\nno duplicated ideas\n\n\n\nNo stopping rules = infinite loops.\nROLE:\nYou are an AI research agent specializing in production AI systems.\n\nOBJECTIVE:\nIdentify the top 3 risks of deploying agentic AI in production and summarize each clearly.\n\nCONSTRAINTS:\n- Us",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第16天 - 设计真正有效的代理提示词",
+        "summary": "代理提示词需要与聊天提示词本质上不同的结构，70%的代理失败源于提示词设计不良，而非模型或工具薄弱。有效的代理提示词必须包括角色、目标、约束、工具和完成标准——缺少任何部分都会导致代理行为不可预测。"
+      },
+      "fr": {
+        "title": "Jour 16 - Concevoir des invites d'agent qui fonctionnent vraiment",
+        "summary": "Les invites d'agent nécessitent une structure fondamentalement différente des invites de chat, 70% des défaillances d'agent provenant d'une mauvaise conception d'invite plutôt que de modèles ou d'outils faibles. Les invites d'agent efficaces doivent inclure le rôle, l'objectif, les contraintes, les outils et les critères d'achèvement—l'absence d'une section quelconque fait que l'agent s'écarte de manière imprévisible."
+      },
+      "de": {
+        "title": "Tag 16 – Agent-Prompts entwerfen, die tatsächlich funktionieren",
+        "summary": "Agent-Prompts erfordern eine grundlegend andere Struktur als Chat-Prompts, wobei 70% der Agent-Ausfälle von schlechtem Prompt-Design herrühren, nicht von schwachen Modellen oder Tools. Effektive Agent-Prompts müssen Rolle, Ziel, Beschränkungen, Tools und Abschlussskriterien enthalten—das Fehlen eines Abschnitts führt dazu, dass der Agent unvorhersehbar abweicht."
+      },
+      "es": {
+        "title": "Día 16 – Diseñar Prompts de Agentes que Realmente Funcionen",
+        "summary": "Los prompts de agentes requieren una estructura fundamentalmente diferente a los prompts de chat, con el 70% de fallos de agentes derivados de un diseño de prompt deficiente en lugar de modelos o herramientas débiles. Los prompts de agentes efectivos deben incluir rol, objetivo, restricciones, herramientas y criterios de finalización—la ausencia de cualquier sección causa que el agente se desvíe de manera impredecible."
+      }
+    }
+  },
+  {
+    "title": "Zero-Downtime Database Migrations: Patterns for Production PostgreSQL in 2026",
+    "slug": "zero-downtime-database-migrations-postgresql-2026",
+    "url": "https://dev.to/young_gao/zero-downtime-database-migrations-patterns-for-production-postgresql-in-2026-2a3i",
+    "source": "DEV Community",
+    "date": "2026-03-23T00:23:52.000Z",
+    "summary": "Database migrations can cause significant downtime when performed naively, but the expand-migrate-contract pattern enables zero-downtime schema changes by splitting modifications into three phases. This approach prevents production incidents by avoiding table locks that would otherwise block reads and writes for extended periods.",
+    "content": "Zero-Downtime Database Migrations: Patterns for Production PostgreSQL in 2026\n\n\nDatabase migrations are the scariest part of deployments. One bad ALTER TABLE can lock your production database for minutes, turning a routine release into an incident. Here's how to make schema changes without any downtime.\nPostgreSQL acquires locks during DDL operations. A simple ALTER TABLE users ADD COLUMN email_verified boolean NOT NULL DEFAULT false on a table with millions of rows will:\nAcquire an ACCESS EXCLUSIVE lock on the table\nRewrite the entire table (for NOT NULL with DEFAULT on PG < 11)\nBlock ALL reads and writes until complete\nOn a table with 50M rows, this can take 30+ seconds. Every query hitting that table queues up, your connection pool saturates, and your app goes down.\nSplit every breaking change into three phases:\nPhase 1 (Expand):   Add new column/table, keep old one working\nPhase 2 (Migrate):  Backfill data, update app to write both\nPhase 3 (Contract): Remove old column/table after verification\n\nWrong (causes downtime):\nALTER TABLE users RENAME COLUMN name TO full_name;\n\nRight (zero-downtime):\n-- Migration 1: Expand\nALTER TABLE users ADD COLUMN full_name text;\n\n-- Migration 2: Backfill (in batches)\nUPDATE users SET full_name = name WHERE full_name IS NULL AND id BETWEEN 0 AND 10000;\nUPDATE users SET full_name = name WHERE full_name IS NULL AND id BETWEEN 10001 AND 20000;\n-- ... continue in batches\n\n-- Migration 3: Add trigger to keep columns in sync\nCREATE OR REPLACE FUNCTION sync_user_name() RETURNS trigger AS $$\nBEGIN\n    IF NEW.name IS DISTINCT FROM OLD.name THEN\n        NEW.full_name := NEW.name;\n    END IF;\n    IF NEW.full_name IS DISTINCT FROM OLD.full_name THEN\n        NEW.name := NEW.full_name;\n    END IF;\n    RETURN NEW;\nEND;\n$$ LANGUAGE plpgsql;\n\nCREATE TRIGGER sync_user_name_trigger\nBEFORE UPDATE ON users\nFOR EACH ROW EXECUTE FUNCTION sync_user_name();\n\n-- Deploy app code that reads/writes full_name instead of name\n-- Verify for a few days\n\n-- Migratio",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "零停机数据库迁移：2026年生产PostgreSQL的模式",
+        "summary": "数据库迁移在执行不当时可能导致严重停机，但扩展-迁移-合同模式通过将修改分为三个阶段来实现零停机模式更改。这种方法通过避免表锁（否则会长时间阻止读写操作）来防止生产事故。"
+      },
+      "fr": {
+        "title": "Migrations de base de données sans temps d'arrêt : Modèles pour PostgreSQL en production en 2026",
+        "summary": "Les migrations de base de données peuvent causer un temps d'arrêt important lorsqu'elles sont effectuées naïvement, mais le modèle d'expansion-migration-contrat permet des modifications de schéma sans temps d'arrêt en divisant les modifications en trois phases. Cette approche prévient les incidents de production en évitant les verrous de table qui bloqueraient autrement les lectures et écritures pendant des périodes prolongées."
+      },
+      "de": {
+        "title": "Ausfallfreie Datenbankmigrationen: Muster für Production PostgreSQL in 2026",
+        "summary": "Datenbankmigrationen können erhebliche Ausfallzeiten verursachen, wenn sie naiv durchgeführt werden, aber das Expand-Migrate-Contract-Muster ermöglicht Schemaänderungen ohne Ausfallzeiten, indem Änderungen in drei Phasen aufgeteilt werden. Dieser Ansatz verhindert Produktionsvorfälle, indem Tabellensperren vermieden werden, die sonst Lese- und Schreibvorgänge für längere Zeiträume blockieren würden."
+      },
+      "es": {
+        "title": "Migraciones de Base de Datos sin Tiempo de Inactividad: Patrones para PostgreSQL en Producción en 2026",
+        "summary": "Las migraciones de base de datos pueden causar un tiempo de inactividad significativo cuando se realizan ingenuamente, pero el patrón de expansión-migración-contrato permite cambios de esquema sin tiempo de inactividad al dividir las modificaciones en tres fases. Este enfoque previene incidentes de producción al evitar bloqueos de tabla que de otro modo bloquearían lecturas y escrituras durante períodos prolongados."
+      }
+    }
+  },
+  {
+    "title": "From Sound Waves to Mental Wellness: Building a Speech Emotion Recognition (SER) System with CNN and FastAPI",
+    "slug": "building-speech-emotion-recognition-system-cnn-fastapi",
+    "url": "https://dev.to/beck_moulton/from-sound-waves-to-mental-wellness-building-a-speech-emotion-recognition-ser-system-with-cnn-j80",
+    "source": "DEV Community",
+    "date": "2026-03-23T00:20:00.000Z",
+    "summary": "A speech emotion recognition system using CNN and FastAPI can detect emotional distress by analyzing vocal features, converting audio into spectrograms that the model classifies. This technology enables proactive mental health monitoring by analyzing patterns like frequency, tempo, and energy distribution in the human voice.",
+    "content": "The human voice is more than just a medium for words; it’s a biological mirror of our internal state. While we might say \"I'm fine,\" our vocal frequency, tempo, and energy distribution often tell a different story. In the realm of Speech Emotion Recognition (SER), we leverage deep learning and signal processing to detect early signs of emotional distress.\nIn this tutorial, we are building a \"Depression Prevention Lab\"—a system designed to monitor emotional health by analyzing audio features. By utilizing a Convolutional Neural Network (CNN) for classification and FastAPI for high-performance delivery, we can create a proactive tool for mental health intervention. If you're looking for more production-ready patterns for health-tech AI, you should definitely check out the deep dives at WellAlly Blog, which served as a major inspiration for this architecture. \nTo understand how we transform a .wav file into an emotional classification, let's look at the data pipeline. We don't just feed raw audio into the model; we convert sound into a visual representation (Spectrograms or MFCCs) that a CNN can \"see.\"\ngraph TD\n    A[User Voice Input / .wav] --> B[Preprocessing: Noise Reduction]\n    B --> C[Feature Extraction: MFCC & Mel-Spectrogram]\n    C --> D[CNN Model Inference]\n    D --> E{Emotion Classified?}\n    E -- Positive/Neutral --> F[Log Entry]\n    E -- Negative/Depressive Signs --> G[Trigger Intervention Logic]\n    G --> H[FastAPI Response: Alert/Recommendation]\n\nBefore we dive into the code, ensure you have the following tech stack installed:\n  Python 3.9+\n\n  Librosa / Python Speech Features: For extracting acoustic features.\n  TensorFlow/Keras: To build our CNN.\n  Scikit-learn: For data scaling and splitting.\n  FastAPI: To serve our model as a real-time API.\n\n\n\n\npip install fastapi uvicorn librosa tensorflow scikit-learn numpy python_speech_features\n\nIn audio analysis, MFCCs (Mel-frequency cepstral coefficients) are the gold standard. They represent the short-term power",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "从声波到心理健康：使用CNN和FastAPI构建语音情感识别(SER)系统",
+        "summary": "使用CNN和FastAPI的语音情感识别系统可以通过分析声乐特征来检测情绪困扰，将音频转换为模型分类的频谱图。这项技术通过分析人声中的频率、节奏和能量分布等模式，实现前瞻性心理健康监测。"
+      },
+      "fr": {
+        "title": "Des ondes sonores au bien-être mental : Construire un système de reconnaissance des émotions vocales (SER) avec CNN et FastAPI",
+        "summary": "Un système de reconnaissance des émotions vocales utilisant CNN et FastAPI peut détecter la détresse émotionnelle en analysant les caractéristiques vocales, en convertissant l'audio en spectrogrammes classifiés par le modèle. Cette technologie permet une surveillance proactive de la santé mentale en analysant des modèles tels que la fréquence, le tempo et la distribution d'énergie dans la voix humaine."
+      },
+      "de": {
+        "title": "Von Schallwellen zu psychischem Wohlbefinden: Aufbau eines Sprachemotion-erkennungs (SER)-Systems mit CNN und FastAPI",
+        "summary": "Ein Sprachemotion-erkennungssystem mit CNN und FastAPI kann emotionale Belastung erkennen, indem es vokale Merkmale analysiert und Audio in Spektrogramme umwandelt, die das Modell klassifiziert. Diese Technologie ermöglicht eine proaktive psychische Gesundheitsüberwachung durch Analyse von Mustern wie Frequenz, Tempo und Energieverteilung in der menschlichen Stimme."
+      },
+      "es": {
+        "title": "De Ondas de Sonido al Bienestar Mental: Construir un Sistema de Reconocimiento de Emociones del Habla (SER) con CNN y FastAPI",
+        "summary": "Un sistema de reconocimiento de emociones del habla que utiliza CNN y FastAPI puede detectar angustia emocional analizando características vocales, convirtiendo audio en espectrogramas que el modelo clasifica. Esta tecnología permite el monitoreo proactivo de la salud mental analizando patrones como la frecuencia, el tempo y la distribución de energía en la voz humana."
+      }
+    }
+  },
+  {
+    "title": "Claude Code Secretly Hoards 140+ Config Files Behind Your Back. Here's How to Take Control.",
+    "slug": "claude-code-config-files-scope-contamination",
+    "url": "https://dev.to/ithiria894/claude-code-secretly-hoards-140-config-files-behind-your-back-heres-how-to-take-control-2dlb",
+    "source": "DEV Community",
+    "date": "2026-03-23T00:16:43.000Z",
+    "summary": "Claude Code automatically creates hundreds of configuration files across multiple project scopes without user oversight, leading to context window pollution and degraded LLM performance. Scope contamination causes irrelevant memories, skills, and MCP configs to load into every session, wasting tokens on misplaced configurations.",
+    "content": "I've been using Claude Code for a week. Yesterday I peeked inside ~/.claude/ and found 140 items — memories, skills, MCP server configs, hooks — scattered across folders with names like -home-user-projects-my-app/.\nI didn't create most of them. Claude did. Every time I said \"remember this\" or installed a tool, Claude silently dumped files into whatever scope matched my current directory. A preference I wanted everywhere? Trapped in one project scope. A deploy skill that belongs to one repo? Leaked into global, contaminating every other project.\nThe best part: I found three identical MCP server entries across different scopes because I'd added the same server while cd'd into different directories. Claude happily duplicated it each time without telling me.\nThis isn't just messy — it's a technical problem. Every time Claude Code starts a session, it loads all memories, skills, and MCP configs from the current scope plus everything it inherits from parent scopes. That's your context window.\nA skill meant for a Python data pipeline project sitting in global scope? It gets loaded into every single session — including your React frontend work. Duplicate MCP server entries? Claude initializes the same server twice. Memories from 6 months ago about a project you archived? Still there, still eating tokens, still potentially contradicting your current instructions.\nScope contamination directly degrades LLM accuracy. Irrelevant memories and skills in the context window mean Claude has more noise to sort through, more tokens wasted on things that don't apply, and more chances to follow outdated or wrong-scope instructions. Your context window is finite and expensive — every byte wasted on misplaced config is a byte not spent on your actual work.\nWant to fix it manually? Dig through encoded-path directories, figure out which -home-user-Documents/ maps to which project, cat each file to see what's inside, and mv them to the right place. For 140 items. No thanks.\nSure, you can ask",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Claude Code 暗中囤积140多个配置文件。以下是如何控制它。",
+        "summary": "Claude Code 在多个项目范围内自动创建数百个配置文件，而用户无法监督，导致上下文窗口污染和LLM性能下降。范围污染导致无关的记忆、技能和MCP配置加载到每个会话中，浪费令牌在错位的配置上。"
+      },
+      "fr": {
+        "title": "Claude Code Accumule Secrètement 140+ Fichiers de Configuration. Voici Comment Prendre le Contrôle.",
+        "summary": "Claude Code crée automatiquement des centaines de fichiers de configuration dans plusieurs portées de projet sans supervision de l'utilisateur, entraînant une pollution de la fenêtre de contexte et une dégradation des performances du LLM. La contamination de portée provoque le chargement de mémoires, compétences et configurations MCP non pertinentes dans chaque session, gaspillant des jetons sur des configurations mal placées."
+      },
+      "de": {
+        "title": "Claude Code Hortet Heimlich 140+ Konfigurationsdateien an. So Nehmen Sie die Kontrolle zurück.",
+        "summary": "Claude Code erstellt automatisch Hunderte von Konfigurationsdateien über mehrere Projektbereiche hinweg ohne Benutzeraufsicht, was zu einer Verschmutzung des Kontextfensters und verschlechterten LLM-Leistungen führt. Die Bereichskontamination verursacht, dass irrelevante Erinnerungen, Fähigkeiten und MCP-Konfigurationen in jede Sitzung geladen werden, wodurch Token bei falsch platzierten Konfigurationen verschwendet werden."
+      },
+      "es": {
+        "title": "Claude Code Acumula Secretamente 140+ Archivos de Configuración. Así es Cómo Tomar el Control.",
+        "summary": "Claude Code crea automáticamente cientos de archivos de configuración en múltiples ámbitos de proyecto sin supervisión del usuario, lo que resulta en contaminación de la ventana de contexto y degradación del rendimiento del LLM. La contaminación de alcance causa que recuerdos, habilidades y configuraciones de MCP irrelevantes se carguen en cada sesión, desperdiciando tokens en configuraciones mal ubicadas."
+      }
+    }
+  },
+  {
+    "title": "I built a free UK personal finance app as a single HTML file. Here's why, and how.",
+    "slug": "free-uk-personal-finance-app-html-file",
+    "url": "https://dev.to/jontyancollins/i-built-a-free-uk-personal-finance-app-as-a-single-html-file-heres-why-and-how-4k4f",
+    "source": "DEV Community",
+    "date": "2026-03-23T00:07:01.000Z",
+    "summary": "A non-developer built Vault, a comprehensive UK personal finance application as a single HTML file with features including net worth tracking, spending categorization, tax calculations, and FIRE planning. The entire application runs locally in browser localStorage with zero server dependency, ensuring complete user privacy and accessibility.",
+    "content": "I'm not a developer.\nA few months ago I couldn't write a line of code. I'm a British backpacker living in Australia, and about the only thing I knew about software was that I'd been frustrated by it for years.\nSo I'd been limping along with spreadsheets. They did the job, I guess. But they never scratched the itch. I could never work out an efficient system to log my spending, so it turned into a two hour job at the end of every month. And they were completely useless for anything forward-looking — working out my CGT position, modelling what happens if I overpay my mortgage, figuring out when I could realistically stop working.\nThen AI got loud enough that I couldn't ignore it anymore. I read enough to understand that the barrier between \"having an idea\" and \"building a thing\" had basically collapsed. So I set myself a challenge: what would I actually build if I could build anything?\nWhat I actually built\nIt's called Vault. It's a single HTML file. You open it in a browser and it works. No account. No server. No subscription. Everything you put into it lives in your browser's localStorage — which means I have zero access to any of it. Not a privacy policy promise. Structurally impossible.\nIt's built specifically for UK users. That meant getting the stuff right that most apps completely ignore:\nNet worth tracking with debts properly deducted, multi-currency with live FX\nSpending tracker with budget limits per category, recurring transactions, and spending insights\nSalary calculator covering Scottish vs England/Wales/NI tax bands, pension salary sacrifice, and student loan repayments\nCapital gains tax tracking using HMRC-compliant weighted average cost, with ISA holdings automatically excluded\nStamp duty calculator with the correct post-April 2025 thresholds for first-time, second home, and additional property buyers\nA scenario planner covering rent vs buy, FIRE timeline, mortgage overpayment, and debt payoff\nA FIRE calculator with four growth profiles\nInvestment (LSE",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我用单个HTML文件构建了一个免费的英国个人财务应用程序。原因和方法如下。",
+        "summary": "一位非开发人员用单个HTML文件构建了Vault，这是一个全面的英国个人财务应用，具有净资产跟踪、支出分类、税收计算和FIRE规划等功能。整个应用程序在浏览器localStorage中本地运行，完全不依赖服务器，确保用户隐私和可访问性。"
+      },
+      "fr": {
+        "title": "J'ai créé une application de finances personnelles britanniques gratuite sous forme d'un seul fichier HTML. Voici pourquoi et comment.",
+        "summary": "Un non-développeur a construit Vault, une application de finances personnelles britannique complète sous la forme d'un seul fichier HTML avec des fonctionnalités incluant le suivi de la valeur nette, la catégorisation des dépenses, les calculs fiscaux et la planification FIRE. L'ensemble de l'application s'exécute localement dans le localStorage du navigateur sans aucune dépendance serveur, garantissant la confidentialité totale et l'accessibilité de l'utilisateur."
+      },
+      "de": {
+        "title": "Ich habe eine kostenlose britische Personal-Finance-App als einzelne HTML-Datei erstellt. Hier ist der Grund und wie.",
+        "summary": "Ein Nicht-Entwickler baute Vault, eine umfassende britische Personal-Finance-Anwendung als einzelne HTML-Datei mit Funktionen wie Vermögensverfolgung, Ausgabenkategorisierung, Steuerberechnungen und FIRE-Planung. Die gesamte Anwendung läuft lokal im Browser localStorage ohne Serverabhängigkeit und gewährleistet vollständige Benutzerdatenschutz und Barrierefreiheit."
+      },
+      "es": {
+        "title": "Construí una aplicación gratuita de finanzas personales del Reino Unido como un único archivo HTML. Aquí está el por qué y cómo.",
+        "summary": "Un no desarrollador construyó Vault, una aplicación completa de finanzas personales británicas como un único archivo HTML con características que incluyen seguimiento del patrimonio neto, categorización de gastos, cálculos fiscales y planificación FIRE. La aplicación completa se ejecuta localmente en el localStorage del navegador sin dependencia de servidor, garantizando la privacidad total del usuario y la accesibilidad."
+      }
+    }
+  },
+  {
+    "title": "Your docstrings are lying — docvet 1.14 catches them",
+    "slug": "docvet-1-14-catches-lying-docstrings",
+    "url": "https://dev.to/albertocodes/your-docstrings-are-lying-docvet-114-catches-them-9a",
+    "source": "DEV Community",
+    "date": "2026-03-23T00:04:09.000Z",
+    "summary": "A 2024 study found incorrect documentation degrades LLM task performance by 22.6 percentage points; docvet 1.14 addresses this by verifying docstrings match function signatures and actual behavior. New rules detect missing parameters, extra exceptions, and misleading documentation that could trap callers or generate defensive code for phantom errors.",
+    "content": "A 2024 study by Macke & Doyle found that incorrect documentation degrades LLM task success by 22.6 percentage points. Missing documentation? No statistically significant effect. Your AI coding assistant performs worse with wrong docs than with no docs at all.\nThat's the gap docvet fills. And with v1.14, it closes the gap further — checking not just whether your docstrings exist, but whether they match your code.\nTwo new rules — missing-param-in-docstring and extra-param-in-docstring — compare function signatures against Args: sections, parameter by parameter.\nYou know the drill: you rename retries to max_retries across a refactor, update every call site, and forget the docstring. Now docvet catches it:\nsrc/client.py:47: missing-param-in-docstring Function 'connect' has parameters not documented in Args: max_retries [required]\n\nHandles positional-only params (PEP 570), keyword-only, self/cls exclusion, and both Google and Sphinx styles.\nBefore 1.14, docvet asked \"did the docstring mention this behavior?\" Now it also asks the reverse: \"does the docstring claim behavior the code doesn't exhibit?\"\nThree new rules:\nextra-raises-in-docstring — documents exceptions the function never raises\nextra-yields-in-docstring — documents yields in a non-generator\nextra-returns-in-docstring — documents returns the function never makes\nA docstring that claims FileNotFoundError when the function never raises anything is a trap. Callers write try/except blocks for phantom exceptions. AI tools generate defensive code for errors that can't happen.\ndef get_user():\n    \"\"\"Get user.\"\"\"\n\nThis passes every presence check but adds zero information. The trivial-docstring rule decomposes symbol names and summaries into word sets, filters stop words, and flags cases where the summary is just an echo of the name.\nmissing-deprecation — catches warnings.warn(DeprecationWarning) or @deprecated (PEP 702) without a deprecation notice in the docstring\nmissing-return-type (opt-in) — flags Returns: section",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的文档字符串在撒谎——docvet 1.14抓住了它们",
+        "summary": "2024年的一项研究发现，不正确的文档会使LLM任务性能下降22.6个百分点；docvet 1.14通过验证文档字符串与函数签名和实际行为相匹配来解决这个问题。新规则检测缺少的参数、额外的异常和可能陷阱调用者或为幻影错误生成防御代码的误导文档。"
+      },
+      "fr": {
+        "title": "Vos docstrings mentent — docvet 1.14 les attrape",
+        "summary": "Une étude de 2024 a révélé que la documentation incorrecte dégrade les performances des tâches LLM de 22,6 points de pourcentage ; docvet 1.14 résout ce problème en vérifiant que les docstrings correspondent aux signatures de fonction et au comportement réel. Les nouvelles règles détectent les paramètres manquants, les exceptions supplémentaires et la documentation trompeuse qui pourrait piéger les appelants ou générer du code défensif pour des erreurs fantômes."
+      },
+      "de": {
+        "title": "Ihre Docstrings lügen — docvet 1.14 erwischt sie",
+        "summary": "Eine Studie von 2024 ergab, dass falsche Dokumentation die LLM-Aufgabenleistung um 22,6 Prozentpunkte verschlechtert; docvet 1.14 behebt dies durch die Überprüfung, dass Docstrings Funktionssignaturen und tatsächlichem Verhalten entsprechen. Neue Regeln erkennen fehlende Parameter, zusätzliche Ausnahmen und irreführende Dokumentation, die Aufrufer abfangen könnte oder defensiven Code für Phantom-Fehler generiert."
+      },
+      "es": {
+        "title": "Tus docstrings mienten — docvet 1.14 los atrapa",
+        "summary": "Un estudio de 2024 encontró que la documentación incorrecta degrada el rendimiento de tareas de LLM en 22,6 puntos porcentuales; docvet 1.14 aborda esto verificando que los docstrings coincidan con las firmas de función y el comportamiento real. Las nuevas reglas detectan parámetros faltantes, excepciones adicionales y documentación engañosa que podría atrapar a los llamadores o generar código defensivo para errores fantasma."
+      }
+    }
+  }
+]
