@@ -1,5 +1,425 @@
 [
   {
+    "title": "Inside SQLite’s Frontend: BETWEEN, OR, LIKE, and GLOB Optimizations",
+    "slug": "sqlite-frontend-between-or-like-glob-optimizations",
+    "url": "https://dev.to/lovestaco/inside-sqlites-frontend-between-or-like-and-glob-optimizations-28p2",
+    "source": "DEV Community",
+    "date": "2026-03-24T18:16:55.000Z",
+    "summary": "SQLite optimizes BETWEEN, OR, LIKE, and GLOB operators by rewriting them internally into simpler conditions and using specialized index strategies to minimize runtime checks. These transformations allow the query engine to determine index applicability and perform efficient range scans when possible. Understanding these optimizations explains why certain query patterns perform efficiently despite appearing complex at the SQL level.",
+    "content": "Hello, I'm Maneshwar. I'm building git-lrc, an AI code reviewer that runs on every commit. It is free, unlimited, and source-available on Github. Star Us to help devs discover the project. Do give it a try and share your feedback for improving the product.\n \n\nIn the previous part, you saw how SQLite breaks the WHERE clause into terms and uses strict rules to decide whether indexes can be applied. \nNow we go deeper into specific operators that appear frequently in real queries and how SQLite optimizes them.\nThese operators may look simple at the SQL level, but internally SQLite often rewrites them or applies special strategies to make them efficient.\nThe BETWEEN clause is commonly used for range queries.\nFor example:\nSELECT * FROM users WHERE age BETWEEN 18 AND 30;\n\nSQLite does not treat this as a special standalone operation. Instead, it rewrites it internally into two conditions:\nage >= 18 AND age <= 30\n\nThis transformation introduces two virtual terms. These terms are not explicitly written by the user, but they are used by the optimizer to reason about the query.\nIf both of these conditions can be satisfied using an index, SQLite performs a range scan on that index. It sets:\nThe lower bound as 18\n\nThe upper bound as 30\n\n\n\nIn this case, the original BETWEEN condition is completely eliminated during execution. \nNo additional checks are required for each row because the index guarantees correctness.\nIf the index cannot fully satisfy both conditions, SQLite still uses these virtual terms as hints for optimization. \nHowever, the original BETWEEN condition is then evaluated for each row, with the important detail that the expression on the left side is computed only once.\nThe OR operator is tricky because it often prevents straightforward index usage.\nConsider this query:\nSELECT * FROM users WHERE age = 20 OR age = 25 OR age = 30;\n\nSQLite first checks whether all OR-connected conditions refer to the same column. If they do, it rewrites the query into an IN clause:\nSELE",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "SQLite前端内部：BETWEEN、OR、LIKE和GLOB优化",
+        "summary": "SQLite通过在内部将BETWEEN、OR、LIKE和GLOB运算符重写为更简单的条件，并使用专门的索引策略来最小化运行时检查，从而优化这些运算符。这些转换允许查询引擎确定索引的适用性，并在可能时执行高效的范围扫描。理解这些优化解释了为什么某些查询模式表现高效，尽管在SQL级别上看起来很复杂。"
+      },
+      "fr": {
+        "title": "À l'intérieur du frontend SQLite : optimisations BETWEEN, OR, LIKE et GLOB",
+        "summary": "SQLite optimise les opérateurs BETWEEN, OR, LIKE et GLOB en les réécrivant en interne en conditions plus simples et en utilisant des stratégies d'index spécialisées pour minimiser les vérifications à l'exécution. Ces transformations permettent au moteur de requête de déterminer l'applicabilité de l'index et d'effectuer des analyses de plage efficaces si possible. La compréhension de ces optimisations explique pourquoi certains modèles de requête fonctionnent efficacement malgré une apparence complexe au niveau SQL."
+      },
+      "de": {
+        "title": "Im SQLite-Frontend: BETWEEN-, OR-, LIKE- und GLOB-Optimierungen",
+        "summary": "SQLite optimiert die Operatoren BETWEEN, OR, LIKE und GLOB, indem sie intern in einfachere Bedingungen umgeschrieben werden und spezialisierte Indexstrategien verwendet werden, um Laufzeitprüfungen zu minimieren. Diese Transformationen ermöglichen es der Abfrage-Engine, die Indexanwendbarkeit zu bestimmen und effiziente Bereichsscans durchzuführen, wenn möglich. Das Verständnis dieser Optimierungen erklärt, warum bestimmte Abfragemuster effizient funktionieren, obwohl sie auf SQL-Ebene komplex erscheinen."
+      },
+      "es": {
+        "title": "Dentro del Frontend de SQLite: optimizaciones de BETWEEN, OR, LIKE y GLOB",
+        "summary": "SQLite optimiza los operadores BETWEEN, OR, LIKE y GLOB reescribiéndolos internamente en condiciones más simples y utilizando estrategias de índice especializadas para minimizar las verificaciones en tiempo de ejecución. Estas transformaciones permiten al motor de consultas determinar la aplicabilidad del índice y realizar escaneos de rango eficientes cuando sea posible. Comprender estas optimizaciones explica por qué ciertos patrones de consulta funcionan de manera eficiente a pesar de parecer complejos a nivel SQL."
+      }
+    }
+  },
+  {
+    "title": "Competitive Friends Who Undermine You Over Text: The Pattern",
+    "slug": "competitive-friends-undermine-text-pattern",
+    "url": "https://dev.to/skippy_magnificent_8cce24/competitive-friends-who-undermine-you-over-text-the-pattern-1mci",
+    "source": "DEV Community",
+    "date": "2026-03-24T18:10:45.000Z",
+    "summary": "Competitive friends undermine congratulations through a textual pattern called the 'comparison pivot': leading with acknowledgment, then immediately shifting focus to their own equivalent experience to minimize the recipient's achievement. This structural technique performs minimization through message format rather than explicit content, and recognizing these shapes helps validate your intuition about inauthentic support. Understanding these patterns distinguishes genuine celebration from subtle undermining tactics.",
+    "content": "You read the message again. The words say congratulations, but something in your chest tightens. You can't quite explain it, but the message doesn't feel like good news. It feels like a small, quiet knock against something you just built.\nIf this sounds familiar, you're not imagining it. There's a specific pattern that shows up in text messages from competitive friends, and once you see it, you can't unsee it. It's not about dramatic blowouts or obvious jealousy. It's about something subtler—the way congratulations can feel like minimized success, and how a friend's words can leave you feeling smaller instead of celebrated.\nThis article is about that pattern. Not to help you diagnose someone else, but to help you trust your own read of the situation. You know when something doesn't feel right. Here's what's actually happening.\nWhen a competitive friend sends you a message about your success, you're not just reading words—you're reading a structure. The architecture of the message carries weight beyond the surface meaning. These texts tend to follow predictable shapes, and once you understand those shapes, you can spot them every time.\nThe first thing to understand is that undermining in text works through what I call the comparison pivot. Your friend leads with acknowledgment—'That's amazing' or 'Congrats on the news'—but then pivots immediately to themselves. 'That's amazing. I've actually been going through something similar but it's been really hard.' Or: 'Congrats. I remember when I tried to do that and—'\nThis pivot is the mechanism. It's not what they say about you; it's what they say after. The structure itself performs the minimization. The congratulatory framing is the hook, but the pivot is the payload.\nThere are a few distinct shapes these messages tend to take, and recognizing them helps you trust that you're not overreacting. The first is what I call the redirect to self. Your news triggers a response about their equivalent experience, often framed as em",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "通过文本削弱你的竞争朋友：这种模式",
+        "summary": "竞争朋友通过一种被称为\"比较转向\"的文本模式来削弱祝贺：先承认，然后立即将焦点转向自己的等价经验，以最小化接收者的成就。这种结构性技巧通过消息格式而不是显式内容来实现最小化，识别这些形式有助于验证你对不真诚支持的直觉。理解这些模式有助于区分真正的庆祝和微妙的削弱战术。"
+      },
+      "fr": {
+        "title": "Les amis compétitifs qui vous sabotent par texte : le modèle",
+        "summary": "Les amis compétitifs sapent les félicitations par un modèle textuel appelé le « pivot de comparaison » : commençant par une reconnaissance, puis redirigeant immédiatement l'attention sur leur propre expérience équivalente pour minimiser la réussite du destinataire. Cette technique structurelle effectue une minimisation par le format du message plutôt que par le contenu explicite, et reconnaître ces formes aide à valider votre intuition sur le soutien non authentique. Comprendre ces modèles distingue la véritable célébration des tactiques de sabotage subtiles."
+      },
+      "de": {
+        "title": "Wettbewerbsfähige Freunde, die Sie über Text untergraben: Das Muster",
+        "summary": "Wettbewerbsfähige Freunde untergraben Glückwünsche durch ein textuelles Muster namens „Vergleichspivot\": Beginnend mit einer Bestätigung und dann sofort die Aufmerksamkeit auf ihre eigene gleichwertige Erfahrung verlagern, um die Leistung des Empfängers zu minimieren. Diese strukturelle Technik führt Minimierung durch Nachrichtenformat statt durch explizite Inhalte durch, und das Erkennen dieser Formen hilft, Ihre Intuition über unauthentische Unterstützung zu validieren. Das Verständnis dieser Muster unterscheidet echte Feierlichkeiten von subtilen Sabotage-Taktiken."
+      },
+      "es": {
+        "title": "Amigos competitivos que te socavan por texto: El patrón",
+        "summary": "Los amigos competitivos socavan las felicitaciones a través de un patrón textual llamado \"pivote de comparación\": comenzando con reconocimiento y luego redirigiendo inmediatamente la atención a su propia experiencia equivalente para minimizar el logro del destinatario. Esta técnica estructural realiza la minimización a través del formato del mensaje en lugar del contenido explícito, y reconocer estas formas ayuda a validar tu intuición sobre el apoyo no auténtico. Comprender estos patrones distingue la verdadera celebración de las tácticas de sabotaje sutiles."
+      }
+    }
+  },
+  {
+    "title": "Context7 MCP Server — Real-Time Library Docs for AI Coding Agents",
+    "slug": "context7-mcp-server-real-time-library-docs",
+    "url": "https://dev.to/grove_chatforest/context7-mcp-server-real-time-library-docs-for-ai-coding-agents-40k3",
+    "source": "DEV Community",
+    "date": "2026-03-24T18:08:06.000Z",
+    "summary": "Context7 is a popular MCP server that injects real-time, version-specific library documentation directly into AI agents, eliminating hallucinated APIs caused by outdated training data. Built by Upstash with 50K+ stars and supporting thousands of libraries, it provides simple two-tool interface while facing a critical vulnerability and 83-92% free tier reduction in early 2026. The centralized registry model offers broad coverage but introduces new trust considerations for developers.",
+    "content": "At a glance: 50.1K stars, 2.4K forks, 148 open issues, MCP server v2.1.4, CLI ctx7 v0.3.6, ~10.1M estimated PulseMCP visitors\nContext7 is the most popular MCP server in 2026. Built by Upstash, it solves a genuine pain point: AI coding assistants hallucinate APIs that don't exist because their training data is months or years out of date.\nWhen your agent needs to use a library, Context7 fetches the current, version-specific documentation and injects it directly into the prompt. No tab-switching, no copy-pasting, no outdated code generation.\nBut popularity doesn't mean perfection. A critical context poisoning vulnerability (ContextCrush) was discovered and patched in February 2026. The free tier was cut by 83–92% in January 2026. And the centralized registry model creates a trust surface most developers haven't thought through.\nTwo MCP tools:\nresolve-library-id — look up a library in Context7's registry\nquery-docs — fetch version-specific documentation for a topic\nThat's it. The simplicity is a feature — agents learn the resolve-then-query pattern instantly.\nBehind the scenes, Context7 maintains a registry of thousands of libraries. Documentation is community-contributed: anyone can publish a library's docs to the registry.\nnpx ctx7 setup\n\nAuto-detects your editor (Cursor, Claude Code, etc.) and configures everything with OAuth. Or manually:\n{\n  \"mcpServers\": {\n    \"context7\": {\n      \"command\": \"npx\",\n      \"args\": [\"-y\", \"@upstash/context7-mcp@latest\"]\n    }\n  }\n}\n\nWorks with 30+ MCP clients. One of the easiest MCP servers to set up.\nSolves the right problem — current docs eliminate hallucinated APIs\nMassive library coverage — thousands of mainstream libraries indexed\nTwo-tool simplicity — clean, predictable, no configuration tuning\nActive development — 50.1K stars, 113 contributors, 10 releases in Feb–March 2026\nSkills-based integration — activates intelligently in Claude Code when framework usage is detected\nIn February 2026, Noma Security discovered that Context7",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Context7 MCP服务器——AI编码代理的实时库文档",
+        "summary": "Context7是一个流行的MCP服务器，它将实时、特定版本的库文档直接注入到AI代理中，消除由过期训练数据导致的幻觉API。由Upstash构建，拥有50000多颗星和支持数千个库，它提供简单的双工具接口，同时面临关键漏洞和2026年初免费层减少83-92%。集中式注册表模型提供广泛的覆盖，但为开发者引入了新的信任考虑。"
+      },
+      "fr": {
+        "title": "Serveur MCP Context7 — Docs de bibliothèque en temps réel pour les agents IA",
+        "summary": "Context7 est un serveur MCP populaire qui injecte la documentation de bibliothèque en temps réel et spécifique à la version directement dans les agents IA, éliminant les API hallucinations causées par les données d'entraînement obsolètes. Construit par Upstash avec plus de 50 000 étoiles et prenant en charge des milliers de bibliothèques, il fournit une interface simple à deux outils tout en faisant face à une vulnérabilité critique et à une réduction du niveau gratuit de 83 à 92 % au début de 2026. Le modèle de registre centralisé offre une couverture large, mais introduit de nouvelles considérations de confiance pour les développeurs."
+      },
+      "de": {
+        "title": "Context7 MCP-Server — Echtzeit-Bibliotheksdokumentation für KI-Codierungsagenten",
+        "summary": "Context7 ist ein beliebter MCP-Server, der Dokumentation von Bibliotheken in Echtzeit und spezifisch für die Version direkt in KI-Agenten injiziert und halluzinierte APIs durch veraltete Trainingsdaten eliminiert. Von Upstash mit über 50.000 Sternen entwickelt und mit Unterstützung für Tausende von Bibliotheken, bietet es eine einfache Two-Tool-Schnittstelle, während es sich einer kritischen Sicherheitslücke und einer Reduzierung der kostenlosen Stufe um 83-92 % Anfang 2026 gegenübersieht. Das zentralisierte Registrierungsmodell bietet breite Abdeckung, führt aber neue Vertrauensüberlegungen für Entwickler ein."
+      },
+      "es": {
+        "title": "Servidor MCP Context7 — Documentación de biblioteca en tiempo real para agentes de codificación IA",
+        "summary": "Context7 es un servidor MCP popular que inyecta documentación de biblioteca en tiempo real y específica de la versión directamente en agentes de IA, eliminando las API alucinadas causadas por datos de entrenamiento obsoletos. Construido por Upstash con más de 50,000 estrellas y soportando miles de bibliotecas, proporciona una interfaz simple de dos herramientas mientras enfrenta una vulnerabilidad crítica y una reducción del nivel gratuito del 83-92% a principios de 2026. El modelo de registro centralizado ofrece una cobertura amplia, pero introduce nuevas consideraciones de confianza para los desarrolladores."
+      }
+    }
+  },
+  {
+    "title": "Notion Decision Intelligence Engine — An AI That Audits Your Past Decisions",
+    "slug": "notion-decision-intelligence-engine-ai-audit",
+    "url": "https://dev.to/smkulkarni/notion-decision-intelligence-engine-an-ai-that-audits-your-past-decisions-12be",
+    "source": "DEV Community",
+    "date": "2026-03-24T18:07:15.000Z",
+    "summary": "The Notion Decision Intelligence Engine automatically audits decisions by tracking outcomes and generating AI assessments of decision quality through separate process and outcome scores. Operating as a background PM2 process, it reads decision logs via MCP, generates audits through Claude, and produces monthly pattern reports to identify decision-making trends. This systematizes learning from past decisions by consistently reviewing success factors and external influences.",
+    "content": "The Problem: \nThe Solution: \nShow us the code\nGitHub: https://github.com/sushilkulkarni1389/notion-decision-engine.git\nHow It Works\nThe Core Loop\nDecision Logged → Structured in Notion DB → Review Date Set\n       ↓\nOutcomes Tracked (manually in Outcome Tracker)\n       ↓\nAgent wakes up at 8am on Review Date (via node-cron)\n       ↓\nReads Decision + Outcomes from Notion via MCP\n       ↓\nClaude generates Audit (process score, outcome score, insights)\n       ↓\nAudit page written back to Notion via MCP\n       ↓\nMonthly Pattern Report aggregates all audits on 1st of month\n\nThe agent runs as a persistent background process (via PM2). Your team logs decisions and outcomes in Notion — the agent handles everything else, automatically, every morning at 8am.\n📝 Structured Decision Capture\nLog a decision in plain text from the terminal:\nnode src/index.js capture \"We decided to switch from Jenkins to GitHub Actions. \nJenkins was causing 3 incidents per quarter and our DevOps engineer just left. \nWe considered CircleCI and GitLab CI but the team already uses GitHub. \nAssuming migration takes 2 weeks and costs under $200/month. \nSuccess = zero CI incidents in 90 days and deployment time under 10 minutes.\"\n\nClaude extracts the structure — decision, context, alternatives, key assumptions, expected outcome, domain, confidence level — and creates a fully populated page in the Notion Decision Log database. Review date is auto-calculated (30/60/90 days).\n📊 Outcome Tracking\n🤖 AI Decision Audit — The Key Insight\nProcess Score (1–10): Was the decision-making process sound at the time?\nWere the right alternatives considered?\n\n\nWere the assumptions reasonable given available information?\n\n\nWas the expected outcome clearly defined?\n\n\n\nOutcome Score (1–10): How good was the actual result?\nDid outcomes match expectations?\nWhat was the net impact?\nThese scores are kept deliberately separate — because a well-reasoned decision can produce bad outcomes due to external factors, and a poorly-reasone",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Notion 决策智能引擎 — 审计您过去决策的人工智能",
+        "summary": "Notion 决策智能引擎通过追踪结果并通过单独的流程和结果评分生成人工智能评估来自动审计决策。作为后台 PM2 进程运行，它通过 MCP 读取决策日志，通过 Claude 生成审计，并产生月度模式报告以识别决策制定趋势。这通过一致地审查成功因素和外部影响来系统化从过去决策中学习。"
+      },
+      "fr": {
+        "title": "Notion Decision Intelligence Engine — Une IA qui audite vos décisions passées",
+        "summary": "Le Notion Decision Intelligence Engine audite automatiquement les décisions en suivant les résultats et en générant des évaluations IA de la qualité des décisions par des scores de processus et de résultat séparés. Fonctionnant comme un processus PM2 en arrière-plan, il lit les journaux de décisions via MCP, génère des audits par Claude et produit des rapports de tendances mensuelles pour identifier les tendances en matière de prise de décision. Cela systématise l'apprentissage des décisions passées en examinant régulièrement les facteurs de succès et les influences externes."
+      },
+      "de": {
+        "title": "Notion Decision Intelligence Engine — Eine KI, die Ihre vergangenen Entscheidungen überprüft",
+        "summary": "Die Notion Decision Intelligence Engine überprüft Entscheidungen automatisch durch Nachverfolgung von Ergebnissen und Generierung von KI-Bewertungen der Entscheidungsqualität durch separate Prozess- und Ergebniswerte. Als PM2-Hintergrundprozess liest sie Entscheidungsprotokolle über MCP, generiert Audits durch Claude und erstellt monatliche Trendberichte zur Identifizierung von Entscheidungstrends. Dies systematisiert das Lernen aus vergangenen Entscheidungen durch konsistente Überprüfung von Erfolgsfaktoren und externen Einflüssen."
+      },
+      "es": {
+        "title": "Notion Decision Intelligence Engine — Una IA que audita tus decisiones pasadas",
+        "summary": "El Notion Decision Intelligence Engine audita automáticamente las decisiones realizando un seguimiento de los resultados y generando evaluaciones de IA de la calidad de las decisiones a través de puntuaciones de proceso y resultado separadas. Funcionando como un proceso PM2 en segundo plano, lee registros de decisiones a través de MCP, genera auditorías a través de Claude y produce informes de tendencias mensuales para identificar patrones de toma de decisiones. Esto sistematiza el aprendizaje de decisiones pasadas revisando consistentemente factores de éxito e influencias externas."
+      }
+    }
+  },
+  {
+    "title": "Implementing a RAG system: Crawl",
+    "slug": "implementing-rag-system-crawl-phase",
+    "url": "https://dev.to/gde/implementing-a-rag-system-crawl-5li",
+    "source": "DEV Community",
+    "date": "2026-03-24T18:00:00.000Z",
+    "summary": "This introductory RAG guide demonstrates turning raw documents into grounded AI responses by chunking, embedding, and retrieving knowledge directly from ingested data. Using British Columbia HR policies as an example, it shows how recursive character chunking and vector databases enable AI agents to bypass knowledge cutoffs while providing citations. RAG eliminates fine-tuning requirements while enabling real-time data updates.",
+    "content": "I'm starting a \"Crawl, walk, run\" series of posts on various topics and decided to start with Retrieval-Augmented Generation (RAG). Learn the basics and progress to a production-ready system!\nIn this phase of your journey, we're going to learn about the core concepts of a Retrieval-Augmented Generation (RAG) system and then apply them in a simple example.\nGovernment of British Columbia's HR Policy PDFs as our knowledge base, we will process, chunk, and embed the documents into a local vector database. This allows the agent to provided grounded answers and ensures that every response is rooted directly in the ingested BC government policies.\n\nRAG is a very common design pattern that turns a standard LLM into an informed AI agent. Standard models can be a \"black box\", but RAG gives your agent an \"open-book test\". It bypasses knowledge cutoffs by linking directly to your documents, providing factual grounding and citations. No fine-tuning is required, data can be updated quickly. RAG provides a real-time bridge between your LLM and your data.\nIt's not feasible to have to feed all the information into the AI every time you want to ask it a question. Instead, it is broken down into smaller, more manageable pieces called chunks, which the AI can process and retrieve efficiently.\nSnippet of code used for splitting & chunking using LangChain:\nfrom langchain_community.document_loaders import PyPDFLoader, DirectoryLoader\nfrom langchain_text_splitters import RecursiveCharacterTextSplitter\n\nloader = DirectoryLoader(\n    DATA_DIR,\n    glob=\"./**/*.pdf\",\n    loader_cls=PyPDFLoader\n)\ndocs = loader.load()\n\ntext_splitter = RecursiveCharacterTextSplitter(\n    chunk_size=1000,\n    chunk_overlap=100\n)\nchunks = text_splitter.split_documents(docs)\n\n\nRecursive character chunking is the successor to \"fixed-sized chunking\", which is just a fixed sliding window. Here, you always need the overlap because you never know how much of what sentence you're cutting off.\n\nThe embedding process trans",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "实现 RAG 系统：爬取阶段",
+        "summary": "这个入门级 RAG 指南通过分块、嵌入和从摄取数据中检索知识，演示如何将原始文档转换为基础 AI 响应。以不列颠哥伦比亚省人力资源政策为例，展示递归字符分块和向量数据库如何使 AI 代理绕过知识截止日期，同时提供引用。RAG 消除了微调需求，同时支持实时数据更新。"
+      },
+      "fr": {
+        "title": "Implémenter un système RAG : Crawl",
+        "summary": "Ce guide RAG d'introduction démontre la transformation de documents bruts en réponses IA fondées en fragmentant, intégrant et récupérant les connaissances directement à partir des données ingérées. En utilisant les politiques de ressources humaines de la Colombie-Britannique comme exemple, il montre comment la fragmentation de caractères récursifs et les bases de données vectorielles permettent aux agents IA de contourner les limites des connaissances tout en fournissant des citations. RAG élimine les exigences d'ajustement fin tout en permettant les mises à jour de données en temps réel."
+      },
+      "de": {
+        "title": "Implementierung eines RAG-Systems: Crawl",
+        "summary": "Diese einführende RAG-Anleitung zeigt, wie man Rohdokumente in fundierte KI-Antworten umwandelt, indem man Wissen in Chunks aufteilt, einbettet und direkt aus erfassten Daten abruft. Mit britisch-kolumbianischen Personalpolitiken als Beispiel zeigt es, wie rekursive Zeichenaufteilung und Vektordatenbanken KI-Agenten ermöglichen, Wissensbegrenzungen zu umgehen und gleichzeitig Zitate bereitzustellen. RAG eliminiert Fine-Tuning-Anforderungen und ermöglicht Echtzeit-Datenaktualisierungen."
+      },
+      "es": {
+        "title": "Implementación de un sistema RAG: Crawl",
+        "summary": "Esta guía introductoria de RAG demuestra la transformación de documentos sin procesar en respuestas de IA fundamentadas dividiendo en fragmentos, incrustando y recuperando conocimiento directamente de datos ingeridos. Utilizando políticas de recursos humanos de la Columbia Británica como ejemplo, muestra cómo la división de caracteres recursivos y las bases de datos vectoriales permiten a los agentes de IA eludir los límites de conocimiento mientras proporcionan citas. RAG elimina los requisitos de ajuste fino mientras permite actualizaciones de datos en tiempo real."
+      }
+    }
+  },
+  {
+    "title": "How OpenClaw Implements MCP for Multi-Agent Orchestration",
+    "slug": "openclaw-mcp-multi-agent-orchestration",
+    "url": "https://dev.to/ollieb89/how-openclaw-implements-mcp-for-multi-agent-orchestration-36hk",
+    "source": "DEV Community",
+    "date": "2026-03-24T17:57:28.000Z",
+    "summary": "OpenClaw is an open-source multi-agent framework that treats Model Context Protocol servers as native first-class tools, enabling seamless orchestration across channels (Telegram, Discord, Slack, WhatsApp) without custom integration code. MCP standardizes tool, resource, and prompt interfaces so agents can dynamically discover and invoke capabilities through self-describing schemas. The architecture solves production-scale multi-agent coordination where tools intelligently route between agents.",
+    "content": "How OpenClaw Implements MCP for Multi-Agent Orchestration\n\n\nWhen you search for MCP orchestration today, the top results are Google ADK and Dynatrace — both solid tools for their respective niches. But they tell only part of the story. Google ADK is purpose-built for Google Cloud environments. Dynatrace approaches MCP from an observability angle. Neither gives you a self-hosted, multi-channel, multi-agent orchestration framework that treats MCP servers as native first-class tools with zero glue code.\nThat's what OpenClaw is.\nOpenClaw is an open-source AI agent framework built around the idea that Model Context Protocol tools should just work — inside any agent, across any channel (Telegram, Discord, WhatsApp, Slack), without custom integration code. This guide walks through exactly how OpenClaw implements multi-agent MCP: the architecture, the practical setup, and how it compares to the alternatives.\nModel Context Protocol (MCP) is an open standard that defines how AI agents discover and call external tools and data sources. It was introduced to solve the fragmentation problem: every tool integration used to require bespoke code. MCP standardises that surface.\nMCP has three core primitives:\nTools — callable functions that agents invoke to take action (search the web, send an email, run a query)\nResources — structured data exposed by the server (files, database records, API responses)\nPrompts — reusable prompt templates with parameterised inputs\nFor a multi-agent system, these primitives matter because they establish a shared tool interface. When every capability is described via MCP's self-describing schemas, agents can discover what's available, understand input/output contracts, and call tools without hardcoded bindings. You get plug-and-play capability composition across agents.\nThe problem is that most implementations stop here — they wire up a single agent to a single MCP server. Production multi-agent MCP orchestration requires more: routing tools to the right",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "OpenClaw 如何实现用于多代理编排的 MCP",
+        "summary": "OpenClaw 是一个开源多代理框架，将模型上下文协议服务器视为本地一流工具，在通道（Telegram、Discord、Slack、WhatsApp）之间实现无缝编排，无需自定义集成代码。MCP 标准化工具、资源和提示界面，使代理能够通过自描述模式动态发现和调用功能。该架构解决了生产规模的多代理协调，其中工具在代理之间智能路由。"
+      },
+      "fr": {
+        "title": "Comment OpenClaw implémente MCP pour l'orchestration multi-agent",
+        "summary": "OpenClaw est un framework multi-agent open-source qui traite les serveurs Model Context Protocol comme des outils de première classe natifs, permettant une orchestration transparente entre les canaux (Telegram, Discord, Slack, WhatsApp) sans code d'intégration personnalisé. MCP standardise les interfaces des outils, des ressources et des invites afin que les agents puissent découvrir et invoquer dynamiquement les capacités par le biais de schémas auto-descriptifs. L'architecture résout la coordination multi-agent à l'échelle de la production où les outils s'acheminent intelligemment entre les agents."
+      },
+      "de": {
+        "title": "Wie OpenClaw MCP für Multi-Agent-Orchestrierung implementiert",
+        "summary": "OpenClaw ist ein Open-Source-Multi-Agent-Framework, das Model Context Protocol-Server als native First-Class-Tools behandelt und eine nahtlose Orchestrierung über Kanäle (Telegram, Discord, Slack, WhatsApp) ohne benutzerdefinierten Integrationscode ermöglicht. MCP standardisiert Tool-, Ressourcen- und Prompt-Schnittstellen, sodass Agenten Funktionen durch selbstbeschreibende Schemas dynamisch erkennen und aufrufen können. Die Architektur löst die Multi-Agent-Koordination im Produktionsmaßstab, bei der Tools intelligente Routen zwischen Agenten finden."
+      },
+      "es": {
+        "title": "Cómo OpenClaw implementa MCP para la orquestación multiagente",
+        "summary": "OpenClaw es un framework multiagente de código abierto que trata los servidores del Protocolo de Contexto del Modelo como herramientas de primera clase nativas, permitiendo una orquestación perfecta entre canales (Telegram, Discord, Slack, WhatsApp) sin código de integración personalizado. MCP estandariza interfaces de herramientas, recursos e indicaciones para que los agentes puedan descubrir e invocar dinámicamente capacidades a través de esquemas autodescriptivos. La arquitectura resuelve la coordinación multiagente a escala de producción donde las herramientas enrutan de forma inteligente entre agentes."
+      }
+    }
+  },
+  {
+    "title": "A Rant about Windows and Printers",
+    "slug": "windows-printer-driver-history-ipp",
+    "url": "https://dev.to/runner2022/a-rant-about-windows-and-printers-35ao",
+    "source": "DEV Community",
+    "date": "2026-03-24T17:50:43.000Z",
+    "summary": "Windows printer driver architecture evolved from manufacturer-specific drivers (V3) through secure server-based drivers (V4) to the vendor-agnostic Internet Printing Protocol (IPP), which Windows now prefers. IPP eliminates driver installation by communicating directly with printers, mirroring Apple's AirPrint and providing a universal printing standard. The transition simplifies user experience but requires printer support and manual enablement in some cases.",
+    "content": "Reading about the history of windows and printer drivers was...enlightening\nThis is the classic scenario where you download the printer driver onto your computer\nAnd the printer manufacturers would each create their own (crappy) driver that follows the V3 model\nThese were fine I guess but vulnerable to this \"PrintNightmare\" vulnerability so Windows freaked out and made the...\nThen there was V4 which were apparently more secure but a pain in the BUTT\nThe way these work is the driver stuff is located on the printer/printer server, not your computer\n\n\nInstead Windows will grab the needed driver stuff from the printer/print server\nIf Windows says a printer has the \"Microsoft enhanced Point and Print driver\", that's what that means\nI think you can have a V4 driver on your computer locally if the driver on your computer is the exact same as the printer/print server?\nThis is honestly confusing\nThe newest is the \"Internet Printing Protocol\", which shouldn't require any drivers at all\nIPP is from IEEE, not Windows\nAs of 2026 Windows prefers IPP over V3/V4\n\n\nMicrosoft's WPP and Universal Print are related to IPP (I think)\nWindows stopped packaging V3/V4 third-party drivers with Windows updates\nThis is what Apple's AirPrint is based on\nThe problem is that:\n\n\nnot all printers support IPP (though most do)\nsome printers you have to enable IPP manually\nif there are any settings that the printer manufacturer excluded from IPP then GOOD LUCK BUDDY\nIn case you can't tell I'm biased towards this one\nTLDR; For a while the default was that each printer manufacturer made their own crappy drivers that the user had to deal with. IPP should (hopefully) fix this by being a universal standard. Kinda like RCS but for printing. Just my opinion, subject to change.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "关于Windows和打印机的吐槽",
+        "summary": "Windows打印机驱动程序架构从制造商特定的驱动程序(V3)演变为安全的基于服务器的驱动程序(V4),再到与供应商无关的互联网打印协议(IPP),Windows现在更喜欢使用它。IPP通过直接与打印机通信来消除驱动程序安装的需要,类似于Apple的AirPrint,并提供了通用的打印标准。这种转变简化了用户体验,但需要打印机支持,在某些情况下需要手动启用。"
+      },
+      "fr": {
+        "title": "Une Critique sur Windows et les Imprimantes",
+        "summary": "L'architecture des pilotes d'imprimante Windows a évolué des pilotes spécifiques aux fabricants (V3) aux pilotes sécurisés basés sur serveur (V4) et au protocole d'impression Internet indépendant du fournisseur (IPP), que Windows préfère désormais. IPP élimine l'installation de pilotes en communiquant directement avec les imprimantes, comme AirPrint d'Apple, et fournit une norme d'impression universelle. La transition simplifie l'expérience utilisateur mais nécessite le support de l'imprimante et l'activation manuelle dans certains cas."
+      },
+      "de": {
+        "title": "Ein Rant über Windows und Drucker",
+        "summary": "Die Windows-Druckertreiber-Architektur hat sich von herstellerspezifischen Treibern (V3) über sichere serverbasierte Treiber (V4) zum herstellerunabhängigen Internet Printing Protocol (IPP) entwickelt, das Windows jetzt bevorzugt. IPP eliminiert die Treiberinstallation durch direkte Kommunikation mit Druckern, ähnlich wie Apples AirPrint, und bietet einen universellen Druckstandard. Der Übergang vereinfacht das Benutzererlebnis, erfordert aber Druckerunterstützung und in einigen Fällen manuelle Aktivierung."
+      },
+      "es": {
+        "title": "Una Crítica sobre Windows e Impresoras",
+        "summary": "La arquitectura de los controladores de impresora de Windows ha evolucionado desde controladores específicos del fabricante (V3) a través de controladores seguros basados en servidor (V4) al Protocolo de Impresión de Internet (IPP) independiente del proveedor, que Windows ahora prefiere. IPP elimina la instalación de controladores comunicándose directamente con las impresoras, reflejando AirPrint de Apple y proporcionando un estándar de impresión universal. La transición simplifica la experiencia del usuario pero requiere soporte de impresora y habilitación manual en algunos casos."
+      }
+    }
+  },
+  {
+    "title": "How I Built 7 AI Agents That Bring Discipline to VS Code Copilot",
+    "slug": "ai-agents-vs-code-copilot-discipline",
+    "url": "https://dev.to/bitfrog/the-copilot-workflow-handoffs-not-chaos-1598",
+    "source": "DEV Community",
+    "date": "2026-03-24T17:50:42.000Z",
+    "summary": "This tutorial builds seven AI agents that enhance VS Code Copilot with structured workflows for TDD development, bug diagnosis, code review, and more. Each agent applies Chinese philosophy principles—starting with 格物致知 (investigate first)—to ensure accurate problem-solving before suggesting fixes. The approach transforms AI coding from generic suggestions into disciplined, scenario-aware assistance.",
+    "content": "If you love VS Code but wish your AI coding experience was more structured and accurate, this tutorial is for you.\nInstall in 30 Seconds\nOpen VS Code\nOption 2 — Agent Plugin:\nMeet the Agents\nScenario 1: Build a Feature with TDD\nScenario 2: Debug a Tricky Bug\nObserve — What are the visible symptoms?\nIt diagnoses the level of the problem (is this a network issue? a race condition? a query bug?) before suggesting a fix. No more guessing.\nScenario 3: Code Review Before Merging\nSpec compliance — Does it do what it's supposed to do?\nThat third pass is where most reviews fall short. The agent asks: \"The spec says add rate limiting, but is 100 requests/minute the right limit for this use case?\"\nThe Workflow: Handoffs, Not Chaos\nWhy Chinese Philosophy?\n格物致知 (Investigate First) — Understand the real problem before acting\nSounds weird? Yeah. Works surprisingly well.\nTry It Now\nGitHub: github.com/rainyulei/bitfrog-copilot\nStar the repo if you find it useful. Issues and PRs welcome.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何构建7个AI代理为VS Code Copilot带来纪律性",
+        "summary": "本教程构建了七个AI代理,通过结构化的工作流程(TDD开发、bug诊断、代码审查等)增强VS Code Copilot的功能。每个代理应用中国哲学原理——从格物致知(首先调查)开始——以确保在建议修复之前进行准确的问题解决。这种方法将AI编码从通用建议转变为纪律性的、情景感知的协助。"
+      },
+      "fr": {
+        "title": "Comment J'ai Construit 7 Agents IA Qui Apportent de la Discipline à VS Code Copilot",
+        "summary": "Ce tutoriel construit sept agents IA qui améliorent VS Code Copilot avec des flux de travail structurés pour le développement TDD, le diagnostic de bugs, l'examen du code, et plus. Chaque agent applique les principes de la philosophie chinoise—en commençant par 格物致知 (investiguer d'abord)—pour assurer une résolution précise des problèmes avant de suggérer des corrections. L'approche transforme la codification IA de suggestions génériques en une assistance disciplinée et consciente du contexte."
+      },
+      "de": {
+        "title": "Wie ich 7 KI-Agenten gebaut habe, die VS Code Copilot Disziplin bringen",
+        "summary": "Dieses Tutorial erstellt sieben KI-Agenten, die VS Code Copilot mit strukturierten Arbeitsabläufen für TDD-Entwicklung, Fehlerdiagnose, Code-Review und mehr erweitern. Jeder Agent wendet Prinzipien der chinesischen Philosophie an – beginnend mit 格物致知 (zuerst untersuchen) – um sicherzustellen, dass Probleme genau gelöst werden, bevor Lösungen vorgeschlagen werden. Der Ansatz transformiert KI-Codierung von generischen Vorschlägen in disziplierte, szenariobewusste Unterstützung."
+      },
+      "es": {
+        "title": "Cómo Construí 7 Agentes IA Que Traen Disciplina a VS Code Copilot",
+        "summary": "Este tutorial construye siete agentes IA que mejoran VS Code Copilot con flujos de trabajo estructurados para desarrollo TDD, diagnóstico de errores, revisión de código y más. Cada agente aplica principios de la filosofía china—comenzando con 格物致知 (investigar primero)—para garantizar la resolución precisa de problemas antes de sugerir correcciones. El enfoque transforma la codificación IA de sugerencias genéricas en asistencia disciplinada y consciente del contexto."
+      }
+    }
+  },
+  {
+    "title": "How to Build Custom Claude Code Skills That Actually Work",
+    "slug": "custom-claude-code-skills-guide",
+    "url": "https://dev.to/alanwest/how-to-build-custom-claude-code-skills-that-actually-work-2e1f",
+    "source": "DEV Community",
+    "date": "2026-03-24T17:44:03.000Z",
+    "summary": "Custom Claude Code Skills are markdown files with YAML frontmatter that package reusable prompts as slash commands, embedding specialized workflows like diagnostic runbooks into Claude Code. Project-level skills take precedence over global ones, enabling teams to version control and standardize internal processes while preventing prompt drift. Proper file structure in .claude/skills/ directories is essential for correct skill loading.",
+    "content": "Have you ever stared at Claude Code thinking \"this thing is amazing at generic coding tasks, but it has no idea how my team actually works\"? Yeah, same.\nI spent a good chunk of last month trying to get Claude Code to follow our internal diagnostic workflow for debugging production issues. Out of the box, it kept giving me generic advice when I needed it to follow a very specific runbook. Turns out, the answer was custom Skills — but getting them to work properly took some trial and error.\nHere's what I learned.\nClaude Code is great at general-purpose development tasks. But every team has specialized workflows — business diagnostics, incident response runbooks, code review checklists, deployment procedures. When you try to get Claude Code to follow these, you end up copy-pasting the same giant prompt over and over.\nThe real frustration hits when you realize:\nYour prompts drift over time (everyone has a slightly different version)\nContext gets lost between conversations\nNew team members don't know which prompts to use\nYou can't version control ad-hoc prompts easily\nClaude Code supports a Skills system that lets you package reusable prompts as slash commands. Think of them as specialized modes you can activate. The underlying mechanism is straightforward — Skills are markdown files with frontmatter that Claude Code loads on demand.\nBut here's where people get tripped up: the file structure and configuration have to be exactly right, or your skill silently fails to load.\nSkills live in a .claude/skills/ directory, either in your project root or in your home directory for global skills.\n# Project-level skills (shared with your team via git)\nmkdir -p .claude/skills/\n\n# Or global skills (just for you)\nmkdir -p ~/.claude/skills/\n\nThe key thing people miss: project-level skills take precedence over global ones if they share the same name. This is actually useful for overriding defaults per-project.\nCreate a markdown file with YAML frontmatter. Here's a real example — a diagn",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何构建真正有效的自定义Claude Code技能",
+        "summary": "自定义Claude Code技能是具有YAML前置内容的Markdown文件,将可重用的提示打包为斜杠命令,将诊断运行手册等专门工作流嵌入到Claude Code中。项目级技能优先于全局技能,使团队能够对内部流程进行版本控制和标准化,同时防止提示漂移。.claude/skills/目录中的正确文件结构对于正确的技能加载至关重要。"
+      },
+      "fr": {
+        "title": "Comment Construire des Compétences Claude Code Personnalisées Qui Fonctionnent Réellement",
+        "summary": "Les compétences Claude Code personnalisées sont des fichiers Markdown avec un préambule YAML qui empaquettent des invites réutilisables en tant que commandes de slash, intégrant des flux de travail spécialisés comme des runbooks de diagnostic dans Claude Code. Les compétences au niveau du projet ont priorité sur les compétences globales, permettant aux équipes de contrôler les versions et de standardiser les processus internes tout en prévenant la dérive des invites. Une structure de fichier appropriée dans les répertoires .claude/skills/ est essentielle pour le chargement correct des compétences."
+      },
+      "de": {
+        "title": "Wie man Custom Claude Code Skills baut, die wirklich funktionieren",
+        "summary": "Custom Claude Code Skills sind Markdown-Dateien mit YAML-Präambel, die wiederverwendbare Prompts als Slash-Befehle verpacken und spezialisierte Arbeitsabläufe wie Diagnose-Runbooks in Claude Code einbetten. Projektspezifische Skills haben Vorrang vor globalen, was Teams ermöglicht, interne Prozesse zu versionieren und zu standardisieren und gleichzeitig Prompt-Drift zu verhindern. Eine korrekte Dateistruktur in .claude/skills/-Verzeichnissen ist für das ordnungsgemäße Laden von Skills erforderlich."
+      },
+      "es": {
+        "title": "Cómo Construir Habilidades Personalizadas de Claude Code Que Realmente Funcionen",
+        "summary": "Las habilidades personalizadas de Claude Code son archivos Markdown con preámbulo YAML que empaquetan prompts reutilizables como comandos de barra, incrustando flujos de trabajo especializados como manuales de diagnóstico en Claude Code. Las habilidades a nivel de proyecto tienen prioridad sobre las globales, lo que permite a los equipos controlar versiones y estandarizar procesos internos mientras se previene la desviación de prompts. La estructura de archivo adecuada en directorios .claude/skills/ es esencial para la carga correcta de habilidades."
+      }
+    }
+  },
+  {
+    "title": "AI 102",
+    "slug": "ai-102-prompts-workflows-tool-chaining",
+    "url": "https://dev.to/bekahhw/ai-102-4o0",
+    "source": "DEV Community",
+    "date": "2026-03-24T17:41:45.000Z",
+    "summary": "This post explains how prompts, workflows, and tool chaining actually work in practice—structural concepts that bridge the gap between inconsistent and reliable AI results. A prompt's specificity and structure dramatically influence output quality, analogous to how detailed instructions produce better contractor work than vague requests. Workflows treat AI as a multi-step collaborator rather than a single-shot answer machine.",
+    "content": "If you read the vocabulary post, you know what a prompt is. You know the difference between a model and a model family. You've got the words now.\nThis post is about what to do with them.\nHaving vocabulary for the pieces doesn't automatically tell you how the pieces move. You can know what a prompt is and still write ones that produce wildly inconsistent results. You can understand what an agent is and still not know why yours keeps breaking at step three. The gap between \"it kind of works\" and \"it actually works\" isn't usually a vocabulary problem anymore. It's a structure problem.\n\nThese three concepts build on each other. You cannot have a workflow without prompts. You cannot have tool chaining without workflows. Understanding them in order is the fastest path to building things that actually behave the way you intended.\nA prompt is your instruction to the LLM. It's the text you write before you press send. But it's also a lot more than that, because the LLM doesn't \"know\" what you mean the way another person would. It pattern-matches on what you've written and generates the most statistically likely useful response.\nThat sounds mechanical. And it is. But it's also why how you write the prompt changes the output dramatically.\nThink of it like talking to a contractor. \"Build me a kitchen\" and \"Build me a 12x14 kitchen with white shaker cabinets, quartz countertops, and an island with seating for four\" will get you very different results, even if you're talking to the same person.\n\nThe LLM fills in whatever you leave blank. Sometimes that's fine. Often it's the source of that feeling when you get a response that's almost what you wanted but weirdly off.\nA workflow is what happens when you stop treating the AI like a single-shot answer machine and start treating it like a collaborator on a multi-step process.\nMost real tasks aren't one prompt deep. \"Write a blog post for me\" sounds like one instruction, but if you actually want a good output, it's more like: research",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI 102",
+        "summary": "这篇文章解释了提示词、工作流和工具链在实践中如何真正工作——这些结构性概念弥合了不一致和可靠AI结果之间的差距。提示词的具体性和结构显著影响输出质量，就像详细的指示能产生比模糊要求更好的承包商工作。工作流将AI视为多步协作者，而不是单次答案机器。"
+      },
+      "fr": {
+        "title": "IA 102",
+        "summary": "Cet article explique comment les invites, les flux de travail et le chaînage d'outils fonctionnent réellement dans la pratique - des concepts structurels qui comblent l'écart entre les résultats d'IA incohérents et fiables. La spécificité et la structure d'une invite influencent considérablement la qualité des résultats, ce qui est analogue à la façon dont les instructions détaillées produisent un meilleur travail qu'avec des demandes vagues. Les flux de travail traitent l'IA comme un collaborateur multi-étapes plutôt qu'une machine à réponses uniques."
+      },
+      "de": {
+        "title": "KI 102",
+        "summary": "Dieser Artikel erklärt, wie Prompts, Workflows und Tool-Chaining in der Praxis tatsächlich funktionieren - strukturelle Konzepte, die die Lücke zwischen inkonsistenten und zuverlässigen KI-Ergebnissen überbrücken. Die Spezifität und Struktur eines Prompts beeinflussen die Ausgabequalität dramatisch, ähnlich wie detaillierte Anweisungen bessere Auftragnehmerarbeit als vage Anfragen hervorbringen. Workflows behandeln KI als Multi-Step-Mitarbeiter statt als Single-Shot-Antwortmaschine."
+      },
+      "es": {
+        "title": "IA 102",
+        "summary": "Este artículo explica cómo los prompts, flujos de trabajo y encadenamiento de herramientas funcionan realmente en la práctica: conceptos estructurales que cierren la brecha entre resultados inconsistentes y confiables de IA. La especificidad y estructura de un prompt influyen dramáticamente en la calidad del resultado, análogo a cómo las instrucciones detalladas producen mejor trabajo de contratista que solicitudes vagas. Los flujos de trabajo tratan la IA como un colaborador de múltiples pasos en lugar de una máquina de respuesta única."
+      }
+    }
+  },
+  {
+    "title": "I Built 71+ Free Browser Tools Because Every \"Free\" Tool Site Is Terrible",
+    "slug": "fastutil-71-free-browser-utility-tools",
+    "url": "https://dev.to/hcacode/i-built-71-free-browser-tools-because-every-free-tool-site-is-terrible-2nd5",
+    "source": "DEV Community",
+    "date": "2026-03-24T17:35:40.000Z",
+    "summary": "FastUtil provides 71+ browser-based utility tools including JSON formatter, image converter, hash generator, and regex tester—all running client-side with no ads, signups, or external data transmission. Built with Next.js 16 and supporting 20 languages with 253 tests, it prioritizes privacy and user experience over monetization. Every tool processes sensitive data locally, addressing developer frustration with ad-laden website alternatives.",
+    "content": "Every developer has this workflow:\nNeed to format some JSON\nGoogle \"json formatter online\"\nLand on a site with 47 ads, a cookie banner, and a newsletter popup\nPaste your data into a text box that sends it to god knows where\nGet your formatted JSON and close the tab in disgust\nI got tired of this. So I built FastUtil — a collection of 71+ browser-based utility tools where everything runs client-side. No ads, no sign-ups, no data ever leaves your browser.\nImage Tools\nSVG to PNG converter\nImage resizer & compressor\nFavicon generator\nQR code generator\nScreenshot mockup creator\nDeveloper Tools\nJSON formatter & validator\nBase64 encoder/decoder\nHash generator (MD5, SHA-1, SHA-256)\nRegex tester with live highlighting\nJWT decoder\nCSS minifier/beautifier\nURL encoder/decoder\nText Tools\nMarkdown editor with live preview\nWord & character counter\nCase converter\nLorem Ipsum generator\nText diff checker\nColor Tools\nColor picker & converter (HEX, RGB, HSL)\nPalette generator\nContrast checker (WCAG compliance)\nAnd about 40 more — check the full list at fastutil.app.\nThis was rule #1 from day one. When you paste JSON with API keys, or convert an image with sensitive content, that data should never leave your machine. Every tool in FastUtil processes\nFor those who care about what's under the hood:\nNext.js 16 with App Router\nStatic generation — 400+ pages pre-rendered at build time\nnext-intl for i18n across 20 languages\nshadcn/ui for the component library\nVitest with React Testing Library (253 tests)\nDeployed on Vercel\nThis was honestly the hardest part. Each tool has its own translation file with:\nTool name and descriptions\nAll UI strings (labels, placeholders, buttons, error messages)\nFAQ content (3-5 Q&A pairs per tool)\nEducational content (200+ words per tool)\nMultiply that by 20 languages and 71 tools. That's thousands of translation keys. The file structure looks like this:\nmessages/\nA merge script combines everything at load time into the single object that next-intl expects. Keepi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了71+个免费浏览器工具，因为每个\"免费\"工具网站都很糟糕",
+        "summary": "FastUtil提供71+个基于浏览器的实用工具，包括JSON格式化器、图像转换器、哈希生成器和正则表达式测试器——所有工具都在客户端运行，没有广告、注册或外部数据传输。使用Next.js 16构建，支持20种语言，包含253个测试，它优先考虑隐私和用户体验而非盈利。每个工具在本地处理敏感数据，解决开发者对广告泛滥网站替代品的挫折。"
+      },
+      "fr": {
+        "title": "J'ai créé 71+ outils gratuits pour navigateur parce que chaque site d'outils \"gratuits\" est terrible",
+        "summary": "FastUtil fournit 71+ outils utilitaires basés sur navigateur, y compris un formateur JSON, un convertisseur d'images, un générateur de hash et un testeur regex - tous s'exécutant côté client sans publicités, inscriptions ou transmission de données externes. Construit avec Next.js 16 et prenant en charge 20 langues avec 253 tests, il priorise la confidentialité et l'expérience utilisateur plutôt que la monétisation. Chaque outil traite les données sensibles localement, répondant à la frustration des développeurs face aux alternatives de sites Web remplies de publicités."
+      },
+      "de": {
+        "title": "Ich habe 71+ kostenlose Browser-Tools erstellt, weil jede \"kostenlose\" Tool-Website schrecklich ist",
+        "summary": "FastUtil bietet 71+ browserbasierte Utility-Tools, darunter JSON-Formatter, Bildkonverter, Hash-Generator und Regex-Tester – alle laufen clientseitig ohne Werbung, Anmeldungen oder externe Datenübertragung. Mit Next.js 16 erstellt und 20 Sprachen mit 253 Tests unterstützend, priorisiert es Datenschutz und Benutzerfreundlichkeit gegenüber Monetarisierung. Jedes Tool verarbeitet sensible Daten lokal und geht auf die Frustration von Entwicklern über mit Anzeigen gefüllte Website-Alternativen ein."
+      },
+      "es": {
+        "title": "Creé 71+ herramientas gratuitas del navegador porque cada sitio de herramientas \"gratuitas\" es terrible",
+        "summary": "FastUtil proporciona 71+ herramientas utilitarias basadas en navegador, incluidos un formateador JSON, conversor de imágenes, generador de hash y probador de regex: todo se ejecuta del lado del cliente sin anuncios, registros o transmisión de datos externos. Construido con Next.js 16 y compatible con 20 idiomas con 253 pruebas, prioriza la privacidad y la experiencia del usuario sobre la monetización. Cada herramienta procesa datos sensibles localmente, abordando la frustración del desarrollador con alternativas de sitios web llenos de anuncios."
+      }
+    }
+  },
+  {
+    "title": "I built a simulator that runs AI regulations through 10,000 agents and shows you how many comply, relocate, and who evades",
+    "slug": "swarmcast-ai-regulation-simulator-agents",
+    "url": "https://dev.to/ambar/i-built-a-simulator-that-runs-ai-regulations-through-10000-agents-and-shows-you-how-many-comply-1pa6",
+    "source": "DEV Community",
+    "date": "2026-03-24T17:34:46.000Z",
+    "summary": "SwarmCast simulates how 10,000 heterogeneous agents (companies, regulators, investors) respond to AI policy proposals across 15 jurisdictions, surfacing real compliance, evasion, and regulatory flight patterns. All outputs are tagged with epistemic confidence (GROUNDED, DIRECTIONAL, ASSUMED) and the tool can inject adversarial narratives mid-simulation to test governance resilience. The vectorized engine runs ~3 seconds per simulation with optional LLM reasoning for detailed analysis.",
+    "content": "I got tired of AI policy debates being purely theoretical. Everyone argues about what a regulation should do. Nobody shows what companies will do.\nSo I built SwarmCast.\nYou upload a document — a policy draft, a news article, a hypothetical. It parses it and runs a population of heterogeneous agents (companies, startups, regulators, investors) through it across 15 jurisdictions. Compliance curves, evasion patterns, jurisdiction flight, lobbying coalitions — emerging from individual decisions, not hand-coded outcomes.\nTwo things I cared about:\nEpistemic honesty. Every output is tagged GROUNDED, DIRECTIONAL, or ASSUMED. If a number traces to calibrated empirical data, it says so. If it's a structural assumption, it says that too. ASSUMED outputs are visually dimmed. Most simulation tools present all their numbers with equal confidence. This one doesn't.\nAdversarial injection. Push a belief into a fraction of the population mid-run and measure how far it spreads and how much it bends aggregate behavior. Built for testing whether a governance framework survives coordinated narrative pressure — not just whether it looks good on paper.\nUnder the hood: vectorized engine runs ~3s for 10,000 agents. Optional LLM swarm mode spins up 23 persona agents in parallel to reason about the scenario and seed behavioral priors — slower, but the reasoning trace is readable and useful for presentations.\nBuilt it for AI policy. Curious what happens on financial regulation, public health mandates, climate. The engine doesn't know the difference.\nGitHub repo: https://github.com/Ambar-13/SwarmCast#\nTry uploading something unexpected!",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个模拟器，通过10,000个代理运行AI监管，并显示有多少合规、迁移和规避",
+        "summary": "SwarmCast模拟了10,000个异质代理（公司、监管机构、投资者）如何应对15个司法管辖区的AI政策提案，揭露真实的合规、规避和监管套利模式。所有输出都标记有认识论置信度（GROUNDED、DIRECTIONAL、ASSUMED），该工具可以在模拟中期注入对抗性叙述以测试治理韧性。矢量化引擎每次模拟运行约3秒，可选的LLM推理用于详细分析。"
+      },
+      "fr": {
+        "title": "J'ai créé un simulateur qui exécute les réglementations sur l'IA à travers 10 000 agents et vous montre combien se conforment, se relocaliser et qui s'échappe",
+        "summary": "SwarmCast simule comment 10 000 agents hétérogènes (entreprises, régulateurs, investisseurs) réagissent aux propositions de politique d'IA dans 15 juridictions, révélant les vrais modèles de conformité, d'évasion et d'arbitrage réglementaire. Tous les résultats sont marqués avec la confiance épistémique (GROUNDED, DIRECTIONAL, ASSUMED) et l'outil peut injecter des récits adversaires en milieu de simulation pour tester la résilience de la gouvernance. Le moteur vectorisé s'exécute environ 3 secondes par simulation avec un raisonnement LLM facultatif pour une analyse détaillée."
+      },
+      "de": {
+        "title": "Ich habe einen Simulator erstellt, der KI-Vorschriften durch 10.000 Agenten ausführt und zeigt, wie viele sich konform verhalten, umziehen und wer ausweicht",
+        "summary": "SwarmCast simuliert, wie 10.000 heterogene Agenten (Unternehmen, Regulierer, Investoren) auf AI-Richtlinienvorschläge in 15 Jurisdiktionen reagieren und deckt echte Compliance-, Evasion- und Regulatory Arbitrage-Muster auf. Alle Ausgaben sind mit epistemischer Vertrauensstufe (GROUNDED, DIRECTIONAL, ASSUMED) gekennzeichnet, und das Tool kann während der Simulation adversarische Narrative injizieren, um die Governance-Widerstandsfähigkeit zu testen. Die vektorisierte Engine läuft etwa 3 Sekunden pro Simulation mit optionalem LLM-Denken für detaillierte Analysen."
+      },
+      "es": {
+        "title": "Creé un simulador que ejecuta regulaciones de IA a través de 10.000 agentes y te muestra cuántos cumplen, se reubican y quién evade",
+        "summary": "SwarmCast simula cómo 10.000 agentes heterogéneos (empresas, reguladores, inversores) responden a propuestas de políticas de IA en 15 jurisdicciones, revelando patrones reales de cumplimiento, evasión y arbitraje regulatorio. Todos los resultados están etiquetados con confianza epistemológica (GROUNDED, DIRECTIONAL, ASSUMED) y la herramienta puede inyectar narrativas adversarias a mitad de la simulación para probar la resiliencia de la gobernanza. El motor vectorizado se ejecuta aproximadamente 3 segundos por simulación con razonamiento LLM opcional para análisis detallado."
+      }
+    }
+  },
+  {
+    "title": "Building AI-powered GitHub issue triage with the Copilot SDK",
+    "slug": "github-copilot-sdk-issue-triage",
+    "url": "https://github.blog/ai-and-ml/github-copilot/building-ai-powered-github-issue-triage-with-the-copilot-sdk/",
+    "source": "GitHub Blog",
+    "date": "2026-03-24T16:00:00.000Z",
+    "summary": "This GitHub Blog post demonstrates integrating the Copilot SDK into React Native apps to automatically generate AI-powered GitHub issue summaries with production patterns for graceful degradation and caching. The implementation extends Copilot capabilities beyond GitHub's native interface into custom applications while handling performance optimization. This approach enables developers to embed AI features within their own tools.",
+    "content": "Learn how to integrate the Copilot SDK into a React Native app to generate AI-powered issue summaries, with production patterns for graceful degradation and caching.\nThe post Building AI-powered GitHub issue triage with the Copilot SDK appeared first on The GitHub Blog.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用 Copilot SDK 构建 AI 驱动的 GitHub 问题分类系统",
+        "summary": "这篇 GitHub 博客文章演示了如何将 Copilot SDK 集成到 React Native 应用中,自动生成 AI 驱动的 GitHub 问题摘要,并包含生产级别的优雅降级和缓存模式。该实现将 Copilot 功能从 GitHub 的原生界面扩展到自定义应用中,同时处理性能优化。这种方法使开发者能够在自己的工具中嵌入 AI 功能。"
+      },
+      "fr": {
+        "title": "Création d'un tri de problèmes GitHub alimenté par l'IA avec le SDK Copilot",
+        "summary": "Cet article de blog GitHub démontre comment intégrer le SDK Copilot dans les applications React Native pour générer automatiquement des résumés de problèmes GitHub alimentés par l'IA avec des modèles de production pour la dégradation gracieuse et la mise en cache. L'implémentation étend les capacités de Copilot au-delà de l'interface native de GitHub vers des applications personnalisées tout en gérant l'optimisation des performances. Cette approche permet aux développeurs d'intégrer des fonctionnalités d'IA dans leurs propres outils."
+      },
+      "de": {
+        "title": "Erstellen von KI-gestütztem GitHub-Issue-Triage mit dem Copilot SDK",
+        "summary": "Dieser GitHub-Blog-Artikel zeigt die Integration des Copilot SDK in React Native-Apps, um automatisch KI-gestützte GitHub-Issue-Zusammenfassungen mit Produktionsmustern für elegante Degradation und Caching zu generieren. Die Implementierung erweitert die Copilot-Funktionen über GitHubs native Oberfläche hinaus auf benutzerdefinierte Anwendungen und verwaltet gleichzeitig die Leistungsoptimierung. Dieser Ansatz ermöglicht es Entwicklern, KI-Funktionen in ihre eigenen Tools einzubetten."
+      },
+      "es": {
+        "title": "Creación de triaje de problemas de GitHub impulsado por IA con el SDK de Copilot",
+        "summary": "Este artículo del blog de GitHub demuestra cómo integrar el SDK de Copilot en aplicaciones React Native para generar automáticamente resúmenes de problemas de GitHub impulsados por IA con patrones de producción para degradación elegante y almacenamiento en caché. La implementación extiende las capacidades de Copilot más allá de la interfaz nativa de GitHub en aplicaciones personalizadas mientras maneja la optimización del rendimiento. Este enfoque permite a los desarrolladores incrustar funciones de IA en sus propias herramientas."
+      }
+    }
+  },
+  {
+    "title": "Major insider trading on oil detected ahead of Iran talks",
+    "slug": "insider-trading-oil-iran-talks-detected",
+    "url": "https://www.wsj.com/livecoverage/stock-market-today-dow-sp-500-nasdaq-03-24-2026/card/mystery-jump-in-oil-trading-ahead-of-trump-post-draws-scrutiny-56sgwdXtlOlonqIKDsL6",
+    "source": "Hacker News",
+    "date": "2026-03-24T15:25:52.000Z",
+    "summary": "Major insider trading activity in oil markets was detected ahead of Iran-related talks, suggesting advance knowledge of geopolitical developments affecting prices. The unusual trading pattern prompted Wall Street scrutiny regarding potential information asymmetry and market manipulation. This discovery raises questions about trading surveillance effectiveness and market fairness.",
+    "content": "Article URL: https://www.wsj.com/livecoverage/stock-market-today-dow-sp-500-nasdaq-03-24-2026/card/mystery-jump-in-oil-trading-ahead-of-trump-post-draws-scrutiny-56sgwdXtlOlonqIKDsL6\nComments URL: https://news.ycombinator.com/item?id=47504060\nPoints: 287\n# Comments: 147",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "伊朗谈判前发现石油重大内幕交易",
+        "summary": "在伊朗相关谈判前发现了石油市场的重大内幕交易活动,这表明事先了解地缘政治发展对价格的影响。这种不寻常的交易模式引发了华尔街对潜在信息不对称和市场操纵的审查。这一发现引发了对交易监控有效性和市场公平性的质疑。"
+      },
+      "fr": {
+        "title": "Un commerce d'initiés majeur sur le pétrole détecté avant les pourparlers avec l'Iran",
+        "summary": "Une activité importante de commerce d'initiés sur les marchés pétroliers a été détectée avant les pourparlers liés à l'Iran, suggérant une connaissance préalable des développements géopolitiques affectant les prix. Le modèle de négociation inhabituel a suscité un examen minutieux de Wall Street concernant l'asymétrie d'information potentielle et la manipulation du marché. Cette découverte soulève des questions sur l'efficacité de la surveillance des transactions et l'équité du marché."
+      },
+      "de": {
+        "title": "Großer Insiderhandel mit Öl vor Iran-Gesprächen entdeckt",
+        "summary": "Vor den Iran-bezogenen Gesprächen wurde bedeutende Insiderhandelsaktivität auf den Ölmärkten entdeckt, die auf Vorwissen über geopolitische Entwicklungen hindeutet, die die Preise beeinflussen. Das ungewöhnliche Handelsmuster führte zu einer genauen Überprüfung durch die Wall Street bezüglich möglicher Informationsasymmetrie und Marktmanipulation. Diese Entdeckung wirft Fragen zur Wirksamkeit der Handelsüberwachung und zur Markteffizienz auf."
+      },
+      "es": {
+        "title": "Se detecta un importante comercio de información privilegiada en petróleo antes de conversaciones con Irán",
+        "summary": "Se detectó una actividad importante de comercio de información privilegiada en los mercados petroleros antes de las conversaciones relacionadas con Irán, lo que sugiere conocimiento previo de desarrollos geopolíticos que afectan los precios. El patrón comercial inusual provocó escrutinio de Wall Street con respecto a la posible asimetría de información y manipulación del mercado. Este descubrimiento plantea preguntas sobre la efectividad de la vigilancia comercial y la equidad del mercado."
+      }
+    }
+  },
+  {
+    "title": "The bridge to wealth is being pulled up with AI",
+    "slug": "ai-bridge-to-wealth-being-pulled-up",
+    "url": "https://danielhomola.com/m%20&%20e/ai/your-bridge-to-wealth-is-being-pulled-up/",
+    "source": "Hacker News",
+    "date": "2026-03-24T14:39:20.000Z",
+    "summary": "An analysis argues that AI advancement reduces economic opportunity for non-elite populations by raising barriers to wealth accumulation and consolidating advantage among early adopters. AI-driven automation and specialized skill requirements eliminate traditional pathways to prosperity while privileging those already positioned at the top. This perspective highlights structural economic shifts accompanying rapid AI adoption.",
+    "content": "Article URL: https://danielhomola.com/m%20&%20e/ai/your-bridge-to-wealth-is-being-pulled-up/\nComments URL: https://news.ycombinator.com/item?id=47503296\nPoints: 235\n# Comments: 296",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI 正在拉起通往财富的桥梁",
+        "summary": "一项分析指出,AI 进步通过提高财富积累的门槛并巩固早期采纳者的优势,减少了非精英人口的经济机会。AI 驱动的自动化和专业技能要求消除了实现繁荣的传统途径,同时偏袒那些已经处于顶端的人。这一观点强调了快速 AI 采纳带来的结构性经济转变。"
+      },
+      "fr": {
+        "title": "Le pont vers la richesse est retiré avec l'IA",
+        "summary": "Une analyse affirme que l'avancement de l'IA réduit les opportunités économiques pour les populations non élites en augmentant les obstacles à l'accumulation de richesse et en consolidant l'avantage parmi les premiers adoptants. L'automatisation alimentée par l'IA et les exigences de compétences spécialisées éliminent les voies traditionnelles vers la prospérité tout en privilégiant ceux qui sont déjà au sommet. Cette perspective met en évidence les changements économiques structurels accompagnant l'adoption rapide de l'IA."
+      },
+      "de": {
+        "title": "Die Brücke zum Wohlstand wird mit KI hochgezogen",
+        "summary": "Eine Analyse argumentiert, dass der KI-Fortschritt die wirtschaftlichen Chancen für nicht-elite Bevölkerungen verringert, indem er die Hindernisse für die Vermögensakkumulation erhöht und den Vorteil der frühen Adopter festigt. Die KI-getriebene Automatisierung und spezialisierte Anforderungen an Fähigkeiten beseitigen traditionelle Wege zu Wohlstand, während sie diejenigen bevorzugen, die bereits an der Spitze positioniert sind. Diese Perspektive hebt strukturelle wirtschaftliche Verschiebungen hervor, die mit der rasanten KI-Adoption einhergehen."
+      },
+      "es": {
+        "title": "El puente hacia la riqueza se está retirando con la IA",
+        "summary": "Un análisis argumenta que el avance de la IA reduce las oportunidades económicas para las poblaciones no elitistas al aumentar las barreras para la acumulación de riqueza y consolidar la ventaja entre los primeros en adoptar. La automatización impulsada por IA y los requisitos de habilidades especializadas eliminan los caminos tradicionales hacia la prosperidad mientras favorecen a los que ya están posicionados en la parte superior. Esta perspectiva destaca los cambios económicos estructurales que acompañan la rápida adopción de la IA."
+      }
+    }
+  },
+  {
     "title": "How Declarative Custom Elements (DCE) Could Improve Web Components",
     "slug": "declarative-custom-elements-improve-web-components",
     "url": "https://dev.to/stuffbreaker/how-declarative-custom-elements-dce-could-improve-web-components-53eg",
