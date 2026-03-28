@@ -1,5 +1,341 @@
 [
   {
+    "title": "Solve CAPTCHAs in browser-use with MCP (Zero Custom Code)",
+    "slug": "solve-captchas-in-browser-use-with-mcp",
+    "url": "https://dev.to/arsonxdev/solve-captchas-in-browser-use-with-mcp-zero-custom-code-2bel",
+    "source": "DEV Community",
+    "date": "2026-03-28T12:05:06.000Z",
+    "summary": "Model Context Protocol enables AI agents to integrate CAPTCHA solvers like GateSolve without custom code. The solver operates in a separate browser environment to avoid automated detection, allowing agents to complete challenges and continue browsing seamlessly.",
+    "content": "Your browser-use agent hits a Cloudflare Turnstile. Game over — unless you have a CAPTCHA solver wired in via MCP. Here is how to add one in 2 minutes with zero integration code.\nbrowser-use (83K+ stars) gives AI agents the ability to browse the web. But Cloudflare, Google, and hCaptcha detect automated browsers through CDP fingerprinting, binding injection, and hardware signals. Your agent's browser is flagged before the CAPTCHA even renders.\nStealth plugins help with basic bot detection, but CAPTCHAs are a different layer. The challenge is designed to block exactly what your agent is.\nModel Context Protocol (MCP) lets AI agents discover and use tools without custom integration code. GateSolve publishes an MCP server that exposes solve_captcha as a tool.\nAgent detects CAPTCHA → calls solve_captcha via MCP → GateSolve solves in separate browser → token returned → agent continues\n\nThe solve happens in a completely separate browser environment — different IP, different fingerprint, no CDP detection.\nnpm install -g @gatesolve/mcp-server\n\n{\n  \"mcpServers\": {\n    \"gatesolve\": {\n      \"command\": \"npx\",\n      \"args\": [\"@gatesolve/mcp-server\"],\n      \"env\": {\n        \"GATESOLVE_API_KEY\": \"gs_your_key\"\n      }\n    }\n  }\n}\n\nYour agent now has access to solve_captcha. When it encounters a CAPTCHA during browsing, the LLM calls the tool, receives a token, and injects it.\nManual approach:\nimport httpx, time\nresp = httpx.post(\"https://gatesolve.dev/api/solve\", json={\n    \"url\": \"https://example.com\",\n    \"type\": \"turnstile\",\n    \"sitekey\": \"0x4AAAA...\"\n}, headers={\"Authorization\": \"Bearer gs_your_key\"})\njob_id = resp.json()[\"id\"]\nwhile True:\n    result = httpx.get(f\"https://gatesolve.dev/api/solve?id={job_id}\",\n        headers={\"Authorization\": \"Bearer gs_your_key\"})\n    if result.json()[\"status\"] == \"completed\":\n        break\n    time.sleep(2)\n\nMCP approach: One config file. The agent discovers and calls the tool automatically. No polling loop. No HTTP client. No auth header man",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用 MCP 在 browser-use 中解决验证码（零自定义代码）",
+        "summary": "模型上下文协议使 AI 代理能够集成 CAPTCHA 解决方案（如 GateSolve），无需自定义代码。解决方案在单独的浏览器环境中运行，以避免自动检测，允许代理完成挑战并继续无缝浏览。"
+      },
+      "fr": {
+        "title": "Résoudre les CAPTCHA dans browser-use avec MCP (Code zéro personnalisé)",
+        "summary": "Le protocole de contexte du modèle permet aux agents d'IA d'intégrer des solveurs CAPTCHA comme GateSolve sans code personnalisé. Le solveur fonctionne dans un environnement de navigateur séparé pour éviter la détection automatisée, permettant aux agents de relever les défis et de continuer à naviguer de manière transparente."
+      },
+      "de": {
+        "title": "Lösen Sie CAPTCHAs in browser-use mit MCP (Null benutzerdefinierter Code)",
+        "summary": "Das Model Context Protocol ermöglicht es KI-Agenten, CAPTCHA-Solver wie GateSolve ohne benutzerdefinierten Code zu integrieren. Der Solver läuft in einer separaten Browserumgebung, um automatisierte Erkennung zu vermeiden, und ermöglicht es Agenten, Herausforderungen zu bewältigen und nahtlos weiterzusuchen."
+      },
+      "es": {
+        "title": "Resolver CAPTCHAs en browser-use con MCP (Código personalizado cero)",
+        "summary": "El protocolo de contexto del modelo permite que los agentes de IA integren solucionadores de CAPTCHA como GateSolve sin código personalizado. El solucionador funciona en un entorno de navegador separado para evitar la detección automatizada, permitiendo que los agentes completen desafíos y continúen navegando sin interrupciones."
+      }
+    }
+  },
+  {
+    "title": "Your JavaScript Array is a Hash Map in Disguise",
+    "slug": "javascript-array-hash-map-in-disguise",
+    "url": "https://dev.to/doogal/your-javascript-array-is-a-hash-map-in-disguise-353d",
+    "source": "DEV Community",
+    "date": "2026-03-28T12:04:58.000Z",
+    "summary": "JavaScript arrays are internally hash maps rather than contiguous memory blocks. V8 optimizes them into efficient memory layouts called Elements Kinds, but mixing types or creating sparse arrays forces de-optimization to Dictionary Mode, reducing performance from CPU cache to RAM access speeds.",
+    "content": "TL;DR: JavaScript arrays are fundamentally objects where integer keys are treated as strings. To save performance, engines like V8 attempt to optimize these into contiguous memory blocks (Elements Kinds). However, mixing types or creating sparse \"holes\" triggers a de-optimization to Dictionary Mode, moving data from the 1ns CPU cache to 100ns RAM lookups.\nIf you have ever wondered why typeof [] returns \"object\", the answer isn't just \"JavaScript is weird.\" It is an architectural warning. In the underlying C++ of the V8 engine, arrays are not fixed-size contiguous memory buffers by default. They are hash maps—specifically, exotic objects that map integer keys to values. While this makes JS incredibly flexible, it creates a massive performance hurdle that the engine has to work overtime to solve.\nJavaScript arrays are keyed collections that inherit from the Object prototype, meaning they are essentially specialized objects where the keys are property names. Even though we access elements using arr[0], the engine internally treats that index as a string key \"0\" to maintain compliance with the language specification.\nUnder the hood, this means a standard array doesn't have a guaranteed memory layout. In a language like C, an array of four integers is a single 16-byte block of memory. In JavaScript, a naive array is a collection of pointers scattered across the heap. To find an element, the engine has to perform a hash lookup, which is computationally expensive compared to a simple memory offset. This architectural choice is why V8 spends so much effort trying to \"guess\" when it can treat your array like a real, contiguous block of memory.\nV8 uses a system called Elements Kinds to track the internal structure of an array, attempting to store data in the most efficient C++ representation possible. If you create an array of small integers, V8 labels it PACKED_SMI_ELEMENTS and stores it as a contiguous block of memory, allowing the CPU to access it with near-zero overhead.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的 JavaScript 数组实际上是哈希映射的伪装",
+        "summary": "JavaScript 数组在内部是哈希映射而不是连续的内存块。V8 将它们优化为称为 Elements Kinds 的高效内存布局，但混合类型或创建稀疏数组会强制进行反优化为字典模式，将性能从 CPU 缓存降低到 RAM 访问速度。"
+      },
+      "fr": {
+        "title": "Votre tableau JavaScript est une table de hachage déguisée",
+        "summary": "Les tableaux JavaScript sont en interne des tables de hachage plutôt que des blocs de mémoire contigus. V8 les optimise en dispositions de mémoire efficaces appelées Elements Kinds, mais mélanger les types ou créer des tableaux clairsemés force une optimisation négative en mode Dictionary, réduisant les performances de l'accès au cache CPU aux vitesses d'accès à la RAM."
+      },
+      "de": {
+        "title": "Ihr JavaScript-Array ist in Wirklichkeit eine Hash-Map",
+        "summary": "JavaScript-Arrays sind intern Hash-Maps und keine zusammenhängenden Speicherblöcke. V8 optimiert sie in effiziente Speicherlayouts namens Elements Kinds, aber das Mischen von Typen oder das Erstellen von dünn besetzten Arrays erzwingt eine Deoptimierung in den Wörterbuch-Modus, wodurch die Leistung vom CPU-Cache auf RAM-Zugriffsgeschwindigkeiten reduziert wird."
+      },
+      "es": {
+        "title": "Tu matriz de JavaScript es en realidad un mapa hash disfrazado",
+        "summary": "Los arrays de JavaScript son internamente mapas hash en lugar de bloques de memoria contiguos. V8 los optimiza en diseños de memoria eficientes llamados Elements Kinds, pero mezclar tipos o crear arrays dispersos fuerza una des-optimización al modo diccionario, reduciendo el rendimiento de acceso a caché de CPU a velocidades de acceso a RAM."
+      }
+    }
+  },
+  {
+    "title": "Event Sourcing From Scratch: Why Your Database Has Been Lying to You",
+    "slug": "event-sourcing-from-scratch-database-history",
+    "url": "https://dev.to/tyson_cung/event-sourcing-from-scratch-why-your-database-has-been-lying-to-you-2eec",
+    "source": "DEV Community",
+    "date": "2026-03-28T12:02:45.000Z",
+    "summary": "Event sourcing stores every state change as immutable events rather than just the current state, creating complete audit trails. Banks use this model, and it powers major systems at scale including financial platforms, e-commerce, Ticketmaster, and Kafka-based architectures.",
+    "content": "Traditional databases lie by omission. They show you the current state of your data — but not how it got there. You see that a user's balance is $500. You don't see that they deposited $1,000, bought a $400 item, got a $200 refund, then paid a $300 subscription. The history is gone, overwritten, reduced to a single number.\nEvent sourcing fixes this by storing every state change as an immutable event. It's the difference between a bank balance and a bank ledger. I've worked with event-sourced systems in production, and they solve problems that traditional CRUD architectures literally cannot — but they also introduce complexity you need to be honest about.\nBanks figured this out centuries ago. They don't store your balance by overwriting a number. They store every transaction as a separate line item:\n+$1,000 (deposit)\n-$400   (purchase)\n+$200   (refund)\n-$300   (subscription)\n= $500  (derived balance)\n\nYour balance is derived from replaying the history. That's event sourcing. Every state change becomes an immutable fact. The current state is just a projection — a materialized view built by replaying events.\nEvent sourcing isn't theoretical. Major production systems run on it:\nFinancial systems — every transaction is an event, audit trails are built-in\nE-commerce platforms — order lifecycle from placement through fulfillment\nEvent ticketing (Ticketmaster, Eventbrite) — seat holds, releases, purchases\nVersion control (Git) — every commit is an event, the working directory is a projection\nKafka-based architectures — Kafka's append-only log is fundamentally an event store\nLinkedIn processes over 7 trillion messages per day through Kafka. That's event sourcing at planet scale.\nAn event-sourced system has a few key components:\nThe Event Store — an append-only log where events are written. You never update or delete events. Each event has a type, timestamp, aggregate ID, and payload. EventStoreDB, Apache Kafka, and even PostgreSQL with an append-only table can serve as event",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "事件溯源从零开始：为什么你的数据库一直在欺骗你",
+        "summary": "事件溯源将每个状态变化存储为不可变事件而不仅仅是当前状态，创建完整的审计跟踪。银行使用这种模型，它为包括金融平台、电子商务、Ticketmaster 和基于 Kafka 的架构在内的大规模系统提供支持。"
+      },
+      "fr": {
+        "title": "Event Sourcing de Zéro : Pourquoi Votre Base de Données Vous a Menti",
+        "summary": "L'event sourcing stocke chaque changement d'état en tant qu'événements immuables plutôt que simplement l'état actuel, créant des pistes d'audit complètes. Les banques utilisent ce modèle, et il alimente les principaux systèmes à grande échelle, notamment les plateformes financières, le commerce électronique, Ticketmaster et les architectures basées sur Kafka."
+      },
+      "de": {
+        "title": "Event Sourcing von Grund auf neu: Warum deine Datenbank dich belogen hat",
+        "summary": "Event Sourcing speichert jede Statusänderung als unveränderliche Ereignisse statt nur des aktuellen Zustands und erstellt vollständige Audit-Trails. Banken nutzen dieses Modell, und es treibt große Systeme im großen Maßstab an, einschließlich Finanzplattformen, E-Commerce, Ticketmaster und Kafka-basierter Architekturen."
+      },
+      "es": {
+        "title": "Event Sourcing desde Cero: Por qué tu base de datos te ha estado mintiendo",
+        "summary": "El event sourcing almacena cada cambio de estado como eventos inmutables en lugar de solo el estado actual, creando registros de auditoría completos. Los bancos utilizan este modelo, y alimenta sistemas principales a escala, incluyendo plataformas financieras, comercio electrónico, Ticketmaster y arquitecturas basadas en Kafka."
+      }
+    }
+  },
+  {
+    "title": "Scalable Proximity Search: Why Geohashing Beats Radius Queries",
+    "slug": "scalable-proximity-search-geohashing-beats-radius",
+    "url": "https://dev.to/doogal/scalable-proximity-search-why-geohashing-beats-radius-queries-2d5h",
+    "source": "DEV Community",
+    "date": "2026-03-28T12:02:40.000Z",
+    "summary": "Geohashing converts 2D geographic coordinates into 1D strings for efficient spatial lookups using B-Tree prefix matching. This approach replaces expensive Haversine distance calculations by moving computational complexity from CPU to database indexes, enabling proximity search at production scale.",
+    "content": "TL;DR: Geohashing maps 2D coordinates to a 1D string using recursive binary partitioning and bit interleaving. By encoding these bits into a Base-32 string, we leverage B-Tree prefix matching for efficient spatial lookups, bypassing the high CPU costs of Haversine distance calculations at scale.\nCalculating Haversine distances for 10,000 moving objects per tick is a disaster for database performance. Standard SQL radius queries aren't built for high-concurrency spatial updates; they are computationally heavy and fail to scale because they require calculating the distance between the query point and every potential candidate in the dataset. To keep latency low, you need to stop thinking in floating-point coordinates and start thinking in B-Tree friendly strings. This is where geohashing comes in, moving the heavy lifting from the CPU to the database index.\nBinary partitioning recursively divides the map into smaller quadrants, assigning a 0 or 1 based on whether a point falls in the lower/left or upper/right half of the current bounding box. This creates a deterministic bitstream representing a specific geographic area rather than a precise point.\nI recently posted a video about geohashing because it is the most efficient way to handle real-time location data. We start by looking at the globe vertically. If a coordinate is in the Northern hemisphere, we assign a 1; if it is in the Southern hemisphere, a 0. We then take that specific hemisphere and split it again. Is the point in the upper or lower half of that new section? This recursive halving continues until we reach the desired resolution. We perform the exact same operation horizontally for longitude (Left/Right splits), resulting in two separate binary streams that describe the point's location with increasing precision.\nInterleaving, also known as bit-zipping, alternates bits from the latitude and longitude streams to create a single sequence that preserves 2D proximity within a 1D format. This process follows",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "可扩展的邻近搜索：为什么地理哈希比半径查询更好",
+        "summary": "地理哈希将二维地理坐标转换为一维字符串，用于使用B树前缀匹配的高效空间查找。这种方法通过将计算复杂性从CPU转移到数据库索引，替代了昂贵的Haversine距离计算，使邻近搜索能够在生产规模上进行。"
+      },
+      "fr": {
+        "title": "Recherche de Proximité Scalable : Pourquoi Geohashing Dépasse les Requêtes Rayon",
+        "summary": "Geohashing convertit les coordonnées géographiques 2D en chaînes 1D pour des recherches spatiales efficaces en utilisant la correspondance de préfixe B-Tree. Cette approche remplace les calculs de distance Haversine coûteux en déplaçant la complexité informatique du CPU vers les index de base de données, permettant une recherche de proximité à l'échelle de la production."
+      },
+      "de": {
+        "title": "Skalierbare Nahbereichssuche: Warum Geohashing Radiusabfragen schlägt",
+        "summary": "Geohashing konvertiert 2D-Geokoordinaten in 1D-Strings für effiziente räumliche Suchanfragen mit B-Tree-Präfixabgleich. Dieser Ansatz ersetzt teure Haversine-Distanzberechnungen, indem die Rechenkomplexität von der CPU zu Datenbankindizes verschoben wird, was Nahbereichssuchen in Produktionsskala ermöglicht."
+      },
+      "es": {
+        "title": "Búsqueda de Proximidad Escalable: Por Qué Geohashing Supera a las Consultas de Radio",
+        "summary": "Geohashing convierte coordenadas geográficas 2D en cadenas 1D para búsquedas espaciales eficientes utilizando coincidencia de prefijos de B-Tree. Este enfoque reemplaza los costosos cálculos de distancia Haversine al desplazar la complejidad computacional de la CPU a los índices de la base de datos, permitiendo búsquedas de proximidad a escala de producción."
+      }
+    }
+  },
+  {
+    "title": "The Identity Trap That Keeps Senior Devs From Reaching Staff",
+    "slug": "identity-trap-senior-devs-staff-promotion",
+    "url": "https://dev.to/tyson_cung/the-identity-trap-that-keeps-senior-devs-from-reaching-staff-1ofn",
+    "source": "DEV Community",
+    "date": "2026-03-28T12:02:09.000Z",
+    "summary": "The Senior-to-Staff transition requires identity shift from 'best coder' to 'everyone else's multiplier.' Staff engineers focus on system design, documentation, and architecture decisions rather than personal code output, measuring value by organizational impact rather than individual contribution.",
+    "content": "I spent years trying to become the best coder on my team. And it worked — right up until it became the thing holding me back.\nHere's what nobody tells you about the Senior-to-Staff jump: it's not a skills upgrade. It's an identity crisis.\nAfter 5-8 years of grinding, most developers reach Senior and feel like they've made it. You're fast, you're reliable, you solve hard problems. Your PRs are clean. You're the person people come to when something's broken.\nThen you stay there. For years.\nAccording to levels.fyi data, the median time at Senior before reaching Staff is 4-6 years — but many engineers never make the jump at all. The drop-off is steep: most companies have 3-5x more Seniors than Staff engineers.\nThe common assumption is that you need to be even better at coding. Write even more elegant solutions. Ship even faster. But that's exactly the trap.\nWhen \"I'm the best coder in the room\" is your identity, you optimize for the wrong things. You take on the hardest implementation work yourself instead of delegating it. You solve problems at the code level when the real issue is architectural. You measure your value by your personal output.\nStaff engineers get promoted for a fundamentally different skill: making everyone else more productive.\nThat means writing the document that prevents three teams from building the same thing. Running the design review that catches a scaling problem before it ships. Saying \"we shouldn't build this at all\" when everyone's excited about a feature.\nThe shift looks something like this:\nSenior mindset: \"I'll implement this complex feature myself because I can do it fastest.\"\nStaff mindset: \"I'll design the system so a mid-level engineer can implement it safely, and I'll focus on the parts that affect three other teams.\"\nWill Larson's Staff Engineer book surveyed hundreds of Staff+ engineers. The consistent pattern: they stopped being the person who writes the most code and became the person who ensures the right code gets written.\nThis",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "身份陷阱：阻止资深开发者晋升为员工级别的原因",
+        "summary": "从资深到员工级别的过渡需要身份转变，从\"最佳编码者\"转变为\"他人的倍增器\"。员工级工程师关注系统设计、文档和架构决策，而不是个人代码输出，通过组织影响而非个人贡献来衡量价值。"
+      },
+      "fr": {
+        "title": "Le Piège de l'Identité Qui Empêche les Développeurs Seniors d'Atteindre le Niveau Staff",
+        "summary": "La transition Senior-vers-Staff nécessite un changement d'identité de \"meilleur codeur\" à \"multiplicateur pour tous les autres\". Les ingénieurs Staff se concentrent sur la conception des systèmes, la documentation et les décisions architecturales plutôt que sur la production personnelle de code, mesurant la valeur par l'impact organisationnel plutôt que par la contribution individuelle."
+      },
+      "de": {
+        "title": "Die Identitätsfalle, die Senior Entwickler vom Staff-Level abhält",
+        "summary": "Der Übergang von Senior zu Staff erfordert einen Identitätswechsel von \"bester Coder\" zu \"Multiplikator für alle anderen\". Staff-Ingenieure konzentrieren sich auf Systemdesign, Dokumentation und Architekturentscheidungen statt auf persönliche Code-Produktion und messen ihren Wert durch organisatorische Auswirkungen statt durch individuelle Beiträge."
+      },
+      "es": {
+        "title": "La Trampa de Identidad Que Impide que Desarrolladores Senior Alcancen Nivel Staff",
+        "summary": "La transición de Senior a Staff requiere un cambio de identidad de \"mejor codificador\" a \"multiplicador de todos los demás\". Los ingenieros Staff se enfocan en diseño de sistemas, documentación y decisiones arquitectónicas en lugar de la producción personal de código, midiendo el valor por el impacto organizacional en lugar de la contribución individual."
+      }
+    }
+  },
+  {
+    "title": "Ports and Adapters: The Pattern Your Architecture Has Been Missing",
+    "slug": "ports-and-adapters-hexagonal-architecture",
+    "url": "https://dev.to/elpic/ports-and-adapters-the-pattern-your-architecture-has-been-missing-1j43",
+    "source": "DEV Community",
+    "date": "2026-03-28T12:01:58.000Z",
+    "summary": "Ports and adapters architecture separates domain logic from infrastructure through well-defined interfaces. Ports express domain needs abstractly while adapters implement those interfaces for specific technologies, decoupling applications from particular databases, frameworks, or external services.",
+    "content": "In the last post you counted your OrderService's external dependencies. If you got anything higher than zero, this post is for you.\nWe named the problem. Now let's name the solution.\nThe pattern is called ports and adapters also known as hexagonal architecture, coined by Alistair Cockburn in 2005. The name has stuck around because the idea is genuinely useful: your application core should communicate with the outside world through well-defined boundaries, not direct dependencies.\nThat's the theory. Here's what it actually means in code.\nA port is an interface owned by your domain. It says: \"I need something that can do X. I don't care how.\"\nfrom typing import Protocol, Optional\nfrom app.domain.models import Order, Customer\n\nclass CustomerRepository(Protocol):\n    def find_by_id(self, customer_id: str) -> Optional[Customer]:\n        ...\n\nclass OrderRepository(Protocol):\n    def save(self, order: Order) -> Order:\n        ...\n\nNotice what these interfaces don't mention: SQLAlchemy, PostgreSQL, sessions, ORM models. They speak the language of your domain — Customer, Order not the language of your database.\nThis is the port. It's the socket in your domain that infrastructure plugs into.\nAn adapter is the infrastructure implementation of a port. It's the plug.\nfrom sqlalchemy.orm import Session\nfrom app.domain.ports import CustomerRepository, OrderRepository\nfrom app.domain.models import Customer, Order\nfrom app import orm\n\nclass SQLAlchemyCustomerRepository:\n    def __init__(self, session: Session):\n        self.session = session\n\n    def find_by_id(self, customer_id: str) -> Optional[Customer]:\n        row = self.session.query(orm.CustomerRow).filter_by(id=customer_id).first()\n        if not row:\n            return None\n        return Customer(\n            id=row.id,\n            loyalty_points=row.loyalty_points\n        )\n\nclass SQLAlchemyOrderRepository:\n    def __init__(self, session: Session):\n        self.session = session\n\n    def save(self, order: Order) -> Order:",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "端口和适配器：您的架构一直缺少的模式",
+        "summary": "端口和适配器架构通过明确定义的接口将域逻辑与基础设施分离。端口抽象地表达域需求，而适配器为特定技术实现这些接口，将应用程序与特定数据库、框架或外部服务解耦。"
+      },
+      "fr": {
+        "title": "Ports et Adaptateurs : Le Modèle Qui Manquait à Votre Architecture",
+        "summary": "L'architecture ports et adaptateurs sépare la logique métier de l'infrastructure par des interfaces bien définies. Les ports expriment les besoins du domaine de manière abstraite tandis que les adaptateurs implémentent ces interfaces pour des technologies spécifiques, découplant les applications des bases de données, frameworks ou services externes particuliers."
+      },
+      "de": {
+        "title": "Ports und Adapter: Das Muster, das in Ihrer Architektur fehlte",
+        "summary": "Die Ports-und-Adapter-Architektur trennt Geschäftslogik von Infrastruktur durch gut definierte Schnittstellen. Ports drücken Domänenanforderungen abstrakt aus, während Adapter diese Schnittstellen für spezifische Technologien implementieren und Anwendungen von bestimmten Datenbanken, Frameworks oder externen Diensten entkoppeln."
+      },
+      "es": {
+        "title": "Puertos y Adaptadores: El Patrón Que Faltaba en Su Arquitectura",
+        "summary": "La arquitectura de puertos y adaptadores separa la lógica de dominio de la infraestructura a través de interfaces bien definidas. Los puertos expresan necesidades de dominio de manera abstracta mientras que los adaptadores implementan esas interfaces para tecnologías específicas, desacoplando aplicaciones de bases de datos, marcos o servicios externos particulares."
+      }
+    }
+  },
+  {
+    "title": "The Context Crisis: Why Giving AI More Context Is Becoming the Hardest Problem in Development in 2026",
+    "slug": "context-crisis-ai-development-2026",
+    "url": "https://dev.to/tanishka_karsulkar_ec9e58/the-context-crisis-why-giving-ai-more-context-is-becoming-the-hardest-problem-in-development-in-2bni",
+    "source": "DEV Community",
+    "date": "2026-03-28T12:01:56.000Z",
+    "summary": "Despite massive context windows, AI models struggle to prioritize relevant information in complex codebases, creating 'janitorial work' fixing ignored standards. Solutions involve structured context providers—codebase indexes, ADRs, and architecture templates—that help AI reliably access domain-specific knowledge.",
+    "content": "n 2026, developers have access to powerful AI coding models with massive context windows — some reaching 1 million tokens. Yet many teams are discovering that more context doesn’t automatically mean better results. Instead, it has created a new bottleneck: the Context Crisis.\nStack Overflow’s coverage of DeveloperWeek 2026 notes that AI coding tools without proper company context force developers into “janitorial work” — reorganizing and fixing code that ignores internal standards and architecture.\nThe core issue is that Large Language Models treat all input as equal. They struggle to prioritize what matters most in a complex enterprise codebase — custom patterns, deprecated internal libraries, compliance requirements, or team-specific conventions.\nScale and Fragmentation — Modern codebases span multiple repositories, services, and documentation sources. Feeding everything into an AI quickly hits practical limits or introduces noise.\nThis creates a hidden tax: developers toggle between prompting, verifying, and manually injecting missing context, increasing cognitive load and context switching.\nContext Layering — Build structured context providers: codebase indexes, architecture decision records (ADRs), API specs, and golden-path templates that AI can reliably access.\nThe Bigger Picture for Developers\nThe Context Crisis reveals that AI success in 2026 depends less on raw model intelligence and more on how effectively we bridge the gap between generic training data and our specific engineering reality.\nThe most valuable skill shifting from pure coding to context orchestration — knowing what the AI needs to know, how to deliver it cleanly, and how to verify the outcome.\nTeams that invest in strong context systems will capture the real productivity gains from AI. Those that don’t will continue fighting an uphill battle of cleanup and rework.\nWhat’s your experience with the Context Crisis?\nHow are you handling context when working with AI coding tools or agents? What te",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "上下文危机：为什么在2026年给AI提供更多上下文正在成为开发中最难的问题",
+        "summary": "尽管上下文窗口庞大，AI模型在复杂代码库中难以优先级排序相关信息，造成修复忽略标准的\"清洁工作\"。解决方案涉及结构化上下文提供者——代码库索引、架构决策记录和架构模板——帮助AI可靠地访问特定领域的知识。"
+      },
+      "fr": {
+        "title": "La Crise du Contexte : Pourquoi Donner Plus de Contexte à l'IA Devient le Problème le Plus Difficile du Développement en 2026",
+        "summary": "Malgré les fenêtres de contexte massives, les modèles d'IA ont du mal à prioriser les informations pertinentes dans les bases de code complexes, créant un \"travail de concierge\" pour corriger les normes ignorées. Les solutions impliquent des fournisseurs de contexte structurés—index de base de code, ADR et modèles d'architecture—qui aident l'IA à accéder de manière fiable aux connaissances spécifiques au domaine."
+      },
+      "de": {
+        "title": "Die Kontextkrise: Warum die Bereitstellung von mehr Kontext für KI 2026 zum schwierigsten Problem in der Entwicklung wird",
+        "summary": "Trotz massiver Kontextfenster haben KI-Modelle Schwierigkeiten, relevante Informationen in komplexen Codebasen zu priorisieren, was zu „Reinigungsarbeit\" beim Beheben ignorierter Standards führt. Lösungen beinhalten strukturierte Kontextanbieter—Codebasis-Indizes, ADRs und Architekturvorlagen—die KI helfen, zuverlässig auf domänenspezifisches Wissen zuzugreifen."
+      },
+      "es": {
+        "title": "La Crisis del Contexto: Por Qué Proporcionar Más Contexto a la IA Se Está Convirtiendo en el Problema Más Difícil del Desarrollo en 2026",
+        "summary": "A pesar de las ventanas de contexto masivas, los modelos de IA luchan por priorizar información relevante en bases de código complejas, creando \"trabajo de conserje\" para corregir estándares ignorados. Las soluciones implican proveedores de contexto estructurados—índices de base de código, ADR y plantillas de arquitectura—que ayudan a la IA a acceder de manera confiable al conocimiento específico del dominio."
+      }
+    }
+  },
+  {
+    "title": "What Actually Happens in the 2 Seconds After You Hit Enter",
+    "slug": "what-happens-2-seconds-after-you-hit-enter",
+    "url": "https://dev.to/tyson_cung/what-actually-happens-in-the-2-seconds-after-you-hit-enter-5bn3",
+    "source": "DEV Community",
+    "date": "2026-03-28T12:01:35.000Z",
+    "summary": "Navigating a URL involves DNS lookup across hierarchical nameservers (20-120ms), TCP three-way handshake (10-50ms), and TLS negotiation for encryption. These steps coordinate across multiple continents through caching, anycast routing, and cryptographic protocols to deliver pages in seconds.",
+    "content": "You type \"google.com\" and press Enter. A page appears. Feels instant. But in that blink — roughly 2 seconds — your browser just orchestrated a relay race across dozens of machines spanning multiple continents.\nI find it genuinely wild that most web developers ship code every day without knowing what happens between keystroke and pixel. So here's the full chain, no hand-waving.\nYour browser doesn't know what \"google.com\" means. Computers speak IP addresses, not words. So the first job is translation.\nThe browser checks its own cache first. Then the OS cache. Then your router's cache. If nobody has the answer, the query goes to a recursive DNS resolver — usually run by your ISP or a service like Cloudflare (1.1.1.1) or Google (8.8.8.8).\nThat resolver walks the DNS hierarchy: root server → .com TLD server → Google's authoritative nameserver. Each step narrows down until someone says \"google.com lives at 142.250.70.14.\" The whole lookup typically takes 20-120 milliseconds.\nFun fact: there are only 13 root server addresses in the entire DNS system. They handle billions of queries daily through anycast routing — the same IP address served from hundreds of physical locations worldwide.\nNow your browser knows where to go. But before sending any data, it needs a reliable connection. That means TCP.\nTCP uses a three-way handshake:\nSYN — your browser says \"I want to talk\"\nSYN-ACK — the server replies \"acknowledged, let's go\"\nACK — your browser confirms \"we're connected\"\nThree packets, just to say hello. This adds another round-trip of latency — typically 10-50ms for a nearby server, more for distant ones.\nIf the site uses HTTPS (and 95%+ of the web does now), there's another handshake on top of TCP. TLS negotiation involves:\nYour browser sending supported cipher suites\nThe server picking one and sending its certificate\nYour browser verifying that certificate against trusted Certificate Authorities\nBoth sides generating session keys for encryption\nTLS 1.3 streamlined this to a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "按下Enter后实际发生的2秒内发生的事情",
+        "summary": "导航到URL涉及在分层命名服务器之间进行DNS查找（20-120毫秒）、TCP三向握手（10-50毫秒）和用于加密的TLS协商。这些步骤通过缓存、任播路由和密码协议在多个大陆之间协调，以在几秒内交付页面。"
+      },
+      "fr": {
+        "title": "Ce Qui Se Passe Réellement dans les 2 Secondes Après Avoir Appuyé sur Entrée",
+        "summary": "La navigation vers une URL implique une recherche DNS sur des serveurs de noms hiérarchiques (20-120 ms), une poignée de main TCP en trois voies (10-50 ms) et une négociation TLS pour le chiffrement. Ces étapes se coordonnent sur plusieurs continents via la mise en cache, le routage anycast et les protocoles cryptographiques pour livrer les pages en quelques secondes."
+      },
+      "de": {
+        "title": "Was Tatsächlich in den 2 Sekunden nach dem Drücken der Eingabetaste Passiert",
+        "summary": "Das Navigieren zu einer URL umfasst eine DNS-Suche über hierarchische Nameserver (20-120 ms), einen TCP-Drei-Wege-Handshake (10-50 ms) und eine TLS-Verhandlung zur Verschlüsselung. Diese Schritte werden über mehrere Kontinente hinweg durch Caching, Anycast-Routing und kryptografische Protokolle koordiniert, um Seiten in Sekunden bereitzustellen."
+      },
+      "es": {
+        "title": "Lo Que Realmente Sucede en los 2 Segundos Después de Presionar Intro",
+        "summary": "Navegar a una URL implica una búsqueda DNS en servidores de nombres jerárquicos (20-120 ms), un protocolo de enlace TCP de tres vías (10-50 ms) y una negociación TLS para cifrado. Estos pasos se coordinan en varios continentes mediante almacenamiento en caché, enrutamiento anycast y protocolos criptográficos para entregar páginas en segundos."
+      }
+    }
+  },
+  {
+    "title": "Beyond the Haversine Formula: Why I Use Geohashing for Spatial Search",
+    "slug": "beyond-haversine-formula-geohashing-spatial-search",
+    "url": "https://dev.to/doogal/beyond-the-haversine-formula-why-i-use-geohashing-for-spatial-search-3p4f",
+    "source": "DEV Community",
+    "date": "2026-03-28T12:01:18.000Z",
+    "summary": "Geohashing encodes geographic coordinates into hierarchical string prefixes, enabling B-Tree indexed prefix scans instead of floating-point distance calculations. This transforms proximity search from O(n) geometric computation to efficient index lookup, scaling to millions of concurrent queries.",
+    "content": "TL;DR: Geohashing encodes 2D coordinates into hierarchical string prefixes, transforming expensive O(n) geometric calculations into efficient indexed lookups. By mapping geographic areas to unique string identifiers, databases can execute high-speed prefix scans rather than performing floating-point evaluations on every record. This allows applications to scale proximity searches to millions of concurrent users without hitting CPU bottlenecks.\nI have seen too many backends crawl to a halt because they are trying to solve geometry problems at the query layer. The naive approach to finding a nearby taxi or a local restaurant is to store latitude and longitude as floats and then run a radius query. While this works in a development environment with a hundred rows, it fails at production scale because it forces the database to perform an unindexed geometric predicate on every single record.\nWhen I am architecting a system that needs to handle thousands of concurrent spatial queries, I stop asking the database to do trigonometry. Instead, I treat location as a string matching problem. By moving the complexity from the CPU to the index, I can keep response times low even as the dataset grows into the millions.\nProximity is not a property that standard B-Tree indexes can efficiently filter without specialized spatial extensions. This usually forces the database engine to perform an expensive floating-point evaluation on every record in the table to determine if a point falls within the search radius.\nIn a standard relational database, an index is great for finding an exact match or a range of numbers. But a radius is a circle, and latitude/longitude are two independent variables. To find objects in that circle, the database has to calculate the distance between your center point and every potential candidate. If I have 100,000 drivers and 1,000 users searching at once, the CPU is effectively pinned just trying to solve high-school geometry millions of times per second. It",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "超越Haversine公式：为什么我使用地理哈希进行空间搜索",
+        "summary": "地理哈希将地理坐标编码为分层字符串前缀，启用B树索引前缀扫描而不是浮点距离计算。这将邻近搜索从O(n)几何计算转变为高效索引查找，可扩展到数百万并发查询。"
+      },
+      "fr": {
+        "title": "Au-delà de la Formule Haversine : Pourquoi j'Utilise Geohashing pour la Recherche Spatiale",
+        "summary": "Geohashing code les coordonnées géographiques en préfixes de chaînes hiérarchiques, permettant des analyses de préfixes indexées par B-Tree au lieu de calculs de distance en virgule flottante. Cela transforme la recherche de proximité d'un calcul géométrique O(n) en une recherche d'index efficace, passant à l'échelle de millions de requêtes simultanées."
+      },
+      "de": {
+        "title": "Jenseits der Haversine-Formel: Warum ich Geohashing für die räumliche Suche verwende",
+        "summary": "Geohashing kodiert geografische Koordinaten in hierarchische String-Präfixe und ermöglicht B-Baum-indizierte Präfixscans anstelle von Gleitkomma-Distanzberechnungen. Dies wandelt die Näherungssuche von O(n)-geometrischer Berechnung in effiziente Indexsuche um und skaliert auf Millionen gleichzeitiger Abfragen."
+      },
+      "es": {
+        "title": "Más Allá de la Fórmula Haversine: Por Qué Uso Geohashing para Búsqueda Espacial",
+        "summary": "Geohashing codifica coordenadas geográficas en prefijos de cadenas jerárquicas, habilitando escaneos de prefijos indexados en B-Tree en lugar de cálculos de distancia en punto flotante. Esto transforma la búsqueda de proximidad de un cálculo geométrico O(n) a una búsqueda de índice eficiente, escalando a millones de consultas concurrentes."
+      }
+    }
+  },
+  {
+    "title": "AI Personalisation Reshapes Fashion",
+    "slug": "ai-personalisation-reshapes-fashion-industry",
+    "url": "https://dev.to/rawveg/ai-personalisation-reshapes-fashion-3hkp",
+    "source": "DEV Community",
+    "date": "2026-03-28T12:00:00.000Z",
+    "summary": "AI transforms fashion through virtual try-ons, personalized styling, and conversational recommendations based on purchase history and body measurements. The market is projected to grow from $1.99B in 2024 to $39.71B by 2033, though raising concerns about algorithmic bias, privacy, and consumer manipulation.",
+    "content": "Stand in front of your phone camera, and within seconds, you're wearing a dozen different lipstick shades you've never touched. Tilt your head, and the eyeglasses perched on your digital nose move with you, adjusting for the light filtering through the acetate frames. Ask a conversational AI what to wear to a summer wedding, and it curates an entire outfit based on your past purchases, body measurements, and the weather forecast for that day.\nThis isn't science fiction. It's Tuesday afternoon shopping in 2025, where artificial intelligence has transformed the fashion and lifestyle industries from guesswork into a precision science. The global AI in fashion market, valued at USD 1.99 billion in 2024, is projected to explode to USD 39.71 billion by 2033, growing at a staggering 39.43% compound annual growth rate. The beauty industry is experiencing a similar revolution, with AI's market presence expected to reach $16.3 billion by 2026, growing at 25.4% annually since 2021.\nBut as these digital advisors become more sophisticated, they're raising urgent questions about user experience design, data privacy, algorithmic bias, and consumer trust. Which sectors will monetise these technologies first? What safeguards are essential to prevent these tools from reinforcing harmful stereotypes or invading privacy? And perhaps most critically, as AI learns to predict our preferences with uncanny accuracy, are we being served or manipulated?\nThe transformation began quietly. Stitch Fix, the online personal styling service, has been using machine learning since its inception, employing what it calls a human-AI collaboration model. The system doesn't make recommendations directly to customers. Instead, it arms human stylists with data-driven insights, analysing billions of data points on clients' fit and style preferences. According to the company, AI and machine learning are “pervasive in every facet of the function of the company, whether that be merchandising, marketing, finance,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI个性化重塑时尚行业",
+        "summary": "AI通过虚拟试衣、个性化造型和基于购买历史和身体测量的对话推荐来改变时尚。市场预计将从2024年的19.9亿美元增长到2033年的397.1亿美元，但也引起了对算法偏见、隐私和消费者操纵的担忧。"
+      },
+      "fr": {
+        "title": "La personnalisation par IA remodèle la mode",
+        "summary": "L'IA transforme la mode à travers les essayages virtuels, le style personnalisé et les recommandations conversationnelles basées sur l'historique d'achat et les mesures corporelles. Le marché devrait croître de 1,99 milliards de dollars en 2024 à 39,71 milliards de dollars d'ici 2033, soulevant toutefois des préoccupations concernant les biais algorithmiques, la vie privée et la manipulation des consommateurs."
+      },
+      "de": {
+        "title": "KI-Personalisierung gestaltet die Modeindustrie neu",
+        "summary": "KI transformiert die Mode durch virtuelle Anproben, personalisiertes Styling und conversationale Empfehlungen basierend auf Kaufverlauf und Körpermessungen. Der Markt wird Prognosen zufolge von 1,99 Milliarden US-Dollar im Jahr 2024 auf 39,71 Milliarden US-Dollar bis 2033 wachsen, wirft aber Bedenken bezüglich algorithmischer Verzerrungen, Datenschutz und Verbrauchermanipulation auf."
+      },
+      "es": {
+        "title": "La personalización por IA remodela la industria de la moda",
+        "summary": "La IA transforma la moda a través de pruebas virtuales, estilo personalizado y recomendaciones conversacionales basadas en el historial de compras y las medidas corporales. Se proyecta que el mercado crecerá de $1.99 mil millones en 2024 a $39.71 mil millones para 2033, aunque genera preocupaciones sobre sesgo algorítmico, privacidad y manipulación del consumidor."
+      }
+    }
+  },
+  {
+    "title": "👋 Hello Dev.to! I'm a Java Full Stack Developer with 8+ Years of Experience",
+    "slug": "hello-dev-java-full-stack-developer-8-years",
+    "url": "https://dev.to/ultimate_coder/hello-devto-im-a-java-full-stack-developer-with-8-years-of-experience-4d7e",
+    "source": "DEV Community",
+    "date": "2026-03-28T11:59:59.000Z",
+    "summary": "Sujit Kumar Mishra, a Java full-stack developer with 8+ years experience, introduces himself to the Dev.to community. He specializes in Spring Boot backends and microservices, recently explored AI integration, and plans to share content on enterprise architecture and performance optimization.",
+    "content": "Hi everyone! I'm Sujit Kumar Mishra, a Java Full Stack Developer based in Bhubaneswar, India, with over 8 years of experience building scalable enterprise applications.\nI specialize in backend-heavy systems using Java and Spring technologies, while also working across the full stack to deliver complete solutions—from design to deployment.\n💼 My Tech Stack\nJava, Spring Boot, Spring MVC, Spring Security\nREST APIs & Microservices (learning & implementing)\nJPA, Hibernate\nReactJS, JSP, JavaScript, Bootstrap\nOracle, MySQL, PostgreSQL, MongoDB\nMaven, Gradle, Git, JIRA\nApache Tomcat, WebLogic, Azure, DigitalOcean\n🤖 Exploring Generative AI\nRecently, I’ve been actively working on AI-powered applications:\nBuilt AI chatbot platforms\nCreated AI-based code review tools\nIntegrated Generative AI with Spring Boot applications\nDeploying AI apps on cloud platforms for scalability\n🚀 Some Things I've Worked On\nEnterprise banking applications\nGovernment e-governance portals\nE-commerce platforms\nReal-time dashboards\nAI-powered developer tools\nREST API backends for mobile apps\n🎯 What I'll Be Sharing Here\nI plan to write about:\nSpring Boot best practices\nReal-world backend architecture\nMicroservices learning journey\nGenerative AI with Java\nPerformance optimization tips\nDebugging production issues\nClean code & enterprise development\n🙌 Let's Connect\nI'm here to learn, share, and collaborate with the developer community.\nThanks for reading! 🚀",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "👋 你好Dev.to！我是拥有8年以上经验的Java全栈开发者",
+        "summary": "拥有8年以上经验的Java全栈开发者Sujit Kumar Mishra向Dev.to社区做自我介绍。他专门从事Spring Boot后端和微服务，最近探索了AI集成，并计划分享关于企业架构和性能优化的内容。"
+      },
+      "fr": {
+        "title": "👋 Bonjour Dev.to! Je suis un développeur Full Stack Java avec plus de 8 ans d'expérience",
+        "summary": "Sujit Kumar Mishra, un développeur full-stack Java avec plus de 8 ans d'expérience, se présente à la communauté Dev.to. Il se spécialise dans les backends Spring Boot et les microservices, a récemment exploré l'intégration de l'IA et prévoit de partager du contenu sur l'architecture d'entreprise et l'optimisation des performances."
+      },
+      "de": {
+        "title": "👋 Hallo Dev.to! Ich bin ein Java-Full-Stack-Entwickler mit über 8 Jahren Erfahrung",
+        "summary": "Sujit Kumar Mishra, ein Java-Full-Stack-Entwickler mit über 8 Jahren Erfahrung, stellt sich der Dev.to-Gemeinde vor. Er ist spezialisiert auf Spring Boot-Backends und Microservices, hat kürzlich KI-Integration erkundet und plant, Inhalte zu Enterprise-Architektur und Leistungsoptimierung zu teilen."
+      },
+      "es": {
+        "title": "👋 ¡Hola Dev.to! Soy un desarrollador Full Stack de Java con más de 8 años de experiencia",
+        "summary": "Sujit Kumar Mishra, un desarrollador full-stack de Java con más de 8 años de experiencia, se presenta a la comunidad Dev.to. Se especializa en backends Spring Boot y microservicios, recientemente exploró integración de IA y planea compartir contenido sobre arquitectura empresarial y optimización de rendimiento."
+      }
+    }
+  },
+  {
+    "title": "I Built a CLI So AI Agents Can Manage My Shopify Store",
+    "slug": "built-cli-ai-agents-manage-shopify-store",
+    "url": "https://dev.to/c99e/i-built-a-cli-so-ai-agents-can-manage-my-shopify-store-114f",
+    "source": "DEV Community",
+    "date": "2026-03-28T11:59:18.000Z",
+    "summary": "shopq is a zero-dependency CLI for Shopify Admin API designed with AI agents as primary users. It provides structured JSON output and predictable command interfaces for terminal-based store management, offering a simpler alternative to web dashboards for AI-driven workflows.",
+    "content": "I use AI tools for most of my software engineering work now. But every time I needed to do something in Shopify (check an order, update a product, look up a customer) I had to leave the terminal, open the admin dashboard, and click around. The AI could write code, run tests, manage deployments, but it couldn't touch my store.\nSo I built shopq: a zero-dependency CLI for the Shopify Admin API, designed from the ground up to work with AI agents.\nThere are three ways to interact with a Shopify store, and none of them fit an AI-first workflow.\nThe admin dashboard is point-and-click. Sure, you could throw a computer-use agent at it, but a direct CLI will always be simpler and faster than an AI trying to navigate a web UI.\nThe GraphQL Admin API is powerful, and AI actually works with it pretty well. But building and maintaining a full client around it is overkill if you just want to manage your store. You shouldn't need to scaffold a whole project to list your products.\nShopify's own CLI is built for app and theme development, not store management. It doesn't help you query orders or update products.\nI wanted to manage my Shopify store the same way I manage everything else in my dev workflow: from the terminal, with AI doing the heavy lifting.\nshopq was built with AI agents as the primary user.\nThat means: structured JSON output (--json), predictable exit codes, no interactive prompts, no ambiguity. Everything an agent needs to run a command, parse the result, and decide what to do next.\nIt also ships with a SKILL.md, so AI tools that support skills can pick it up and understand how to use it immediately. It's listed in the pi directory too, so users with compatible AI terminals can install the skill and CLI together and start working right away.\nZero dependencies. Just Bun's built-in capabilities. Install it and go.\nshopq Does\n\n\nshopq wraps the Shopify Admin GraphQL API and exposes it as simple, composable commands. Products, orders, collections, pages, files, themes. The",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个CLI让AI代理可以管理我的Shopify商店",
+        "summary": "shopq是一个零依赖的Shopify Admin API CLI，专为AI代理作为主要用户而设计。它提供结构化的JSON输出和可预测的命令界面用于基于终端的商店管理，为AI驱动的工作流程提供了比网页仪表板更简单的替代方案。"
+      },
+      "fr": {
+        "title": "J'ai créé une CLI pour que les agents IA puissent gérer ma boutique Shopify",
+        "summary": "shopq est une CLI sans dépendance pour l'API Shopify Admin conçue avec les agents IA comme utilisateurs principaux. Elle fournit une sortie JSON structurée et des interfaces de commande prévisibles pour la gestion de magasins basée sur le terminal, offrant une alternative plus simple aux tableaux de bord Web pour les flux de travail pilotés par l'IA."
+      },
+      "de": {
+        "title": "Ich habe eine CLI gebaut, damit KI-Agenten meinen Shopify-Shop verwalten können",
+        "summary": "shopq ist eine abhängigkeitslose CLI für die Shopify Admin API, die mit KI-Agenten als Hauptnutzer konzipiert ist. Sie bietet strukturierte JSON-Ausgabe und vorhersehbare Befehlsschnittstellen für terminalgestützte Shopverwaltung und stellt eine einfachere Alternative zu Web-Dashboards für KI-gesteuerte Workflows dar."
+      },
+      "es": {
+        "title": "Construí una CLI para que los agentes de IA puedan administrar mi tienda Shopify",
+        "summary": "shopq es una CLI sin dependencias para la API de Shopify Admin diseñada con agentes de IA como usuarios principales. Proporciona salida JSON estructurada e interfaces de comandos predecibles para la administración de tiendas basada en terminal, ofreciendo una alternativa más simple a los paneles web para flujos de trabajo impulsados por IA."
+      }
+    }
+  },
+  {
     "title": "VegaAI - The Self Driving Agile Team",
     "slug": "vegaai-self-driving-agile-team",
     "url": "https://dev.to/capscode/vegaai-the-self-driving-agile-team-2bhk",
@@ -332,6 +668,34 @@
       "es": {
         "title": "Escribí mal una palabra y mi factura de IA aumentó un 400% 😱",
         "summary": "Un error tipográfico o variación de formato puede aumentar dramáticamente los costos de tokenización en APIs de LLM, con una palabra mal escrita como \"envinorment\" requiriendo 4 veces más tokens que \"environment\" correctamente escrito. El análisis demuestra que los modelos de IA tratan las variaciones de patrones como palabras completamente nuevas, haciendo que los pequeños errores de ortografía sean costosos para aplicaciones de IA en producción."
+      }
+    }
+  },
+  {
+    "title": "Go hard on agents, not on your filesystem",
+    "slug": "go-hard-on-agents-not-filesystem",
+    "url": "https://jai.scs.stanford.edu/",
+    "source": "Hacker News",
+    "date": "2026-03-28T00:39:54.000Z",
+    "summary": "A Stanford research resource on AI agent architecture and development philosophy emphasizing proper implementation approaches over filesystem concerns.",
+    "content": "Article URL: https://jai.scs.stanford.edu/\nComments URL: https://news.ycombinator.com/item?id=47550282\nPoints: 395\n# Comments: 226",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "专注于代理，而不是文件系统",
+        "summary": "斯坦福大学的研究资源，关于AI代理架构和开发哲学，强调正确的实现方法优于文件系统问题。"
+      },
+      "fr": {
+        "title": "Concentrez-vous sur les agents, pas sur votre système de fichiers",
+        "summary": "Une ressource de recherche de Stanford sur l'architecture des agents IA et la philosophie de développement, mettant l'accent sur les approches de mise en œuvre appropriées plutôt que sur les préoccupations du système de fichiers."
+      },
+      "de": {
+        "title": "Konzentrieren Sie sich auf Agenten, nicht auf Ihr Dateisystem",
+        "summary": "Eine Stanford-Forschungsressource zur KI-Agentenarchitektur und Entwicklungsphilosophie, die richtige Implementierungsansätze gegenüber Dateisystemproblemen betont."
+      },
+      "es": {
+        "title": "Enfócate en agentes, no en tu sistema de archivos",
+        "summary": "Un recurso de investigación de Stanford sobre la arquitectura de agentes de IA y filosofía de desarrollo que enfatiza enfoques de implementación apropiados sobre preocupaciones del sistema de archivos."
       }
     }
   },
