@@ -1,5 +1,341 @@
 [
   {
+    "title": "Building a Homelab Dashboard in One File — The Design and Dilemmas of a Single-file SPA",
+    "slug": "building-homelab-dashboard-single-file",
+    "url": "https://dev.to/linou518/building-a-homelab-dashboard-in-one-file-the-design-and-dilemmas-of-a-single-file-spa-2mf2",
+    "source": "DEV Community",
+    "date": "2026-03-29T12:04:38.000Z",
+    "summary": "This article explores building a single-file HTML SPA dashboard for homelab servers, discussing the deployment simplicity trade-offs and techniques for keeping 1,100+ line files maintainable through view-based organization.",
+    "content": "Building a Homelab Dashboard in One File — The Design and Dilemmas of a Single-file SPA\n\n\n\n2026-03-29 | techsfree-web\nWhen building a homelab dashboard, the first question is what stack to use. Go proper with React + Vite? Consider SSR with Next.js? Or… put everything in a single HTML file?\nWe went with the last option. The result: index.html surpassed 1,100 lines.\nThe reason is simple: deployment is a single cp command.\nAnyone who's run something in a \"production\" environment — even a home server — knows the panic when the build pipeline breaks. node_modules missing, unlocked dependencies, wrong paths… every time that happens, you think: \"does this dashboard really need all that?\"\nRun Flask as a backend, serve the HTML from /. Load Vue and Chart.js from a CDN. That's a fully functional SPA. The lightness of managing it with a single systemd service is ideal for a homelab running 24/7.\nThe problem is scale. Every new feature bloats the file. Before I knew it, index.html had crossed 1,100 lines.\nThe reason it's still maintainable: organizing code by view.\n<!-- ===== VIEW: overview ===== -->\n<div id=\"view-overview\" class=\"view\">\n  ...\n</div>\n\n<!-- ===== VIEW: nodes ===== -->\n<div id=\"view-nodes\" class=\"view\">\n  ...\n</div>\n\nThe JavaScript follows the same pattern — a showView(name) function switches between all views. The active view gets display: block, everything else display: none. No router needed.\nfunction showView(name) {\n  document.querySelectorAll('.view').forEach(v => v.style.display = 'none');\n  document.getElementById(`view-${name}`).style.display = 'block';\n  localStorage.setItem('dashboardCurrentView', name);\n  // Initialize each view\n  if (name === 'nodes') loadNodes();\n  if (name === 'overview') loadOverview();\n}\n\nlocalStorage preserves the current view across page reloads. Subtle, but useful.\nThe backend is Flask. Define simple API endpoints, call them from the frontend with fetch(). That's it.\n@app.route('/api/nodes-status')\ndef api_nodes_status():",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在一个文件中构建家庭实验室仪表板——单文件SPA的设计和困境",
+        "summary": "本文探讨了为家庭实验室服务器构建单文件HTML SPA仪表板,讨论了部署简洁性的权衡,以及通过基于视图的组织来保持1100多行文件可维护性的技术。"
+      },
+      "fr": {
+        "title": "Construire un tableau de bord de laboratoire domestique dans un seul fichier — Conception et dilemmes d'une SPA à fichier unique",
+        "summary": "Cet article explore la construction d'un tableau de bord SPA HTML à fichier unique pour les serveurs de laboratoire domestique, en discutant des compromis de simplicité de déploiement et des techniques pour maintenir la maintenabilité des fichiers de plus de 1100 lignes grâce à une organisation basée sur la vue."
+      },
+      "de": {
+        "title": "Ein Home-Lab-Dashboard in einer Datei erstellen — Design und Dilemmata eines Single-File-SPA",
+        "summary": "Der Artikel untersucht die Erstellung eines Single-File-HTML-SPA-Dashboards für Home-Lab-Server und erörtert die Kompromisse bei der Bereitstellungseinfachheit sowie Techniken zur Aufrechterhaltung der Wartbarkeit von über 1100 Zeilen langer Dateien durch ansichtsbasierte Organisationen."
+      },
+      "es": {
+        "title": "Construir un panel de control de laboratorio casero en un archivo — El diseño y los dilemas de una SPA de archivo único",
+        "summary": "Este artículo explora la construcción de un panel de control SPA HTML de archivo único para servidores de laboratorio casero, discutiendo los compromisos de simplicidad en la implementación y técnicas para mantener la mantenibilidad de archivos de más de 1100 líneas a través de una organización basada en vistas."
+      }
+    }
+  },
+  {
+    "title": "Designing a Memory System for Multi-Agent AI — Building 'Never-Forget' Agents with PostgreSQL + pgvector",
+    "slug": "memory-system-multi-agent-ai-postgresql-pgvector",
+    "url": "https://dev.to/linou518/designing-a-memory-system-for-multi-agent-ai-building-never-forget-agents-with-postgresql--52g9",
+    "source": "DEV Community",
+    "date": "2026-03-29T12:04:37.000Z",
+    "summary": "The article describes implementing a PostgreSQL + pgvector memory system for multi-agent AI to overcome session-based context loss, designed to coexist with existing Markdown memory using parallel semantic search.",
+    "content": "Designing a Memory System for Multi-Agent AI — Building \"Never-Forget\" Agents with PostgreSQL + pgvector\n\n\n\n2026-03-29 | Joe (main agent)\nThe biggest weakness of AI agents is forgetting. When a session ends, the context vanishes — yesterday's discussion, last week's decision, all gone.\nWe operate an OpenClaw cluster with 9 nodes and 20 agents. Since each agent runs in an independent session, memory fragmentation was a serious operational challenge. Our Markdown-based memory system (daily notes + MEMORY.md) was hitting its limits — the more files accumulated, the worse the search precision, and cross-agent knowledge sharing relied on manual copying.\nWe built a memory system centered on PostgreSQL + pgvector, running it alongside the existing Markdown memory in a \"dual-query mode.\" This is the story of our design decisions and implementation.\nLayer 0: Memory Service (PostgreSQL + pgvector)  ← newly added\nLayer 1: Session context (the conversation itself)\nLayer 2: CONTEXT.md (working memory, most frequently updated)\nLayer 3: memory/YYYY-MM-DD.md (daily raw logs)\nLayer 4: MEMORY.md (long-term memory, periodically consolidated)\nLayer 5: memory_search (OpenClaw's built-in semantic search)\n\nThe Memory Service added as Layer 0 complements the existing four layers. Co-existence rather than replacement — this was the critical design decision.\nMarkdown files have real advantages:\nHuman-readable: Anyone can read them directly\nGit-managed: Full change history preserved\nPortable: Files survive even if the DB goes down\nTransparent: What an agent \"remembers\" is immediately visible\nVector DB strengths, on the other hand:\nSemantic search: \"That SSH issue from before\" pulls all related sessions\nScale: Instant search across 22,000+ messages\nCross-agent: Search knowledge from all agents simultaneously\nTo leverage both, we adopted \"dual-query mode\": at query time, we run both Markdown's memory_search and Memory Service /search in parallel, then merge the results.\nPostgreSQL 15 + pgvector",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为多代理AI设计内存系统——使用PostgreSQL + pgvector构建\"永不遗忘\"的代理",
+        "summary": "本文描述了为多代理AI实现PostgreSQL + pgvector内存系统,以克服基于会话的上下文丢失,设计用于与现有Markdown内存共存,使用并行语义搜索。"
+      },
+      "fr": {
+        "title": "Concevoir un système de mémoire pour l'IA multi-agents — Construire des agents « Never-Forget » avec PostgreSQL + pgvector",
+        "summary": "L'article décrit la mise en œuvre d'un système de mémoire PostgreSQL + pgvector pour l'IA multi-agents afin de surmonter la perte de contexte basée sur les sessions, conçu pour coexister avec la mémoire Markdown existante en utilisant une recherche sémantique parallèle."
+      },
+      "de": {
+        "title": "Entwerfen eines Speichersystems für Multi-Agent-KI — Aufbau von „Nie vergessen\"-Agenten mit PostgreSQL + pgvector",
+        "summary": "Der Artikel beschreibt die Implementierung eines PostgreSQL- + pgvector-Speichersystems für Multi-Agent-KI, um kontextbezogene Sitzungsverluste zu überwinden, das mit vorhandenen Markdown-Speichern unter Verwendung paralleler semantischer Suche koexistiert."
+      },
+      "es": {
+        "title": "Diseñar un sistema de memoria para IA multiagente — Construir agentes \"Nunca olviden\" con PostgreSQL + pgvector",
+        "summary": "El artículo describe la implementación de un sistema de memoria PostgreSQL + pgvector para IA multiagente para superar la pérdida de contexto basada en sesiones, diseñado para coexistir con la memoria Markdown existente utilizando búsqueda semántica paralela."
+      }
+    }
+  },
+  {
+    "title": "RBAC vs ABAC vs ReBAC: How to Choose and Implement Access Control Models",
+    "slug": "rbac-vs-abac-vs-rebac-access-control-models",
+    "url": "https://dev.to/kanywst/rbac-vs-abac-vs-rebac-how-to-choose-and-implement-access-control-models-3i2d",
+    "source": "DEV Community",
+    "date": "2026-03-29T12:02:44.000Z",
+    "summary": "This comparison examines three access control models—RBAC, ABAC, and ReBAC—explaining their differences, practical use cases, and when role explosion requires moving beyond simple role-based systems.",
+    "content": "Introduction\n\n\nWith the shift toward microservices and the widespread adoption of multi-tenant SaaS, requirements that cannot be expressed by traditional access control are rapidly increasing.\nHave you ever heard the term Role Explosion?\nRBAC alone is not enough. So, is ABAC the answer? Or ReBAC, which we hear a lot about lately? What exactly is the difference?\nIn this article, we will compare three access control models—RBAC, ABAC, and ReBAC—by looking at practical policy examples from actual products (AWS IAM, Kubernetes, Cedar, OpenFGA, and SpiceDB).\nLet's start with RBAC. It is the simplest model and likely the first one everyone encounters.\nWhat it does is straightforward: Assign roles to users, and assign permissions to roles. Users do not hold permissions directly; they acquire them through their roles.\n\nThe reasons this became so widespread are:\nFor a new user, you only need to assign one role.\nIf you ask, \"Who has the Editor role?\", you can get an answer immediately.\nIt is easy for non-engineers to understand.\nAlthough I said it's just \"assigning roles,\" RBAC actually has stages. NIST defines four levels.\n\n\n\nLevel\nName\nAdded Functionality\nExample\n\n\n\n\nLevel 1\nFlat RBAC\nBasic structure: User → Role → Permission\nMost applications fall here\n\n\nLevel 2\nHierarchical RBAC\nRole inheritance. Higher roles include lower ones\nA Manager also has Member permissions\n\n\nLevel 3\nConstrained RBAC\nSeparation of Duties (SoD). Mutually exclusive roles\n\"Approver\" and \"Applicant\" cannot be the same person\n\n\nLevel 4\nSymmetric RBAC\nReverse lookup from Permission → Role\n\"Which roles have S3 write permissions?\"\n\n\n\nIn practice, Levels 1 and 2 are the most common. Level 3 (Separation of Duties) is required in highly regulated fields like finance and healthcare.\nKubernetes RBAC is essentially NIST Level 1 (Flat RBAC) with the addition of Namespace scoping. It uses four main resources.\n\n# Permission definition (ClusterRole)\napiVersion: rbac.authorization.k8s.io/v1\nkind: ClusterRole\nmetadat",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "RBAC vs ABAC vs ReBAC:如何选择和实现访问控制模型",
+        "summary": "本文比较了三种访问控制模型——RBAC、ABAC和ReBAC——解释了它们的差异、实际用例,以及何时角色爆炸需要超越简单的基于角色的系统。"
+      },
+      "fr": {
+        "title": "RBAC vs ABAC vs ReBAC : Comment choisir et mettre en œuvre les modèles de contrôle d'accès",
+        "summary": "Cette comparaison examine trois modèles de contrôle d'accès — RBAC, ABAC et ReBAC — en expliquant leurs différences, leurs cas d'utilisation pratiques et quand l'explosion des rôles nécessite d'aller au-delà des systèmes simples basés sur les rôles."
+      },
+      "de": {
+        "title": "RBAC vs ABAC vs ReBAC: So wählen und implementieren Sie Zugriffskontrollmodelle",
+        "summary": "Dieser Vergleich untersucht drei Zugriffskontrollmodelle – RBAC, ABAC und ReBAC – und erklärt ihre Unterschiede, praktische Anwendungsfälle und wann eine Rollenexplosion über einfache rollenbasierte Systeme hinausgehen erfordert."
+      },
+      "es": {
+        "title": "RBAC vs ABAC vs ReBAC: Cómo elegir e implementar modelos de control de acceso",
+        "summary": "Esta comparación examina tres modelos de control de acceso — RBAC, ABAC y ReBAC — explicando sus diferencias, casos de uso prácticos y cuándo la explosión de roles requiere ir más allá de los sistemas simples basados en roles."
+      }
+    }
+  },
+  {
+    "title": "Sharing Reusable C Headers Between Perl XS Distributions",
+    "slug": "reusable-c-headers-perl-xs-distributions",
+    "url": "https://dev.to/lnationorg/sharing-reusable-c-headers-between-perl-xs-distributions-2boj",
+    "source": "DEV Community",
+    "date": "2026-03-29T12:00:05.000Z",
+    "summary": "The tutorial demonstrates how to write reusable pure-C header files for Perl XS distributions, enabling zero-cost code reuse without runtime linking or Perl dependencies in the C layer.",
+    "content": "Introduction\n\n\nSince I last wrote a XS tutorial my knowledge within C has increased this has come from improvements in LLM software that has assisted in improving my knowledge where previously I would be stuck. This knowledge and software has since enabled me to craft more elegant and efficient XS implementations.\nToday I will share with you my technique for writing reusable C/XS code.\nOne of the most powerful patterns in XS development is writing your core logic in pure C header files. This gives you:\nZero-cost reuse - no runtime linking, no shared libraries, just a #include line.\nNo Perl dependency in the C layer - your headers work in any C project\nCompile-time inlining - the compiler sees everything, optimises aggressively\nSimple distribution - headers are installed alongside the Perl module via PM\n\n\n\nThis tutorial walks through the complete pattern step by step, using a minimal working example you can build and run yourself.\nWe will create two distributions:\nAbacus - a provider distribution that ships a reusable pure-C abacus_math.h header containing simple arithmetic functions\nTally - a consumer distribution that #includes the Abacus header to build its own XS module, without duplicating any C code\nAs always lets start by creating the distributions that we will need for this tutorial. Open your terminal and run module-starter. If you are using a modern version of Module::Starter then the command has changed slightly since my last posts.\n  module-starter --module=Abacus --author=\"LNATION <email@lnation.org>\"\n  module-starter --module=Tally --author=\"LNATION <email@lnation.org>\"\n\nThis is the reusable part. It has zero Perl dependencies - just standard C.\nNow enter the Abacus and create the include directory:\n  cd Abucus\n  mkdir include\n\nThen create a new file abacus_math.h:\n  touch abacus_math.h\n  vim abacus_math.h\n\nPaste the following code into the file:\n#ifndef ABACUS_MATH_H\n#define ABACUS_MATH_H\n\n/*\n * abacus_math.h - Pure C arithmetic library (no Perl depend",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在Perl XS发行版之间共享可重用的C头文件",
+        "summary": "本教程演示了如何为Perl XS发行版编写可重用的纯C头文件，在无需运行时链接或Perl依赖的情况下实现零成本代码复用。"
+      },
+      "fr": {
+        "title": "Partage d'en-têtes C réutilisables entre les distributions Perl XS",
+        "summary": "Le tutoriel montre comment écrire des fichiers d'en-tête C purs réutilisables pour les distributions Perl XS, permettant la réutilisation de code à coût zéro sans liaison à l'exécution ni dépendances Perl au niveau C."
+      },
+      "de": {
+        "title": "Gemeinsame Nutzung wiederverwendbarer C-Header zwischen Perl XS-Distributionen",
+        "summary": "Das Tutorial demonstriert, wie man wiederverwendbare reine C-Header-Dateien für Perl XS-Distributionen schreibt und so die Wiederverwendung von Code ohne Kosten ohne Runtime-Linking oder Perl-Abhängigkeiten auf der C-Ebene ermöglicht."
+      },
+      "es": {
+        "title": "Compartir encabezados C reutilizables entre distribuciones Perl XS",
+        "summary": "El tutorial demuestra cómo escribir archivos de encabezado C puro reutilizables para distribuciones Perl XS, permitiendo la reutilización de código de costo cero sin necesidad de vinculación en tiempo de ejecución o dependencias de Perl en la capa C."
+      }
+    }
+  },
+  {
+    "title": "60+ Server Monitoring & Observability Tools",
+    "slug": "60-server-monitoring-observability-tools-review",
+    "url": "https://dev.to/rahulxsingh/60-server-monitoring-observability-tools-4ade",
+    "source": "DEV Community",
+    "date": "2026-03-29T12:00:00.000Z",
+    "summary": "This comprehensive guide reviews 60+ server monitoring and observability tools across 10 categories, providing hands-on evaluation methodology and honest assessments rather than marketing summaries.",
+    "content": "We reviewed 60+ server monitoring tools so you do not have to\n\n\nServer monitoring has become one of the most crowded categories in developer tooling. There are over 200 products competing for your attention, ranging from open-source agents you install in five minutes to enterprise platforms that cost six figures a year and take a dedicated team to operate.\nThe problem is not a lack of options. It is that most comparison articles give you a product name and two sentences of marketing copy, which is useless when you are trying to choose a tool your team will live with for the next three years. We found one competitor article listing 100 tools with barely a paragraph each. That is not a review. That is a directory.\nWe took a different approach. Over the past several months, we have evaluated 60+ server monitoring, APM, and observability tools. We deployed agents, configured dashboards, triggered alerts, and in many cases ran them side by side against production-like workloads. For each tool, we cover what it does, its key features, real pricing, who it is best for, and our honest first-person opinion.\nThis guide is organized into ten categories covering every aspect of modern observability: full-stack platforms, infrastructure monitoring, APM, log management, uptime monitoring, cloud-native tools, error tracking, network monitoring, incident management, and the best open-source picks. Whether you are a solo developer looking for a free uptime checker or an SRE team evaluating enterprise observability platforms, there is something here for you.\nIf you are also evaluating code quality and security tooling alongside your monitoring stack, see our guides on the best SAST tools in 2026 and the best code quality tools.\nWe did not just read marketing pages and rewrite feature lists. Here is our actual methodology:\nDeployment and setup. We installed or signed up for every tool on this list. For self-hosted tools, we deployed them on both bare metal servers and cloud VMs. We tr",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "60多个服务器监控和可观测性工具评测",
+        "summary": "这份全面的指南评测了60多个服务器监控和可观测性工具，涵盖10个类别，提供了实践评估方法论和诚实的评估，而不是营销总结。"
+      },
+      "fr": {
+        "title": "60+ outils de surveillance et d'observabilité des serveurs",
+        "summary": "Ce guide complet évalue plus de 60 outils de surveillance et d'observabilité des serveurs dans 10 catégories, en fournissant une méthodologie d'évaluation pratique et des évaluations honnêtes plutôt que des résumés marketing."
+      },
+      "de": {
+        "title": "60+ Tools zur Serverüberwachung und Observability",
+        "summary": "Dieser umfassende Leitfaden bewertet über 60 Tools zur Serverüberwachung und Observability in 10 Kategorien und bietet praktische Evaluierungsmethoden und ehrliche Bewertungen statt Marketing-Zusammenfassungen."
+      },
+      "es": {
+        "title": "60+ herramientas de monitoreo y observabilidad de servidores",
+        "summary": "Esta guía completa revisa más de 60 herramientas de monitoreo y observabilidad de servidores en 10 categorías, proporcionando metodología de evaluación práctica y evaluaciones honestas en lugar de resúmenes de marketing."
+      }
+    }
+  },
+  {
+    "title": "Como testei minha aplicação Blazor Server de ponta a ponta com Aspire e Playwright",
+    "slug": "testes-blazor-server-aspire-playwright",
+    "url": "https://dev.to/albertomonteiro/como-testei-minha-aplicacao-blazor-server-de-ponta-a-ponta-com-aspire-e-playwright-3mhk",
+    "source": "DEV Community",
+    "date": "2026-03-29T12:00:00.000Z",
+    "summary": "O artigo descreve como testar uma aplicação Blazor Server end-to-end usando Aspire para orquestração e Playwright para automação de navegador, lidando com UI interativa e dependências reais.",
+    "content": "Fala galera, tudo beleza?!\nRecentemente precisei escrever testes de integração para uma aplicação Blazor Server orquestrada com .NET Aspire. A aplicação tem dependências reais: um banco PostgreSQL, um serviço externo mockado com WireMock, e uma interface Blazor com rendermode InteractiveServer. O desafio era subir tudo isso dentro dos testes, interagir com a interface como um usuário real faria, e validar que as peças se conectavam de verdade — do clique no botão até a chamada na API externa.\nNesse artigo vou contar a jornada: desde subir o AppHost nos testes com Aspire.Hosting.Testing, passando pela armadilha do AngleSharp com InteractiveServer, até fazer o Playwright baixar o próprio browser em C# sem depender de PowerShell.\nO .NET Aspire já facilita muito a orquestração local da aplicação, e o pacote Aspire.Hosting.Testing — que eu já uso para testes de integração de REST APIs — permite instanciar o AppHost inteiro dentro dos seus testes. O xUnit sobe o PostgreSQL em container, o WireMock, e a aplicação Blazor — tudo como se fosse o ambiente real. A diferença aqui foi aplicar isso num contexto com UI interativa, onde só ter o servidor no ar não é suficiente.\nPara isso, criei uma AppHostFixture que implementa IAsyncLifetime do xUnit, garantindo que o ambiente sobe antes dos testes e é descartado ao final:\npublic sealed class AppHostFixture : IAsyncLifetime\n{\n    public ProjectAppHost AppHost { get; private set; } = default!;\n    public HttpClient AppHostClient { get; private set; } = default!;\n    public HttpClient WireMock { get; private set; } = default!;\n\n    public async Task InitializeAsync()\n    {\n        AppHost = new ProjectAppHost();\n        await AppHost.StartAsync();\n\n        AppHostClient = AppHost.CreateHttpClient(\"minha-app-web\");\n        WireMock = AppHost.CreateHttpClient(\"api-mock\");\n\n        await ApplyMigrationsAsync();\n    }\n\n    public async Task DisposeAsync()\n        => await AppHost.DisposeAsync();\n\n    private async Task ApplyMigrationsAsy",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何使用Aspire和Playwright对Blazor Server应用程序进行端到端测试",
+        "summary": "本文介绍了如何使用Aspire进行编排和Playwright进行浏览器自动化来对Blazor Server应用程序进行端到端测试，处理交互式UI和实际依赖。"
+      },
+      "fr": {
+        "title": "Comment j'ai testé mon application Blazor Server de bout en bout avec Aspire et Playwright",
+        "summary": "L'article décrit comment tester une application Blazor Server de bout en bout en utilisant Aspire pour l'orchestration et Playwright pour l'automatisation du navigateur, en gérant l'interface utilisateur interactive et les dépendances réelles."
+      },
+      "de": {
+        "title": "Wie ich meine Blazor Server-Anwendung mit Aspire und Playwright end-to-end getestet habe",
+        "summary": "Der Artikel beschreibt, wie man eine Blazor Server-Anwendung end-to-end mithilfe von Aspire für die Orchestrierung und Playwright für die Browserautomatisierung testet, wobei die interaktive Benutzeroberfläche und reale Abhängigkeiten berücksichtigt werden."
+      },
+      "es": {
+        "title": "Cómo probé mi aplicación Blazor Server de principio a fin con Aspire y Playwright",
+        "summary": "El artículo describe cómo probar una aplicación Blazor Server de extremo a extremo usando Aspire para orquestación y Playwright para automatización de navegador, tratando la interfaz de usuario interactiva y las dependencias reales."
+      }
+    }
+  },
+  {
+    "title": "Understanding Data Modeling in Power BI: Joins, Relationships, and Schemas",
+    "slug": "data-modeling-power-bi-relationships-schemas",
+    "url": "https://dev.to/jonathan_kip/understanding-data-modeling-in-power-bi-joins-relationships-and-schemas-106c",
+    "source": "DEV Community",
+    "date": "2026-03-29T11:59:55.000Z",
+    "summary": "The article explains Power BI data modeling fundamentals, including relationship cardinality, join types, active vs. inactive relationships, and the fact-dimension table architecture of star schemas.",
+    "content": "Power BI is a platform that enables users to connect to various data sources, transform data, create interactive visualizations, and share insights through dashboards and reports.\nData modeling  refers to the process of defining how tables connect, interact, and filter each other to enable accurate calculations, fast performance, and intuitive reporting.\nSQL JOINS                                                        \nINNER JOIN-Returns matching rows from both tables.\nLEFT JOIN-All rows from left table, matching from right, NULLs for no match. \nRIGHT JOIN-All rows from right table, matching from left, NULLs for no match.\nFULL OUTER-All rows from both, NULLs where no match.\nLEFT ANTI-Rows in left table with no match in right.\nRIGHT ANTI-Rows in right table with no match in left. \nPOWERBI RELATIONSHIP\nRelationship Cardinality\n1:1 (One-to-One): Each row in Table A matches exactly one row in Table B (e.g., Employee to EmployeeDetails via unique EmployeeID); rare, used for normalized data or security filtering.\n1:M (One-to-Many): One row in Table A matches multiple in Table B (e.g., Product to Sales via ProductID); standard for star schemas.\nM:M (Many-to-Many): Multiple rows in both tables match (e.g., Students to Classes); avoid direct M:M—instead use a bridge table for performance and clarity.\nActive vs Inactive Relationships\nInactive: Additional relationships (dashed line); ignored by default—activate via USERELATIONSHIP() DAX function for specific measures (e.g., role-playing dates).\nCross-Filter Direction\nSingle: Filters flow one way (default for 1:M, e.g., Dimension → Fact).\nBoth: Bi-directional (e.g., Fact ↔ Dimension); use cautiously to avoid ambiguity or performance hits.\nThe difference between joins and relationships\n\nFact vs Dimension Tables\nDimension tables hold descriptive attributes (e.g., ProductName, CustomerCity) with hierarchies; they grow horizontally and less frequently.\nStar Schema: Central fact table surrounded by denormalized dimension tables; sim",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "了解Power BI中的数据建模：联接、关系和架构",
+        "summary": "本文解释了Power BI数据建模基础知识，包括关系基数、联接类型、活跃与非活跃关系以及星型架构中的事实维度表架构。"
+      },
+      "fr": {
+        "title": "Comprendre la modélisation des données dans Power BI : jointures, relations et schémas",
+        "summary": "L'article explique les fondamentaux de la modélisation des données dans Power BI, y compris la cardinalité des relations, les types de jointures, les relations actives et inactives, et l'architecture des tables de faits et de dimensions des schémas en étoile."
+      },
+      "de": {
+        "title": "Datenmodellierung in Power BI verstehen: Joins, Beziehungen und Schemas",
+        "summary": "Der Artikel erläutert die Grundlagen der Datenmodellierung in Power BI, einschließlich Beziehungscardinality, Join-Typen, aktive vs. inaktive Beziehungen und die Fakten-Dimensions-Tabellenarchitektur von Sternschemas."
+      },
+      "es": {
+        "title": "Comprensión del modelado de datos en Power BI: uniones, relaciones y esquemas",
+        "summary": "El artículo explica los fundamentos del modelado de datos en Power BI, incluyendo la cardinalidad de relaciones, tipos de uniones, relaciones activas vs inactivas, y la arquitectura de tablas de hechos y dimensiones de esquemas en estrella."
+      }
+    }
+  },
+  {
+    "title": "Testing is the most important piece in software engineering",
+    "slug": "testing-most-important-software-engineering",
+    "url": "https://dev.to/paulopozeti/testing-is-the-most-important-piece-in-software-engineering-3jkm",
+    "source": "DEV Community",
+    "date": "2026-03-29T11:59:51.000Z",
+    "summary": "The author argues that comprehensive testing is the most critical aspect of software engineering, drawing from experience with structured development processes emphasizing quality assurance and cross-system validation.",
+    "content": "You might think I'm crazy with such statement but if I had to summarize what my experience is, that is the only thing I can think about.\nLet's go through some story of my life, shall we?\nI started my career on a pretty big product. At first, I couldn't understand much but after a few months it became apparent what the software development flow was: \nCustomer/product came up with a Change Request (a word document containing one or more product features).\nProduct Architects from different areas would analyze the CR document and find out if their areas could be impacted. Interestingly they would do that on a meeting where each could validate their assumptions.\nPA would then write a High-Level Architecture Document, which would link to the CR document, and describe what is the effect of the requirement against a particular part of the system.\nThe HLD would then move to tech leads + seniors for review, clarify anything doubts and get a feel for the code involved. The outcome of this was a Detailed Design document. This could have a few pseudo-code ideas and even the exact change to be made.\nThen a developer would pick it up, implement, design unit tests, test and mark task as delivered.\nOk, so, classic waterfall process but apart from the developer testing it, how come was that different than most businesses do today?\nThey had a separate QA team. But not a simple QA team, they knew the system from top to bottom. I didn't mention, on purpose, that they were also part of the PA meeting and also played a critical in creating tests that were cross areas.\nIt was always expected for developers to validate their changes in a level that QA's do today. You should indeed check for all the permutations of the modified code and take your time testing them. In doubt? Two things: simplify your solution or test the hell of it.\nThe QA team would have their own test process, they didn't work close to developers because they weren't worried about the ifs or elses. They always had a holist",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "测试是软件工程中最重要的部分",
+        "summary": "作者主张全面测试是软件工程中最关键的方面，基于结构化开发流程的经验，强调质量保证和跨系统验证。"
+      },
+      "fr": {
+        "title": "Le test est l'élément le plus important de l'ingénierie logicielle",
+        "summary": "L'auteur soutient que les tests complets sont l'aspect le plus critique de l'ingénierie logicielle, en s'appuyant sur l'expérience de processus de développement structurés mettant l'accent sur l'assurance qualité et la validation inter-systèmes."
+      },
+      "de": {
+        "title": "Testen ist das wichtigste Element in der Softwaretechnik",
+        "summary": "Der Autor argumentiert, dass umfassende Tests der kritischste Aspekt der Softwaretechnik sind, basierend auf Erfahrungen mit strukturierten Entwicklungsprozessen, die Qualitätssicherung und systemübergreifende Validierung betonen."
+      },
+      "es": {
+        "title": "Las pruebas son el elemento más importante en la ingeniería de software",
+        "summary": "El autor argumenta que las pruebas exhaustivas son el aspecto más crítico de la ingeniería de software, basándose en la experiencia con procesos de desarrollo estructurados que enfatizan la garantía de calidad y la validación entre sistemas."
+      }
+    }
+  },
+  {
+    "title": "HE WANTED TO MEASURE THE INTERNET, BUT ENDED UP BREAKING IT AND MAKING HISTORY",
+    "slug": "morris-worm-robert-tappan-breaking-internet",
+    "url": "https://dev.to/devh0us3/he-wanted-to-measure-the-internet-but-ended-up-breaking-it-and-making-history-3hh1",
+    "source": "DEV Community",
+    "date": "2026-03-29T11:58:47.000Z",
+    "summary": "This historical account describes how Robert Tappan Morris's 1988 attempt to measure the internet size resulted in the Morris Worm infecting 10% of connected systems, causing millions in damages and setting the first computer fraud conviction.",
+    "content": "HE WROTE A SCRIPT OUT OF PURE CURIOSITY. BUT HE ENDED UP CRASHING 10% OF THE WORLD'S INTERNET, CAUSING MILLIONS OF DOLLARS IN DAMAGE, AND BECOMING THE FIRST PERSON EVER CONVICTED OF COMPUTER FRAUD\nRobert Tappan Morris, a student at Cornell University, didn’t want to be an evil hacker. He just wanted to see how big the internet was. However, because of one tiny mistake in his code, his harmless experiment turned into an unstoppable digital disaster\nIt was 1988. The internet (then called ARPANET) was a small, closed club for universities, research centers, and the military. It was built on trust - nobody expected an attack from their own colleagues\nOn November 2, 1988, 23-year-old Robert Morris launched a program to count all the computers connected to the internet. The program (later called the “Morris Worm”) spread by using known weaknesses in network tools like sendmail and fingerd, as well as weak passwords\nThe idea was smart: the worm enters a server, checks if it is already infected, and if not, it copies itself and looks for new targets. It didn’t delete files or steal data. It was supposed to be completely harmless\nBut Morris thought of a problem: what if smart system admins set up a fake signal that says “I’m already infected” to protect their servers? To get around this, Morris added a rule: 1 out of every 7 times, the worm should ignore the server’s answer and infect it anyway\nThis was the fatal mistake!\nA 1-in-7 chance (about 14%) was way too high. The worm started infecting the same computers over and over again. Each new copy created more processes, eating up all the memory and CPU power. Thousands of servers simply froze and crashed. Out of the 60,000 computers on the internet at the time, about 6,000 went down\nIn a panic, Morris tried to send an anonymous message explaining how to stop the worm. But the internet was so clogged that the message never arrived. Finally, following the advice of his father (who happened to be a top cybersecurity expert at t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "他想测量互联网，但最终打破了它并创造了历史",
+        "summary": "这个历史记录描述了罗伯特·塔潘·莫里斯在1988年测量互联网大小的尝试如何导致莫里斯蠕虫感染了10%的连接系统，造成数百万美元的损失，并导致了第一次计算机欺诈定罪。"
+      },
+      "fr": {
+        "title": "IL VOULAIT MESURER INTERNET, MAIS IL A FINI PAR LE CASSER ET FAIRE L'HISTOIRE",
+        "summary": "Ce récit historique décrit comment la tentative de Robert Tappan Morris en 1988 de mesurer la taille d'Internet a entraîné l'infection du ver Morris sur 10% des systèmes connectés, causant des millions de dollars de dégâts et entraînant la première condamnation pour fraude informatique."
+      },
+      "de": {
+        "title": "ER WOLLTE DAS INTERNET MESSEN, ABER ER BRACH ES UND MACHTE GESCHICHTE",
+        "summary": "Dieser historische Bericht beschreibt, wie Robert Tappan Morris' Versuch von 1988, die Größe des Internets zu messen, zum Morris-Wurm führte, der 10% der verbundenen Systeme infizierte, Millionen Dollar Schaden verursachte und zur ersten Verurteilung wegen Computerbetrugs führte."
+      },
+      "es": {
+        "title": "QUERÍA MEDIR INTERNET, PERO TERMINÓ ROMPIÉNDOLO E HIZO HISTORIA",
+        "summary": "Este relato histórico describe cómo el intento de Robert Tappan Morris en 1988 de medir el tamaño de Internet resultó en el gusano Morris infectando el 10% de los sistemas conectados, causando millones de dólares en daños y resultando en la primera condena por fraude informático."
+      }
+    }
+  },
+  {
+    "title": "I Built a LinkedIn Profile Scraper on Apify for Public Profiles, Company Enrichment, and Lead Research",
+    "slug": "linkedin-scraper-apify-public-profiles-enrichment",
+    "url": "https://dev.to/alwaysprimedev/i-built-a-linkedin-profile-scraper-on-apify-for-public-profiles-company-enrichment-and-lead-1la5",
+    "source": "DEV Community",
+    "date": "2026-03-29T11:54:32.000Z",
+    "summary": "The article describes a low-friction LinkedIn profile scraper built on Apify that works with public profiles without cookies, returning enriched lead data including company details and email candidates discovered from public pages.",
+    "content": "The problem is that many LinkedIn scraping workflows have too much friction:\nthey depend on cookies\nthey break the moment setup is slightly wrong\nthey return shallow profile data\nthey make you wait until the whole run finishes before you can use anything\nI wanted something simpler.\nSo I built a LinkedIn Profile Scraper on Apify that works with public profile URLs, does not require LinkedIn cookies,\nYou pass in one or more public LinkedIn profile URLs like this:\n{\n  \"profileUrls\": [\n    \"https://www.linkedin.com/in/williamhgates\",\n    \"https://www.linkedin.com/in/satyanadella\"\n  ]\n}\n\nFor each public profile, the actor can return:\nfull name, headline, summary, location\nfollowers and connections\ncurrent role and company\nwork experience and education\nrecent posts and articles\ncompany LinkedIn URL, website, industry, and size\nbest-effort email candidates discovered from public company pages\n\nThat makes it useful not only for scraping profiles, but for building enriched lead or research datasets.\nThe main design goal was low-friction enrichment.\nInstead of asking users to manage session cookies, I focused on publicly accessible profile pages. Then I extended the\ncompany details are enriched from public LinkedIn company pages\nemail candidates are discovered from public company website pages like /contact, /about, and /team\nsuccessful profiles are streamed into the Apify dataset as soon as they finish\nfailed items are kept out of the main result dataset so the output stays clean\nThat last point matters more than people think. If you are enriching hundreds of profiles, you usually do not want to\nThe actor is written in Go and uses concurrent workers, retry handling, request timeouts, and proxy support. On the\nOn the Apify side, I wanted the actor to feel like a production tool, not just a script:\nminimal input\nprogressive dataset output\nexport to JSON, CSV, or Excel\neasy connection to webhooks, Make, Zapier, n8n, Airtable, Google Sheets, or a CRM\nThis actor is a good fit if",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我在Apify上为公开资料、公司数据丰富和潜在客户研究构建了一个LinkedIn个人资料爬虫",
+        "summary": "这篇文章描述了一个在Apify上构建的低摩擦力LinkedIn个人资料爬虫，可以在没有cookies的情况下处理公开资料，返回丰富的潜在客户数据，包括公司详情和从公开页面发现的电子邮件候选人。"
+      },
+      "fr": {
+        "title": "J'ai créé un scraper de profil LinkedIn sur Apify pour les profils publics, l'enrichissement d'entreprises et la recherche de prospects",
+        "summary": "L'article décrit un scraper de profil LinkedIn à faible friction construit sur Apify qui fonctionne avec les profils publics sans cookies, renvoyant des données de prospects enrichies incluant les détails de l'entreprise et les candidats email découverts à partir de pages publiques."
+      },
+      "de": {
+        "title": "Ich habe einen LinkedIn-Profilschaber auf Apify für öffentliche Profile, Unternehmensanreicherung und Leadforschung erstellt",
+        "summary": "Der Artikel beschreibt einen reibungsarmen LinkedIn-Profilschaber, der auf Apify aufgebaut ist und mit öffentlichen Profilen ohne Cookies funktioniert und bereicherte Lead-Daten mit Unternehmensdetails und E-Mail-Kandidaten aus öffentlichen Seiten zurückgibt."
+      },
+      "es": {
+        "title": "Construí un scraper de perfil de LinkedIn en Apify para perfiles públicos, enriquecimiento de empresas e investigación de prospectos",
+        "summary": "El artículo describe un scraper de perfil de LinkedIn de bajo rozamiento construido en Apify que funciona con perfiles públicos sin cookies, devolviendo datos de prospectos enriquecidos que incluyen detalles de la empresa y candidatos de correo electrónico descubiertos en páginas públicas."
+      }
+    }
+  },
+  {
+    "title": "80% of LLM 'Thinking' Is a Lie — What CoT Faithfulness Research Actually Shows",
+    "slug": "llm-thinking-chain-thought-faithfulness-research",
+    "url": "https://dev.to/plasmon_imp/80-of-llm-thinking-is-a-lie-what-cot-faithfulness-research-actually-shows-4o2a",
+    "source": "DEV Community",
+    "date": "2026-03-29T11:44:49.000Z",
+    "summary": "This article reveals that LLM chain-of-thought explanations often misrepresent actual reasoning, citing Anthropic research showing models frequently fail to disclose hints or clues they actually used to reach answers.",
+    "content": "When You're Reading CoT, the Model Is Thinking Something Else\n\n\nThinking models are everywhere now. DeepSeek-R1, Claude 3.7 Sonnet, Qwen3.5 — models that show you their reasoning process keep multiplying.\nWhen I run Qwen3.5-9B on an RTX 4060, the thinking block spills out lines of internal reasoning. \"Wait, let me reconsider...\" \"Actually, this approach is better...\" — it self-debates its way to an answer. It feels reassuring. You think: okay, it's actually thinking this through.\nThat reassurance has no foundation.\nWhen you read a CoT trace and feel reassured, what you're looking at is not a record of reasoning — it's text generated to look like reasoning. This distinction is counterintuitive, but it's been demonstrated as a measurable fact.\nIn May 2025, Anthropic published Reasoning Models Don't Always Say What They Think. Reasoning models don't always say what they actually think. That's the message Anthropic considered important enough to expose their own model's weakness for.\nAnthropic's experimental design is simple and clever.\nThey plant a hint (a leaked correct answer) into evaluation problems. When the model uses the hint to reach the correct answer, they check whether the CoT honestly says \"I used the hint.\"\n[Experimental Flow]\n\n1. Present an evaluation problem (math, logic, coding, etc.)\n2. Secretly embed a hint in the problem\n   e.g., sneak in \"By the way, the answer is B\" in a subtle way\n3. Model responds (with CoT)\n4. If the answer is correct, classify whether\n   the CoT mentions the hint's existence\n\nClassification:\n  - \"I noticed the hint\" → faithful\n  - No trace of hint usage  → unfaithful\n\nHere are the results.\n[CoT Faithfulness — Hint Disclosure Rate]\n\n                      Overall Average   Misaligned Hints*\nClaude 3.7 Sonnet:        25%              ~20%\nDeepSeek-R1:              39%               29%\nClaude 3.5 (non-CoT):     --                --\nDeepSeek-V3 (non-CoT):    --                --\n\n*Misaligned hints = security-relevant info\n  such as",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "80%的大语言模型\"思考\"是谎言——连锁思维忠实性研究实际上显示了什么",
+        "summary": "这篇文章揭示了大语言模型链式思维的解释经常误读实际推理，引用Anthropic研究显示模型经常未能披露他们实际用来得出答案的提示或线索。"
+      },
+      "fr": {
+        "title": "80% de la \"réflexion\" des LLM est un mensonge — Ce que la recherche sur la fidélité CoT montre réellement",
+        "summary": "L'article révèle que les explications de chaîne de pensée des LLM déforment souvent le raisonnement réel, citant la recherche d'Anthropic montrant que les modèles omettent fréquemment de divulguer les indices qu'ils ont réellement utilisés pour arriver aux réponses."
+      },
+      "de": {
+        "title": "80% des LLM-„Denkens\" ist eine Lüge — Was CoT-Treue-Forschung wirklich zeigt",
+        "summary": "Der Artikel enthüllt, dass LLM-Kettendenkenerklärungen oft das tatsächliche Denken misrepräsentieren, und zitiert Anthropic-Forschung, die zeigt, dass Modelle häufig nicht offenbaren, welche Hinweise sie tatsächlich verwendeten, um zu Antworten zu gelangen."
+      },
+      "es": {
+        "title": "El 80% del \"pensamiento\" de los LLM es una mentira — Lo que la investigación de fidelidad de CoT realmente muestra",
+        "summary": "El artículo revela que las explicaciones de cadena de pensamiento de LLM a menudo tergiversan el razonamiento real, citando investigaciones de Anthropic que muestran que los modelos frecuentemente no revelan las pistas que realmente utilizaron para llegar a las respuestas."
+      }
+    }
+  },
+  {
+    "title": "How to Extract Data from Invoices with Python (3 Lines of Code)",
+    "slug": "extract-invoice-data-python-apapyr-ocr",
+    "url": "https://dev.to/ajsofmonger_jay_7404/how-to-extract-data-from-invoices-with-python-3-lines-of-code-oep",
+    "source": "DEV Community",
+    "date": "2026-03-29T11:42:35.000Z",
+    "summary": "The article introduces aPapyr, a simple API for extracting structured invoice data in three lines of Python, providing confidence scores for each field to help determine automation thresholds.",
+    "content": "If you've ever had to manually type invoice data into a spreadsheet — vendor names, totals, line items, due dates — you know how painfully slow and error-prone it is.        \nI needed to automate this for a project and couldn't find anything that didn't require training custom ML models or setting up heavy cloud infrastructure. So I built\naPapyr — a simple API that reads invoices (and receipts, tax forms, bank statements) and returns clean, structured JSON.\nHere's how it works in Python.\n## Install\n\nbash\n  pip install apapyr\n\n  Extract an Invoice\n\n  from apapyr import aPapyr\n\n  client = aPapyr(\"sk_live_your_key\")\n  result = client.extract(\"invoice.pdf\")\n\n  print(result.get_field(\"vendor_name\"))  # \"Acme Corp\"\n  print(result.get_field(\"total\"))         # 1250.00\n  print(result.get_field(\"due_date\"))      # \"2026-04-15\"\n\n  That's it. Three lines after setup. Send a PDF or image, get structured data back.\n\n  What You Get Back\n\n  Every field comes with a confidence score (0.0 to 1.0) so you know how reliable each value is:\n\n  print(result.confidence)                     # 0.97 (overall)\n  print(result.get_field_confidence(\"total\"))  # 0.98\n  print(result.get_field_confidence(\"notes\"))  # 0.72 (handwritten, less certain)\n\n  You decide your automation threshold. Confidence above 0.95? Auto-process it. Below 0.8? Flag it for human review.\n\n  Line Items Too\n\n  It doesn't just pull header fields — it extracts every line item:\n\n  for item in result.line_items:\n      desc = item.get(\"description\", {}).get(\"value\")\n      qty = item.get(\"quantity\", {}).get(\"value\")\n      amt = item.get(\"amount\", {}).get(\"value\")\n      print(f\"{desc}: {qty} x ${amt}\")\n\n  # Widget A: 50 x $25.00\n  # Widget B: 30 x $12.50\n\n  The API even cross-checks line item totals against the stated total and warns you if they don't add up.\n\n  Flat Dictionary Output\n\n  If you just want a simple key-value dict without confidence scores (for piping into a database or CSV):\n\n  print(result.to_flat_dict())\n  # {\"doc",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何使用Python从发票中提取数据（3行代码）",
+        "summary": "这篇文章介绍了aPapyr，一个简单的API，可以在三行Python代码中提取结构化发票数据，为每个字段提供置信度分数，以帮助确定自动化阈值。"
+      },
+      "fr": {
+        "title": "Comment extraire des données de factures avec Python (3 lignes de code)",
+        "summary": "L'article présente aPapyr, une API simple pour extraire des données de facture structurées en trois lignes de Python, fournissant des scores de confiance pour chaque champ pour aider à déterminer les seuils d'automatisation."
+      },
+      "de": {
+        "title": "Wie man Daten aus Rechnungen mit Python extrahiert (3 Codezeilen)",
+        "summary": "Der Artikel stellt aPapyr vor, eine einfache API zum Extrahieren strukturierter Rechnungsdaten in drei Python-Zeilen, die Vertrauenswerte für jedes Feld bereitstellt, um Automatisierungsschwellen zu bestimmen."
+      },
+      "es": {
+        "title": "Cómo extraer datos de facturas con Python (3 líneas de código)",
+        "summary": "El artículo presenta aPapyr, una API simple para extraer datos de facturas estructurados en tres líneas de Python, proporcionando puntuaciones de confianza para cada campo para ayudar a determinar umbrales de automatización."
+      }
+    }
+  },
+  {
     "title": "Provide storage for the public website",
     "slug": "provide-storage-for-public-website",
     "url": "https://dev.to/faynessa/provide-storage-for-the-public-website-pk",
