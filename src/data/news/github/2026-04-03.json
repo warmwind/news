@@ -1,5 +1,341 @@
 [
   {
+    "title": "I Built an AI Agent That Watches the Market While I Sleep",
+    "slug": "ai-agent-watches-market-while-you-sleep",
+    "url": "https://dev.to/chen_zhang_bac430bc7f6b95/i-built-an-ai-agent-that-watches-the-market-while-i-sleep-3go4",
+    "source": "DEV Community",
+    "date": "2026-04-03T06:18:24.000Z",
+    "summary": "Developer created an AI trading agent using OpenClaw, Exa, and Milvus to monitor stock markets autonomously and learn from past trading mistakes. The agent successfully analyzed NVIDIA earnings and provided personalized trading recommendations by combining market analysis with the user's trading history.",
+    "content": "I have a full-time job and no time to watch the stock market all day. But I still trade — mostly US tech stocks. Last year I made at least three bad decisions because I was too tired or too rushed to think clearly. So I built an AI agent to do the watching for me.\nThe stack: OpenClaw as the agent framework, Exa for information gathering, and Milvus as a personal memory store. Total cost: about $20/month.\nOn February 26th, NVIDIA reported Q4 earnings — revenue up 65% year-over-year. The stock dropped 5.5%. I didn't find out until the next morning.\nBut when I checked my phone, there was already a message from my agent, sent the previous evening:\nNVDA earnings analysis: Revenue beat expectations, but the market is skeptical about AI capex sustainability. In similar past situations, the stock tended to drop short-term. You had a similar experience in September 2024 — you panic-sold and the stock recovered within three weeks. Recommendation: hold, don't panic-sell.\nIt didn't just analyze the earnings report. It pulled up my own past trading notes and reminded me not to repeat the same mistake.\nThe first problem: where does the information come from?\nExa is a search API designed for AI agents. It does semantic search — describe what you're looking for in plain language, and it understands what you mean. The index refreshes every minute and filters out SEO spam.\nfrom exa_py import Exa\n\nexa = Exa(api_key=\"your-api-key\")\n\nresult = exa.search(\n    \"Why did NVIDIA stock drop despite strong Q4 2026 earnings\",\n    type=\"neural\",\n    num_results=10,\n    start_published_date=\"2026-02-25\",\n    contents={\n        \"text\": {\"max_characters\": 3000},\n        \"highlights\": {\"num_sentences\": 3},\n        \"summary\": {\"query\": \"What caused the stock drop?\"}\n    }\n)\n\nThe contents parameter is the killer feature — it extracts full text, highlights key sentences, and generates a summary, all in one request. No need to click through links one by one.\nInformation gathering solves \"what's happenin",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个在我睡眠时监控市场的AI代理",
+        "summary": "开发者使用OpenClaw、Exa和Milvus创建了一个AI交易代理，可以自主监控股市并从过去的交易错误中学习。该代理成功分析了英伟达的财务报告，并通过将市场分析与用户的交易历史相结合提供了个性化的交易建议。"
+      },
+      "fr": {
+        "title": "J'ai créé un agent IA qui surveille le marché pendant que je dors",
+        "summary": "Un développeur a créé un agent de trading IA utilisant OpenClaw, Exa et Milvus pour surveiller autonomement les marchés boursiers et apprendre de ses erreurs de trading passées. L'agent a analysé avec succès les résultats de NVIDIA et fourni des recommandations commerciales personnalisées en combinant l'analyse de marché avec l'historique commercial de l'utilisateur."
+      },
+      "de": {
+        "title": "Ich habe einen KI-Agenten erstellt, der den Markt überwacht, während ich schlafe",
+        "summary": "Ein Entwickler hat einen KI-Handelsagenten mit OpenClaw, Exa und Milvus erstellt, um Aktienmärkte autonom zu überwachen und von früheren Handelsfehlern zu lernen. Der Agent analysierte erfolgreich die NVIDIA-Ergebnisse und lieferte personalisierte Handelsempfehlungen, indem er Marktanalyse mit der Handelshistorie des Benutzers kombinierte."
+      },
+      "es": {
+        "title": "Construí un agente de IA que vigila el mercado mientras duermo",
+        "summary": "Un desarrollador creó un agente comercial de IA utilizando OpenClaw, Exa y Milvus para monitorear autónomamente los mercados de valores y aprender de los errores comerciales anteriores. El agente analizó exitosamente los resultados de NVIDIA y proporcionó recomendaciones comerciales personalizadas al combinar el análisis de mercado con el historial comercial del usuario."
+      }
+    }
+  },
+  {
+    "title": "Agentic PHPUnit output",
+    "slug": "agentic-phpunit-output",
+    "url": "https://dev.to/xwero/agentic-phpunit-output-291n",
+    "source": "DEV Community",
+    "date": "2026-04-03T06:16:07.000Z",
+    "summary": "Developer created a PHPUnit extension that outputs test results in markdown format for AI agents, using agent-detection library to identify when tests run in agent environments. The extension collects test data and formats readable test summaries with failed test details.",
+    "content": "I was made a aware of PAO. And while it think it is a good tool I think we can do better by making it more useful for an LLM.\nThe package has options for PHPUnit, Pest and ParaTest. I'm only going to focus on PHPUnit, version 12 in particular.\nPHPUnit has an option to add extensions. The best way to let PHPUnit  know your extension is in the phpunit.xml file.\n<extensions>\n    <bootstrap class=\"Tests\\Extensions\\AgentAwareOutputExtension\"/>\n</extensions>\n\nTo detect when PHPunit is run inside an agent I used the shipfastlabs/agent-detector library (I saw it in PAO). This library uses well known config variables to detect multiple agents. Because I'm trying out Mistral Vibe now I added a new script to composer.json.\n\"test:agent\": \"AI_AGENT=1 vendor/bin/phpunit\"\n\nWhile PAO uses json as output, I want to use markdown.\nIn the PHPUnit I saw an example where the used a intermediate class to collect the needed data, so that is what I did.\nclass TestDataCollector\n{\n    public function __construct(\n        public int $failed = 0,\n        public int $passed = 0,\n        public int $total = 0,\n        public array $messages = [],\n    )\n    {}\n\n    public function write() : void\n    {\n        $text = '# Test results'. PHP_EOL . PHP_EOL;\n        $text .= '## Summary' . PHP_EOL. PHP_EOL;\n        $text .= 'failed: ' . $this->failed . PHP_EOL;\n        $text .= 'passed: ' . $this->passed . PHP_EOL;\n        $text .= 'total: ' . $this->total . PHP_EOL;\n\n        if(count($this->messages) > 0) {\n            $text .=  PHP_EOL . '## Failed tests' . PHP_EOL. PHP_EOL;\n            $text .= '| Test | Message |' . PHP_EOL;\n            $text .= '| --- | --- |' . PHP_EOL;\n\n            foreach($this->messages as $message) {\n                $text .= '| ' . $message['test'].' | ' . $message['message'] . ' |' . PHP_EOL;\n            }\n        }\n\n\n        fwrite(STDOUT, $text);\n    }\n}\n\nIn the constructor I setup all the properties I needed to for PHPUnit to manipulate them based on the status of the tes",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "代理化PHPUnit输出",
+        "summary": "开发者创建了一个PHPUnit扩展，可以为AI代理以markdown格式输出测试结果，使用代理检测库来识别测试在代理环境中何时运行。该扩展收集测试数据并格式化可读的测试摘要，包括失败测试的详细信息。"
+      },
+      "fr": {
+        "title": "Sortie PHPUnit agentic",
+        "summary": "Un développeur a créé une extension PHPUnit qui produit les résultats des tests au format markdown pour les agents IA, en utilisant la bibliothèque de détection d'agents pour identifier quand les tests s'exécutent dans des environnements d'agents. L'extension collecte les données de test et formate des résumés de test lisibles avec les détails des tests échoués."
+      },
+      "de": {
+        "title": "Agentic PHPUnit-Ausgabe",
+        "summary": "Ein Entwickler hat eine PHPUnit-Erweiterung erstellt, die Testergebnisse im Markdown-Format für KI-Agenten ausgibt, wobei eine Agent-Erkennungsbibliothek verwendet wird, um zu identifizieren, wenn Tests in Agent-Umgebungen ausgeführt werden. Die Erweiterung erfasst Testdaten und formatiert lesbare Testzusammenfassungen mit Details zu fehlgeschlagenen Tests."
+      },
+      "es": {
+        "title": "Salida PHPUnit agentic",
+        "summary": "Un desarrollador creó una extensión PHPUnit que genera resultados de pruebas en formato markdown para agentes de IA, utilizando una biblioteca de detección de agentes para identificar cuándo se ejecutan las pruebas en entornos de agentes. La extensión recopila datos de prueba y formatea resúmenes de prueba legibles con detalles de pruebas fallidas."
+      }
+    }
+  },
+  {
+    "title": "Stop Falling for Unlimited Hosting: A Developer's Guide to Bandwidth vs. Data Transfer",
+    "slug": "bandwidth-vs-data-transfer-hosting-guide",
+    "url": "https://dev.to/nyra_amsi/stop-falling-for-unlimited-hosting-a-developers-guide-to-bandwidth-vs-data-transfer-26f4",
+    "source": "DEV Community",
+    "date": "2026-04-03T06:15:53.000Z",
+    "summary": "Explains the critical difference between bandwidth (port speed) and data transfer (monthly volume), showing how shared 'unlimited' hosting can bottleneck despite high transfer caps. Provides calculation methods for determining infrastructure needs and strategies like VLAN for optimizing bare metal server usage.",
+    "content": "Ever had a \"10TB transfer plan\" but your video streaming app still lagged for users? You likely hit a Bandwidth bottleneck, not a data cap.\nIn the world of Bare Metal, \"Unlimited\" is often a marketing mask for shared, throttled ports. Let's break down the math every dev should know before picking a server.\nBandwidth (Port Speed): The WIDTH of the pipe (Mbps/Gbps). It dictates how much data flows in one second.\nData Transfer: The VOLUME of water flowing through that pipe over a month (GB/TB).\nThe iRexta Rule: We use Unmetered Bare Metal. If you have a 1Gbps port, it's yours 24/7. No shared pipes.\nDon't guess your infrastructure needs. Calculate it:\nRequired Speed (Mbps) = (Avg Page/Stream Size in Mb * Concurrent Users)\n\nExample: 5 Mbps stream * 500 concurrent viewers = 2.5 Gbps required.\nIf you are on a standard 1Gbps port, your users will experience buffering instantly. This is where LACP (Link Aggregation) or a 10Gbps Uplink becomes mandatory.\nAdvanced devs save public bandwidth for customers and use Private Networking for internal tasks:\nIngress: Data coming IN (usually free at iRexta).\nVLAN: Use eth1 for DB syncs and backups. It's unmetered and doesn't touch your public 1Gbps/10Gbps pipe.\nWhat’s your current network setup? Are you running on shared \"Unlimited\" pipes or dedicated unmetered ports? Let's discuss in the comments! 👇\nOriginally published on iRexta Blog",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "停止相信无限主机：开发者的带宽与数据传输指南",
+        "summary": "解释了带宽（端口速度）和数据传输（月度量）之间的关键区别，展示了共享的\"无限\"主机如何可能成为瓶颈，尽管具有高传输限额。提供了确定基础设施需求的计算方法和优化裸机服务器使用的VLAN等策略。"
+      },
+      "fr": {
+        "title": "Arrêtez de tomber pour l'hébergement illimité : Guide du développeur sur la bande passante par rapport au transfert de données",
+        "summary": "Explique la différence critique entre la bande passante (vitesse du port) et le transfert de données (volume mensuel), montrant comment l'hébergement partagé « illimité » peut devenir un goulot d'étranglement malgré des limites de transfert élevées. Fournit des méthodes de calcul pour déterminer les besoins en infrastructure et des stratégies comme VLAN pour optimiser l'utilisation des serveurs bare metal."
+      },
+      "de": {
+        "title": "Hören Sie auf, auf unbegrenzte Hosting-Pläne hereinzufallen: Ein Entwicklerhandbuch zu Bandbreite gegenüber Datenübertragung",
+        "summary": "Erklärt den kritischen Unterschied zwischen Bandbreite (Portgeschwindigkeit) und Datenübertragung (monatliches Volumen) und zeigt, wie gemeinsames „unbegrenztes\" Hosting zum Engpass werden kann, obwohl die Übertragungsgrenzen hoch sind. Bietet Berechnungsmethoden zur Bestimmung von Infrastrukturanforderungen und Strategien wie VLAN zur Optimierung der Nutzung von Bare-Metal-Servern."
+      },
+      "es": {
+        "title": "Deja de caer en la trampa del alojamiento ilimitado: Guía del desarrollador sobre ancho de banda versus transferencia de datos",
+        "summary": "Explica la diferencia crítica entre ancho de banda (velocidad del puerto) y transferencia de datos (volumen mensual), mostrando cómo el alojamiento compartido \"ilimitado\" puede convertirse en un cuello de botella a pesar de tener límites de transferencia altos. Proporciona métodos de cálculo para determinar necesidades de infraestructura y estrategias como VLAN para optimizar el uso de servidores bare metal."
+      }
+    }
+  },
+  {
+    "title": "Message Queues (Kafka, RabbitMQ, SQS) in System Design",
+    "slug": "message-queues-kafka-rabbitmq-sqs-system-design",
+    "url": "https://dev.to/code_2/message-queues-kafka-rabbitmq-sqs-in-system-design-57jl",
+    "source": "DEV Community",
+    "date": "2026-04-03T06:09:40.000Z",
+    "summary": "Overview of message queues as foundational infrastructure for asynchronous distributed systems, comparing three major implementations: Kafka for high-throughput event streaming, RabbitMQ for flexible routing, and SQS for managed serverless operations. Message queues enable decoupling, fault tolerance, and scalability in microservices architectures.",
+    "content": "Introduction to Message Queues in System Design\n\n\nMessage queues serve as the backbone of asynchronous communication in distributed systems. They enable producers to send messages that consumers process independently, without requiring both parties to be available simultaneously. This decoupling eliminates tight temporal dependencies, buffers traffic during spikes, and provides fault tolerance by allowing retries and dead-letter queues for failed messages. \nIn system design, message queues address critical challenges such as scalability, reliability, and throughput. They support patterns including event-driven architecture, microservices communication, task queues, and log aggregation. By persisting messages durably, they ensure data survives failures and can be replayed when necessary. Message queues come in two broad categories: traditional task queues focused on routing and delivery, and event streams optimized for high-volume, ordered, replayable data.\nThree prominent implementations dominate modern system design: Apache Kafka for high-throughput event streaming, RabbitMQ for flexible routing and messaging patterns, and Amazon SQS for fully managed, serverless queue operations. Each offers distinct strengths in architecture, delivery guarantees, and operational model.\nApache Kafka functions as a distributed event streaming platform rather than a simple message queue. It excels in scenarios demanding massive throughput, durability, and replayability across thousands of producers and consumers.\nA Kafka cluster consists of multiple brokers that store and serve data. Topics act as logical categories for messages, each divided into partitions for parallelism. Every partition is an ordered, immutable log stored on a broker. \nReplication ensures fault tolerance: each partition has a leader handling reads and writes, plus followers (in-sync replicas) that copy data. If the leader fails, a follower is elected. Producers write to topics, while consumers read from partitio",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "消息队列（Kafka、RabbitMQ、SQS）在系统设计中的应用",
+        "summary": "消息队列作为异步分布式系统的基础设施的概述，比较了三种主要实现：Kafka用于高吞吐量事件流、RabbitMQ用于灵活路由，以及SQS用于托管无服务器操作。消息队列在微服务架构中实现了解耦、容错性和可扩展性。"
+      },
+      "fr": {
+        "title": "Files de messages (Kafka, RabbitMQ, SQS) dans la conception de systèmes",
+        "summary": "Aperçu des files de messages en tant qu'infrastructure fondamentale pour les systèmes distribués asynchrones, comparant trois implémentations majeures : Kafka pour la diffusion d'événements à haut débit, RabbitMQ pour le routage flexible, et SQS pour les opérations sans serveur gérées. Les files de messages permettent le découplage, la tolérance aux pannes et la scalabilité dans les architectures de microservices."
+      },
+      "de": {
+        "title": "Message Queues (Kafka, RabbitMQ, SQS) im Systemdesign",
+        "summary": "Übersicht über Message Queues als grundlegende Infrastruktur für asynchrone verteilte Systeme, die drei große Implementierungen vergleicht: Kafka für hochdurchsatziges Event-Streaming, RabbitMQ für flexibles Routing und SQS für verwaltete serverlose Operationen. Message Queues ermöglichen Entkopplung, Fehlertoleranz und Skalierbarkeit in Microservices-Architekturen."
+      },
+      "es": {
+        "title": "Colas de mensajes (Kafka, RabbitMQ, SQS) en el diseño de sistemas",
+        "summary": "Descripción general de las colas de mensajes como infraestructura fundamental para sistemas distribuidos asincronos, comparando tres implementaciones principales: Kafka para streaming de eventos de alto rendimiento, RabbitMQ para enrutamiento flexible y SQS para operaciones sin servidor gestionadas. Las colas de mensajes permiten desacoplamiento, tolerancia a fallos y escalabilidad en arquitecturas de microservicios."
+      }
+    }
+  },
+  {
+    "title": "Maybe WordPress Should Stop Being the Default for Modern Content Systems",
+    "slug": "wordpress-default-modern-content-systems",
+    "url": "https://dev.to/poorman/maybe-wordpress-should-stop-being-the-default-for-modern-content-systems-1648",
+    "source": "DEV Community",
+    "date": "2026-04-03T06:07:15.000Z",
+    "summary": "While WordPress remains excellent for traditional sites, the author argues it's overrecommended for API-first, multi-frontend architectures where content portability and schema validation are essential. The author built HTMLess, a headless CMS designed for content platforms requiring multiple delivery channels rather than theme-centric websites.",
+    "content": "WordPress is still incredible software.\nI also think we recommend it by reflex in a lot of situations where it is no longer the cleanest fit.\nThat is not the same as saying WordPress is bad. It clearly is not. It powers a huge part of the web, it solved publishing for millions of people, and it still wins plenty of perfectly valid projects.\nBut once your content has to outlive a single theme, a single frontend, or even a single site, I think \"just use WordPress\" often survives longer than the architecture case for it.\nThat tension is a big part of why I built HTMLess, an open source headless CMS.\nThis post is intentionally opinionated because I think this is a debate worth having:\nWordPress is excellent at powering WordPress sites.\nI just do not think that automatically makes it the best foundation for API-first, multi-frontend, multi-site content architecture.\nWordPress is still a good choice for theme-centric sites and teams already invested in its ecosystem.\nI think \"just use WordPress\" becomes shaky advice once content needs to be portable, API-first, preview-safe, and shared across multiple frontends or spaces.\nIn that world, plugin stacks often become accidental architecture.\nI wanted a CMS where schema validation, preview boundaries, delivery caching, scoped tokens, and multi-site isolation were core design decisions, not retrofits.\nI borrowed a lot from WordPress. I just stopped wanting my content model to inherit WordPress's deployment and rendering assumptions.\nThat difference matters.\nIf I need:\na marketing site\na blog\na content team that already knows WordPress\ntheme-driven rendering\na fast path to launch\nthen WordPress is still a very rational choice.\nBut the problem changes when the same content needs to feed:\na Next.js frontend\na docs site\nlanding pages\ninternal tools\nmobile surfaces\nmultiple client sites from one backend\nAt that point I am not really building \"a website\" anymore.\nI am building a content platform.\nAnd I think too many teams still reac",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "WordPress是否应该停止成为现代内容系统的默认选择",
+        "summary": "虽然WordPress对传统网站仍然表现出色，但作者认为它对于API优先、多前端架构（内容可移植性和模式验证至关重要）被过度推荐。作者构建了HTMLess，一个无头CMS，专为需要多个交付渠道而非主题中心网站的内容平台而设计。"
+      },
+      "fr": {
+        "title": "WordPress devrait-il cesser d'être le choix par défaut pour les systèmes de contenu modernes",
+        "summary": "Bien que WordPress reste excellent pour les sites traditionnels, l'auteur soutient qu'il est trop recommandé pour les architectures API-first multi-frontales où la portabilité du contenu et la validation de schéma sont essentielles. L'auteur a construit HTMLess, un CMS headless conçu pour les plateformes de contenu nécessitant plusieurs canaux de diffusion plutôt que des sites centrés sur les thèmes."
+      },
+      "de": {
+        "title": "Sollte WordPress aufhören, die Standardeinstellung für moderne Content-Systeme zu sein",
+        "summary": "Obwohl WordPress für traditionelle Websites weiterhin ausgezeichnet ist, argumentiert der Autor, dass es für API-First-, Multi-Frontend-Architekturen überempfohlen wird, wo Inhaltsportabilität und Schema-Validierung wesentlich sind. Der Autor entwickelte HTMLess, ein Headless-CMS, das für Content-Plattformen konzipiert ist, die mehrere Auslieferungskanäle statt themenzentrierter Websites benötigen."
+      },
+      "es": {
+        "title": "¿Debería WordPress dejar de ser la opción predeterminada para sistemas de contenido moderno",
+        "summary": "Aunque WordPress sigue siendo excelente para sitios tradicionales, el autor argumenta que se recomienda en exceso para arquitecturas API-first de múltiples interfaces donde la portabilidad del contenido y la validación de esquemas son esenciales. El autor construyó HTMLess, un CMS sin cabeza diseñado para plataformas de contenido que requieren múltiples canales de entrega en lugar de sitios centrados en temas."
+      }
+    }
+  },
+  {
+    "title": "How to Use CodeRabbit for Automated Pull Request Reviews",
+    "slug": "coderabbit-automated-pull-request-reviews",
+    "url": "https://dev.to/rahulxsingh/how-to-use-coderabbit-for-automated-pull-request-reviews-2nj2",
+    "source": "DEV Community",
+    "date": "2026-04-03T06:00:00.000Z",
+    "summary": "Comprehensive guide to using CodeRabbit, the widely-adopted AI code review tool with 2+ million connected repositories, covering setup through GitHub App installation and .coderabbit.yaml configuration. The tool automatically analyzes PRs for logic errors, security issues, and code style, with customizable review rules matching team standards.",
+    "content": "What you will learn\n\n\nThis guide walks through every step of using CodeRabbit for automated pull request reviews - from creating your account and installing the GitHub or GitLab app to configuring advanced review behavior with .coderabbit.yaml and getting the most value from AI-generated feedback.\nCodeRabbit is the most widely adopted AI code review tool, with over 2 million connected repositories and more than 13 million pull requests reviewed. It installs as a native GitHub App (or GitLab, Azure DevOps, and Bitbucket integration) and automatically reviews every pull request within minutes of it being opened. The platform uses large language models to analyze diffs in the context of your full repository, posting human-like review comments that cover logic errors, security vulnerabilities, performance issues, and code style.\nBy the end of this guide, you will know how to:\nSign up and connect your repositories to CodeRabbit\nInstall the GitHub or GitLab App and configure repository access\nWrite a .coderabbit.yaml configuration file with review profiles, path filters, and natural language instructions\nTrigger and interpret your first AI-powered PR review\nUse CodeRabbit's conversational commands to interact with review comments\nCustomize review rules to match your team's coding standards\nReduce noise and false positives for a better developer experience\nIf you are looking for a more concise setup walkthrough, see our How to Setup CodeRabbit guide. For pricing details, check the CodeRabbit Pricing breakdown.\n\nBefore you start using CodeRabbit, make sure you have the following:\nA GitHub, GitLab, Azure DevOps, or Bitbucket account with at least one repository that has active pull request activity\nAdmin or owner permissions on the repositories where you want to install CodeRabbit (required to authorize the GitHub App)\nA test pull request or the ability to create one so you can verify the installation is working (optional but strongly recommended)\nNo other prerequisites are",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何使用CodeRabbit进行自动化拉取请求审查",
+        "summary": "CodeRabbit使用的综合指南，这是一个被广泛采用的AI代码审查工具，连接了200多万个存储库，涵盖了从GitHub App安装到.coderabbit.yaml配置的设置。该工具自动分析PR中的逻辑错误、安全问题和代码风格，具有与团队标准匹配的可定制审查规则。"
+      },
+      "fr": {
+        "title": "Comment utiliser CodeRabbit pour les révisions de demandes de tirage automatisées",
+        "summary": "Guide complet pour utiliser CodeRabbit, l'outil de révision de code IA largement adopté avec plus de 2 millions de référentiels connectés, couvrant la configuration via l'installation de l'application GitHub et la configuration de .coderabbit.yaml. L'outil analyse automatiquement les PR pour les erreurs de logique, les problèmes de sécurité et le style de code, avec des règles de révision personnalisables correspondant aux normes de l'équipe."
+      },
+      "de": {
+        "title": "So verwenden Sie CodeRabbit für automatisierte Pull-Request-Überprüfungen",
+        "summary": "Umfassender Leitfaden zur Verwendung von CodeRabbit, dem weit verbreiteten KI-Code-Review-Tool mit über 2 Millionen verbundenen Repositories, das die Einrichtung über die GitHub-App-Installation und die .coderabbit.yaml-Konfiguration abdeckt. Das Tool analysiert automatisch PRs auf Logikfehler, Sicherheitsprobleme und Code-Stil mit anpassbaren Review-Regeln, die den Team-Standards entsprechen."
+      },
+      "es": {
+        "title": "Cómo usar CodeRabbit para revisiones automatizadas de solicitudes de extracción",
+        "summary": "Guía completa para usar CodeRabbit, la herramienta de revisión de código de IA ampliamente adoptada con más de 2 millones de repositorios conectados, que cubre la configuración mediante la instalación de la aplicación GitHub y la configuración de .coderabbit.yaml. La herramienta analiza automáticamente las RP en busca de errores lógicos, problemas de seguridad y estilo de código, con reglas de revisión personalizables que coinciden con los estándares del equipo."
+      }
+    }
+  },
+  {
+    "title": "How I Improved Backend Performance Using Redis Caching in Production",
+    "slug": "redis-caching-backend-performance-production",
+    "url": "https://dev.to/vinayjr/how-i-improved-backend-performance-using-redis-caching-in-production-36ej",
+    "source": "DEV Community",
+    "date": "2026-04-03T05:56:27.000Z",
+    "summary": "Engineer resolved slow API response times (2-3 seconds) by implementing Redis as a caching layer for frequently accessed database queries, achieving approximately 2x performance improvement. The case study demonstrates how caching strategies can significantly optimize backend systems handling increasing user loads.",
+    "content": "When I started working on a production backend system, one of the biggest problems I faced was slow API response time.\nAt first, everything worked fine. But as the number of users increased, the system started slowing down. Some APIs were taking more than 2–3 seconds to respond.\nThat’s when I decided to introduce Redis caching.\n🚨 The Problem\nThe issue was simple:\nEvery request was hitting the database\nEven for data that didn’t change often, the system was still querying the database every time.\n💡 The Solution\nI introduced Redis as a caching layer.\nThe idea was:\nStore frequently accessed data in Redis\nHere’s a simple approach I used:\nfrom django.core.cache import cache\ndef get_user_data(user_id):\ndata = cache.get(cache_key)\n\nif not data:\n    data = User.objects.get(id=user_id)\n    cache.set(cache_key, data, timeout=300)  # cache for 5 minutes\n\nreturn data\n\n📈 Results\nAfter implementing caching:\nAPI response time reduced significantly\nIn my case, performance improved by around 2x.\n⚠️ Key Learnings\nRedis caching is not just an optimization.\nIf you are working on backend systems, understanding caching will make a huge difference in performance.\nIf you're interested in backend systems and real-world engineering discussions, feel free to join my Discord:\nhttps://discord.gg/VWEhEWxDKE",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何在生产环境中使用 Redis 缓存改进后端性能",
+        "summary": "工程师通过实现 Redis 作为缓存层来解决缓慢的 API 响应时间（2-3 秒），提高了频繁访问的数据库查询的性能，实现了约 2 倍的性能提升。该案例研究展示了缓存策略如何能够显著优化处理增加的用户负载的后端系统。"
+      },
+      "fr": {
+        "title": "Comment j'ai amélioré les performances du backend en utilisant Redis Cache en production",
+        "summary": "Un ingénieur a résolu les temps de réponse lents de l'API (2-3 secondes) en implémentant Redis comme couche de mise en cache pour les requêtes de base de données fréquemment consultées, ce qui a permis une amélioration des performances d'environ 2x. L'étude de cas montre comment les stratégies de mise en cache peuvent optimiser considérablement les systèmes backend gérant des charges d'utilisateurs croissantes."
+      },
+      "de": {
+        "title": "Wie ich die Backend-Leistung mithilfe von Redis-Caching in der Produktion verbessert habe",
+        "summary": "Ein Ingenieur löste langsame API-Antwortzeiten (2-3 Sekunden) durch die Implementierung von Redis als Caching-Schicht für häufig abgerufene Datenbankabfragen, was eine ungefähre Leistungsverbesserung von 2x erreichte. Die Fallstudie zeigt, wie Caching-Strategien Backend-Systeme, die steigende Benutzerlasten handhaben, erheblich optimieren können."
+      },
+      "es": {
+        "title": "Cómo mejoré el rendimiento del backend usando Redis Cache en producción",
+        "summary": "Un ingeniero resolvió los tiempos de respuesta lentos de la API (2-3 segundos) implementando Redis como capa de almacenamiento en caché para consultas de base de datos frecuentemente accedidas, logrando aproximadamente una mejora de rendimiento de 2x. El caso de estudio demuestra cómo las estrategias de almacenamiento en caché pueden optimizar significativamente los sistemas backend que manejan cargas de usuarios crecientes."
+      }
+    }
+  },
+  {
+    "title": "Full Stack Web Developer Roadmap 2026: Complete Guide from Beginner to Advanced",
+    "slug": "full-stack-web-developer-roadmap-2026",
+    "url": "https://dev.to/developerhint/full-stack-web-developer-roadmap-2026-complete-guide-from-beginner-to-advanced-fam",
+    "source": "DEV Community",
+    "date": "2026-04-03T05:54:08.000Z",
+    "summary": "Structured learning path for aspiring full stack developers covering fundamentals (HTML, CSS, JavaScript), frontend frameworks (React, Next.js), and backend technologies (Node.js, Express). The roadmap emphasizes mastering core concepts before jumping to frameworks and focuses on MERN stack skills for real-world development.",
+    "content": "If you’ve ever felt overwhelmed by what to learn in web development, you’re not alone. There’s always a new framework, tool, or trend appearing, and it’s easy to feel like you’re always behind.\nThe truth is simpler than it looks. You don’t need to learn everything. You need a clear direction and a structured path.\nThis roadmap will guide you step by step from beginner to advanced full stack developer, focusing on modern tools and real-world skills, especially within the MERN stack.\nA full stack developer works across both sides of an application.\nOn the frontend, you build what users see and interact with. On the backend, you handle the logic, database, and APIs that power the application.\nIn practical terms, you are responsible for building the entire system, from the user interface all the way to data storage.\nBefore you jump into frameworks, you need a strong foundation. This is where many developers make mistakes by rushing ahead.\nStart with the core technologies:\nHTML for structure\nCSS for layout and responsiveness\nJavaScript for logic and interactivity\nFocus on understanding how things work, not just copying code. Pay special attention to semantic HTML, modern CSS layouts like Flexbox and Grid, and JavaScript fundamentals such as DOM manipulation and ES6 features.\nIf you get this stage right, everything else becomes easier.\nOnce your fundamentals are solid, you can move into modern frontend development.\nReact is one of the most widely used libraries, and it’s a great choice for building scalable interfaces.\nStart with the basics:\nComponents and props\nState and hooks like useState and useEffect\nConditional rendering\nAfter that, go deeper into routing, state management, and performance optimization.\nIf you want to take it further, learning Next.js will give you an edge, especially for SEO and production-ready applications.\nNow it’s time to understand what happens behind the scenes.\nWith Node.js and Express, you can build APIs that handle data, authentication, an",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "完整的 Web 栈开发者路线图 2026：从初学者到高级的完整指南",
+        "summary": "为有抱负的全栈开发者提供结构化学习路径，涵盖基础知识（HTML、CSS、JavaScript）、前端框架（React、Next.js）和后端技术（Node.js、Express）。该路线图强调在跳转到框架之前掌握核心概念，并专注于实际开发中的 MERN 栈技能。"
+      },
+      "fr": {
+        "title": "Roadmap complet du développeur Full Stack 2026 : Guide complet du débutant à l'avancé",
+        "summary": "Parcours d'apprentissage structuré pour les développeurs full stack en herbe couvrant les fondamentaux (HTML, CSS, JavaScript), les frameworks frontend (React, Next.js) et les technologies backend (Node.js, Express). La feuille de route met l'accent sur la maîtrise des concepts de base avant de passer aux frameworks et se concentre sur les compétences de la pile MERN pour le développement du monde réel."
+      },
+      "de": {
+        "title": "Vollständige Web-Stack-Entwickler-Roadmap 2026: Vollständiger Leitfaden von Anfänger bis Fortgeschrittene",
+        "summary": "Strukturierter Lernpfad für angehende Full-Stack-Entwickler, der Grundlagen (HTML, CSS, JavaScript), Frontend-Frameworks (React, Next.js) und Backend-Technologien (Node.js, Express) abdeckt. Die Roadmap betont das Beherrschen von Kernkonzepten, bevor man zu Frameworks springt, und konzentriert sich auf MERN-Stack-Fähigkeiten für die reale Entwicklung."
+      },
+      "es": {
+        "title": "Roadmap completa del desarrollador Full Stack 2026: Guía completa de principiante a avanzado",
+        "summary": "Ruta de aprendizaje estructurada para desarrolladores full stack principiantes que cubre conceptos fundamentales (HTML, CSS, JavaScript), frameworks frontend (React, Next.js) y tecnologías backend (Node.js, Express). La guía enfatiza dominar conceptos clave antes de pasar a frameworks y se enfoca en habilidades de MERN stack para desarrollo en el mundo real."
+      }
+    }
+  },
+  {
+    "title": "Okay, What is Redis?",
+    "slug": "what-is-redis-cache-explanation",
+    "url": "https://dev.to/arunkrish11/okay-what-is-redis-447c",
+    "source": "DEV Community",
+    "date": "2026-04-03T05:51:33.000Z",
+    "summary": "Beginner-friendly introduction to Redis as a key-value cache that dramatically improves application performance by storing frequently accessed data in memory. Practical tutorial demonstrates how caching can reduce subsequent fetch times by orders of magnitude compared to database-only approaches.",
+    "content": "What is Redis?\nIn simple words, it will act like a cache memory to store data as key - value pair. I watched a tutorial to understand Redis. He showed something like, if we don't use redis the website take too much time for each fetching. But if we use redis the first fetching only take that much time, second fetch onward the fetching time will be low.\nIn order to understand that, you need to do this tutorial. The code is given below as github gist. Download or copy the code and dance with me.\nRedis Gist Code\nYou want to open your terminal with current directory and run the two codes given below. One for installing the packages and second one for starting the port.\nnpm i\nnpm start\n\nYour port will be open at localhost:5000. You want to go to the url\nhttp://localhost:5000/repos/arunkrish11\n\n(it is actually http://localhost:5000/repos/github_id), so you can see how many repos someone has. You can see something like this,\n\nNow you want to inspect the site and go to the network section. There will be something named finish time. It actually shows how time took to load the site, yeah the fetching time. Now you want to go to the code and remove the first section,\n// 1. Check cache\n    const cached = await client.get(username);\n    if (cached) {\n      return res.send(`<h2>${username} has ${cached} repos (cached)</h2>`);\n    }\n\nIf you refresh the page, then you can see the fetching time is high for each time we refresh.\n\nFirst fetching after code removal)\n\nSecond fetching after code removal)\nNow we want to paste the code that we removed earlier.If you refresh now, you can see the difference. The first fetching only take that much time, second onward the fetching time is low.\n\nFirst fetching after the return of code)\n\nSecond fetching after the return of code)\nSo that's it. Catch you in another post. Til then take care, bye.\nCheckout my profiles.\nGitHub\nDevTo",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "好吧，什么是 Redis？",
+        "summary": "对 Redis 作为键值缓存的初学者友好介绍，它通过在内存中存储频繁访问的数据来显著提高应用程序性能。实际教程演示了缓存如何能够相比仅使用数据库的方法，将后续获取时间减少了数个数量级。"
+      },
+      "fr": {
+        "title": "D'accord, qu'est-ce que Redis ?",
+        "summary": "Introduction conviviale pour les débutants à Redis en tant que cache clé-valeur qui améliore considérablement les performances des applications en stockant les données fréquemment consultées en mémoire. Un tutoriel pratique démontre comment la mise en cache peut réduire les temps de récupération ultérieurs de plusieurs ordres de grandeur par rapport aux approches utilisant uniquement la base de données."
+      },
+      "de": {
+        "title": "Okay, was ist Redis?",
+        "summary": "Anfängerfreundliche Einführung in Redis als Schlüssel-Wert-Cache, der die Anwendungsleistung erheblich verbessert, indem häufig abgerufene Daten im Speicher gespeichert werden. Ein praktisches Tutorial zeigt, wie das Caching nachfolgende Abrufzeiten um Größenordnungen im Vergleich zu datenbankgestützten Ansätzen reduzieren kann."
+      },
+      "es": {
+        "title": "Bueno, ¿qué es Redis?",
+        "summary": "Introducción amigable para principiantes a Redis como una caché clave-valor que mejora significativamente el rendimiento de las aplicaciones al almacenar datos frecuentemente consultados en memoria. Un tutorial práctico demuestra cómo el almacenamiento en caché puede reducir los tiempos de búsqueda posteriores en órdenes de magnitud en comparación con los enfoques que utilizan solo bases de datos."
+      }
+    }
+  },
+  {
+    "title": "Tailscale's New macOS Home: What's Changed?",
+    "slug": "tailscale-new-macos-home-changes",
+    "url": "https://dev.to/onsen/tailscales-new-macos-home-whats-changed-25ej",
+    "source": "DEV Community",
+    "date": "2026-04-03T05:50:23.000Z",
+    "summary": "Tailscale redesigned its macOS menu bar app with improved interface for managing mesh VPN networks, offering faster access to device status and settings. The free update provides a more native macOS experience while maintaining the core functionality of creating secure peer-to-peer connections between devices.",
+    "content": "Tailscale's New macOS Home: What's Changed?\n\n\nMeta Description: Discover everything about Tailscale's new macOS home — what changed, what improved, and whether it's worth updating your VPN workflow today. (158 characters)\nTL;DR: Tailscale redesigned its macOS menu bar app and system preferences experience, giving users a cleaner, more intuitive home base for managing their mesh VPN network. The update brings better device visibility, faster access to key settings, and a polished UI that finally feels native to macOS. If you're already a Tailscale user, the upgrade is seamless and genuinely useful. If you're new, there's never been a better time to start.\nTailscale's new macOS home consolidates network management into a redesigned, more intuitive interface\nThe updated menu bar app offers faster access to device status, exit nodes, and admin controls\nPerformance and responsiveness are noticeably improved over the previous version\nThe redesign aligns macOS more closely with Tailscale's iOS and iPadOS experience\nBoth personal and business users benefit from the cleaner layout and improved discoverability of features\nThe update is free for all existing Tailscale users and requires macOS 13 Ventura or later\nBefore diving into what changed, it's worth grounding the conversation. Tailscale is a mesh VPN service built on WireGuard that lets you connect your devices — laptops, servers, phones, Raspberry Pis — into a secure private network without the headache of traditional VPN configuration.\nUnlike legacy VPN solutions that route all traffic through a central server, Tailscale creates direct peer-to-peer connections between your devices. This means lower latency, higher throughput, and significantly less infrastructure overhead. It's become a go-to tool for remote developers, homelab enthusiasts, small business IT teams, and anyone who needs secure access to self-hosted services.\nFor macOS users specifically, the menu bar app has always been the primary touchpoint for the en",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Tailscale的新macOS主页：有什么变化？",
+        "summary": "Tailscale重新设计了其macOS菜单栏应用，改进了网状VPN网络管理的界面，提供更快速地访问设备状态和设置。这个免费更新提供了更本地化的macOS体验，同时保持了在设备之间创建安全点对点连接的核心功能。"
+      },
+      "fr": {
+        "title": "La nouvelle page d'accueil Tailscale pour macOS : Qu'est-ce qui a changé ?",
+        "summary": "Tailscale a repensé son application de barre de menu macOS avec une interface améliorée pour gérer les réseaux VPN maillés, offrant un accès plus rapide à l'état de l'appareil et aux paramètres. La mise à jour gratuite offre une expérience plus native de macOS tout en maintenant les fonctionnalités essentielles de création de connexions sécurisées entre appareils."
+      },
+      "de": {
+        "title": "Tailscales neue macOS-Startseite: Was hat sich geändert?",
+        "summary": "Tailscale hat seine macOS-Menüleistenapp mit verbesserter Benutzeroberfläche zur Verwaltung von Mesh-VPN-Netzwerken überarbeitet und bietet schnelleren Zugriff auf Gerätestatus und Einstellungen. Das kostenlose Update bietet eine nativere macOS-Erfahrung und behält die Kernfunktionalität der Erstellung sicherer Peer-to-Peer-Verbindungen zwischen Geräten bei."
+      },
+      "es": {
+        "title": "La nueva página de inicio de Tailscale en macOS: ¿Qué ha cambiado?",
+        "summary": "Tailscale rediseñó su aplicación de barra de menú de macOS con una interfaz mejorada para gestionar redes VPN de malla, ofreciendo acceso más rápido al estado del dispositivo y la configuración. La actualización gratuita proporciona una experiencia más nativa de macOS mientras mantiene la funcionalidad principal de crear conexiones seguras entre dispositivos."
+      }
+    }
+  },
+  {
+    "title": "Forged Between Coal and Code",
+    "slug": "forged-between-coal-and-code",
+    "url": "https://dev.to/anchildress1/forged-between-coal-and-code-phi",
+    "source": "DEV Community",
+    "date": "2026-04-03T05:49:31.000Z",
+    "summary": "Immersive interactive memoir created with Canvas 2D, WebGL, and GSAP exploring gender inequality in Appalachian coal country through the story of breaking free from cultural expectations. The multimedia experience uses sound design, animations, and WebGL effects to convey the personal journey of challenging male-dominated traditions.",
+    "content": "This is a submission for the 2026 WeCoded Challenge: Frontend Art\nCarbon Trace is an immersive memoir that I designed, wrote, narrated, and produced. I used my native Appalachian accent throughout since the origin story starts at home in a small coal town in Southwest Virginia.\nFor the full experience, visit my website at https://carbon-trace.anchildress1.dev and be sure to turn on your sound. \nPay attention to the ambient audio shifting between scenes. Watch the circuit traces grow from barely visible to full coverage. The ghost-drift text is intentionally out of sync with the narration—it's not a subtitle, it's a feeling.\nBuilt with Canvas 2D, WebGL displacement effects, GSAP timelines, layered Howler.js audio, and accessibility-first interaction design—no frameworks, no shortcuts.\n💡 This submission reflects the v1.0.0 release used for the competition build.\nCarbon Trace 🪨\n\n\nWhen I first saw this challenge, I felt what I wanted to draw almost immediately. The first obstacle was figuring out how to translate that feeling into code.\nI wasn't inspired by any one thing. I was inspired by everything. To accurately convey the depth of gender roles in my life, I had to start at the beginning in the small Appalachian coal town where I grew up. Life there has clear binary boundaries: men work in the mines and women take care of the home. I've been pushing back on this ideal for as long as I can remember—starting with the toy kitchen gift I had zero interest in as a toddler.\nCarbon Trace isn't another generic idea of equality. It's the fight I went through to be treated as an equal in a male dominated world. The diamond is a metaphor for my life and moves through its own journey in pictures as I tell you mine. I wrote and narrated the script in the exact same dialect I grew up speaking. Each scene has independent ambient audio designed to embody a specific emotion. There are small animations throughout that help bring the static images alive. Each individual component add",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "煤炭与代码之间的锻造",
+        "summary": "利用Canvas 2D、WebGL和GSAP创建的沉浸式交互式回忆录，通过阿巴拉契亚煤炭地区打破文化期望的故事探索性别不平等。这个多媒体体验使用声音设计、动画和WebGL效果来传达挑战男性主导传统的个人旅程。"
+      },
+      "fr": {
+        "title": "Forgé entre le charbon et le code",
+        "summary": "Mémoire interactif immersif créé avec Canvas 2D, WebGL et GSAP explorant les inégalités de genre en Appalachie à travers l'histoire de s'affranchir des attentes culturelles. L'expérience multimédia utilise la conception sonore, les animations et les effets WebGL pour transmettre le parcours personnel de remise en question des traditions dominées par les hommes."
+      },
+      "de": {
+        "title": "Zwischen Kohle und Code geschmiedet",
+        "summary": "Immersive interaktive Memoiren, erstellt mit Canvas 2D, WebGL und GSAP, die Geschlechtsungleichheit im Kohlegebiet der Appalachen durch die Geschichte der Befreiung von kulturellen Erwartungen erkunden. Das Multimedia-Erlebnis nutzt Sounddesign, Animationen und WebGL-Effekte, um die persönliche Reise der Infragestellung männlich dominierter Traditionen zu vermitteln."
+      },
+      "es": {
+        "title": "Forjado entre carbón y código",
+        "summary": "Memorias interactivas inmersivas creadas con Canvas 2D, WebGL y GSAP que exploran la desigualdad de género en el país del carbón de Apalaches a través de la historia de liberarse de las expectativas culturales. La experiencia multimedia utiliza diseño de sonido, animaciones y efectos WebGL para transmitir el viaje personal de desafiar las tradiciones dominadas por hombres."
+      }
+    }
+  },
+  {
+    "title": "Collaborative_agents_V2",
+    "slug": "collaborative-agents-v2-local-ai",
+    "url": "https://dev.to/mijin-vt_9725fb546e933c/collaborativeagentsv2-28h4",
+    "source": "DEV Community",
+    "date": "2026-04-03T05:47:46.000Z",
+    "summary": "Open-source system enabling three local AI models to collaborate as a team with specialized roles, performing tasks like file reading, code generation, and command execution entirely offline. Features include automatic task planning, error recovery, and isolated workspace with security confirmations for all operations.",
+    "content": "🤖 Collaborative Agents v2.1\nhttps://github.com/Mijin-VT/Collaborative_agents_V2\nLocal AI system that enables 3 models to work together as a collaborative team.\nA system that enables 3 AI models installed on your computer to work together as a team. Each AI has a specialized role and can read files, write code, execute commands, and collaborate to solve complex tasks.\n✅ 100% local — Nothing is sent to the internet\nNo accounts or subscriptions — Everything runs on your machine\nSecure — Agents work in an isolated folder with action confirmation\nConfigurable — Change models, URLs, and limits without touching code\n\n\n\nFeature\nDescription\n\n\n\n\nAutomatic planning\nCoordinator decomposes tasks and assigns subtasks to agents\n\n\nSequential execution\nAgents work 1 at a time, reading previous results\n\n\nError recovery\nIf an agent fails, another automatically takes its place\n\n\nAccumulated context\nEach agent receives the full history of previous work\n\n\nFinal integration\nCoordinator unifies all results into a coherent response\n\n\n\n\n\n\nFeature\nDescription\n\n\n\n\nRead files\nAgents read workspace files with path validation\n\n\nCreate files\nGenerate new files with confirmation and preview\n\n\nModify files\nOverwrites with automatic backup before each change\n\n\nList workspace\nExplore project file and folder structure\n\n\nContent cleaning\nExtracts code from markdown blocks and removes unwanted markers\n\n\n\n\n\n\nFeature\nDescription\n\n\n\n\nRun commands\nExecutes system commands with 2-minute timeout\n\n\nRisk analysis\nClassifies each command: low 🟢, medium 🟡, high 🔴\n\n\nMandatory confirmation\nUser must approve each command before execution\n\n\nCommand editing\nAllows correcting the command before approval\n\n\nPipe detection\nRecursively analyzes each part of a piped command\n\n\n\n\n\n\nFeature\nDescription\n\n\n\n\nIsolated workspace\nAgents only access ~/agents_workspace/\n\n\n\nBlocked paths\nBlocks C:\\Windows, /usr/bin, /etc, etc.\n\n\nBanned commands\nBlocks format, rm -rf /, shutdown, sudo, etc.\n\n\nAutomatic backups\nBackup copy before mod",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "协作代理V2",
+        "summary": "开源系统，使三个本地AI模型能够以专门角色协作，执行文件读取、代码生成和命令执行等任务，完全离线。功能包括自动任务规划、错误恢复和隔离工作区，所有操作都需要安全确认。"
+      },
+      "fr": {
+        "title": "Agents collaboratifs V2",
+        "summary": "Système open-source permettant à trois modèles d'IA locaux de collaborer en tant qu'équipe avec des rôles spécialisés, effectuant des tâches telles que la lecture de fichiers, la génération de code et l'exécution de commandes entièrement hors ligne. Les fonctionnalités incluent la planification automatique des tâches, la récupération d'erreurs et un espace de travail isolé avec des confirmations de sécurité pour toutes les opérations."
+      },
+      "de": {
+        "title": "Zusammenarbeitende Agenten V2",
+        "summary": "Open-Source-System, das es drei lokalen KI-Modellen ermöglicht, als Team mit spezialisierten Rollen zusammenzuarbeiten und Aufgaben wie Datenlesen, Codegenerierung und Befehlsausführung vollständig offline auszuführen. Zu den Funktionen gehören automatische Aufgabenplanung, Fehlerwiederherstellung und isolierter Arbeitsbereich mit Sicherheitsbestätigungen für alle Vorgänge."
+      },
+      "es": {
+        "title": "Agentes colaborativos V2",
+        "summary": "Sistema de código abierto que permite a tres modelos de IA locales colaborar como equipo con roles especializados, realizando tareas como lectura de archivos, generación de código y ejecución de comandos completamente sin conexión. Las características incluyen planificación automática de tareas, recuperación de errores y espacio de trabajo aislado con confirmaciones de seguridad para todas las operaciones."
+      }
+    }
+  },
+  {
     "title": "Dryft: What if AI memory worked like an ecosystem instead of a filing cabinet?",
     "slug": "dryft-ai-memory-ecosystem-instead-filing-cabinet",
     "url": "https://dev.to/steelponymike/dryft-what-if-ai-memory-worked-like-an-ecosystem-instead-of-a-filing-cabinet-3n40",
