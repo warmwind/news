@@ -1,5 +1,341 @@
 [
   {
+    "title": "MCP: Programmatic Tool Calling (Code Mode) with OpenSandbox",
+    "slug": "mcp-tool-calling-opensandbox",
+    "url": "https://dev.to/thangchung/mcp-programmatic-tool-calling-code-mode-with-opensandbox-4n3n",
+    "source": "DEV Community",
+    "date": "2026-04-03T12:16:28.000Z",
+    "summary": "Model Context Protocol (MCP) enables AI agents to access external systems but often becomes inefficient due to context bloat from loading hundreds of tool definitions upfront. This article presents a dynamic tool search approach to reduce token consumption and improve agent reasoning efficiency when integrating with APIs.",
+    "content": "Introduction\n\n\nModel Context Protocol or MCP enables AI agents to access external systems they cannot reach by default, including authenticated APIs, CI/CD pipelines, live process streams, and IDE integrations. It acts as a structured bridge between the model and real-world environments, allowing controlled interaction with tools and infrastructure.\nHowever, MCP does not automatically make interactions efficient or intelligent. Traditional MCP implementations often inject large JSON payloads into the model context, which increases token consumption and reduces efficiency. MCP also does not eliminate the need for proper tool selection and orchestration; if poorly structured, it can introduce unnecessary abstraction and overhead. In environments where agents can directly execute commands or interact with systems natively, MCP may become redundant, as it primarily serves as an access layer rather than an execution engine.\nIn many software products, having hundreds of APIs is normal. With a traditional MCP approach, all tool definitions are loaded into the model’s context upfront. This inflates the context window with large OpenAPI schemas (adapt to MCP tools), even when most tools are irrelevant to the current request. The result is unnecessary token consumption, higher cost, slower reasoning, and increased risk of hallucination due to context bloat. In this post, I use the OpenAPI schemas from https://www.openbrewerydb.org/documentation and https://petstore3.swagger.io, load them into application memory, adapt them into MCP tools, and dynamically search and invoke the relevant endpoints.\nStatistics shared by Anthropic illustrate the scale of the problem under the current MCP pattern:\nConsider a five-server setup:\nGitHub: 35 tools (~26K tokens)\nSlack: 11 tools (~21K tokens)\nSentry: 5 tools (~3K tokens)\nGrafana: 5 tools (~3K tokens)\nSplunk: 2 tools (~2K tokens)\nThat's 58 tools consuming approximately 55K tokens before the conversation even starts. Add more servers like",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "MCP：使用 OpenSandbox 进行程序化工具调用（代码模式）",
+        "summary": "模型上下文协议（MCP）使 AI 代理能够访问外部系统，但由于预先加载数百个工具定义而导致的上下文膨胀往往会降低效率。本文介绍了一种动态工具搜索方法，以减少令牌消耗并在与 API 集成时提高代理推理效率。"
+      },
+      "fr": {
+        "title": "MCP : appel d'outils programmatique (mode code) avec OpenSandbox",
+        "summary": "Le protocole de contexte de modèle (MCP) permet aux agents d'IA d'accéder à des systèmes externes, mais devient souvent inefficace en raison de l'encombrement du contexte causé par le chargement préalable de centaines de définitions d'outils. Cet article présente une approche de recherche d'outils dynamique pour réduire la consommation de jetons et améliorer l'efficacité du raisonnement des agents lors de l'intégration avec les API."
+      },
+      "de": {
+        "title": "MCP: Programmgesteuerte Werkzeugaufrufe (Codemodus) mit OpenSandbox",
+        "summary": "Das Model Context Protocol (MCP) ermöglicht es KI-Agenten, auf externe Systeme zuzugreifen, wird aber oft ineffizient, da der Kontextaufwand durch das vorherige Laden von Hunderten von Werkzeugdefinitionen entsteht. Dieser Artikel stellt einen dynamischen Werkzeugsuchansatz vor, um den Token-Verbrauch zu reduzieren und die Effizienz des Agenten-Denkens bei der Integration mit APIs zu verbessern."
+      },
+      "es": {
+        "title": "MCP: Llamada programática de herramientas (modo de código) con OpenSandbox",
+        "summary": "El Protocolo de Contexto del Modelo (MCP) permite que los agentes de IA accedan a sistemas externos, pero a menudo se vuelve ineficiente debido a la sobrecarga de contexto por cargar cientos de definiciones de herramientas de antemano. Este artículo presenta un enfoque dinámico de búsqueda de herramientas para reducir el consumo de tokens y mejorar la eficiencia del razonamiento de los agentes al integrar con API."
+      }
+    }
+  },
+  {
+    "title": "Designing a Message Bus for AI Agents — Lightweight Communication for 20+ Autonomous Agents",
+    "slug": "message-bus-ai-agents",
+    "url": "https://dev.to/linou518/designing-a-message-bus-for-ai-agents-lightweight-communication-for-20-autonomous-agents-46n5",
+    "source": "DEV Community",
+    "date": "2026-04-03T12:15:25.000Z",
+    "summary": "Scaling AI agent communication to 20+ distributed agents requires a lightweight message bus rather than heavy brokers. The authors implemented an HTTP API with SQLite storage that leverages pull-based semantics suited to AI agent characteristics like low message frequency and intermittent availability.",
+    "content": "How do 20+ AI agents talk to each other? A lightweight message bus design and lessons from real-world operation.\nWhen you have a single AI assistant, communication isn't a problem. But when you scale to 10+ agents distributed across multiple servers, a fundamental challenge emerges: how do agents communicate with each other?\nOur environment runs 20+ agents spread across 9 nodes, each responsible for different domains. They frequently need to:\nDelegate tasks: A manager agent assigns sub-tasks to specialist agents\nSync state: An agent notifies others after completing a task\nRequest information: Agent A queries knowledge held by Agent B\nBroadcast: System-wide announcements\nRabbitMQ, Redis Pub/Sub, or NATS would be overkill. AI agent communication characteristics:\nLow message frequency (tens to hundreds per day)\nSmall message bodies (text instructions)\nInbox semantics required (messages persist while agent is offline)\nSimple sender/receiver identification sufficient\nWe chose: HTTP API service + SQLite storage.\n┌───────────┐    HTTP POST     ┌────────────────┐\n│ Agent A   │ ────────────────→│  Message Bus   │\n└───────────┘  /api/send        │  (Node.js +    │\n┌───────────┐    HTTP GET       │   SQLite)      │\n│ Agent B   │ ←────────────────│                │\n└───────────┘  /api/inbox/:id   └────────────────┘\n\n# Send a message\ncurl -X POST http://bus-server:8091/api/send \\\n  -H 'Content-Type: application/json' \\\n  -H 'X-Bus-Token: <TOKEN>' \\\n  -d '{\"from\":\"joe\",\"to\":\"jack\",\"subject\":\"Task\",\"body\":\"Handle blog publishing\"}'\n\n# Pull inbox\ncurl http://bus-server:8091/api/inbox/jack?mark_read=true \\\n  -H 'X-Bus-Token: <TOKEN>'\n\nAI agents are intermittently online — Heartbeat fires every 5 minutes, Cron triggers at specific times. Pull is naturally idempotent, no disconnect handling needed.\n{\"from\":\"joe\",\"to\":\"jack\",\"subject\":\"...\",\"body\":\"...\",\"timestamp\":\"...\"}\n\nClassic email quartet. Intuitive, sufficient. No priority, tags, or threads — agents don't need Gmail.\nto: ALL cop",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为 AI 代理设计消息总线——20+ 自主代理的轻量级通信",
+        "summary": "将 AI 代理通信扩展到 20+ 个分布式代理需要轻量级消息总线而不是重量级代理。作者实现了一个 HTTP API，采用 SQLite 存储，利用拉式语义，适合 AI 代理的特点，如低消息频率和间歇可用性。"
+      },
+      "fr": {
+        "title": "Concevoir un bus de messages pour les agents d'IA — Communication légère pour 20+ agents autonomes",
+        "summary": "La mise à l'échelle de la communication des agents d'IA à 20+ agents distribués nécessite un bus de messages léger plutôt que des courtiers lourds. Les auteurs ont implémenté une API HTTP avec stockage SQLite qui exploite la sémantique basée sur l'extraction, adaptée aux caractéristiques des agents d'IA comme la faible fréquence des messages et la disponibilité intermittente."
+      },
+      "de": {
+        "title": "Entwurf eines Nachrichtenbusses für KI-Agenten — Leichte Kommunikation für 20+ autonome Agenten",
+        "summary": "Die Skalierung der Kommunikation von KI-Agenten auf 20+ verteilte Agenten erfordert einen leichten Nachrichtenbus anstelle schwerer Broker. Die Autoren implementierten eine HTTP-API mit SQLite-Speicher, die die Pull-basierte Semantik nutzt, die zu KI-Agent-Charakteristiken wie niedriger Nachrichtenhäufigkeit und zeitweiliger Verfügbarkeit passt."
+      },
+      "es": {
+        "title": "Diseño de un bus de mensajes para agentes de IA — Comunicación ligera para 20+ agentes autónomos",
+        "summary": "Escalar la comunicación de agentes de IA a 20+ agentes distribuidos requiere un bus de mensajes ligero en lugar de intermediarios pesados. Los autores implementaron una API HTTP con almacenamiento SQLite que aprovecha la semántica basada en extracción, adecuada para características de agentes de IA como baja frecuencia de mensajes y disponibilidad intermitente."
+      }
+    }
+  },
+  {
+    "title": "Building GigShield: Instant Protection for Gig Workers with a First Risk Engine",
+    "slug": "gigshield-gig-workers-insurance",
+    "url": "https://dev.to/suraj_nandan_dcd78e7ec898/building-gigshield-instant-protection-for-gig-workers-with-a-first-risk-engine-2a3e",
+    "source": "DEV Community",
+    "date": "2026-04-03T12:15:06.000Z",
+    "summary": "GigShield is a parametric insurance product that automatically triggers payouts when external conditions affect gig worker income, such as weather or platform outages. The implementation includes policy logic, fraud controls, and transparent decision flows designed to process claims rapidly during emergencies.",
+    "content": "Gig workers lose income for reasons they cannot control: heavy rain, platform outages, curfews, poor air quality, and local disruptions. Most traditional claim systems are slow, manual, and stressful at the exact moment people need help.\nI built GigShield to explore a different approach: parametric protection that can trigger payouts automatically when predefined external conditions are met, with fraud controls and verification built into the flow.\nGigShield is designed around one simple promise: if covered disruption conditions happen, workers should know quickly whether they are eligible and how much they will receive.\nThe app includes:\nTiered weekly plans with clear coverage limits\nTrigger-based payout logic (weather, platform, and social disruptions)\nA transparent decision flow with explicit reason codes\nFraud checks before settlement for risky claims\nA full payout lifecycle from event detection to receipt\n\nMost demos stop at UI. I wanted this one to model real decision mechanics:\nPolicy domains and exclusions\nCoverage-hour checks\nDaily caps by plan\nTrigger confidence and cooldown windows\nVerification gates for high-risk claims\nThis made the project less like a landing page and more like a small rules-driven system.\nThe stack is React + Vite + Tailwind, with utility modules that isolate policy, payout, fraud, observability, and integrations concerns. Routes are separated by persona and workflow: onboarding, dashboard, payout, history, fraud explainability, and admin operations.\nA key design choice was frontend-first state with local persistence. That made iteration fast and let me simulate full flows end-to-end without waiting on backend dependencies. Supabase auth and schema scaffolding are present, but most operational logic currently runs client-side for demo velocity.\nTrade-off: speed of development vs tamper resistance and production-grade trust boundaries.\nThe most important part was preventing blind auto-payouts. GigShield includes several controls:\nRisk",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建 GigShield：使用首次风险引擎为零工工作者提供即时保护",
+        "summary": "GigShield 是一款参数化保险产品，当外部条件影响零工收入时（如天气或平台中断），会自动触发赔付。该实现包括保单逻辑、欺诈控制和透明的决策流程，旨在应急时期快速处理索赔。"
+      },
+      "fr": {
+        "title": "Construire GigShield : protection instantanée pour les travailleurs à la demande avec un moteur de premier risque",
+        "summary": "GigShield est un produit d'assurance paramétrique qui déclenche automatiquement les paiements lorsque des conditions externes affectent le revenu des travailleurs à la demande, comme les conditions météorologiques ou les pannes de plate-forme. La mise en œuvre comprend la logique des polices, les contrôles anti-fraude et les flux de décision transparents conçus pour traiter rapidement les réclamations en cas d'urgence."
+      },
+      "de": {
+        "title": "Aufbau von GigShield: Sofortschutz für Gig-Worker mit einem First-Risk-Engine",
+        "summary": "GigShield ist ein parametrisches Versicherungsprodukt, das automatisch Auszahlungen auslöst, wenn externe Bedingungen das Einkommen von Gig-Workern beeinflussen, wie Wetter oder Plattformausfälle. Die Implementierung umfasst Policenlogik, Betrugskontrolle und transparente Entscheidungsabläufe, die entwickelt wurden, um Ansprüche in Notfällen schnell zu bearbeiten."
+      },
+      "es": {
+        "title": "Construyendo GigShield: Protección instantánea para trabajadores independientes con un motor de primer riesgo",
+        "summary": "GigShield es un producto de seguro paramétrico que activa automáticamente pagos cuando condiciones externas afectan los ingresos de trabajadores independientes, como clima o interrupciones de plataforma. La implementación incluye lógica de póliza, controles de fraude y flujos de decisión transparentes diseñados para procesar reclamaciones rápidamente durante emergencias."
+      }
+    }
+  },
+  {
+    "title": "Turning Linear and Figma Into a Searchable Knowledge Layer with `aviadr1/issueclaw` and `aviadr1/figmaclaw`",
+    "slug": "linear-figma-searchable-knowledge-layer",
+    "url": "https://dev.to/aviadr1/turning-linear-and-figma-into-a-searchable-knowledge-layer-with-aviadr1issueclaw-and-29c5",
+    "source": "DEV Community",
+    "date": "2026-04-03T12:13:47.000Z",
+    "summary": "Tools mirroring Linear and Figma into searchable markdown create a unified knowledge layer accessible to humans and AI agents for cross-system queries. This approach enables teams to answer questions about product decisions, design consistency, and implementation gaps without replacing existing systems.",
+    "content": "Most teams don’t lack information — they lack a way to search product, design, and engineering context as one system; this article explores what happens when you turn Linear and Figma into searchable markdown and let humans and AI reason across both.\nProduct intent is in Linear. Design detail is in Figma. Implementation reality is in code. Each system is useful on its own, but the moment you need to answer a question that crosses all three, things get awkward. You open tabs, search manually, ask in Slack, and reconstruct the answer from fragments.\nThat is tolerable for humans. It is much worse for AI.\nAt Gigaverse, we wanted something different: not a new source of truth, and not a replacement for Linear or Figma, but a shared text layer that makes product and design context searchable, diffable, and usable by both humans and agents.\nThat is the role of two repositories:\naviadr1/issueclaw\naviadr1/figmaclaw\nTogether, they turn Linear and Figma into git-native markdown that can be searched alongside code. Once that exists, a different class of workflow becomes possible.\nThis article is about a simple idea with surprisingly large consequences:\nMirror Linear and Figma into markdown, keep that mirror up to date, and use it as a searchable working memory layer for your team.\nIf you read on, you should come away with:\na clear mental model for what issueclaw and figmaclaw do\na practical sense of why this is useful beyond “exporting markdown”\nreal examples of the kinds of questions this unlocks\na private-by-default way to adopt the same pattern in your own team\nThe short version is that this makes it much easier to answer questions like:\nWhere does this feature already exist in design?\nWhat did product actually decide here?\nIs this designed on both web and mobile?\nDoes the design still match the current implementation?\nWhat changed in one system that has not propagated to the others?\nThat is where the real value starts.\nModern product development is full of cross-system ques",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "将 Linear 和 Figma 转变为可搜索的知识层（使用 `aviadr1/issueclaw` 和 `aviadr1/figmaclaw`）",
+        "summary": "将 Linear 和 Figma 镜像到可搜索的 markdown 的工具为人类和 AI 代理创建统一的知识层，用于跨系统查询。这种方法使团队能够在不替换现有系统的情况下回答有关产品决策、设计一致性和实现差距的问题。"
+      },
+      "fr": {
+        "title": "Transformer Linear et Figma en une couche de connaissances consultable avec `aviadr1/issueclaw` et `aviadr1/figmaclaw`",
+        "summary": "Les outils qui reflètent Linear et Figma dans un markdown consultable créent une couche de connaissances unifiée accessible aux humains et aux agents IA pour les requêtes intersystèmes. Cette approche permet aux équipes de répondre à des questions sur les décisions produit, la cohérence de la conception et les lacunes de mise en œuvre sans remplacer les systèmes existants."
+      },
+      "de": {
+        "title": "Linear und Figma in eine durchsuchbare Wissensbasis mit `aviadr1/issueclaw` und `aviadr1/figmaclaw` umwandeln",
+        "summary": "Tools, die Linear und Figma in durchsuchbares Markdown spiegeln, schaffen eine einheitliche Wissensbasis, die für Menschen und KI-Agenten für systemübergreifende Abfragen zugänglich ist. Dieser Ansatz ermöglicht es Teams, Fragen zu Produktentscheidungen, Designkonsistenz und Implementierungslücken zu beantworten, ohne bestehende Systeme zu ersetzen."
+      },
+      "es": {
+        "title": "Convertir Linear y Figma en una capa de conocimiento consultable con `aviadr1/issueclaw` y `aviadr1/figmaclaw`",
+        "summary": "Las herramientas que reflejan Linear y Figma en markdown consultable crean una capa de conocimiento unificada accesible para humanos y agentes de IA para consultas entre sistemas. Este enfoque permite a los equipos responder preguntas sobre decisiones de producto, coherencia de diseño y brechas de implementación sin reemplazar los sistemas existentes."
+      }
+    }
+  },
+  {
+    "title": "We had a bug in production for 16 days. It made more money than most features I've shipped.",
+    "slug": "production-bug-revenue-premium-plan",
+    "url": "https://dev.to/kitkeen_55/we-had-a-bug-in-production-for-16-days-it-made-more-money-than-most-features-ive-shipped-2jci",
+    "source": "DEV Community",
+    "date": "2026-04-03T12:08:05.000Z",
+    "summary": "A 16-day production configuration error defaulting users to premium plans increased premium signups from 5% to 43% and generated 73% more revenue than months of feature development. Rather than fixing the bug, the author converted the accidental A/B test into a controlled experiment.",
+    "content": "+73% revenue. Not from a new feature. Not from a redesign. Not from a growth hack some PM spent three quarters planning.\nFrom a bug. A config error that sat in production for sixteen days, silently funnelling every new user in one of our European markets into the most expensive plan.\nWhen someone finally noticed, the team wanted a hotfix and a post-mortem. I wanted to see what's in the database.\nHere's what I found.\nBefore the bug, 5% of new users in that market picked the premium plan. That was the normal baseline. Everyone else scrolled down to the cheapest option and hit Continue.\nDuring the bug- when premium was the default- 43% kept it.\nForty-three percent.\nThe onboarding screen wasn't hiding anything. The price was right there. \"Change plan\" was one click away. Nobody was forced into anything. Almost half the users just looked at the premium plan and thought: yeah, this works for me.\nI didn't believe it at first. Classic survivorship bias, right? They selected it, but did they actually pay?\nThey did.\n38% opened and activated their accounts\n48% made real payments within the first month\nOnly 16% downgraded later\nThe funnel shape was identical to the control group. Same activation rate, same payment rate. The only thing that changed was how many people entered the premium funnel. And that number was 9x higher because of a bug.\nI pulled the revenue numbers for both cohorts over the same period.\nNormal users: ~€12,000/month.\n+73%. Same product. The only difference was which plan showed up first.\nLet that sink in. A config error- an actual production defect- generated more incremental revenue than entire features that took months to build.\nThis is where most stories end. Bug found, bug fixed, regression test added, everyone moves on. That's what a responsible engineer does.\nI did the irresponsible thing. I went to the product team and said: don't fix this. Let me turn it into a controlled experiment.\nThe bug had accidentally created a perfect A/B test- no controls,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我们生产环境中有一个 bug 持续了 16 天。它赚的钱比我发布的大多数功能都多。",
+        "summary": "一个 16 天的生产配置错误将用户默认设为高级计划，使高级注册从 5% 增加到 43%，产生的收入比数月的功能开发多 73%。与其修复 bug，作者反而将这个意外的 A/B 测试转变为受控实验。"
+      },
+      "fr": {
+        "title": "Nous avions un bug en production pendant 16 jours. Il a gagné plus d'argent que la plupart des fonctionnalités que j'ai lancées.",
+        "summary": "Une erreur de configuration en production de 16 jours mettant par défaut les utilisateurs sur des plans premium a augmenté les inscriptions premium de 5% à 43% et généré 73% plus de revenus que des mois de développement de fonctionnalités. Au lieu de corriger le bug, l'auteur a converti le test A/B accidentel en une expérience contrôlée."
+      },
+      "de": {
+        "title": "Wir hatten 16 Tage lang einen Bug in der Produktion. Er verdiente mehr Geld als die meisten Funktionen, die ich veröffentlicht habe.",
+        "summary": "Ein 16-tägiger Produktionskonfigurationsfehler, der Benutzer standardmäßig auf Premium-Pläne setzte, erhöhte die Premium-Anmeldungen von 5% auf 43% und generierte 73% mehr Umsatz als Monate der Funktionsentwicklung. Anstatt den Bug zu beheben, wandelte der Autor den versehentlichen A/B-Test in ein kontrolliertes Experiment um."
+      },
+      "es": {
+        "title": "Tuvimos un bug en producción durante 16 días. Ganó más dinero que la mayoría de las funciones que he lanzado.",
+        "summary": "Un error de configuración en producción de 16 días que asignaba por defecto a los usuarios planes premium aumentó las suscripciones premium del 5% al 43% y generó un 73% más de ingresos que meses de desarrollo de funciones. En lugar de corregir el bug, el autor convirtió la prueba A/B accidental en un experimento controlado."
+      }
+    }
+  },
+  {
+    "title": "Progression Curves in Game Design: Why Good Systems Feel Invisible (and Bad Ones Feel Like Grind)",
+    "slug": "progression-curves-game-design",
+    "url": "https://dev.to/sam_novak_574b07811e18495/progression-curves-in-game-design-why-good-systems-feel-invisible-and-bad-ones-feel-like-grind-26bo",
+    "source": "DEV Community",
+    "date": "2026-04-03T12:05:43.000Z",
+    "summary": "Game progression systems are defined by mathematical curves governing the effort-to-reward exchange rate, with linear, exponential, and power curves creating different engagement dynamics. Most successful systems combine multiple curve types to balance excitement, long-term engagement, and perceived fairness.",
+    "content": "Progression systems are everywhere in games.\nLeveling up. Unlocking content. Improving stats. Scaling difficulty.\nBut most players don’t think in terms of curves or formulas.\nmomentum\nfairness\nexcitement\nfrustration\nBehind all of that is a simple idea:\nProgression is the relationship between effort and reward over time.\nAnd that relationship is defined by curves.\nAt its core, progression is not about “getting stronger.”\nIt’s about trading one resource for another:\ntime - XP\neffort - skill\ncurrency - power\nattention - progress\nThis is why progression is tightly connected to economy design.\nHow much should a player give to get something in return? \nNumbers in games don’t exist in isolation.\nA sword that deals 250 damage is meaningless unless:\nenemies have 25,000 HP\nor 200 HP\nor your previous weapon did 50\nAs noted in game economy theory, numbers only make sense in relation to other numbers .\nThis is where curves come in.\nA curve is simply:\nHow one resource changes as another increases.\nThe simplest possible relationship.\n1 point → 1 stat\n1 resource → 1 outcome\nUseful for clarity, but often too flat to drive interesting decisions.\nPredictable scaling.\n+10 power → +100 cost\nsteady, consistent growth\nGood for:\nreadability\nbalance stability\nBad for:\nexcitement\nlong-term engagement\nThe most seductive — and dangerous — curve.\nslow start\nrapid escalation\nextreme late-game values\nUsed for:\nearly progression acceleration\ncreating long-term goals\nExponential curves break at scale.\nThey:\ncreate grind walls\ninflate numbers beyond meaning\nforce designers to intervene\nThat’s why most systems:\ncap them\nflatten them\nor transition into custom curves later\nA middle ground between linear and exponential.\nThey:\nincrease steadily\navoid runaway scaling\nfeel “natural” to players\nThis is why they appear often in:\nboard games\nprogression systems\nresource costs\nIn practice, most systems are hand-tuned.\nDesigners:\nbreak patterns intentionally\nintroduce irregularities\nadjust for perception, not",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "游戏设计中的进度曲线：为什么好的系统感觉不可见（而坏的感觉像研磨）",
+        "summary": "游戏进度系统由控制努力与奖励交换率的数学曲线定义，线性、指数和幂曲线创造不同的参与动态。大多数成功的系统结合多个曲线类型来平衡兴奋、长期参与和感知公平性。"
+      },
+      "fr": {
+        "title": "Les courbes de progression dans la conception de jeux : pourquoi les bons systèmes semblent invisibles (et les mauvais semblent comme du broyage)",
+        "summary": "Les systèmes de progression de jeu sont définis par des courbes mathématiques gouvernant le taux d'échange effort-récompense, les courbes linéaires, exponentielles et de puissance créant différentes dynamiques d'engagement. La plupart des systèmes réussis combinent plusieurs types de courbes pour équilibrer l'excitation, l'engagement à long terme et l'équité perçue."
+      },
+      "de": {
+        "title": "Progressionskurven in der Spielegestaltung: Warum gute Systeme unsichtbar wirken (und schlechte wirken wie Schleifen)",
+        "summary": "Spielfortschrittssysteme werden durch mathematische Kurven definiert, die die Aufwands-Belohnungs-Austauschrate steuern, wobei lineare, exponentielle und Potenzpotenzkkurven unterschiedliche Engagement-Dynamiken schaffen. Die meisten erfolgreichen Systeme kombinieren mehrere Kurventypen, um Spannung, langfristiges Engagement und wahrgenommene Fairness auszugleichen."
+      },
+      "es": {
+        "title": "Curvas de progresión en el diseño de juegos: por qué los buenos sistemas se sienten invisibles (y los malos se sienten como molienda)",
+        "summary": "Los sistemas de progresión de juegos se definen por curvas matemáticas que rigen la tasa de intercambio esfuerzo-recompensa, con curvas lineales, exponenciales y de potencia que crean diferentes dinámicas de compromiso. La mayoría de los sistemas exitosos combinan múltiples tipos de curvas para equilibrar la emoción, el compromiso a largo plazo y la equidad percibida."
+      }
+    }
+  },
+  {
+    "title": "I got tired of watching my terminal, so I built GuGa",
+    "slug": "guga-terminal-notifications",
+    "url": "https://dev.to/positive_matician/i-got-tired-of-watching-my-terminal-so-i-built-guga-f8j",
+    "source": "DEV Community",
+    "date": "2026-04-03T12:02:25.000Z",
+    "summary": "GuGa Nexus notifies your phone or browser when long-running terminal commands complete, including exit status, elapsed time, and final output. The implementation uses a local Flask server with Cloudflare Tunnel for encrypted WebSocket delivery, eliminating the need for external accounts or complex setup.",
+    "content": "I lost count of how many times I've started a long training run, gone to make coffee, come back ten minutes later, and found it had crashed thirty seconds after I left. Or worse — left it running overnight, woken up, and had no idea if it finished two hours ago or is still grinding away.\nThe usual suggestions are: set up a Discord webhook, use a Slack bot, write a wrapper script that sends an email. All of which require accounts, tokens, configuration, and maintenance. I just wanted my phone to buzz when my code was done.\nSo I spent last weekend building GuGa Nexus.\nYou prefix any terminal command with guga and when it finishes, a notification hits your phone or browser with the exit status, elapsed time, and the last line of output.\nguga python train.py --epochs 100\n\nWhen training finishes, you get:\n✅ python train.py done — 2h 14m\nEpoch 100/100 — accuracy: 0.9431\n\nOr if it crashed:\n❌ python train.py failed (exit 1) — 43s\nCUDA out of memory. Tried to allocate 2.00 GiB\n\nThat last line of stdout is the part I find most useful. You don't have to go back to the terminal to find out what happened — the relevant output is right in the notification.\nIt also works as a plain pipe for quick messages:\necho \"Deploy done\" | guga\nguga \"Checkpoint saved\"\n\nGuGa runs a small Flask + Socket.IO server on your Linux machine as a systemd daemon. When you call guga, it POSTs to that local server, which relays the message over an encrypted WebSocket to whatever clients are connected.\nFor internet access it uses a Cloudflare Tunnel — so your phone can receive notifications even when you're not on the same network, with no domain purchase, no port forwarding, and no VPS. The tunnel URL is ephemeral and everything is AES-256-GCM encrypted end to end.\nThe server exposes a browser client too, so you don't need to install anything on your phone if you don't want to. Open the URL in any browser and notifications stream in real time. There's also an Android app for persistent background notifica",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我厌倦了看终端，所以我开发了GuGa",
+        "summary": "GuGa Nexus可以在长时间运行的终端命令完成时通知您的手机或浏览器，包括退出状态、运行时间和最终输出。该实现使用本地Flask服务器和Cloudflare隧道进行加密的WebSocket传输，无需外部账户或复杂设置。"
+      },
+      "fr": {
+        "title": "J'en ai assez de regarder mon terminal, alors j'ai créé GuGa",
+        "summary": "GuGa Nexus vous notifie sur votre téléphone ou navigateur lorsque les commandes terminal longues se terminent, y compris le statut de sortie, le temps écoulé et la sortie finale. L'implémentation utilise un serveur Flask local avec Cloudflare Tunnel pour la livraison WebSocket chiffrée, éliminant le besoin de comptes externes ou de configuration complexe."
+      },
+      "de": {
+        "title": "Ich war es leid, mein Terminal zu beobachten, also habe ich GuGa entwickelt",
+        "summary": "GuGa Nexus benachrichtigt Ihr Telefon oder Ihren Browser, wenn langläufige Terminalkommandos abgeschlossen sind, einschließlich Exitstatus, verstrichene Zeit und endgültiger Ausgabe. Die Implementierung verwendet einen lokalen Flask-Server mit Cloudflare Tunnel für verschlüsselte WebSocket-Bereitstellung und eliminiert die Notwendigkeit für externe Konten oder komplexe Konfiguration."
+      },
+      "es": {
+        "title": "Me cansé de mirar mi terminal, así que creé GuGa",
+        "summary": "GuGa Nexus notifica a tu teléfono o navegador cuando se completan comandos de terminal de larga ejecución, incluyendo el estado de salida, el tiempo transcurrido y la salida final. La implementación utiliza un servidor Flask local con Cloudflare Tunnel para entrega WebSocket cifrada, eliminando la necesidad de cuentas externas o configuración compleja."
+      }
+    }
+  },
+  {
+    "title": "You're Not Lazy Because of AI. You Were Already Lazy.",
+    "slug": "ai-morning-routine-pipeline",
+    "url": "https://dev.to/mrlinuncut/youre-not-lazy-because-of-ai-you-were-already-lazy-41ep",
+    "source": "DEV Community",
+    "date": "2026-04-03T12:00:36.000Z",
+    "summary": "The author built an AI pipeline that pulls fitness data from WHOOP, interprets it through Claude, and syncs activities to Google Calendar, achieving consistency that willpower alone could not sustain. The system addresses technical challenges including timezone handling when frequently relocating internationally.",
+    "content": "There's a loud narrative that AI is making people lazy.\nI train five days a week, run three times a week, eat strict keto, and track everything with WHOOP. After 30 days of AI managing my morning routine, here's what I actually found.\nThe morning pipeline architecture\nEvery morning, within 5 10 minutes of waking up, before looking at my phone, Jarvis delivers a brief. Not generic wellness content. A structured data readout:\nHRV score and trend (am I moving toward illness or peak performance?)\nThis comes from a pipeline that pulls WHOOP data via unofficial API, passes it through Claude for interpretation, and pushes the output to Telegram. The WHOOP API isn't publicly documented but is stable enough to build on. The key is the interpretation layer raw numbers don't change behavior, coaching does.\nThe Google Calendar sync layer\nWhat made the routine real was automatic calendar sync. Sleep times, workouts, walks, sauna sessions anything WHOOP detects goes straight into Google Calendar. Zero manual logging.\nThe technical piece: calendar sync.py runs on a cron job after each WHOOP pull. It creates calendar events for detected activities with accurate timestamps. I can look back at any week and see exactly how I was actually living vs. how I planned to live. That gap is usually informative.\nThe timezone handling problem (and partial solution)\nI move frequently. Vietnam to Taipei recently. Timezone shifts break cron based AI systems in non obvious ways.\nMy pipeline has two categories of scheduled jobs: personal (adjust to local time) and audience facing (lock to US Eastern). A 7 AM brief should follow me. A content post scheduled for peak US audience time should not shift when I land in Asia.\nThe current implementation: I notify Jarvis of location changes and the pipeline recalculates personal crons. Audience facing schedules are hardcoded to US Eastern and don't move. It still isn't perfect when I was in Vietnam, location sensitive suggestions defaulted to Bangkok weather",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你不是因为AI而懒惰。你本来就很懒。",
+        "summary": "作者构建了一个AI管道，从WHOOP拉取健身数据，通过Claude解释数据，并将活动同步到Google Calendar，实现了仅凭意志力无法维持的一致性。该系统解决了技术挑战，包括频繁国际搬迁时的时区处理。"
+      },
+      "fr": {
+        "title": "Vous n'êtes pas paresseux à cause de l'IA. Vous l'étiez déjà.",
+        "summary": "L'auteur a construit un pipeline d'IA qui extrait les données de fitness de WHOOP, les interprète via Claude et synchronise les activités avec Google Calendar, réalisant une cohérence que la volonté seule ne pouvait pas maintenir. Le système aborde les défis techniques, notamment la gestion des fuseaux horaires lors de déplacements fréquents à l'international."
+      },
+      "de": {
+        "title": "Du bist nicht faul wegen KI. Du warst es bereits.",
+        "summary": "Der Autor hat eine KI-Pipeline entwickelt, die Fitnessdaten von WHOOP abruft, diese über Claude interpretiert und Aktivitäten mit Google Calendar synchronisiert, was eine Konsistenz erreicht, die Willenskraft allein nicht aufrechterhalten könnte. Das System bewältigt technische Herausforderungen, einschließlich der Zeitzonenanpassung bei häufigen internationalen Umzügen."
+      },
+      "es": {
+        "title": "No eres perezoso por la IA. Ya lo eras.",
+        "summary": "El autor construyó un pipeline de IA que obtiene datos de fitness de WHOOP, los interpreta a través de Claude y sincroniza actividades con Google Calendar, logrando una consistencia que la pura voluntad no podría mantener. El sistema aborda desafíos técnicos, incluyendo el manejo de zonas horarias al reubicarse frecuentemente a nivel internacional."
+      }
+    }
+  },
+  {
+    "title": "Here’s how we structured and deployed UmojaAgri 🌱 from a DevOps perspective. Architecture Overview:",
+    "slug": "umojagri-devops-architecture",
+    "url": "https://dev.to/techgirli/heres-how-we-structured-and-deployed-umojaagri-from-a-devops-perspectivearchitecture-overview-51i6",
+    "source": "DEV Community",
+    "date": "2026-04-03T12:00:00.000Z",
+    "summary": "This article outlines the infrastructure stack and DevOps architecture decisions for UmojaAgri, an agricultural technology project. The piece covers system improvements and promises future publication of GitHub repository and live deployment details.",
+    "content": "Here’s how we structured and deployed UmojaAgri 🌱 from a DevOps perspective.\nInfrastructure Stack:\nSystem Improvements:\nNext: GitHub repo + live demo + future upgrades 👇\nBack\nCompose message\nYou are on the messaging overlay. Press enter to open the list of conversations.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我们如何从DevOps的角度构建和部署UmojaAgri 🌱。架构概览：",
+        "summary": "本文概述了UmojaAgri（一个农业技术项目）的基础设施堆栈和DevOps架构决策。该文章涵盖了系统改进，并承诺未来发布GitHub存储库和实时部署详细信息。"
+      },
+      "fr": {
+        "title": "Voici comment nous avons structuré et déployé UmojaAgri 🌱 d'une perspective DevOps. Aperçu de l'architecture :",
+        "summary": "Cet article décrit la pile d'infrastructure et les décisions d'architecture DevOps pour UmojaAgri, un projet technologique agricole. L'article couvre les améliorations du système et promet la publication future du référentiel GitHub et des détails de déploiement en direct."
+      },
+      "de": {
+        "title": "So haben wir UmojaAgri 🌱 aus DevOps-Perspektive strukturiert und bereitgestellt. Architekturüberblick:",
+        "summary": "Dieser Artikel beschreibt den Infrastruktur-Stack und die DevOps-Architekturentscheidungen für UmojaAgri, ein Agritech-Projekt. Das Stück behandelt Systemverbesserungen und verspricht zukünftige Veröffentlichung des GitHub-Repositories und Live-Deployment-Details."
+      },
+      "es": {
+        "title": "Así es como estructuramos e implementamos UmojaAgri 🌱 desde una perspectiva de DevOps. Descripción general de la arquitectura:",
+        "summary": "Este artículo describe la pila de infraestructura y las decisiones de arquitectura de DevOps para UmojaAgri, un proyecto de tecnología agrícola. El artículo cubre mejoras del sistema y promete la publicación futura del repositorio de GitHub y detalles de implementación en vivo."
+      }
+    }
+  },
+  {
+    "title": "“Do Not Type… The Web App That Fights Back 😈”",
+    "slug": "do-not-type-prank-web-app",
+    "url": "https://dev.to/pjdeveloper896/do-not-type-the-web-app-that-fights-back--44pa",
+    "source": "DEV Community",
+    "date": "2026-04-03T11:59:03.000Z",
+    "summary": "\"Do Not Type\" is a deliberately chaotic April Fools prank web app that blocks typing, randomly repositions input fields, and displays error messages to frustrate users entertainingly. The submission honors the HTTP 418 \"I'm a teapot\" joke protocol through console logging and celebrates intentional uselessness.",
+    "content": "This is a submission for the DEV April Fools Challenge\nI built a delightfully useless prank web app called “Do Not Type…”.  \nIt is intentionally chaotic and serves zero real-world purpose, designed purely to confuse and amuse anyone who tries to use it.  \nBlocks typing anywhere on the page, making the input impossible to use normally.\n\n\nRandomly moves the input field when you hover over it.\n\n\nPlays a sound and flashes the background red for extra dramatic effect.\n\n\nDisplays a “Hehe… April Fool 😈” message with a counter for every attempt to type.\n\n\nShakes the screen for maximum chaos.\n\n\nConsole joke: logs Error 418: I'm a teapot ☕ as a nod to Larry Masinter and internet silliness.\n\n\n\nThis project embraces the spirit of the DEV April Fools Challenge: useless, confusing, and hilarious.  \npsjdeveloper.github.io\n          \n\n        \n      \n / \n        do-not-type\n      \n    \ndo-not-type\nView on GitHub\nHTML, CSS, and JavaScript\nUsed document.addEventListener('keydown') so prank works even if input loses focus\nAdded animations for pulse and shake effects\nForced focus on the input to trap the user\nI am submitting this entry for Best Ode to Larry Masinter.  \nWhy:\n\nThis prank web app pays homage to Larry Masinter’s famous joke protocol, HTCPCP, by including the classic “418: I’m a teapot” console message.\n\nIt embraces the spirit of silliness and uselessness that the April Fools Challenge celebrates, making it a perfect nod to teapots and internet humor.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "不要输入——反击的网络应用 😈",
+        "summary": "\"不要输入\"是一个故意制造混乱的愚人节恶作剧网络应用，可以阻止输入、随机重新定位输入字段并显示错误消息以有趣地激怒用户。该应用通过控制台日志记录致敬HTTP 418\"我是茶壶\"笑话协议，并庆祝故意的无用性。"
+      },
+      "fr": {
+        "title": "Ne pas taper… L'application Web qui contre-attaque 😈",
+        "summary": "\"Ne pas taper\" est une application Web farce des Poissons d'avril délibérément chaotique qui bloque la saisie, repositionne aléatoirement les champs de saisie et affiche des messages d'erreur pour frustrer les utilisateurs de manière amusante. La soumission honore le protocole de blague HTTP 418 \"Je suis une théière\" par la journalisation de console et célèbre l'inutilité intentionnelle."
+      },
+      "de": {
+        "title": "Nicht eingeben… Die Web-App, die zurückschlägt 😈",
+        "summary": "\"Nicht eingeben\" ist eine absichtlich chaotische April-Fools-Streich-Web-App, die das Tippen blockiert, Eingabefelder zufällig verschiebt und Fehlermeldungen anzeigt, um Benutzer unterhaltsam zu frustrieren. Die Einsendung würdigt das HTTP-418-\"Ich bin eine Teekanne\"-Scherz-Protokoll durch Konsolenprotokollierung und feiert absichtliche Nutzlosigkeit."
+      },
+      "es": {
+        "title": "No escriba… La aplicación web que contraataca 😈",
+        "summary": "\"No escriba\" es una aplicación web de broma de Día de Inocentes deliberadamente caótica que bloquea la escritura, reposiciona aleatoriamente campos de entrada y muestra mensajes de error para frustrar entretenidamente a los usuarios. La presentación honra el protocolo de broma HTTP 418 \"Soy una tetera\" mediante el registro de consola y celebra la inutilidad intencional."
+      }
+    }
+  },
+  {
+    "title": "Array Flatten in JavaScript",
+    "slug": "array-flatten-javascript",
+    "url": "https://dev.to/hiral/array-flatten-in-javascript-5hhk",
+    "source": "DEV Community",
+    "date": "2026-04-03T11:55:15.000Z",
+    "summary": "This article demonstrates multiple JavaScript techniques for flattening nested arrays, including the built-in flat() method, recursive traversal, and iterative stack-based approaches. Each method includes practical examples showing how to handle varying depths of nesting.",
+    "content": "What is a Nested Array?\nA nested array is simply an array that contains other arrays inside it.\n[5, 6, [7, 8]]\n[5, 6, [7, 8, [8, 9]]]\n\nWhy Do We Need to Flatten Arrays?\nWorking with deeply nested arrays in real-world applications can be difficult.\n[5, 6, [7, 8]]            → [5, 6, 7, 8]\n[5, 6, [7, 8, [8, 9]]]    → [5, 6, 7, 8, 8, 9]\n\nMethods to Flatten an Array\nUsing Built-in flat() Method\nJavaScript provides a built-in method called flat().\n\n\n\n\nlet arr = [1, 2, [3, 4], [7, 8, [9, 10]]];\nconsole.log(arr.flat(Infinity));\n// Output: [1, 2, 3, 4, 7, 8, 9, 10]\n\nflat() takes a depth level as an argument.\nInfinity ensures the array is flattened completely.\nExample with limited depth:\nlet arr1 = [1, 2, [3, 4], [7, 8, [9, 10, [5, 6]]]];\nconsole.log(arr1.flat(2));\n// Output: [1, 2, 3, 4, 7, 8, 9, 10, [5, 6]]\n\nUsing Recursion\nThis method manually traverses each element and flattens nested arrays.\nconst array = [[5, 6, [4, 5]], [7, 8], 9, 10];\nlet result = [];\n\nfunction flattenArray(arr) {\n  for (let i = 0; i < arr.length; i++) {\n    if (Array.isArray(arr[i])) {\n      flattenArray(arr[i]); // recursive call\n    } else {\n      result.push(arr[i]);\n    }\n  }\n}\n\nflattenArray(array);\nconsole.log(result);\n// Output: [5, 6, 4, 5, 7, 8, 9, 10]\n\nUsing Stack (Iterative Approach)\nThis avoids recursion by using a stack.\n\n\n\n\nlet arr1 = [1, 2, [3, 4], [7, 8, [9, 10, [5, 6]]]];\nlet stack = [...arr1];\nlet result = [];\n\nwhile (stack.length) {\n  let item = stack.pop();\n\n  if (Array.isArray(item)) {\n    stack.push(...item);\n  } else {\n    result.push(item);\n  }\n}\n\nconsole.log(result.reverse());\n// Output: [1, 2, 3, 4, 7, 8, 9, 10, 5, 6]",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "JavaScript 数组扁平化",
+        "summary": "本文演示了多种 JavaScript 技术，用于扁平化嵌套数组，包括内置的 flat() 方法、递归遍历和迭代堆栈方法。每种方法都包含实际示例，展示如何处理不同深度的嵌套。"
+      },
+      "fr": {
+        "title": "Aplatissement de tableau en JavaScript",
+        "summary": "Cet article démontre plusieurs techniques JavaScript pour aplatir les tableaux imbriqués, y compris la méthode flat() intégrée, la traversée récursive et les approches itératives basées sur la pile. Chaque méthode inclut des exemples pratiques montrant comment gérer les profondeurs d'imbrication variables."
+      },
+      "de": {
+        "title": "Array-Vereinfachung in JavaScript",
+        "summary": "Dieser Artikel demonstriert mehrere JavaScript-Techniken zum Vereinfachen verschachtelter Arrays, einschließlich der integrierten flat()-Methode, rekursiver Durchquerung und iterativer Stack-basierter Ansätze. Jede Methode beinhaltet praktische Beispiele, die zeigen, wie mit unterschiedlichen Verschachtelungstiefen umgegangen wird."
+      },
+      "es": {
+        "title": "Aplanamiento de arrays en JavaScript",
+        "summary": "Este artículo demuestra múltiples técnicas de JavaScript para aplanar arrays anidados, incluido el método flat() incorporado, el recorrido recursivo y los enfoques iterativos basados en pilas. Cada método incluye ejemplos prácticos que muestran cómo manejar diferentes profundidades de anidamiento."
+      }
+    }
+  },
+  {
+    "title": "How and why I rebuilt my website from WordPress to EmDash",
+    "slug": "wordpress-emdash-migration",
+    "url": "https://dev.to/universetwisters/how-and-why-i-rebuilt-my-website-from-wordpress-to-emdash-4pba",
+    "source": "DEV Community",
+    "date": "2026-04-03T11:53:10.000Z",
+    "summary": "The author migrated from WordPress and Elementor to EmDash to regain control over frontend code and improve development experience while maintaining content editability. The shift prioritizes code-based development, systematic design improvements, and AI tooling over plugin-heavy solutions.",
+    "content": "For a long time, my website lived on WordPress with Elementor. That setup did something important for us: it made the site editable for my cofounder without needing me for every small change. That part genuinely mattered, and I do not want to pretend otherwise. When you are building something together, having a visual editor is useful. It lowers the barrier to making content changes, and it keeps the website from becoming \"the developer’s problem\" every single time something needs to be updated.\nStill, over time I noticed I was starting to avoid working on the site. Not because I had run out of ideas, but because improving it had become annoying in a very specific way. Every time I wanted to tweak styling, clean up layout, improve structure, or make broader SEO changes, I felt like I had to fight through layers of builder settings, theme behavior, and plugin logic. Nothing was impossible, but very little felt clean.\nThat was the real problem for me. Elementor solved the editing problem, but it made the development side feel heavier and more opaque than I wanted. WordPress added to that feeling. Need a feature? Probably a plugin. Need another feature? Probably another plugin. Need to update everything? Hopefully nothing breaks. Even when things were working, the site often felt more fragile than it should have.\nAt the same time, I had a pretty clear idea of how I wanted to work on the site going forward. I wanted the frontend to live in code again in a way that made sense to me. I wanted to improve design and SEO more systematically. I wanted to use AI tools and coding agents to help with real improvements, not just random copy suggestions. I wanted the site to feel like software again.\nThat is what pushed me toward EmDash.\nWhat attracted me was not that it was new. I was not looking for novelty. I was looking for a setup that gave me a CMS without making the frontend feel like a black box. Once I decided to migrate, I realized pretty quickly that I did not want to t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何以及为什么将我的网站从 WordPress 重建为 EmDash",
+        "summary": "作者从 WordPress 和 Elementor 迁移到 EmDash，以重新控制前端代码并改进开发体验，同时保持内容可编辑性。这一转变优先考虑基于代码的开发、系统的设计改进和人工智能工具，而不是插件密集的解决方案。"
+      },
+      "fr": {
+        "title": "Comment et pourquoi j'ai reconstruit mon site Web de WordPress à EmDash",
+        "summary": "L'auteur a migré de WordPress et Elementor vers EmDash pour reprendre le contrôle du code frontend et améliorer l'expérience de développement tout en maintenant l'éditabilité du contenu. Le changement privilégie le développement basé sur le code, les améliorations systématiques de la conception et les outils d'IA par rapport aux solutions lourdes en plugins."
+      },
+      "de": {
+        "title": "Wie und warum ich meine Website von WordPress zu EmDash umgebaut habe",
+        "summary": "Der Autor migrierte von WordPress und Elementor zu EmDash, um die Kontrolle über Frontend-Code wiederherzustellen und das Entwicklungserlebnis zu verbessern, während die Bearbeitbarkeit von Inhalten erhalten bleibt. Die Verschiebung priorisiert codegestützte Entwicklung, systematische Designverbesserungen und KI-Tools gegenüber Plugin-intensiven Lösungen."
+      },
+      "es": {
+        "title": "Cómo y por qué reconstruí mi sitio web de WordPress a EmDash",
+        "summary": "El autor migró de WordPress y Elementor a EmDash para recuperar el control del código frontend y mejorar la experiencia de desarrollo mientras se mantiene la editabilidad del contenido. El cambio prioriza el desarrollo basado en código, mejoras sistemáticas del diseño y herramientas de IA sobre soluciones con muchos complementos."
+      }
+    }
+  },
+  {
     "title": "I Built an AI Agent That Watches the Market While I Sleep",
     "slug": "ai-agent-watches-market-while-you-sleep",
     "url": "https://dev.to/chen_zhang_bac430bc7f6b95/i-built-an-ai-agent-that-watches-the-market-while-i-sleep-3go4",
