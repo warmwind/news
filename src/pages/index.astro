@@ -2,13 +2,12 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CategoryNav from '../components/CategoryNav.astro';
 import NewsCard from '../components/NewsCard.astro';
-import { getHreflangLinks } from '../lib/i18n';
+import { resolveTranslations } from '../lib/i18n';
 
 const PAGE_SIZE = 10;
-const hreflangLinks = getHreflangLinks('all', 'https://news.oscarjiang.site');
 
 const newsFiles = import.meta.glob('../data/news/*/*.json', { eager: true });
-const allNews: Array<{ title: string; slug: string; url: string; source: string; date: string; summary: string; content: string; category: string }> = [];
+const allNews: Array<{ title: string; slug: string; url: string; source: string; date: string; summary: string; content: string; category: string; translations?: Record<string, { title: string; summary: string }> }> = [];
 
 for (const [, mod] of Object.entries(newsFiles)) {
   const articles = (mod as any).default || mod;
@@ -18,8 +17,9 @@ for (const [, mod] of Object.entries(newsFiles)) {
 }
 
 allNews.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-const initialArticles = allNews.slice(0, PAGE_SIZE);
-const hasMore = allNews.length > PAGE_SIZE;
+const resolved = resolveTranslations(allNews);
+const initialArticles = resolved.slice(0, PAGE_SIZE);
+const hasMore = resolved.length > PAGE_SIZE;
 
 const collectionSchema = {
   "@context": "https://schema.org",
@@ -38,9 +38,9 @@ const collectionSchema = {
   },
 };
 ---
-<BaseLayout structuredData={collectionSchema} lang="en" ogLocale="en_US" hreflangLinks={hreflangLinks}>
+<BaseLayout structuredData={collectionSchema}>
   <h1 class="sr-only">Oscar's News - Latest Headlines</h1>
-  <CategoryNav active="all" lang="en" />
+  <CategoryNav active="all" />
   <div id="news-list">
     {initialArticles.map(article => (
       <NewsCard
@@ -51,7 +51,6 @@ const collectionSchema = {
         summary={article.summary}
         slug={article.slug}
         category={article.category}
-        lang="en"
       />
     ))}
   </div>
@@ -73,7 +72,7 @@ const collectionSchema = {
       var done = false;
       window.__loadedPages = [1];
 
-      var cacheKey = 'en-' + category;
+      var cacheKey = 'zh-' + category;
       window.__newsCacheKey = cacheKey;
       var cachedHtml = sessionStorage.getItem('news-html-' + cacheKey);
       if (cachedHtml) {
@@ -101,7 +100,7 @@ const collectionSchema = {
       function relativeTime(dateStr) {
         var now = new Date();
         var then = new Date(dateStr);
-        var diffMs = now.getTime() - then.getTime();
+        var diffMs = Math.max(0, now.getTime() - then.getTime());
         var diffMins = Math.floor(diffMs / 60000);
         if (diffMins < 60) return diffMins + 'm ago';
         var diffHours = Math.floor(diffMins / 60);
@@ -130,7 +129,7 @@ const collectionSchema = {
         loading = true;
         spinner.style.display = 'block';
         page++;
-        fetch('/api/articles/en/' + category + '/' + page + '.json')
+        fetch('/api/articles/' + category + '/' + page + '.json')
           .then(function(r) { return r.json(); })
           .then(function(data) {
             var html = '';

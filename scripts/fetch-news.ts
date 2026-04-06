@@ -72,9 +72,6 @@ interface NewsArticle {
 
 const TRANSLATION_LANGS = [
   { code: 'zh', name: 'Chinese' },
-  { code: 'fr', name: 'French' },
-  { code: 'de', name: 'German' },
-  { code: 'es', name: 'Spanish' },
 ];
 
 function slugify(text: string): string {
@@ -170,19 +167,13 @@ function buildTranslationPrompt(
     .map(a => `SLUG: ${a.slug}\nTitle: ${a.title}\nSummary: ${a.summary}`)
     .join('\n\n');
 
-  return `Translate the title and summary of each article below into Chinese (zh), French (fr), German (de), and Spanish (es).
+  return `Translate the title and summary of each article below into Chinese (zh).
 
 Return ONLY plain text in this exact format. Separate each article with a blank line. Each field on its own line with the KEY: value format shown below. Do NOT use JSON, markdown, or any other formatting.
 
 SLUG: original-slug
 ZH_TITLE: 中文标题
 ZH_SUMMARY: 中文摘要
-FR_TITLE: Titre français
-FR_SUMMARY: Résumé français
-DE_TITLE: Deutscher Titel
-DE_SUMMARY: Deutsche Zusammenfassung
-ES_TITLE: Título español
-ES_SUMMARY: Resumen español
 
 Articles:
 ${articlesText}`;

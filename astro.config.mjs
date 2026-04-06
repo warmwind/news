@@ -7,10 +7,6 @@ export default defineConfig({
   integrations: [
     sitemap({
       changefreq: 'daily',
-      i18n: {
-        defaultLocale: 'en',
-        locales: { en: 'en', zh: 'zh', fr: 'fr', de: 'de', es: 'es' },
-      },
     }),
   ],
 });

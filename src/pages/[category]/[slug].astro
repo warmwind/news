@@ -1,6 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { CATEGORIES, CATEGORY_LABELS, articlePath, getArticleHreflangLinks, categoryPath } from '../../lib/i18n';
+import { CATEGORIES, CATEGORY_LABELS, articlePath, categoryPath, resolveTranslations } from '../../lib/i18n';
 
 type Article = {
   title: string;
@@ -11,6 +11,7 @@ type Article = {
   summary: string;
   content: string;
   category: string;
+  translations?: Record<string, { title: string; summary: string }>;
 };
 
 export function getStaticPaths() {
@@ -43,20 +44,21 @@ const { article } = Astro.props;
 const { category, slug } = Astro.params;
 const label = CATEGORY_LABELS[category!] || category;
 const site = 'https://news.oscarjiang.site';
-const hreflangLinks = getArticleHreflangLinks(category!, slug!, site);
+
+const [resolved] = resolveTranslations([article]);
 
 const articleDate = new Date(article.date);
-const formattedDate = articleDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+const formattedDate = articleDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
 
 const articleSchema = {
   "@context": "https://schema.org",
   "@type": "NewsArticle",
-  "headline": article.title,
-  "description": article.summary,
-  "url": `${site}${articlePath('en', article.category, article.slug)}`,
+  "headline": resolved.title,
+  "description": resolved.summary,
+  "url": `${site}${articlePath(article.category, article.slug)}`,
   "datePublished": article.date,
   "publisher": { "@type": "Organization", "name": "Oscar's News" },
-  "mainEntityOfPage": `${site}${articlePath('en', article.category, article.slug)}`,
+  "mainEntityOfPage": `${site}${articlePath(article.category, article.slug)}`,
   "isBasedOn": article.url,
 };
 
@@ -66,32 +68,29 @@ const breadcrumbSchema = {
   "itemListElement": [
     { "@type": "ListItem", "position": 1, "name": "Home", "item": site },
     { "@type": "ListItem", "position": 2, "name": label, "item": `${site}/${category}` },
-    { "@type": "ListItem", "position": 3, "name": article.title },
+    { "@type": "ListItem", "position": 3, "name": resolved.title },
   ],
 };
 ---
 <BaseLayout
-  title={`${article.title} - Oscar's News`}
-  description={article.summary}
-  lang="en"
-  ogLocale="en_US"
-  hreflangLinks={hreflangLinks}
+  title={`${resolved.title} - Oscar's News`}
+  description={resolved.summary}
   structuredData={[articleSchema, breadcrumbSchema]}
 >
   <article class="article-detail">
     <nav class="article-breadcrumb">
-      <a href={categoryPath('en', category!)}>
+      <a href={categoryPath(category!)}>
         {label}
       </a>
     </nav>
-    <h1>{article.title}</h1>
+    <h1>{resolved.title}</h1>
     <div class="article-meta">
       <span class="article-source">{article.source}</span>
       <span class="separator">&middot;</span>
       <time datetime={article.date}>{formattedDate}</time>
     </div>
-    <p class="article-summary">{article.summary}</p>
-    {article.content && article.content !== article.summary && (
+    <p class="article-summary">{resolved.summary}</p>
+    {article.content && article.content !== resolved.summary && (
       <div class="article-content" set:html={article.content} />
     )}
     <a href={article.url} target="_blank" rel="noopener noreferrer" class="view-original">

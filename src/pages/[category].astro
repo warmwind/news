@@ -2,7 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CategoryNav from '../components/CategoryNav.astro';
 import NewsCard from '../components/NewsCard.astro';
-import { CATEGORIES, CATEGORY_LABELS, getHreflangLinks } from '../lib/i18n';
+import { CATEGORIES, CATEGORY_LABELS, resolveTranslations } from '../lib/i18n';
 
 const PAGE_SIZE = 10;
 
@@ -14,10 +14,9 @@ export function getStaticPaths() {
 
 const { category } = Astro.params;
 const label = CATEGORY_LABELS[category!] || category;
-const hreflangLinks = getHreflangLinks(category!, 'https://news.oscarjiang.site');
 
 const newsFiles = import.meta.glob('../data/news/*/*.json', { eager: true });
-const articles: Array<{ title: string; slug: string; url: string; source: string; date: string; summary: string; content: string; category: string }> = [];
+const articles: Array<{ title: string; slug: string; url: string; source: string; date: string; summary: string; content: string; category: string; translations?: Record<string, { title: string; summary: string }> }> = [];
 
 for (const [path, mod] of Object.entries(newsFiles)) {
   const pathCategory = path.split('/').at(-2);
@@ -29,8 +28,9 @@ for (const [path, mod] of Object.entries(newsFiles)) {
 }
 
 articles.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-const initialArticles = articles.slice(0, PAGE_SIZE);
-const hasMore = articles.length > PAGE_SIZE;
+const resolved = resolveTranslations(articles);
+const initialArticles = resolved.slice(0, PAGE_SIZE);
+const hasMore = resolved.length > PAGE_SIZE;
 
 const collectionSchema = {
   "@context": "https://schema.org",
@@ -68,9 +68,9 @@ const breadcrumbSchema = {
   ],
 };
 ---
-<BaseLayout title={`${label} - Oscar's News`} lang="en" ogLocale="en_US" hreflangLinks={hreflangLinks} structuredData={[collectionSchema, breadcrumbSchema]}>
+<BaseLayout title={`${label} - Oscar's News`} structuredData={[collectionSchema, breadcrumbSchema]}>
   <h1 class="sr-only">{label} News - Oscar's News</h1>
-  <CategoryNav active={category} lang="en" />
+  <CategoryNav active={category} />
   <div id="news-list">
     {initialArticles.map(article => (
       <NewsCard
@@ -81,7 +81,6 @@ const breadcrumbSchema = {
         summary={article.summary}
         slug={article.slug}
         category={article.category}
-        lang="en"
       />
     ))}
   </div>
@@ -102,7 +101,7 @@ const breadcrumbSchema = {
       var done = false;
       window.__loadedPages = [1];
 
-      var cacheKey = 'en-' + category;
+      var cacheKey = 'zh-' + category;
       window.__newsCacheKey = cacheKey;
       var cachedHtml = sessionStorage.getItem('news-html-' + cacheKey);
       if (cachedHtml) {
@@ -130,7 +129,7 @@ const breadcrumbSchema = {
       function relativeTime(dateStr) {
         var now = new Date();
         var then = new Date(dateStr);
-        var diffMs = now.getTime() - then.getTime();
+        var diffMs = Math.max(0, now.getTime() - then.getTime());
         var diffMins = Math.floor(diffMs / 60000);
         if (diffMins < 60) return diffMins + 'm ago';
         var diffHours = Math.floor(diffMins / 60);
@@ -159,7 +158,7 @@ const breadcrumbSchema = {
         loading = true;
         spinner.style.display = 'block';
         page++;
-        fetch('/api/articles/en/' + category + '/' + page + '.json')
+        fetch('/api/articles/' + category + '/' + page + '.json')
           .then(function(r) { return r.json(); })
           .then(function(data) {
             var html = '';

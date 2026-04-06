@@ -1,23 +1,8 @@
 ---
-interface Props {
-  lang?: string;
-}
-const { lang = 'en' } = Astro.props;
-const logoHref = lang === 'en' ? '/' : `/${lang}/`;
 ---
-<header class="header" data-current-lang={lang}>
-  <a href={logoHref} class="logo">Oscar's News</a>
+<header class="header">
+  <a href="/" class="logo">Oscar's News</a>
   <div class="header-actions">
-    <div class="lang-selector">
-      <button id="lang-toggle" class="lang-btn" aria-label="Change language"></button>
-      <div id="lang-menu" class="lang-menu">
-        <button data-lang="en">English</button>
-        <button data-lang="zh">中文</button>
-        <button data-lang="fr">Français</button>
-        <button data-lang="de">Deutsch</button>
-        <button data-lang="es">Español</button>
-      </div>
-    </div>
     <button id="theme-toggle" class="icon-btn" aria-label="Toggle theme">
       <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
       <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -90,102 +75,9 @@ const logoHref = lang === 'en' ? '/' : `/${lang}/`;
   :global([data-theme="dark"]) .icon-sun {
     display: block;
   }
-
-  .lang-selector {
-    position: relative;
-  }
-
-  .lang-btn {
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    cursor: pointer;
-    color: var(--text-secondary);
-    padding: 0.2rem 0.5rem;
-    font-size: 0.8125rem;
-    font-weight: 600;
-    line-height: 1;
-  }
-
-  .lang-btn:hover {
-    color: var(--text);
-    border-color: var(--text-secondary);
-  }
-
-  .lang-menu {
-    display: none;
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: 0.25rem;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 0.25rem 0;
-    z-index: 100;
-    min-width: 120px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-
-  .lang-menu.open {
-    display: block;
-  }
-
-  .lang-menu button {
-    display: block;
-    width: 100%;
-    text-align: left;
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0.4rem 0.75rem;
-    font-size: 0.8125rem;
-    color: var(--text-secondary);
-  }
-
-  .lang-menu button:hover {
-    background: var(--border);
-    color: var(--text);
-  }
-
-  .lang-menu button.active {
-    color: var(--accent);
-    font-weight: 600;
-  }
 </style>
 
 <script is:inline data-astro-rerun>
-  var langLabels = { en: 'EN', zh: '中文', fr: 'FR', de: 'DE', es: 'ES' };
-
-  function getLangFromUrl() {
-    return document.documentElement.getAttribute('lang') || 'en';
-  }
-
-  function getPathParts() {
-    var path = window.location.pathname.replace(/\/$/, '') || '/';
-    var parts = path.split('/').filter(Boolean);
-    var langs = ['zh', 'fr', 'de', 'es'];
-    if (parts.length > 0 && langs.indexOf(parts[0]) !== -1) {
-      // /lang/... — category is parts[1], slug is parts[2]
-      return { category: parts[1] || 'all', slug: parts[2] || null };
-    }
-    // /... — category is parts[0], slug is parts[1]
-    return { category: parts[0] || 'all', slug: parts[1] || null };
-  }
-
-  function buildLangUrl(targetLang) {
-    var p = getPathParts();
-    var base;
-    if (targetLang === 'en') {
-      base = p.category === 'all' ? '/' : '/' + p.category;
-    } else {
-      base = p.category === 'all' ? '/' + targetLang + '/' : '/' + targetLang + '/' + p.category;
-    }
-    if (p.slug) base += '/' + p.slug;
-    return base;
-  }
-
-  // Event delegation for theme and language controls — remove old before re-adding
   if (window.__headerClickHandler) document.removeEventListener('click', window.__headerClickHandler);
 
   window.__headerClickHandler = function(e) {
@@ -197,38 +89,7 @@ const logoHref = lang === 'en' ? '/' : `/${lang}/`;
       localStorage.setItem('theme', next);
       return;
     }
-
-    var langToggle = e.target.closest('#lang-toggle');
-    if (langToggle) {
-      e.stopPropagation();
-      document.getElementById('lang-menu').classList.toggle('open');
-      return;
-    }
-
-    var langOption = e.target.closest('#lang-menu button');
-    if (langOption) {
-      var targetLang = langOption.getAttribute('data-lang');
-      if (targetLang) {
-        document.getElementById('lang-menu').classList.remove('open');
-        var targetUrl = buildLangUrl(targetLang);
-        window.location.href = targetUrl;
-      }
-      return;
-    }
-
-    // Close lang menu on outside click
-    var menu = document.getElementById('lang-menu');
-    if (menu) menu.classList.remove('open');
   };
 
   document.addEventListener('click', window.__headerClickHandler);
-
-  // Set button label and active state from <html lang>
-  var currentLang = getLangFromUrl();
-  var langBtn = document.getElementById('lang-toggle');
-  if (langBtn) langBtn.textContent = langLabels[currentLang] || currentLang.toUpperCase();
-  var menuBtns = document.querySelectorAll('#lang-menu button');
-  for (var j = 0; j < menuBtns.length; j++) {
-    menuBtns[j].classList.toggle('active', menuBtns[j].getAttribute('data-lang') === currentLang);
-  }
 </script>
