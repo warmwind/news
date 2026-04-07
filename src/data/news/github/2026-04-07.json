@@ -1,5 +1,213 @@
 [
   {
+    "title": "Running 1M-token context on a single GPU (the math)",
+    "slug": "running-1m-token-context-single-gpu-math",
+    "url": "https://dev.to/jagmarques/running-1m-token-context-on-a-single-gpu-the-math-odd",
+    "source": "DEV Community",
+    "date": "2026-04-07T18:22:50.000Z",
+    "summary": "Million-token context windows require 6 trillion bytes of KV cache; compression ratios of 17–33× make large models feasible on 1–2 H100 GPUs. This shifts the constraint from hardware scarcity to mathematical optimization.",
+    "content": "Most people dismiss million-token context windows as a hardware problem. It is not. It is a math problem — and the math has a solution.\nA 70B model stores KV cache at 2 bytes per element (fp16). With 96 layers, 64 heads, 128 head-dim, the KV cache per token is:\nbytes_per_token = 2 * num_layers * 2 * num_heads * head_dim * bytes_per_element\n                = 2 * 96 * 2 * 64 * 128 * 2\n                = 6,291,456 bytes ≈ 6 MB/token\n\nAt 1M tokens: 6 TB. Two H100s hold 160 GB combined. You are 37× short.\n\n\n\nModel\nContext\nNo compression\n5x\n10x\n17x\n33x\n\n\n\n\n7B\n1M tokens\n420 GB\n84 GB\n42 GB\n25 GB\n13 GB\n\n\n13B\n1M tokens\n780 GB\n156 GB\n78 GB\n46 GB\n24 GB\n\n\n70B\n1M tokens\n6,000 GB\n1,200 GB\n600 GB\n120 GB\n60 GB\n\n\n70B\n128K tokens\n768 GB\n154 GB\n77 GB\n45 GB\n23 GB\n\n\n\n17× compression: 70B at 1M tokens fits on 2× H100 (120 GB). \n33× compression: 70B at 1M tokens fits on a single H100 (80 GB).\ndef kv_cache_gb(\n    model_params_b,      # e.g. 70 for 70B\n    context_length,      # e.g. 1_000_000\n    compression_ratio=1, # NexusQuant preset\n    bytes_per_element=2, # fp16\n):\n    # Approximate KV bytes from model size\n    # Rule of thumb: KV cache ≈ model_params * 0.375 * (ctx / training_ctx)\n    # Precise version:\n    num_layers = int(model_params_b ** 0.45 * 5.2)  # empirical fit\n    num_kv_heads = 8   # GQA default for modern 70B\n    head_dim = 128\n    kv_bytes = (\n        context_length\n        * num_layers\n        * 2  # K and V\n        * num_kv_heads\n        * head_dim\n        * bytes_per_element\n    )\n    return kv_bytes / compression_ratio / 1e9\n\n# Examples\nprint(kv_cache_gb(70, 1_000_000, compression_ratio=17))   # ~120 GB\nprint(kv_cache_gb(70, 1_000_000, compression_ratio=33))   # ~60 GB\nprint(kv_cache_gb(7,  1_000_000, compression_ratio=5))    # ~84 GB\n\nNexusQuant presets map directly to GPU configurations:\nPreset S (5×): 7B model, 1M context → single H100\nPreset M (10×): 13B model, 1M context → single H100\nPreset L (17×): 70B model, 1M context → 2× H100\nPreset XL (33×): 70B model, 1M",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在单个GPU上运行100万令牌上下文(数学原理)",
+        "summary": "百万令牌上下文窗口需要6万亿字节的KV缓存;17-33倍的压缩比使大型模型可在1-2个H100 GPU上运行。这将制约因素从硬件稀缺转向数学优化。"
+      }
+    }
+  },
+  {
+    "title": "Why I started building my own “simple tools” website",
+    "slug": "why-i-started-building-my-own-simple-tools-website",
+    "url": "https://dev.to/jean_carloschmitz/why-i-started-building-my-own-simple-tools-website-5b96",
+    "source": "DEV Community",
+    "date": "2026-04-07T18:20:46.000Z",
+    "summary": "A developer built a clean, ad-free alternative to bloated utility sites for common tasks like JSON formatting and timestamp conversion. The project addresses developer frustration with tracker-heavy services.",
+    "content": "As developers, we often need very small utilities: format JSON, decode base64, generate hashes, convert timestamps…\nBut most websites offering these tools are overloaded with ads, trackers and login walls.\nI wanted something:\nclean\nfast\ndistraction-free\nSo I started building https://quickeasy.tools\nIt’s a small side project, but I plan to grow it weekly.\nFeedback is very welcome.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么我开始构建自己的\"简单工具\"网站",
+        "summary": "一名开发者为JSON格式化和时间戳转换等常见任务打造了一个简洁、无广告的替代方案,用以替代臃肿的实用工具网站。该项目解决了开发者对追踪器密集型服务的困扰。"
+      }
+    }
+  },
+  {
+    "title": "Someone saw my screen mid-session and asked what IDE I was using",
+    "slug": "someone-saw-my-screen-mid-session-asked-what-ide",
+    "url": "https://dev.to/monkmodeapp/someone-saw-my-screen-mid-session-and-asked-what-ide-i-was-using-367o",
+    "source": "DEV Community",
+    "date": "2026-04-07T18:20:42.000Z",
+    "summary": "Claudx adds a spatial Codex-style interface to Claude Code, displaying file trees, diffs, and prompts simultaneously instead of sequentially. The wrapper demonstrates that layout design significantly reduces cognitive overhead in developer tools.",
+    "content": "I was on a video call, sharing my screen, working through a backend feature. Someone interrupted: \"wait, hold on -- what is that you're using?\"\nI said Claude Code. They'd heard of it but hadn't seen anyone working in it that way before.\nThe interface they were looking at was Claudx. And it's the reason I still get that question regularly from people who catch a glimpse of my screen.\nI moved over to Claude Code maybe six months ago. It replaced most of what I was doing in Cursor and VS Code. The workflow is faster, the context management is better, and for backend work especially it removed a lot of the friction I was used to dealing with.\nBut I kept missing one thing: the Codex interface. Not the model -- the layout. The way you could see your prompt on the left, the file tree, the diff, the output, all at once without jumping around.\nClaude Code runs in the terminal. That's the point -- it's lean, it stays out of the way. But the terminal is also one-dimensional. You're reading output sequentially, you're not getting a spatial view of what's happening.\nIn the terminal you're tracking a lot of that mentally. Which files changed. What the current task is. What the last few outputs were. It works, but it uses cognitive overhead that I'd rather spend on the actual problem.\nClaudx is Claude Code with a Codex-style interface. The goal wasn't to add features -- it was to make what Claude Code already does visible. File tree, prompt history, diff view, all in the same window.\nYou can check it out at https://www.claudx.org. It works on top of your existing Claude Code setup -- no new config, no new API keys, no new workflow to learn.\nFirst: layout matters more than I expected. The same terminal output reads differently when it's spatially organized. Your brain processes it faster when it has a consistent place to look.\nSecond: the \"just wrap Claude Code\" framing undersells it. The hard part wasn't the wrapping -- it was figuring out which parts of the terminal experience we",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "有人在中途看到我的屏幕,问我在使用什么IDE",
+        "summary": "Claudx为Claude Code添加了空间Codex风格的界面,同时显示文件树、差异和提示,而非按顺序显示。该封装器展示了布局设计如何显著降低开发工具中的认知负荷。"
+      }
+    }
+  },
+  {
+    "title": "Every Millisecond Is a Lie: What Latency Benchmarks Won't Tell You",
+    "slug": "every-millisecond-is-a-lie-what-latency-benchmarks-wont-tell",
+    "url": "https://dev.to/shipaifast/every-millisecond-is-a-lie-what-latency-benchmarks-wont-tell-you-g0b",
+    "source": "DEV Community",
+    "date": "2026-04-07T18:19:38.000Z",
+    "summary": "P99 latency—not P50—determines user experience in production LLM systems, often reaching 20× median response times. Intelligent request routing by complexity cuts latency 40–60% while reducing costs.",
+    "content": "Here's an uncomfortable truth: that P50 latency number your team celebrates in standups is actively misleading you. It's the average experience of your luckiest users, not the bleeding-edge reality of your slowest ones. And in production LLM systems, the gap between P50 and P99 latency isn't a gentle slope — it's a cliff.\nI've watched teams optimize their median response time down to 180ms while their P99 quietly ballooned to 4.2 seconds. Users don't remember the fast responses. They remember the one time the chatbot froze mid-sentence during a demo with the board.\nLie #1: Tokens per second is your north star metric.\nfeel twice as fast as one doing 120 TPS with a 2-second cold start.\nLie #2: Bigger GPUs solve latency problems.\nsome latency problems. But most production latency isn't compute-bound — it's routing-bound, queue-bound, or serialization-bound. I've seen teams throw H100s at a problem that was actually caused by synchronous API calls stacking up behind a single-threaded orchestration layer. The fix wasn't hardware. It was parallel fan-out with speculative execution.\nLie #3: One model, one endpoint, one prayer.\nIntelligent request routing is the single highest-leverage optimization most teams aren't doing. By classifying incoming requests by complexity, token count, and task type — then routing them to appropriately sized models — you can cut median latency by 40-60% while simultaneously reducing cost. A lightweight model handles 70% of requests in under 300ms. The heavy model only fires for the 30% that genuinely need it. Your aggregate P95 drops dramatically because you've removed thousands of requests from the slow path entirely.\nParallel processing with early termination is the second unlock. Instead of sequential chain-of-thought pipelines where step 3 waits for step 2 waits for step 1, decompose requests into independent sub-tasks and fan them out simultaneously. For a retrieval-augmented generation pipeline, fire your embedding lookup, context retrie",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "每一毫秒都是谎言：延迟基准测试不会告诉你什么",
+        "summary": "在生产LLM系统中,P99延迟(而非P50)决定了用户体验,通常达到中位数响应时间的20倍。按复杂度智能路由请求可将延迟降低40-60%,同时降低成本。"
+      }
+    }
+  },
+  {
+    "title": "CML vs GNS3 vs INE: How Network Engineers Should Build Labs in 2026",
+    "slug": "cml-vs-gns3-vs-ine-how-network-engineers-build-labs-2026",
+    "url": "https://dev.to/firstpasslab/cml-vs-gns3-vs-ine-how-network-engineers-should-build-labs-in-2026-2hdg",
+    "source": "DEV Community",
+    "date": "2026-04-07T18:16:44.000Z",
+    "summary": "Cisco Modeling Labs ($200/year) suits Cisco-focused engineers; INE cloud labs ($20–50/month) serve structured training; GNS3 remains best for budget-conscious mixed-vendor labs. Each tool addresses distinct workflow needs.",
+    "content": "If you're building network labs in 2026, the real question is not \"which tool is best?\" It's which tool matches the kind of lab work you actually need to do.\nSome engineers want a legal, repeatable Cisco-heavy environment for deep protocol work. Some want guided labs they can launch in a minute. Others just want the cheapest path to testing routing, switching, VPN, and firewall ideas at home.\nThe three tools that come up most often are Cisco Modeling Labs (CML), INE's cloud labs, and GNS3. They overlap, but they are not interchangeable.\nMy short take:\nCML is the best foundation for serious Cisco-centric lab work\nINE is best when you want structured, ready-to-run scenarios\nGNS3 is still excellent when budget and flexibility matter most\n\n\n\nFeature\nCML\nINE\nGNS3\n\n\n\n\nCost\n~$200/year\n~$20 to $50/month\nFree\n\n\nOfficial Cisco images\nYes, included\nYes, in provider labs\nNo\n\n\nLocal lab control\nYes\nNo, cloud only\nYes\n\n\nCustom topologies\nExcellent\nLimited compared to local builds\nExcellent\n\n\nModern Cisco platform support\nStrong\nStrong in prebuilt labs\nMixed, depends on images and host resources\n\n\nBest for\nCisco-focused engineers, repeatable deep labs\nStructured practice\nBudget builds, mixed-vendor labs, experimentation\n\n\n\nCML wins when you want a lab that feels like an engineering sandbox, not just a training portal.\nThe biggest advantage is simple: you get legitimate Cisco images out of the box. That removes the messiest part of home labbing, especially if you want to work with IOS-XE, IOS-XR, NX-OS, or ASAv without hunting around for images and licenses.\nThat matters a lot if your lab goals include:\nrouting protocol behavior\nBGP policy testing\nMPLS or segment routing experiments\nEVPN and VXLAN topologies\nfirewall and services integration\nrepeatable topology snapshots\nCML is also one of the few options that makes it realistic to build larger topologies and keep iterating on them. You can save a base design, clone it, break it on purpose, and rebuild quickly.\nLegal Cisco image ac",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "CML vs GNS3 vs INE: 2026年网络工程师应如何构建实验室",
+        "summary": "思科建模实验室(200美元/年)适合专注思科的工程师;INE云实验室(20-50美元/月)用于结构化培训;GNS3仍是注重预算的混合厂商实验室的最佳选择。每个工具都满足不同的工作流需求。"
+      }
+    }
+  },
+  {
+    "title": "ingress-nginx Is Dead: How I Migrated to Gateway API Before It Became a Liability",
+    "slug": "ingress-nginx-is-dead-how-i-migrated-to-gateway-api",
+    "url": "https://dev.to/mateenali66/ingress-nginx-is-dead-how-i-migrated-to-gateway-api-before-it-became-a-liability-2815",
+    "source": "DEV Community",
+    "date": "2026-04-07T18:15:05.000Z",
+    "summary": "ingress-nginx was archived March 24, 2026 after five critical CVEs including a CVSS 9.8 RCE. Kubernetes teams must migrate to Gateway API v1.4, with ingress2gateway tooling enabling zero-downtime conversion.",
+    "content": "ingress-nginx was archived on March 24, 2026 after a string of critical CVEs including a 9.8 CVSS unauthenticated RCE. Gateway API v1.4 is the CNCF-graduated replacement. I used ingress2gateway 1.0 to convert 40+ Ingress resources to HTTPRoutes, validated the output, and cut over with zero downtime. Here's exactly how I did it.\nIn March 2025, CVE-2025-1974 (dubbed \"IngressNightmare\") dropped: a CVSS 9.8 unauthenticated remote code execution vulnerability in ingress-nginx's admission webhook. Any attacker with network access to the webhook could execute arbitrary code inside the controller pod, which typically has broad cluster permissions. That was bad enough on its own.\nThen came 2026. Four more HIGH-severity CVEs landed in quick succession:\n\n\n\nCVE\nSeverity\nWhat It Does\n\n\n\n\nCVE-2025-1974\nCRITICAL 9.8\nUnauthenticated RCE via admission webhook\n\n\nCVE-2026-1580\nHIGH\nConfig injection leading to privilege escalation\n\n\nCVE-2026-24512\nHIGH\nPath injection through nginx config manipulation\n\n\nCVE-2026-24513\nHIGH\nAuthentication bypass\n\n\nCVE-2026-24514\nHIGH\nAnnotation abuse for unauthorized access\n\n\n\nOn March 24, 2026, the ingress-nginx repository was officially archived. Read-only. No more patches. No more CVE fixes. If you're still running it, you're running unpatched software with known critical vulnerabilities.\nThis wasn't a surprise deprecation. The Kubernetes community had been building Gateway API for years as the successor to the Ingress resource. But the CVE storm turned \"migrate when convenient\" into \"migrate now.\"\n\nGateway API isn't just \"Ingress v2.\" It fundamentally changes how traffic routing is modeled in Kubernetes by splitting responsibilities across three layers:\n\nThe infrastructure team defines what gateway implementation is available. Think of it as the \"which load balancer technology\" decision.\napiVersion: gateway.networking.k8s.io/v1\nkind: GatewayClass\nmetadata:\n  name: production-gateway\nspec:\n  controllerName: gateway.envoyproxy.io/gatewayclass-controlle",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "ingress-nginx已死：我如何在它成为负债前迁移到Gateway API",
+        "summary": "ingress-nginx在2026年3月24日因五个严重CVE(包括CVSS 9.8 RCE)后被归档。Kubernetes团队必须迁移到Gateway API v1.4,ingress2gateway工具实现零停机转换。"
+      }
+    }
+  },
+  {
+    "title": "Why Cursor Keeps Setting CORS to * (And How to Fix It)",
+    "slug": "why-cursor-keeps-setting-cors-to-wildcard-and-how-to-fix",
+    "url": "https://dev.to/chandan_karn_fb750e731394/why-cursor-keeps-setting-cors-to-and-how-to-fix-it-i4n",
+    "source": "DEV Community",
+    "date": "2026-04-07T18:14:01.000Z",
+    "summary": "AI-generated backends default to wildcard CORS due to training data patterns from insecure StackOverflow examples. A runtime allowlist function eliminates the vulnerability in minutes without dependencies.",
+    "content": "TL;DR\n\n\n\nWildcard CORS (Access-Control-Allow-Origin: *) shows up in the majority of AI-generated Express backends\nCursor defaults to it because most training-data CORS examples skip origin whitelisting entirely\nFix: replace origin: '*' with a runtime allowlist function -- five minutes, zero extra dependencies\nI was reviewing a side project for a friend last week. Express backend, generated almost entirely with Cursor. Clean TypeScript, solid test coverage, auth working correctly. One thing stood out immediately.\nEvery route was open to every domain on the internet.\nNot because auth was missing. The JWT middleware was fine. But at the top of server.ts:\napp.use(cors({ origin: '*' }));\n\nThis line shows up in probably eight out of ten AI-generated Express backends I've looked at. It's not a Cursor failure specifically. It's a training data problem. The StackOverflow answers that taught CORS to a generation of Node developers all used origin: '*' in their examples. They were written to solve \"make the browser request work\" -- not \"make it work securely.\" LLMs absorbed that pattern.\nHere's what you get when you ask Cursor to \"add CORS to my Express API\":\nimport cors from 'cors';\n\n// CWE-346: Origin Validation Error\napp.use(cors({\n  origin: '*',\n  methods: ['GET', 'POST', 'PUT', 'DELETE'],\n  allowedHeaders: ['Content-Type', 'Authorization'],\n  credentials: true\n}));\n\nThat last line is where it gets interesting. origin: '*' combined with credentials: true is rejected by most browsers -- so the developer hits a CORS error and asks their AI editor to fix it. The fix often involves setting origin to a specific string... which the AI sometimes still writes as '*', or suggests allowedHeaders: '*' as a workaround.\nEven without credentials, wildcard CORS on an authenticated API means any website can make requests to your API from inside a victim's browser and read the responses. If the user is logged in, their session token flows with the request. It's not a full auth bypass, but",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么 Cursor 不断将 CORS 设置为 * (以及如何修复)",
+        "summary": "由于来自不安全的 StackOverflow 示例的训练数据模式，AI 生成的后端默认使用通配符 CORS。一个运行时白名单函数可以在几分钟内消除漏洞，无需任何依赖项。"
+      }
+    }
+  },
+  {
+    "title": "Context Pruning Unlocks Superior RAG Accuracy Metrics",
+    "slug": "context-pruning-unlocks-superior-rag-accuracy-metrics",
+    "url": "https://dev.to/inferencedaily/context-pruning-unlocks-superior-rag-accuracy-metrics-27cl",
+    "source": "DEV Community",
+    "date": "2026-04-07T18:13:55.000Z",
+    "summary": "Multi-stage context pruning—dense retrieval, cross-encoder reranking, semantic filtering—reduces RAG hallucination and token overhead while sharpening model focus. Signal-to-noise ratio outperforms raw top-k retrieval.",
+    "content": "Engineering teams that measure signal-to-noise ratios in prompt construction consistently outperform peers relying on raw top-k retrieval. Retrieval-Augmented Generation (RAG) systems frequently suffer from hallucination when context windows are flooded with irrelevant or noisy chunks. Intelligent context pruning solves this by applying a multi-stage filtering pipeline before the data reaches the LLM. First, dense vector retrieval fetches top-k candidates. Next, cross-encoder reranking scores these chunks based on precise query alignment. Finally, semantic similarity thresholds and redundancy elimination strip away overlapping information. This streamlined prompt context drastically reduces token overhead, sharpens model attention, and ensures the LLM only synthesizes verified, high-signal data. By optimizing your retrieval pipeline, you systematically elevate precision, recall, and overall downstream generation quality.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "上下文修剪解锁卓越的 RAG 准确性指标",
+        "summary": "多阶段上下文修剪——密集检索、交叉编码器重新排序、语义过滤——减少 RAG 幻觉和令牌开销，同时提高模型焦点。信噪比优于原始 top-k 检索。"
+      }
+    }
+  },
+  {
+    "title": "Streaming Rugby Through a Self-Hosted RTMP Proxy with Docker and OBS",
+    "slug": "streaming-rugby-through-self-hosted-rtmp-proxy-docker-obs",
+    "url": "https://dev.to/fivenineslab_30/streaming-rugby-through-a-self-hosted-rtmp-proxy-with-docker-and-obs-2bjd",
+    "source": "DEV Community",
+    "date": "2026-04-07T18:13:18.000Z",
+    "summary": "Self-hosted RTMP infrastructure with nginx-rtmp-module, ffmpeg, and Docker enables low-latency video ingestion, transcoding, and multi-destination distribution. The pattern applies to security cameras, internal streams, and any scenario requiring protocol-level control.",
+    "content": "Last March, our office wanted to stream a rugby match — Highlanders vs Brumbies — to multiple monitors without juggling browser tabs or relying on flaky third-party streams. The problem: we needed one reliable ingestion point, the ability to record the stream, and the flexibility to push it to multiple destinations (local screens, recording storage, backup relay). No commercial streaming service gave us that level of control.\nWe solved this by running our own RTMP proxy using nginx-rtmp-module in Docker, pulling the source stream with ffmpeg, and distributing it across our internal network. This isn't about piracy — it's about understanding media streaming infrastructure at the protocol level. You can use the same pattern for security camera feeds, internal presentations, or any scenario where you need to ingest, transcode, and redistribute live video.\nRTMP (Real-Time Messaging Protocol) remains the workhorse protocol for live video ingestion. While HLS and DASH dominate delivery to browsers, RTMP handles low-latency, persistent connections between encoders and servers. OBS, ffmpeg, and most professional broadcast tools speak RTMP natively.\nThe stack we built:\nnginx with rtmp module: accepts incoming RTMP streams, handles restreaming\nffmpeg: pulls external streams (HLS, RTSP, etc.), transcodes, pushes to nginx\nDocker Compose: orchestrates everything, handles restarts\nPrometheus node-exporter (optional): monitors bitrate, dropped frames\nFirst, we built a Docker image for nginx with the RTMP module. The official nginx image doesn't include it, so we compile it in.\nFROM alpine:3.18 AS builder\n\nRUN apk add --no-cache \\\n    build-base \\\n    git \\\n    pcre-dev \\\n    openssl-dev \\\n    zlib-dev\n\nWORKDIR /tmp\nRUN git clone https://github.com/arut/nginx-rtmp-module.git && \\\n    wget http://nginx.org/download/nginx-1.24.0.tar.gz && \\\n    tar -xzf nginx-1.24.0.tar.gz\n\nWORKDIR /tmp/nginx-1.24.0\nRUN ./configure \\\n    --with-http_ssl_module \\\n    --add-module=../nginx-rtmp-module",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "通过自托管 RTMP 代理与 Docker 和 OBS 流式传输橄榄球",
+        "summary": "使用 nginx-rtmp-module、ffmpeg 和 Docker 的自托管 RTMP 基础设施可以实现低延迟视频摄取、转码和多目标分发。该模式适用于安全摄像头、内部流和任何需要协议级控制的场景。"
+      }
+    }
+  },
+  {
+    "title": "Master Array Flattening in JS",
+    "slug": "master-array-flattening-in-js",
+    "url": "https://dev.to/kunal_dev/master-array-flattening-in-js-16f",
+    "source": "DEV Community",
+    "date": "2026-04-07T18:12:13.000Z",
+    "summary": "Modern JavaScript's Array.flat() method simplifies nested array flattening that required complex logic pre-ES6. The guide covers multiple flattening approaches and when deeply nested arrays become unwieldy.",
+    "content": "While writing a blog on array methods i got to know about one method that deal with nested array which is array.flat().\nIf you also want to read that blog read this 👇\nIf You Don’t Know These Array Methods, We Need to Talk.\n\n\n  \nKunal \n                    \n                  \n\n                \nMar 3\n        \n#discuss\n            #javascript\n            #node\n            #computerscience\n        \n6 reactions\n            \nAdd Comment\n            \n        \nBefore ES6, flattening arrays wasn’t straightforward and often required complex logic. Thankfully, modern JavaScript provides much simpler and cleaner ways to handle it.\nTopics to Cover\nWhat nested arrays are\nWhy flattening arrays is useful\nDifferent approaches to flatten arrays\nNested array are the arrays that contain other array as their elements.\nInstead of holding value like string and object, a nested array store one or more array inside it.\n\nconst deepArr = [1, [2, [3, [4]]]];\n\nWhen working with nested arrays that contain multiple levels of data, it can quickly become difficult to read, manage, and process the values effectively.\nTo simplify this, we use array flattening.\nFlattening an array means converting a nested (multi-level) array into a single-level array. This makes the data easier to understand, iterate over, and work with in your code.\n\nconst nestedArr = [1, 2, [3, 4], [5, 6]];\n                ↓\nOutput: [1, 2, 3, 4, 5, 6]\n\n1. Using while loop with a recursive helper function\nThis method uses a loop to go through each item and put it into a new array.\nIf it finds another array inside, it goes inside that array and does the same thing again. It keeps doing this until there are no more arrays inside.\nIn the end, everything gets added into one simple flat array.\n\nconst flatten = (nested) => {\n  const flat = [];\n  const handleFlat = (array) => {\n    let counter = 0\n    while (counter < array.length) {\n      const val = array[counter];\n      if (Array.isArray(val)) {\n        handleFlat(val);\n      } else {",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "掌握 JavaScript 数组扁平化",
+        "summary": "现代 JavaScript 的 Array.flat() 方法简化了在 ES6 之前需要复杂逻辑的嵌套数组扁平化。本指南涵盖了多种扁平化方法以及深层嵌套数组何时变得难以处理。"
+      }
+    }
+  },
+  {
+    "title": "Docker's nftables Mode Doesn't Respect Your Drop Rules — Here's the Fix",
+    "slug": "docker-nftables-mode-doesnt-respect-drop-rules-here-is-fix",
+    "url": "https://dev.to/fivenineslab_30/dockers-nftables-mode-doesnt-respect-your-drop-rules-heres-the-fix-3khf",
+    "source": "DEV Community",
+    "date": "2026-04-07T18:12:11.000Z",
+    "summary": "Docker's nftables chains execute at priority -100 before standard firewall rules at priority 0, allowing containers through despite custom drop rules. Higher-priority chains or Docker priority adjustment is required to enforce firewall policies.",
+    "content": "You enable Docker's experimental nftables support, add a drop rule in /etc/nftables.conf, reload your firewall, and the container port stays wide open. The packet hits your drop rule, then Docker's accept rule fires anyway. This violates everything you thought you knew about packet filtering.\nI hit this exact scenario running a multi-tenant LLM API platform where different teams deploy inference containers. One team accidentally exposed their Ollama admin interface on port 3000. Standard nftables drop rules in our firewall config did nothing — the port stayed accessible from the internet.\nDocker 29+ creates its own nftables table (docker) with chains that hook into prerouting, forward, and postrouting. These chains have specific priority values that determine their execution order relative to your custom chains.\nHere's the critical part: nftables evaluates chains based on priority within the same hook. A drop rule in your inet filter table with priority 0 doesn't automatically block packets that a docker table chain with priority -100 has already accepted.\nCheck what Docker actually created:\nnft list ruleset | grep -A 20 \"table inet docker\"\n\nYou'll see output like:\ntable inet docker {\n    chain forward {\n        type filter hook forward priority -100; policy accept;\n        ct state established,related accept\n        iifname \"docker0\" accept\n        oifname \"docker0\" accept\n    }\n}\n\nThat priority -100 means Docker's forward chain runs before your standard filter chain at priority 0. If Docker's chain accepts the packet, your drop rule never even sees it.\nNftables priorities are integers. Lower (more negative) values run first. Standard filter tables use priority 0. Docker uses:\nprerouting: priority -300 for DNAT rules\nforward: priority -100 for container traffic acceptance\npostrouting: priority 100 for masquerading\nYour drop rule in a priority 0 chain fires after Docker has already said \"yes, forward this packet to the container\". The packet is gone.\nCreate a chain",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Docker 的 nftables 模式不尊重您的 Drop 规则——这是解决方案",
+        "summary": "Docker 的 nftables 链在优先级 -100 处执行，优先于优先级为 0 的标准防火墙规则，尽管有自定义 drop 规则，但仍允许容器通过。需要更高优先级的链或 Docker 优先级调整来强制执行防火墙策略。"
+      }
+    }
+  },
+  {
+    "title": "Attention Residuals: How Kimi Is Rethinking Transformer Depth",
+    "slug": "attention-residuals-how-kimi-is-rethinking-transformer-depth",
+    "url": "https://dev.to/futhgar/attention-residuals-how-kimi-is-rethinking-transformer-depth-4ii3",
+    "source": "DEV Community",
+    "date": "2026-04-07T18:12:06.000Z",
+    "summary": "Kimi's attention residuals replace fixed residual connections with learned, input-dependent weights across all preceding layers, solving \"PreNorm dilution\" where early signals vanish in deep models. Each layer learns to attend to relevant predecessors rather than blindly accumulating.",
+    "content": "Every transformer you've ever used stacks layers with a dead-simple formula: take the input, add the layer's output, move on. x + layer(x). Fixed weight of 1. No questions asked.\nThe Kimi team at Moonshot AI just published a paper that asks: what if that's been wrong the whole time?\nStandard residual connections accumulate layer outputs with equal weight. Layer 1 contributes the same as layer 47. The hidden state grows without bound as you stack more layers, and each individual layer's contribution gets diluted into the noise.\nThis is called PreNorm dilution — and it gets worse the deeper your model goes. At 100+ layers, the early layers are essentially screaming into a hurricane. Their signal is there, mathematically, but it's buried under the sum of everything that came after.\nFor most of transformer history, we've papered over this with normalization tricks. RMSNorm, LayerNorm, various pre-norm and post-norm arrangements. They help. They don't solve the root cause.\nThe Kimi team's solution is elegant: replace the fixed x + layer(x) with softmax attention over all preceding layer outputs.\nInstead of blindly accumulating, each layer looks back at every layer before it and decides — with learned, input-dependent weights — how much of each previous layer to carry forward.\nThink of it like this: in standard residual connections, you're stuffing every letter you've ever received into one folder, in order, and hoping the important ones float to the top. Attention Residuals let each layer read through the folder and pick out exactly the letters that matter for the current task.\nThe key properties:\nInput-dependent: The aggregation weights change based on what the model is processing, not fixed at training time\nDepth-selective: Layer 50 might pull heavily from layer 3 and layer 48, but ignore everything in between\nLearned: The attention mechanism over layers is trained end-to-end with the rest of the model\nThe naive version — attending over every single preceding layer — w",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "注意力残差：Kimi 如何重新思考 Transformer 深度",
+        "summary": "Kimi 的注意力残差用学习的、依赖输入的权重替代了所有前驱层的固定残差连接，解决了深层模型中早期信号消失的\"PreNorm 稀释\"问题。每一层都学会关注相关的前驱层，而不是盲目累积。"
+      }
+    }
+  },
+  {
+    "title": "Dropping Cloudflare for Bunny.net",
+    "slug": "dropping-cloudflare-for-bunny-net",
+    "url": "https://jola.dev/posts/dropping-cloudflare",
+    "source": "Hacker News",
+    "date": "2026-04-07T13:23:05.000Z",
+    "summary": "A developer migrated from Cloudflare to Bunny.net CDN, likely for cost, performance, or feature trade-offs. The shift illustrates how CDN provider choice impacts both economics and delivery capabilities.",
+    "content": "Article URL: https://jola.dev/posts/dropping-cloudflare\nComments URL: https://news.ycombinator.com/item?id=47675013\nPoints: 300\n# Comments: 143",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "从Cloudflare迁移到Bunny.net",
+        "summary": "一位开发者从Cloudflare迁移到Bunny.net CDN，可能是出于成本、性能或功能权衡的考虑。这次转变说明了CDN提供商的选择如何影响经济效益和交付能力。"
+      }
+    }
+  },
+  {
     "title": "Why I Built Scenar.io - An AI-Powered DevOps Interview Practice Tool",
     "slug": "why-i-built-scenar-io-ai-powered-devops-interview",
     "url": "https://dev.to/fock1e/why-i-built-scenario-an-ai-powered-devops-interview-practice-tool-2ha4",
@@ -188,6 +396,38 @@
       "zh": {
         "title": "我们如何通过 REST 上传数GB文件（不消耗大量内存）",
         "summary": "本文描述了一种流导向架构，用于通过 REST API 处理数GB文件上传，而无需将整个负载缓冲到内存中。使用组合流装饰器进行验证、加密和并行云存储上传，该方法无论文件大小如何都保持恒定的内存开销。"
+      }
+    }
+  },
+  {
+    "title": "Show HN: Brutalist Concrete Laptop Stand (2024)",
+    "slug": "show-hn-brutalist-concrete-laptop-stand-2024",
+    "url": "https://sam-burns.com/posts/concrete-laptop-stand/",
+    "source": "Hacker News",
+    "date": "2026-04-07T11:07:44.000Z",
+    "summary": "A DIY brutalist concrete laptop stand project demonstrates hardware craftsmanship and alternative approaches to office equipment design. The minimalist aesthetic appeals to designers seeking durable, unconventional workspace solutions.",
+    "content": "Article URL: https://sam-burns.com/posts/concrete-laptop-stand/\nComments URL: https://news.ycombinator.com/item?id=47673360\nPoints: 555\n# Comments: 180",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Show HN: 粗野主义混凝土笔记本电脑支架（2024）",
+        "summary": "一个DIY粗野主义混凝土笔记本电脑支架项目展示了硬件工艺和办公设备设计的替代方法。简约美学吸引寻求耐用、非传统工作空间解决方案的设计师。"
+      }
+    }
+  },
+  {
+    "title": "We found an undocumented bug in the Apollo 11 guidance computer code",
+    "slug": "we-found-undocumented-bug-apollo-11-guidance-computer-code",
+    "url": "https://www.juxt.pro/blog/a-bug-on-the-dark-side-of-the-moon/",
+    "source": "Hacker News",
+    "date": "2026-04-07T10:25:12.000Z",
+    "summary": "Researchers discovered an undocumented bug in Apollo 11's guidance computer code decades after the moon landing, revealing previously unknown software complexities in one of history's most mission-critical systems. The finding offers insights into early computer engineering and debugging practices.",
+    "content": "Article URL: https://www.juxt.pro/blog/a-bug-on-the-dark-side-of-the-moon/\nComments URL: https://news.ycombinator.com/item?id=47673005\nPoints: 315\n# Comments: 161",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我们在阿波罗11号制导计算机代码中发现了一个未记录的缺陷",
+        "summary": "研究人员在登月数十年后，在阿波罗11号的制导计算机代码中发现了一个未记录的bug，揭示了历史上最关键任务之一的软件复杂性。这一发现对早期计算机工程和调试实践提供了洞见。"
       }
     }
   },
