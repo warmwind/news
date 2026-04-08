@@ -1,0 +1,194 @@
+[
+  {
+    "title": "Bounding Box Augmentation for Object Detection with Albumentations",
+    "slug": "bounding-box-augmentation-object-detection",
+    "url": "https://dev.to/viglovikov/bounding-box-augmentation-for-object-detection-with-albumentations-2la",
+    "source": "DEV Community",
+    "date": "2026-04-08T00:35:26.000Z",
+    "summary": "This article explains how to correctly synchronize image augmentations with bounding box labels for object detection using Albumentations. The library automatically transforms both pixels and box coordinates across five different coordinate formats (pascal_voc, COCO, YOLO, and others), preventing misaligned labels during training.",
+    "content": "If you're new to image augmentation, two earlier posts provide the broader context:\nImage Augmentation in Practice — Lessons from 10 Years of Training CV Models and Building Albumentations\nDesigning Image Augmentation Pipelines for Generalization\nThis post builds on those ideas and focuses on one specific practical question: how to apply augmentations correctly when your labels are bounding boxes.\nIt is based on the Albumentations documentation, with additional context and examples for object detection workflows. Albumentations is an open-source image augmentation library with 15k+ GitHub stars and 140M+ downloads.\nContents\nBounding box formats\nBuilding a detection pipeline\nPassing labels and metadata\nA.BboxParams explained\nCropping strategies\nCommon mistakes\nFurther reading\nWhen you augment images for object detection, bounding box coordinates must transform in sync with the pixels. A horizontal flip mirrors the image — but if the box coordinates stay the same, every box now points at the wrong object. Albumentations handles this automatically: you declare your box format, and every spatial transform updates both pixels and coordinates together.\nDifferent frameworks and datasets use different coordinate conventions. Albumentations supports five formats — pick the one your data already uses, and pass it as coord_format in A.BboxParams.\n\n\n\nFormat\nCoordinates\nValues\nCommon in\n\n\n\n\npascal_voc\n[x_min, y_min, x_max, y_max]\nPixels\nPASCAL VOC, many custom datasets\n\n\nalbumentations\n[x_min, y_min, x_max, y_max]\nNormalized [0, 1]\nInternal Albumentations format\n\n\ncoco\n[x_min, y_min, box_width, box_height]\nPixels\nCOCO dataset\n\n\nyolo\n[x_center, y_center, box_width, box_height]\nNormalized [0, 1]\nUltralytics YOLO, Darknet\n\n\ncxcywh\n[x_center, y_center, box_width, box_height]\nPixels\nLike YOLO but not normalized\n\n\n\nIf you're coming from Ultralytics (YOLOv5/v8/v11), your labels are already in yolo format — use coord_format='yolo'.\nExample: For a 640x480 image with a box from pixel (98,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用Albumentations进行目标检测的边界框增强",
+        "summary": "本文介绍了如何使用Albumentations库正确同步图像增强与边界框标签以进行目标检测。该库自动转换五种不同坐标格式（pascal_voc、COCO、YOLO等）的像素和框坐标，防止训练期间标签错位。"
+      }
+    }
+  },
+  {
+    "title": "I built an Ollama alternative with TurboQuant, model groups, and multi-GPU support",
+    "slug": "ollama-alternative-turbo-quant-multi-gpu",
+    "url": "https://dev.to/deharoalexandrecyber/i-built-an-ollama-alternative-with-turboquant-model-groups-and-multi-gpu-support-555p",
+    "source": "DEV Community",
+    "date": "2026-04-08T00:34:18.000Z",
+    "summary": "The author built EIE (Elyne Inference Engine), a local inference server enabling simultaneous execution of multiple GGUF models with consensus-based responses and pluggable scheduling strategies. Unlike Ollama or vLLM, EIE supports parallel multi-model inference, sequential pipelines, and fan-out execution patterns.",
+    "content": "The problem\n\n\nI run multi-model architectures — 3 LLMs receiving the same prompt, deliberating, and producing a consensus response. Think of it as a voting system where individual model biases cancel out.\nOllama swaps models sequentially. vLLM is cloud-oriented. llama.cpp server handles one model at a time. None of them could do what I needed: load 3+ models simultaneously, send them the same prompt in parallel, collect all responses, and handle failures gracefully.\nSo I built EIE.\nEIE (Elyne Inference Engine) is a local inference server for GGUF models. It loads models, serves them via an OpenAI-compatible REST API, and manages GPU memory.\nIt does one thing: serve completions. No agents, no RAG, no UI. Everything else runs on top.\nThis is the core idea. Instead of thinking in individual models, EIE thinks in groups:\ngroups:\n  - name: core\n    models: [mistral-7b, granite-3b, exaone-2.4b]\n    required_responses: 3\n    type: parallel\n    pinned: true\n    fallback: partial\n\nThree execution patterns:\nParallel — same prompt to N models simultaneously, all responses returned\nSequential — output of model A becomes input of model B (vision → language pipelines)\nFan-out — same prompt to N models, best response selected\n\n\n\n\n# Execute a group\ncurl http://localhost:8080/v1/batch/execute \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"group\": \"core\",\n    \"messages\": [{\"role\": \"user\", \"content\": \"Analyze this alert\"}]\n  }'\n\n# Returns all 3 responses with latency and status\n\nScheduling behavior is not hardcoded — it's driven by pluggable strategies:\ngeneric — on-demand loading, LRU eviction. Ollama replacement.\npinned-group — N models permanently loaded, multi-response required. Multi-model deliberation.\nmulti-group — multiple pinned groups with own rules. Dual-core architectures (2×3 LLMs).\nfixed-appliance — pre-loaded at boot, no dynamic loading. Edge devices.\nCustom strategies can be loaded from shared libraries without recompiling:\npolicy:\n  strategy: plugin:libmystrat",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我用TurboQuant、模型组和多GPU支持构建了Ollama替代品",
+        "summary": "作者构建了EIE（Elyne推理引擎），一个本地推理服务器，能够同时执行多个GGUF模型，具有基于共识的响应和可插拔的调度策略。与Ollama或vLLM不同，EIE支持并行多模型推理、顺序管道和扇出执行模式。"
+      }
+    }
+  },
+  {
+    "title": "Anthropic Insecure? The Explosive Claude Drama: OpenClaw Ban, DMCA Takedowns, Mythos Leak, and Enterprise Power Plays Explained",
+    "slug": "anthropic-claude-drama-openclaw-enterprise",
+    "url": "https://dev.to/grenishrai/anthropic-insecure-the-explosive-claude-drama-openclaw-ban-dmca-takedowns-mythos-leak-and-4c6o",
+    "source": "DEV Community",
+    "date": "2026-04-08T00:29:05.000Z",
+    "summary": "Anthropic limited Claude Pro/Max usage on third-party tools like OpenClaw to paid pay-as-you-go plans, sparking developer backlash viewed as anti-competitive. The move highlights tensions between the company's safety-focused brand and ecosystem decisions that appear to favor proprietary services.",
+    "content": "Anthropic has built its brand on being the responsible AI company. It champions Constitutional AI and a heavy safety focus while saying no when others say yes. But the past few weeks have delivered a masterclass in irony, backlash, and straight-up drama. From accidentally leaking their own code and then DMCA-ing the internet to suddenly making popular third-party tools like OpenClaw way more expensive, people are asking the obvious question. Is Anthropic feeling a little insecure? Insensitive to the devs who actually use their stuff? Or just ruthlessly steering everyone toward their own services while handing early access to the big enterprise players?\nOpenClaw started as a scrappy open-source project (originally called Clawd, a cheeky nod to Claude) that lets users run autonomous AI agents. It basically turns Claude into a real productivity beast that can grind away 24/7 on coding, research, or whatever. It exploded in popularity for exactly that reason.\nThen, right around April 4, 2026, Anthropic dropped the hammer via email to subscribers. Starting immediately, Claude Pro and Max limits no longer apply to third-party harnesses like OpenClaw. Want to keep using it? Fine. Pay extra through a separate pay-as-you-go plan. The official reason: these tools create outsized strain on their systems with nonstop token burning.\nCoincidence? Maybe not. OpenClaw’s creator, Peter Steinberger, had already been hit with a cease-and-desist from Anthropic early on (forcing the rename), then got hired by rival OpenAI. Meanwhile, Anthropic launched its own competing product, Claude Code Channels, for Discord and Telegram agentic workflows. Developers saw it as a classic we-don’t-want-the-full-power-of-our-model-in-competitors’-or-open-source-hands move.\nThe backlash was instant and loud on Hacker News, Reddit, and YouTube. It felt insecure. Like Anthropic wants you to use Claude but only on their terms, inside their ecosystem. Want maximum value from your subscription? Stick to the",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Anthropic不安全？爆炸性Claude戏剧：OpenClaw禁令、DMCA撤销、Mythos泄露和企业权力游戏解释",
+        "summary": "Anthropic限制Claude Pro/Max在OpenClaw等第三方工具上的使用，仅限于付费按使用量计费计划，引发开发者反对，被视为反竞争行为。此举突显了该公司以安全为重点的品牌与似乎倾向于专有服务的生态系统决策之间的紧张关系。"
+      }
+    }
+  },
+  {
+    "title": "NodeJS Authentication Library",
+    "slug": "nodejs-authentication-library-nauth",
+    "url": "https://dev.to/noorix1/nodejs-authentication-library-5fdd",
+    "source": "DEV Community",
+    "date": "2026-04-08T00:23:05.000Z",
+    "summary": "Nauth-toolkit is an open-source embedded authentication library for Node.js that replaces expensive services like Cognito and Auth0 by running entirely within your infrastructure. It provides email/password, social login, MFA, session management, and audit logs using PostgreSQL/MySQL.",
+    "content": "I built nauth-toolkit — an open-source, embedded auth library for Node.js (NestJS, Express, Fastify) and Frontend support for Angular and React. \nI was frustrated with limitations of Cognito/Auth0 and its rising costs.  Nauth runs inside your own server, stores everything in your own PostgreSQL/MySQL, and costs nothing.\nIt covers the full stack: email/password, social login (Google, Apple, Facebook), TOTP/SMS/Passkey MFA, adaptive risk-based MFA, refresh token rotation, CSRF protection, session management, lifecyle hooks, and audit logs — all configurable. \nA few teams are already running it in production. Now looking for community feedback before we go fully open source.\nhttps://nauth.dev | GitHub: noorixorg/nauth\nHappy to answer any questions — would love to hear what you think!",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "NodeJS 认证库",
+        "summary": "Nauth-toolkit 是一个开源的 Node.js 嵌入式身份验证库，通过在您的基础设施内完全运行来取代 Cognito 和 Auth0 等昂贵的服务。它提供电子邮件/密码、社交登录、MFA、会话管理和使用 PostgreSQL/MySQL 的审计日志。"
+      }
+    }
+  },
+  {
+    "title": "I built an industrial OS - here's what 33 years on the plant floor taught me about software",
+    "slug": "industrial-os-33-years-plant-floor",
+    "url": "https://dev.to/doug_trier_48bd83065738b1/i-built-an-industrial-os-heres-what-33-years-on-the-plant-floor-taught-me-about-software-3l09",
+    "source": "DEV Community",
+    "date": "2026-04-08T00:19:27.000Z",
+    "summary": "Drawing from 33 years of manufacturing experience, the author built an industrial operating system with a built-in code editor allowing operators to write and hot-reload code directly in production. The system prioritizes usability for actual plant-floor workers over enterprise software complexity.",
+    "content": "The Problem Nobody Was Solving\nAnd for 33 years I watched the same thing happen over and over: plants spending a fortune on enterprise software that the people actually running the facility couldn't stand using and would op out. \nUntil now.\nWhat I Built\nHere's what's under the hood:\nBuilt-in Monaco IDE — authorized operators can write, sandbox, and hot-reload code directly inside the running production app\nHow AI Made It Possible\nThe domain knowledge, the workflow logic, every edge case — that's 33 years of floors, not prompts. AI was the tool. The experience was the blueprint.\nThe Real Goal\nFree software. In-house talent. More jobs for programmers. Better tools for operators.\nWin for the industry. Win for developers.\n\n\n\nHappy to answer any questions",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个工业操作系统 - 33 年的生产线经验教了我关于软件的东西",
+        "summary": "基于 33 年的制造经验，作者构建了一个工业操作系统，配备内置代码编辑器，允许操作员直接在生产环境中编写和热重新加载代码。该系统优先考虑实际生产线工人的可用性，而不是企业软件的复杂性。"
+      }
+    }
+  },
+  {
+    "title": "How I Built a Stateless API Load Tester That Runs in Your Browser (No Setup Required)",
+    "slug": "stateless-api-load-tester-browser",
+    "url": "https://dev.to/taranbir_singh_6199c3c9bb/how-i-built-a-stateless-api-load-tester-that-runs-in-your-browser-no-setup-required-33i1",
+    "source": "DEV Community",
+    "date": "2026-04-08T00:15:04.000Z",
+    "summary": "A browser-based API load testing tool that requires no installation or configuration, enabling quick exploratory testing of API behavior under load. The stateless design eliminates setup overhead and privacy concerns while leveraging native browser HTTP and concurrency capabilities.",
+    "content": "Most API load‑testing tools start the same way: install a CLI, configure agents, provision infrastructure, manage credentials, and only then write your test.\nThat’s powerful — but sometimes you just want an answer to a simpler question:\n“How does this API behave under load right now?”\nI ran into this problem repeatedly while testing internal services and third‑party APIs. I didn’t need a full performance testing stack. I needed something fast, disposable, and friction‑free.\nI wanted a way to load test APIs without installing anything, configuring agents, or managing state.\nThat’s how I ended up building a stateless API load tester that runs entirely in your browser.\nTraditional load testing tools are great at large‑scale simulations, but they come with real overhead:\nTool installation and upgrades\nLocal or cloud-based agents\nStored test definitions and credentials\nCleanup after short-lived tests\nFor exploratory testing during development or QA, this overhead often slows feedback loops instead of helping them.\nBrowsers already give us a lot for free:\nA mature and well-tested HTTP stack\nAsync request handling and concurrency\nReal client-side request behavior\nZero setup when delivered via the web\nThis makes the browser a surprisingly effective environment for a browser-based load testing tool, especially when the goal is quick insight rather than enterprise-scale simulation.\nThe most important design decision was making the tool completely stateless.\nEvery test run should:\nExist only for the current session\nRequire no account or login\nStore no configuration on a backend\nLeave no artifacts behind once the page is closed\nFrom an architectural perspective, this meant:\nAll test parameters are defined at runtime\nNo persistent backend sessions or databases\nThe server only serves the UI — it doesn’t orchestrate tests\nStatelessness simplifies everything: privacy, security, compliance, and operations. It also makes the tool much easier to trust, especially when testing sensitiv",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何构建了一个在浏览器中运行的无状态 API 负载测试工具（无需设置）",
+        "summary": "一个基于浏览器的 API 负载测试工具，无需安装或配置，可以快速进行探索性测试 API 在负载下的行为。无状态设计消除了设置开销和隐私问题，同时充分利用了原生浏览器的 HTTP 和并发功能。"
+      }
+    }
+  },
+  {
+    "title": "Screen Reader Testing in 5 Minutes: A Developer's Quick Start Guide",
+    "slug": "screen-reader-testing-5-minutes",
+    "url": "https://dev.to/agentkit/screen-reader-testing-in-5-minutes-a-developers-quick-start-guide-27l7",
+    "source": "DEV Community",
+    "date": "2026-04-08T00:11:30.000Z",
+    "summary": "Screen reader testing for accessibility can be learned in five minutes using built-in tools like VoiceOver (Mac) and NVDA (Windows). Manual testing catches issues that automated tools miss, including meaningless alt text, missing form labels, and keyboard-inaccessible components.",
+    "content": "Originally published at A11yFix.\nI'll be honest: the first time I tried to test my website with a screen reader, I panicked. A robotic voice started reading everything on my page at top speed, I couldn't figure out how to stop it, and I ended up force-quitting the application. Sound familiar?\nHere's what I wish someone had told me: screen reader testing doesn't have to be scary, and you can learn the basics in about five minutes. This guide will get you from zero to actually running a meaningful screen reader test on your website.\nAutomated accessibility tools catch roughly 30-40% of accessibility issues. The rest? You need manual testing. Screen readers reveal problems that no linter or CI check will find:\nImages with meaningless alt text (\"image123.png\")\nForm fields that have no programmatic label\nCustom components that look interactive but can't be reached with a keyboard\nContent that appears visually ordered but reads in a confusing sequence\nYou don't need to become an expert. You just need to catch the obvious problems.\nVoiceOver is already on your Mac. No downloads, no installs.\nTurn it on: Press Cmd + F5 (or touch the Touch ID button three times if you've set that up).\nEssential shortcuts:\n\n\n\nAction\nShortcut\n\n\n\n\nMove to next element\n\nVO + Right Arrow (VO = Ctrl + Option)\n\n\nMove to previous element\nVO + Left Arrow\n\n\nActivate a link/button\nVO + Space\n\n\nRead the current element\nVO + A\n\n\nOpen the Rotor (navigation menu)\nVO + U\n\n\nTurn VoiceOver off\nCmd + F5\n\n\n\nYour first test in 60 seconds:\nOpen your site in Safari (VoiceOver works best with Safari)\nTurn on VoiceOver with Cmd + F5\n\nPress VO + Right Arrow repeatedly to move through elements\nListen: does each element make sense on its own? Does a button say \"Submit your application\" or just \"Click here\"?\nPress VO + U to open the Rotor, then arrow to \"Headings\" - is your heading structure logical?\nTurn it off with Cmd + F5\n\n\n\n\n  \n  \n  NVDA on Windows (Free Download)\n\n\nNVDA is a free, open-source screen reader. Downlo",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "五分钟屏幕阅读器测试：开发者快速入门指南",
+        "summary": "屏幕阅读器无障碍测试可以在五分钟内掌握，使用 VoiceOver (Mac) 和 NVDA (Windows) 等内置工具。手动测试能捕捉自动化工具遗漏的问题，包括无意义的替代文本、缺失的表单标签和无法通过键盘访问的组件。"
+      }
+    }
+  },
+  {
+    "title": "Cx Dev Log — 2026-03-28",
+    "slug": "cx-dev-log-2026-03-28",
+    "url": "https://dev.to/commenterthe9/cx-dev-log-2026-03-28-4ac8",
+    "source": "DEV Community",
+    "date": "2026-04-08T00:09:50.000Z",
+    "summary": "The Cx project merged major backend work including multi-file imports, scalar layout support, and struct/array/enum type definitions, expanding test coverage to 78 tests. The team locked down calling conventions and resolved critical design questions for the 0.1 release milestone.",
+    "content": "Seven commits of real work landed, capped by the long-anticipated submain merge into the main branch. The backend transitioned from handling only scalar layouts to supporting full data type coverage and initiated the production of loop IR. This marked the single most substantial day of backend progress to date.\nPR #27 finally merged after two days of anticipation. This brought together the accumulated submain work for main: the multi-file import pipeline, Phase 8 Round 1 scalar layout, five vital fixes from the recent audit, dead code elimination, output verification in the matrix runner, and 6 new matrix tests. The test matrix on main now stands robust at 78 tests.\nWhy does this matter? Apart from having hard blockers for our 0.1 milestone cleared up, these new integrations bridge significant gaps, particularly around multi-file imports that had been stuck in the branch limbo.\nThree pivotal Phase 8 commits saw to it that the remaining data type layouts for 0.1 are locked down. With yesterday's completion of scalar layout, every unanswered layout question in the ABI doc is now tied up. \nStruct layout sticks to a declaration-order field format with natural alignment and padding. With seven tests in src/ir/types.rs, we're set for structs. \nArray layout boasts a fixed-size, contiguous, stride-based setup. The offset is the product of the element's stride and its index, proven by five new tests. \nEnum layout is minimalistic for 0.1: Just a tag-only u8 representation for now. The complexity of payload variants waits until post-0.1. This deliberate choice holds off adding discriminated unions and generic-induced layout headaches.\nAnother key leap—a decisive Phase 8 commit locked the calling convention: a single return value with C ABI alignment, while copying parameter semantics remain for later. Our ABI doc swelled with 30 new lines detailing this convention. This was crucial to resolve the last major design question from Phase 8 Round 1, paving the way for seamless back",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Cx 开发日志 — 2026-03-28",
+        "summary": "Cx 项目合并了主要的后端工作，包括多文件导入、标量布局支持和结构体/数组/枚举类型定义，测试覆盖率扩展到 78 个测试。团队确定了调用约定并解决了 0.1 版本里程碑的关键设计问题。"
+      }
+    }
+  },
+  {
+    "title": "SleepSentry: Privacy-First Sleep Apnea Detection on Raspberry Pi using Whisper and Librosa",
+    "slug": "sleepsentry-sleep-apnea-detection-raspberry-pi",
+    "url": "https://dev.to/beck_moulton/sleepsentry-privacy-first-sleep-apnea-detection-on-raspberry-pi-using-whisper-and-librosa-5b40",
+    "source": "DEV Community",
+    "date": "2026-04-08T00:07:00.000Z",
+    "summary": "SleepSentry is an edge-computing solution for sleep apnea and snoring detection running on Raspberry Pi using Librosa and TensorFlow Lite, keeping raw audio completely private. The system processes only audio features locally, never uploading bedroom recordings to cloud services.",
+    "content": "Sleep apnea is often called a \"silent killer,\" affecting millions of people worldwide who remain undiagnosed. While many mobile apps claim to track sleep, they often rely on uploading sensitive bedroom audio to the cloud—a massive privacy nightmare. \nIn this tutorial, we are building SleepSentry, an edge-computing solution that performs Sleep Apnea Detection and snoring classification locally on a Raspberry Pi. By leveraging Audio Signal Processing with Librosa and efficient inference with TensorFlow Lite, we ensure that your raw audio never leaves the device. We only process features, not recordings, keeping your data 100% private. \nTo achieve real-time classification on low-power hardware, we separate the pipeline into feature extraction and lightweight inference. We use Faster-Whisper for contextual audio analysis (like identifying sleep talking) and Librosa for the heavy lifting of Fast Fourier Transforms (FFT).\ngraph TD\n    A[USB Microphone] -->|Raw PCM Audio| B(Librosa Feature Extraction)\n    B -->|MFCCs / Mel-Spectrogram| C{Privacy Filter}\n    C -->|Feature Vectors Only| D[TFLite CNN Classifier]\n    D -->|Snore/Apnea/Normal| E[Local Dashboard]\n    A -->|Intermittent Context| F[Faster-Whisper]\n    F -->|Transcribed Sleep Talk| E\n    E -->|Alert| G[User Notification]\n\nBefore we dive into the code, ensure you have the following:\n  Hardware: Raspberry Pi 4 (4GB+) or Raspberry Pi 5.\n  Audio: A high-quality USB condenser microphone.\n  Tech Stack: \n\n\n  Librosa: For Short-Time Fourier Transform (STFT) and MFCC extraction.\n  TensorFlow Lite: For running our pre-trained CNN.\n  Faster-Whisper: For optimized local transcription.\n  NumPy: For high-speed matrix operations.\nInstead of saving .wav files, we immediately convert audio into the frequency domain. MFCCs (Mel-frequency cepstral coefficients) are perfect for this because they represent the \"texture\" of the sound without retaining enough data to reconstruct intelligible speech easily.\nimport librosa\nimport numpy as",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "SleepSentry：使用 Whisper 和 Librosa 在 Raspberry Pi 上进行隐私优先的睡眠呼吸暂停检测",
+        "summary": "SleepSentry 是一个在 Raspberry Pi 上运行的边缘计算解决方案，用于睡眠呼吸暂停和打鼾检测，使用 Librosa 和 TensorFlow Lite，保持原始音频完全隐私。该系统仅在本地处理音频特征，从不将卧室录音上传到云服务。"
+      }
+    }
+  },
+  {
+    "title": "I Replaced Every Lock in My House With Smart Locks. Here's What Actually Happened.",
+    "slug": "replaced-every-lock-smart-locks-review",
+    "url": "https://dev.to/techpulselab/i-replaced-every-lock-in-my-house-with-smart-locks-heres-what-actually-happened-4lhb",
+    "source": "DEV Community",
+    "date": "2026-04-08T00:06:56.000Z",
+    "summary": "The author tested five popular smart locks over six months under strict criteria: no cloud dependency, no subscriptions, local control, and physical backup. The article reveals practical performance differences between leading models from Schlage, Yale, August, and others.",
+    "content": "Six months ago, I did something my wife called \"obsessive\" and my locksmith called \"job security\": I replaced every single lock in my house — front door, back door, garage entry, side gate, and home office — with smart locks. Five doors. Five different locks. One very opinionated verdict.\nI didn't do this because I hate keys (though I do). I did it because every smart lock review online reads like a press release. \"Great build quality. Easy setup. 4.5 stars.\" Cool. But does it actually work when your hands are full of groceries at 11 PM in the rain? Does the battery die without warning? Does it phone home to some cloud server every time you unlock your front door?\nI tested three of the most popular smart locks in 2026 head-to-head: the Schlage Encode Plus, the Yale Assure Lock 2, and the August Wi-Fi Smart Lock (4th Gen). I also tried the Aqara U100 and Schlage's new Arrive WiFi Deadbolt. Here's what actually happened — the good, the bad, and the one lock I'd never buy again.\nI've been building out my smart home for years. I run Home Assistant locally, I've ditched cloud-dependent cameras for local NVR setups, and I have strong opinions about companies that charge subscriptions for hardware you already own.\nSmart locks were the last holdout. I kept a \"dumb\" deadbolt on the front door because I didn't trust the technology. But after Matter support matured through 2025, and after watching my neighbor fumble with keys while holding a toddler and a pizza for the hundredth time, I decided to go all in.\nThe rules I set for myself:\nNo cloud dependency. If the manufacturer's server goes down, my locks still work.\nNo subscriptions. I'm not paying monthly to unlock my own door.\nLocal control via Home Assistant. Every lock must integrate without relying on a proprietary bridge.\nPhysical backup. Keypad or physical key — I'm not getting locked out because of a firmware bug.\nWorks with Apple Home Key. My wife uses an Apple Watch. If she can't tap-to-unlock, it's a dealbreaker.\nTh",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我用智能锁替换了家里的每把锁。结果如何？",
+        "summary": "作者在六个月内根据严格标准测试了五款流行智能锁：无云依赖、无订阅费、本地控制和物理备用。文章揭示了Schlage、Yale、August等领先品牌的实际性能差异。"
+      }
+    }
+  },
+  {
+    "title": "If You Can Build at Team-Scale Alone, the Bottleneck Isn't the Work Anymore",
+    "slug": "build-team-scale-alone-bottleneck-visibility",
+    "url": "https://dev.to/dragoninexile/if-you-can-build-at-team-scale-alone-the-bottleneck-isnt-the-work-anymore-dk5",
+    "source": "DEV Community",
+    "date": "2026-04-08T00:06:19.000Z",
+    "summary": "AI agents capable of interacting with engineering toolchains now enable individual developers to produce work at team scale, shifting competitive advantage from execution to visibility and documentation. Independent builders must now document their approach to be discovered in an increasingly capable freelance market.",
+    "content": "I'm not someone who posts a lot online. I've always been more comfortable doing the work than talking about it. If you'd told me five years ago I'd be publishing a series about what I'm building and how, I'd have found that unlikely.\nSo why start now?\nBecause I believe something fundamental is shifting in how software gets built, and that shift changes who can build what — and how those people need to show up.\nThe rise of AI agents that can interact with real engineering toolchains — Jira, GitHub, AWS, the lot — means that a single person with the right experience and judgement can produce work that used to require a team. The barriers to building serious software are dropping. Not because the work is getting easier, but because the leverage available to one person is getting dramatically better.\nI've been living that. I run Estyn Software, an enterprise architecture and digital transformation consultancy based in southern California. Lately I've been helping people out with application and integration ideas they have, and building a common component that keeps coming up across those projects. It felt like the right opportunity to start journalling about what it's actually like to build something like that with AI — the process, the toolchain, what works and what doesn't.\nThat's a way of working that didn't exist two years ago.\nHere's the thing about this world, though: if you can build at team-scale as an individual, the bottleneck shifts. It's no longer about whether you can do the work. It's about whether anyone knows you exist.\nThat's uncomfortable for people like me. I'd rather let the work speak for itself. But in a market where more people can produce quality work independently, the ones who document what they're doing — who make their thinking visible, who show how they approach problems — are the ones who get found. Not because self-promotion is suddenly virtuous, but because it's becoming necessary. The independent consultant's portfolio isn't a CV anymore",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如果你能独自完成团队规模的工作，瓶颈就不再是工作本身",
+        "summary": "能与工程工具链交互的AI代理现在使个人开发者能以团队规模交付成果，将竞争优势从执行能力转向可见性和文档化。独立建设者现在必须记录自己的方法，才能在日益强大的自由职业市场中被发现。"
+      }
+    }
+  },
+  {
+    "title": "Your architecture drifts before you write a single line of code",
+    "slug": "architecture-drifts-before-line-code",
+    "url": "https://dev.to/archrad_architect/your-architecture-drifts-before-you-write-a-single-line-of-code-1cmj",
+    "source": "DEV Community",
+    "date": "2026-04-08T00:02:27.000Z",
+    "summary": "ArchRAD is a blueprint compiler and governance tool that enforces architecture constraints deterministically before code merges, analogous to how linters check code style. It detects architectural drift by validating that code implementations match formal architecture definitions.",
+    "content": "v0.1.5\nYou have an architecture decision record. A Confluence page. Maybe a Miro board with boxes and arrows that everyone agreed on in the last design review.\nThen a sprint happens.\nA service that was never supposed to touch the database directly now has a db.query() call buried in a helper. A dead node that was deprecated three months ago is still receiving traffic. Nobody noticed. The CI pipeline passed. The linter was happy. The tests are green.\nThe architecture, however, is already wrong.\nWe lint code. We type-check code. We test code. But we have never had a way to formally define an architecture and then enforce it — continuously, deterministically, before a PR is merged.\nCode linters catch bad syntax. Architecture linters should catch bad structure. The two aren't the same problem, and a code linter cannot solve the architecture one.\nThink of it this way: ESLint is to code what ArchRAD is to architecture blueprints. One enforces style and correctness at the expression level. The other enforces intent at the system level.\nArchRAD is a blueprint compiler and governance layer. You define your architecture as a formal Intermediate Representation — nodes, edges, metadata, allowed connections — and ArchRAD validates it against a deterministic rule engine.\nTwo rules that ship out of the box:\nIR-LINT-MISSING-AUTH-010 — flags any service edge missing an authentication boundary.\nIR-LINT-DEAD-NODE-011 — flags any node with no inbound or outbound connections.\nCold-start from an existing OpenAPI spec:\nnpx @archrad/deterministic ingest openapi ./openapi.yaml\nnpx @archrad/deterministic validate --ir ./graph.json\n\nDetect drift between your blueprint and generated code:\nnpx @archrad/deterministic validate-drift --ir ./graph.json --target python --out ./out\n\nIf the IR says service A cannot talk directly to the database, and the generated code does exactly that — ArchRAD tells you. Before it ships.\nEvery other architecture tool gives you opinions. ArchRAD gives you constraints",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的架构在写一行代码前就开始漂移了",
+        "summary": "ArchRAD是一个蓝图编译器和治理工具，在代码合并前确定性地强制执行架构约束，类似于代码linter检查代码风格。它通过验证代码实现与正式架构定义的一致性来检测架构偏离。"
+      }
+    }
+  }
+]
