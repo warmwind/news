@@ -1,0 +1,34 @@
+[
+  {
+    "title": "How to Add Comments to a Next.js Site (App Router and Pages Router)",
+    "slug": "how-to-add-comments-to-nextjs-site",
+    "url": "https://dev.to/yoni_ryabinski_da05ba8c9c/how-to-add-comments-to-a-nextjs-site-app-router-and-pages-router-484j",
+    "source": "DEV Community",
+    "date": "2026-04-09T00:18:05.000Z",
+    "summary": "The article explains how to implement comment systems in Next.js using EchoThread, a privacy-first widget under 15 KB. It shows configuration for both App and Pages Router, with proper remounting for client-side navigation.",
+    "content": "Next.js gives you so many ways to render a page that the answer to \"how do I add comments\" depends on which version you're on and which architecture you've chosen. Here's a single approach that works for both the App Router and the Pages Router: a small client component that wraps the EchoThread widget (privacy-first, no ads, under 15 KB gzipped, free during beta).\nSign up at echothread.io, add your domain, copy the key.\n.env.local\n\n\n\n\n\nNEXT_PUBLIC_ECHOTHREAD_API_KEY=YOUR_API_KEY\n\nThe NEXT_PUBLIC_ prefix is mandatory for client-side access.\ncomponents/EchoThread.tsx\n\n\n\n\n\n\"use client\";\n\nimport Script from \"next/script\";\n\nexport default function EchoThread({ theme = \"auto\" }: { theme?: string }) {\n  const apiKey = process.env.NEXT_PUBLIC_ECHOTHREAD_API_KEY;\n  if (!apiKey) return null;\n\n  return (\n    <section\n      className=\"echothread-wrapper\"\n      style={{ marginTop: \"4rem\", paddingTop: \"2rem\", minHeight: 400 }}\n    >\n      <div id=\"echothread\" data-api-key={apiKey} data-theme={theme}></div>\n      <Script src=\"https://cdn.echothread.io/widget.js\" strategy=\"lazyOnload\" />\n    </section>\n  );\n}\n\nThe lazyOnload strategy ensures the widget never blocks LCP.\nApp Router (app/blog/[slug]/page.tsx):\nimport EchoThread from \"@/components/EchoThread\";\n\nexport default async function Post({ params }) {\n  const post = await getPost(params.slug);\n  return (\n    <article>\n      <h1>{post.title}</h1>\n      <div dangerouslySetInnerHTML={{ __html: post.content }} />\n      <EchoThread />\n    </article>\n  );\n}\n\nPages Router is essentially identical — same component, just imported into your pages/blog/[slug].tsx.\nNext.js does client-side navigation between routes. To make sure the widget refreshes when readers click between posts, force a remount with a key prop:\n\"use client\";\nimport { usePathname } from \"next/navigation\";\nimport EchoThread from \"@/components/EchoThread\";\n\nexport default function Wrapper() {\n  const pathname = usePathname();\n  return <EchoThread key={pathname} />;\n}\n\nF",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何在Next.js网站中添加评论（App Router和Pages Router）",
+        "summary": "本文介绍了如何使用隐私优先、体积不足15 KB的EchoThread小部件在Next.js中实现评论系统。文章展示了App Router和Pages Router的配置方法，以及客户端导航的正确重新挂载。"
+      }
+    }
+  },
+  {
+    "title": "MongoDB Internals: Inside the Storage Engine",
+    "slug": "mongodb-internals-storage-engine",
+    "url": "https://dev.to/priteshsurana/mongodb-internals-inside-the-storage-engine-2c9b",
+    "source": "DEV Community",
+    "date": "2026-04-09T00:05:04.000Z",
+    "summary": "MongoDB's storage engine differs from PostgreSQL in three key ways: WiredTiger is a separate pluggable component with independent caching and compression, BSON encodes field names per-document causing overhead, and MongoDB uses document-level concurrency control instead of page-level locking.",
+    "content": "Post 3 explained the flow of INSERT and SELECT from PostgreSQL lense. Now its time for insertOne/insertMany and find.\nThree major differences from PostgreSQL that we will visit in this section.\nFirst, WiredTiger is a separate, pluggable storage engine underneath MongoDB. PostgreSQL's storage is tightly integrated with the query engine. WiredTiger is a standalone embeddable key-value store that MongoDB sits on top of. This matters because WiredTiger has its own caching, its own journal, its own compression, and its own concurrency model, somewhat independent of MongoDB's query layer.\nSecond, documents are stored as BSON — a binary encoding where field names are stored as strings inside every document, on disk, for every document in the collection. PostgreSQL's heap rows contain only values; column names live once in the catalog. BSON's field name overhead matters at scale.\nThird, MongoDB provides document-level concurrency, implemented using WiredTiger’s optimistic concurrency control and fine-grained locking, not page-level locking. Two concurrent writes to different documents in the orders collection never block each other, even if they land on the same internal storage page. PostgreSQL's page-level LWLocks can cause contention between concurrent writers targeting the same page.\n\ninsertOne into orders\n\n\n\n\n\ndb.orders.insertOne({\n  order_id: \"a1b2...\",\n  user_id: \"u9x8...\",\n  status: \"shipped\",\n  amount: 149.99,\n  description: \"Order for...\",\n  created_at: new Date()\n})\n\n1. BSON serialization\nBefore anything reaches WiredTiger, the document is serialized to BSON. In BSON, each field is encoded as: a type byte, the field name as a null-terminated string, then the value. For our orders document with six fields, the field names themselves (order_id, user_id, status, amount, description, created_at) add roughly 50–70 bytes of overhead per document.\nThat overhead exists for every document in the collection. For 1 million orders, that's 50–70MB of field name data that Post",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "MongoDB内部机制：存储引擎深度剖析",
+        "summary": "MongoDB的存储引擎与PostgreSQL在三个关键方面不同：WiredTiger是独立的可插拔组件，具有独立的缓存和压缩功能；BSON按文档编码字段名称导致开销；MongoDB使用文档级并发控制而非页面级锁定。"
+      }
+    }
+  }
+]
