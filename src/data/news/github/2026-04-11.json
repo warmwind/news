@@ -1,5 +1,197 @@
 [
   {
+    "title": "Drizzle ORM Is What Prisma Should Have Been",
+    "slug": "drizzle-orm-what-prisma-should-have-been",
+    "url": "https://dev.to/whoffagents/drizzle-orm-is-what-prisma-should-have-been-a9j",
+    "source": "DEV Community",
+    "date": "2026-04-11T12:05:42.000Z",
+    "summary": "Drizzle ORM offers SQL-first query building as an alternative to Prisma's model-first abstraction, with more predictable output and explicit control over generated SQL. The author switched from Prisma to Drizzle for production AI SaaS with tight latency budgets and heavy query patterns. TypeScript backend developers should evaluate Drizzle as a viable alternative with different performance and maintenance trade-offs.",
+    "content": "I used Prisma for two years. I have nothing personal against it — it solved real problems and the DX during the honeymoon phase is genuinely good. Then I hit a production AI SaaS with heavy query patterns, a tight latency budget, and Planetscale, and I switched to Drizzle. I haven't looked back.\nThis isn't a \"Prisma is bad\" post. It's a \"here's the tradeoff table, make an informed decision\" post. If you're building TypeScript backends in 2026 and haven't evaluated Drizzle, you should.\nPrisma is model-first. You define a schema.prisma file, Prisma generates a client, and you query through that client's API. The SQL Prisma writes is an implementation detail you're not supposed to think about.\nDrizzle is SQL-first. You define your schema in TypeScript, and the query builder is a thin typed layer over the actual SQL you'd write anyway. There's no magic. The output is always predictable because it maps 1:1 to SQL.\n// Prisma — you write this\nconst users = await prisma.user.findMany({\n  where: { active: true },\n  include: { posts: { take: 5 } },\n  orderBy: { createdAt: 'desc' },\n});\n\n// Drizzle — you write this\nconst users = await db\n  .select()\n  .from(usersTable)\n  .where(eq(usersTable.active, true))\n  .orderBy(desc(usersTable.createdAt))\n  .limit(50);\n\nThe Drizzle version is longer. That's intentional. You're not hiding the query — you're typing it.\nPrisma schema lives in a .prisma file, a custom DSL:\nmodel User {\n  id        String   @id @default(cuid())\n  email     String   @unique\n  createdAt DateTime @default(now())\n  posts     Post[]\n}\n\nDrizzle schema is TypeScript:\nimport { pgTable, text, timestamp, boolean } from 'drizzle-orm/pg-core';\n\nexport const users = pgTable('users', {\n  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),\n  email: text('email').notNull().unique(),\n  active: boolean('active').notNull().default(true),\n  createdAt: timestamp('created_at').defaultNow().notNull(),\n});\n\n// Types inferred automatically\nexport type User = typeof use",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Drizzle ORM 是 Prisma 本来应该的样子",
+        "summary": "Drizzle ORM 提供了以 SQL 优先的查询构建，作为 Prisma 模型优先抽象的替代方案，提供更可预测的输出和对生成 SQL 的明确控制。作者为了满足严格延迟预算和复杂查询模式的生产级 AI SaaS，从 Prisma 切换到 Drizzle。TypeScript 后端开发者应该评估 Drizzle 作为一个具有不同性能和维护权衡的可行替代方案。"
+      }
+    }
+  },
+  {
+    "title": "Claude Code Hooks: The Automation Layer Nobody Knows About",
+    "slug": "claude-code-hooks-automation-layer",
+    "url": "https://dev.to/whoffagents/claude-code-hooks-the-automation-layer-nobody-knows-about-3po0",
+    "source": "DEV Community",
+    "date": "2026-04-11T12:05:39.000Z",
+    "summary": "Claude Code's settings.json includes a hooks system (PreToolUse, PostToolUse, SessionStart, SessionEnd) that executes shell commands automatically before and after tool calls, receiving tool context as JSON stdin. Hooks enable powerful automation for production AI pipelines by allowing inspection, blocking, or triggering actions based on tool usage. This underdocumented feature is critical for building production-grade AI automation but remains largely unknown.",
+    "content": "I've been running Claude Code in production for months. Parallel agents, autonomous sub-tasks, the whole stack. And for most of that time I ignored one of the most powerful features in the settings file: hooks.\nHooks are shell commands that Claude Code executes automatically before or after tool calls, at session start, and at session end. They're not documented prominently. Most people building AI automation pipelines have no idea they exist.\nHere's what they actually do and how I use them.\nFour hook points exist in ~/.claude/settings.json:\nPreToolUse — runs before any tool call. Can inspect the tool name and input, and can block the call.\nPostToolUse — runs after any tool call. Gets the output too.\nSessionStart — runs once when a Claude Code session opens.\nSessionEnd — runs when the session closes.\nThe configuration structure:\n{\n  \"hooks\": {\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Bash\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"python3 /path/to/your/hook.py\"\n          }\n        ]\n      }\n    ],\n    \"PostToolUse\": [\n      {\n        \"matcher\": \"Edit\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"bash /path/to/post-edit.sh\"\n          }\n        ]\n      }\n    ],\n    \"SessionStart\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"bash /path/to/session-start.sh\"\n          }\n        ]\n      }\n    ]\n  }\n}\n\nThe matcher field is a string that matches against the tool name. \"Bash\" matches the Bash tool. \"Edit\" matches the Edit tool. You can also use \".*\" to match all tools.\nThis is the part the docs gloss over. Claude Code passes tool context to your hook via stdin as a JSON object. For PreToolUse, the payload looks like:\n{\n  \"tool_name\": \"Bash\",\n  \"tool_input\": {\n    \"command\": \"rm -rf /tmp/old-builds\",\n    \"description\": \"Clean old build artifacts\"\n  }\n}\n\nFor PostToolUse, you also get the output:\n{\n  \"tool_name\": \"Edit\",\n  \"tool_input",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Claude Code Hooks：鲜为人知的自动化层",
+        "summary": "Claude Code 的 settings.json 包含一个 hooks 系统（PreToolUse、PostToolUse、SessionStart、SessionEnd），可在工具调用前后自动执行 shell 命令，并通过 JSON stdin 接收工具上下文。Hooks 通过允许基于工具使用情况进行检查、阻止或触发操作，为生产级 AI 管道实现强大的自动化。这个文档不足的功能对于构建生产级 AI 自动化至关重要，但仍然鲜为人知。"
+      }
+    }
+  },
+  {
+    "title": "UCP v2026-04-08 Spec Update",
+    "slug": "ucp-v2026-04-08-spec-update",
+    "url": "https://dev.to/benjifisher/ucp-v2026-04-08-spec-update-39l2",
+    "source": "DEV Community",
+    "date": "2026-04-11T12:04:52.000Z",
+    "summary": "The Universal Commerce Protocol released v2026-04-08 with 26 new features including formal cart support and catalog search, transforming it from a checkout-only protocol to a full commerce platform. These capabilities enable agents to build multi-step shopping workflows with persistent baskets, discount application, and product discovery. Agent developers should design for cart management and catalog integration despite current low adoption rates.",
+    "content": "On April 9th, the UCP Technical Council shipped v2026-04-08 — the first spec bump since January's 2026-01-23 release. It's the largest single release in the protocol's history: 26 new features, 6 breaking changes, 19 documentation updates, and contributions from 15 first-time contributors.\nThis isn't a patch. It's the release where UCP stops being a checkout-and-order protocol and starts becoming a full commerce platform.\nHere's what changed, what it means, and what you should do about it.\nThe most consequential addition is formal cart support (#73). The dev.ucp.shopping.cart capability gives agents the ability to create, read, update, and manage persistent shopping carts — the workflow that dominates human e-commerce but has been entirely absent from agent commerce until now.\nWe wrote in March that only 2 out of 2,832 verified stores declared cart capabilities. That number was low because the spec itself hadn't formalized the capability. Now it has. The schema defines add-to-cart, remove, quantity updates, and cart retrieval. Discount extensions have been expanded to work with carts too, so agents can apply promo codes before checkout.\nFor agent developers: this is the capability that unlocks multi-step shopping. Instead of \"find product → checkout immediately,\" agents can now build baskets, compare options, apply discounts, and let the user review before committing. Design for it now, even if adoption will take months to ramp.\nAgents can now discover what a store actually sells. The new catalog search and product lookup capabilities (dev.ucp.shopping.catalog_search and dev.ucp.shopping.catalog_lookup) give agents structured access to product discovery — search by keyword, filter by attributes, and retrieve full product details including variant IDs.\nPreviously, agents relied on unstructured HTML scraping or platform-specific APIs to find products before initiating checkout. Now product discovery is part of the protocol itself. This is the missing first step: an ag",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "UCP v2026-04-08 规范更新",
+        "summary": "通用商务协议发布了 v2026-04-08 版本，包含 26 项新功能，包括正式的购物车支持和目录搜索，将其从仅结账协议转变为完整的商务平台。这些功能使代理能够构建多步骤购物工作流，支持持久购物车、折扣应用和产品发现。代理开发者应该为购物车管理和目录集成进行设计，尽管目前采用率较低。"
+      }
+    }
+  },
+  {
+    "title": "The Code Exists, But the Feature Still Fails: Fixing Runtime Drift in OpenClaw Operations",
+    "slug": "runtime-drift-docker-production-incident",
+    "url": "https://dev.to/linou518/the-code-exists-but-the-feature-still-fails-fixing-runtime-drift-in-openclaw-operations-1hab",
+    "source": "DEV Community",
+    "date": "2026-04-11T12:03:41.000Z",
+    "summary": "A production incident revealed that a feature existed in source code but failed at runtime because an outdated Docker container image was still serving traffic. The fix required rebuilding and redeploying containers, then verifying the route existed in the running dist/ directory before confirming resolution. This demonstrates the importance of checking runtime artifacts and actual service state, not just source code, when troubleshooting Docker deployments.",
+    "content": "The Code Exists, But the Feature Still Fails: Fixing Runtime Drift in OpenClaw Operations\n\n\nOne of the most practical incidents we handled on April 8 was a classic production problem: the feature existed in the source tree, but it still did not work in production. The target was the workflow feature in ai-backoffice-pack.\nFrom the user side, the symptom looked simple: the month-end workflow management page was not responding. The easy assumption would be a missing frontend implementation or an API route that had never been wired up. But when we checked the codebase, dashboard/src/pages/Workflow.tsx was there, and the backend also had backend/src/modules/workflow/. In other words, the feature clearly existed in source code.\nAnd yet the endpoint /api/v1/workflows/steps/definitions returned Route not found. At that point, the right thing to inspect was no longer the repository. It was the runtime artifact actually serving traffic. Once we checked the running API container, the answer became obvious: the workflow module was missing from dist/modules. The problem was not incomplete code. The real issue was that an old container image was still alive in production. That is runtime drift. Developers think “the code is there,” users feel “the UI is broken,” and the runtime in the middle is stuck in the past.\nThe fix itself was not dramatic. On the infra node, we ran docker compose build api dashboard, then recreated the services with docker compose up -d api dashboard. The important part was the verification strategy. We did not stop at “the containers restarted successfully.” We checked that /app/dist/modules/workflow now existed, and then confirmed that the workflow definitions endpoint returned 401 instead of 404. A 401 only means unauthenticated access, but it proves the route is now present. Only after those checks can you honestly say the issue is fixed.\nThis incident reinforced a troubleshooting order that works especially well for Dockerized business applications:\nI",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "代码存在，但功能仍然失败：修复 OpenClaw 操作中的运行时漂移",
+        "summary": "一个生产事件揭示了一个功能存在于源代码中，但因为一个过时的 Docker 容器镜像仍在提供流量而在运行时失败。修复需要重建和重新部署容器，然后验证路由是否存在于运行中的 dist/ 目录中，以确认解决。这说明了在排查 Docker 部署问题时，检查运行时工件和实际服务状态（而不仅仅是源代码）的重要性。"
+      }
+    }
+  },
+  {
+    "title": "Input vs Output vs Reasoning Tokens Cost - LLM Pricing Explained",
+    "slug": "llm-pricing-input-output-reasoning-tokens",
+    "url": "https://dev.to/rahulxsingh/input-vs-output-vs-reasoning-tokens-cost-llm-pricing-explained-hi8",
+    "source": "DEV Community",
+    "date": "2026-04-11T12:00:00.000Z",
+    "summary": "LLM providers charge separately for input tokens (prompts and context), output tokens (model responses), and reasoning tokens (model thinking), with significant price variation between types. Misunderstanding these pricing models can lead to 5-10x overspending on AI workloads. The guide explains each token category and optimization strategies for reducing API costs.",
+    "content": "If you have ever checked the pricing page for OpenAI, Anthropic, or Google and wondered why there are three different token prices listed, you are not alone. The distinction between input tokens, output tokens, and reasoning tokens is one of the most misunderstood aspects of LLM pricing - and getting it wrong can mean overspending by 5-10x on your AI workloads.\nThis guide breaks down exactly what each token type is, why they cost different amounts, and how to optimize your spending - whether you are building an AI application, running code reviews, or just trying to understand your API bill.\nBefore diving into pricing, let's clarify what tokens actually are. A token is the fundamental unit of text that large language models process. It is not a word, not a character, but something in between.\nOn average, one token equals roughly 4 characters or 0.75 words in English. The word \"understanding\" is two tokens. A line of Python code like def calculate_total(items): is about 8 tokens.\nEvery API call involves two phases:\nInput processing - the model reads your prompt (input tokens)\nOutput generation - the model writes its response (output tokens)\nSome newer models add a third phase:\nReasoning - the model thinks through the problem before responding (reasoning tokens)\nEach phase has different computational costs, which is why providers charge differently for each.\nInput tokens represent everything you send to the model in your API request. This includes:\nSystem prompts - instructions that define the model's behavior\nUser messages - your actual question or request\nContext - code snippets, documents, conversation history\nFew-shot examples - example inputs and outputs you provide\nFor AI code review, input tokens typically make up the bulk of your usage. When a tool like CodeRabbit or CodeAnt AI reviews a pull request, it sends the diff, surrounding code context, repository rules, and review instructions as input. A single PR review can easily consume 10,000-50,000 input tokens",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "输入令牌 vs 输出令牌 vs 推理令牌成本 - 大语言模型定价说明",
+        "summary": "大语言模型提供商分别对输入令牌（提示和上下文）、输出令牌（模型响应）和推理令牌（模型思考）进行收费，不同类型之间价格差异很大。误解这些定价模型可能导致 AI 工作负载花费增加 5-10 倍。本指南解释了每个令牌类别以及降低 API 成本的优化策略。"
+      }
+    }
+  },
+  {
+    "title": "I built a reminder app to keep my Brag Document up to date",
+    "slug": "brag-document-reminder-app",
+    "url": "https://dev.to/davidballester/i-built-a-reminder-app-to-keep-my-brag-document-up-to-date-29gk",
+    "source": "DEV Community",
+    "date": "2026-04-11T11:55:41.000Z",
+    "summary": "Bragreminder.com is a low-friction tool that reminds professionals to update their brag document of accomplishments for interviews and performance reviews. Built as a one-week Copilot-assisted project using Cloudflare and automated emails, the application demonstrates both the productivity gains and risks of AI-generated code. Manual code review and testing remained essential despite AI assistance accelerating development.",
+    "content": "I came upon the idea of a brag document a long time ago. Posts like this, spoke to me, because I've faced interviews in which I've been asked about cool things I had accomplished lately, but I couldn't remember them on the spot.\nSo a brag document makes a lot of sense.\nThe problem is I never remember to update it. So I built bragreminder.com.\nI thought having a tool to remind me to write down my professional wins with really low friction would be a nice one-week-long project. And the perfect excuse to try a few things:\nBuilding something from scratch using Copilot\nUsing Cloudflare for the first time\nWorking with automated emails\nOwning one more domain. Who doesn't want another one, right?\nSo I've learned quite a bit, like how to burn 90% of your monthly premium Copilot tokens in under a week, and finally got a small project out there that I plan to use.\nGitHub: https://github.com/davidballester/bragreminder.com\nApp: bragreminder.com\nI've used it extensively in my job, but never gave it a try to build something from the ground up. And it excels at that.\nHowever, you have to be careful. It won't always know the right answer, but that won't prevent it from giving you one, so it is up to your expertise to steer it in the right direction.\nDifferent models give you different results. I loathed GPT models, but found Anthropic's Opus amazing. Be careful, though. As of today, it burns 3 times the amount of tokens the other models do.\nI still kept a close eye on everything it added. I reviewed every line of code, manually tested everything, kept asking for refactors, do DRY things up and to minimize the amount of code. A couple of bugs I decided to fix myself after watching the agents go in circles around them without really grasping what the issue was.\nBut, overall, a really nice experience. If I had decided to write all this by myself, it would have taken me 3 times as long. And for a side project like this, I probably would have lost interest before completing it.\nGive bra",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我开发了一个提醒应用来保持我的成就文档最新",
+        "summary": "Bragreminder.com 是一个低摩擦工具，提醒专业人士更新他们的成就文档以用于面试和绩效评估。作为使用 Cloudflare 和自动化电子邮件的一周 Copilot 辅助项目构建，该应用程序展示了 AI 生成代码的生产力收益和风险。尽管 AI 协助加快了开发，手动代码审查和测试仍然至关重要。"
+      }
+    }
+  },
+  {
+    "title": "Best Open-source Next.js Boilerplate; Ship Your Project in 30 Minutes!",
+    "slug": "nextjs-elite-boilerplate-saas-starter",
+    "url": "https://dev.to/salmanshahriar/best-open-source-nextjs-boilerplate-ship-your-project-in-30-minutes-2gm2",
+    "source": "DEV Community",
+    "date": "2026-04-11T11:53:36.000Z",
+    "summary": "Nextjs-Elite-Boilerplate is a production-ready SaaS starter kit with pre-configured authentication, type-safe internationalization (6 languages), RBAC, SEO, testing, and theming. The open-source template eliminates weeks of setup work typically required for new Next.js projects. It's ready to deploy on Vercel or self-hosted infrastructure.",
+    "content": "Next.js Boilerplate: The Ultimate SaaS Starter Kit\n\n\nLooking for the best Next.js Boilerplate to launch your next project? You've found it. This production-ready starter kit is designed to help you go from idea to deployment in record time.\nThe Problem That Kept Me Up at Night\nWhy This Next.js Boilerplate is Different\nKey Features of Nextjs-Elite-Boilerplate\nHow to Get Started (The Real Way)\nThe Project Structure (Explained for Humans)\nWhat You Get Out of the Box\nContributing & Support\nFinal Thoughts\nThe Problem That Kept Me Up at Night\nYou know that feeling when you start a new Next.js project and spend the first week just setting things up? Authentication, internationalization, role management, SEO configuration... By the time you're done with the boilerplate, you've lost all that initial excitement.\nWhat you get in one line: A production-ready Next.js SaaS Boilerplate with Type-safe i18n (6 languages) + NextAuth, Google OAuth + RBAC with parallel routes + SEO (sitemap, robots, manifest) + Theme + ESLint + Prettier + Vitest + Playwright.\nI've been there. Too many times. After building multiple SaaS projects, I realized I was copy-pasting the same setup code. So I built the ultimate Next.js starter kit.\nWhy This Next.js Boilerplate is Different\nMeet Nextjs-Elite-Boilerplate: not just another \"hello world\" starter template, but a fully-featured foundation that handles all the boring stuff so you can focus on building your actual product.\nBest part? I've made this project completely open source for everyone. Whether you're a student learning the ropes or a seasoned dev looking for a solid starting point, this is for you.\n🔗 Live Demo | 📦 GitHub Repo | 🚀 Use this template | Deploy on Vercel\n\nKey Features of Nextjs-Elite-Boilerplate\nSix languages out of the box: English, বাংলা, العربية, Français, Español, and 简体中文.\nRTL support that actually works: Arabic layouts automatically flip to right-to-left.\nNext.js 16 Ready: Fully optimized for the latest React features.\nI us",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "最佳开源 Next.js 样板；30 分钟内启动你的项目！",
+        "summary": "Nextjs-Elite-Boilerplate 是一个生产级 SaaS 启动器套件，预配置了身份验证、类型安全的国际化（6 种语言）、基于角色的访问控制 (RBAC)、SEO、测试和主题设置。这个开源模板消除了通常为新 Next.js 项目所需的数周设置工作。它可以部署在 Vercel 或自托管基础设施上。"
+      }
+    }
+  },
+  {
+    "title": "Stop Adding Components for Everything — Try This Instead (Vue)",
+    "slug": "vue-directives-over-components-dirigo",
+    "url": "https://dev.to/buxee/stop-adding-components-for-everything-try-this-instead-vue-1lgd",
+    "source": "DEV Community",
+    "date": "2026-04-11T11:51:09.000Z",
+    "summary": "Dirigo uses Vue directives as a behavior layer instead of components to reduce UI complexity and wrapper bloat. This directive-based approach is effective for scroll-spy, intersection observers, and DOM-level interactions that don't require structural changes. The pattern trades declarative clarity for implementation simplicity in specific use cases.",
+    "content": "Most Vue libraries solve problems with more components.\nNeed a loader? → add a component\nAfter a while, your UI becomes a tree of wrappers and glue code.\n💡 What if behavior didn’t need components?\nI’ve been experimenting with a different approach:\n👉 using directives as a behavior layer\nInstead of adding structure, you attach behavior directly to elements.\n⚡ Example\nNo wrappers. No extra components. No layout changes.\n🧠 Why directives?\nDirectives:\nwork at the DOM level\nThey’re perfect for:\n🔥 What I built: Dirigo\nI started building a small library around this idea:\n👉 https://dirigo.woptima.com\nIt’s a collection of advanced Vue directives focused on real-world UX.\n✨ Some examples\nMost scroll-spy implementations trigger when the top hits 0.\nThis one activates when the section reaches ~40% of the viewport —\n🧩 The idea\nInstead of:\ncomponents → structure\n👉 directives can become:\nbehavior primitives\n🤔 When this works well\nAnywhere you’d normally write a lot of UI glue code.\n⚠️ Trade-offs\nThis approach isn’t for everything:\nnot ideal for purely declarative UI\nYou can try everything live here:\n👉 https://dirigo.woptima.com\n💬 Feedback\nStill early, and I’m exploring the direction.\nWould love to hear:\ndoes this pattern make sense to you?\nwhere would you use it (or not)?",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "停止为一切添加组件 — 改试试这个方法（Vue）",
+        "summary": "Dirigo 使用 Vue 指令作为行为层而不是组件，以减少 UI 复杂性和包装器膨胀。这种基于指令的方法对于滚动侦听、交叉点观察器和不需要结构更改的 DOM 级交互非常有效。该模式在特定使用情况下用实现简洁性换取声明式清晰度。"
+      }
+    }
+  },
+  {
+    "title": "Why AI Agents Get JVM Codebases Wrong — and How Bytecode Changes That",
+    "slug": "ai-agents-jvm-bytecode-analysis",
+    "url": "https://dev.to/johnsonlee/why-ai-agents-get-jvm-codebases-wrong-and-how-bytecode-changes-that-1hc6",
+    "source": "DEV Community",
+    "date": "2026-04-11T11:48:18.000Z",
+    "summary": "AI agents and tree-sitter-based analysis tools miss significant code relationships in JVM projects because they analyze source syntax rather than compiled bytecode semantics. Kotlin inline functions, synthetic bridge methods, and cross-file constants become invisible to source-level analysis, causing 3x underestimation of actual call chains. Bytecode-level analysis would provide complete semantic understanding of JVM applications.",
+    "content": "Your AI agent just confidently told you which methods call AbClient.getOption(). It listed six call sites. The actual number is nineteen.\nThe other thirteen are there — just not visible from source code. Some constants are defined in separate modules and passed across class boundaries. Some calls go through Kotlin inline functions that got expanded by the compiler. Some are hidden behind synthetic bridge methods generated for lambda captures.\nThe agent read the source. The source lied.\nMost code intelligence tools — GitNexus, code-review-graph, and the rest — are built on Tree-sitter. Tree-sitter is excellent at what it does: it parses syntax, fast, incrementally, with error tolerance. It's why your editor highlights code correctly while you're still typing.\nBut syntax is the wrong layer for understanding what code does.\nTree-sitter sees one file at a time, with no type resolution and no cross-file dataflow. Feed it a Spring Boot monolith and ask \"what calls this method?\" — it will search for matching identifiers. That's grep with an AST. It works until it doesn't, and in any real JVM project, it stops working constantly:\nSpring annotation inheritance. A @RequestMapping(\"/api/orders\") on an abstract controller doesn't appear on the concrete subclass. Tree-sitter reads the subclass, finds no annotation, and either misses the endpoint or guesses wrong.\nKotlin inline functions. The compiler erases them. A call to inline fun measure(block: () -> T) disappears from bytecode — the body gets inlined at every call site. Tree-sitter shows you a call to measure(). The actual execution path has no measure() in it.\nCross-file constants. abClient.getOption(AbTestIds.CHECKOUT_V2) — where does CHECKOUT_V2 resolve to? Tree-sitter sees an identifier. The integer value it carries is in another file, possibly in another module. The chain breaks.\nSynthetic methods. Kotlin generates bridge methods for private field access, companion object delegation, and lambda captures. None of these",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI 代理为什么会理解错 JVM 代码库 — 以及字节码如何改变这一点",
+        "summary": "AI 代理和基于 tree-sitter 的分析工具会遗漏 JVM 项目中的重要代码关系，因为它们分析的是源代码语法而不是已编译字节码的语义。Kotlin 内联函数、合成桥接方法和跨文件常量对源代码级分析来说是不可见的，导致对实际调用链的估计减少了 3 倍。字节码级分析将为 JVM 应用程序提供完整的语义理解。"
+      }
+    }
+  },
+  {
+    "title": "I built a saga workflow engine for Bun (no Temporal, no Redis, no Kafka)",
+    "slug": "saga-workflow-engine-bun-sqlite",
+    "url": "https://dev.to/egeominotti/i-built-a-saga-workflow-engine-for-bun-no-temporal-no-redis-no-kafka-44gj",
+    "source": "DEV Community",
+    "date": "2026-04-11T11:46:02.000Z",
+    "summary": "The author built a saga-based workflow engine in bunqueue with compensation, retries, branching, and sub-workflows using only Bun and SQLite, eliminating the need for external infrastructure like Temporal or Kafka. The ~1500-line implementation provides first-class distributed transaction support with a TypeScript DSL. This approach offers operational simplicity for teams that don't require the infrastructure overhead of heavyweight workflow platforms.",
+    "content": "TL;DR\n\n\nI built a workflow engine inside bunqueue with first-class saga compensation, retries with exponential backoff, branching, parallel steps, loops, sub-workflows, and human-in-the-loop signals. It runs on Bun + SQLite. Zero external infrastructure. The DSL is plain TypeScript and reads like pseudocode. Source: bunqueue.dev/guide/workflow.\nDistributed transactions are the most underestimated problem in modern backend.\nAn order comes in. You need to validate it, reserve inventory, charge the card, notify the warehouse, send a confirmation email, update analytics. Six services, six failure points.\nWhat happens if the charge succeeds but the warehouse is offline? You just took money from a customer for a product that will never ship.\nThe academic answer is two-phase commit. The pragmatic answer, since 1987, is the Saga Pattern: split the transaction into steps, each with its own compensation, and if anything goes wrong, run the rollbacks in reverse order.\nIt's elegant. It's also a nightmare to implement by hand.\nI evaluated the existing players:\nTemporal: powerful but operationally heavy. You're running a cluster.\nInngest: cloud-only by default. Vendor lock-in.\nTrigger.dev: nice DX, but again, infrastructure to run.\nAWS Step Functions: locked to AWS, JSON-based DSL, no local dev story.\nI wanted sagas without any of that. Just TypeScript, a SQLite file, and a fluent DSL that reads like pseudocode. So I built one inside bunqueue, the job queue I already maintain for Bun.\nThe whole thing is ~1500 lines and lives at src/client/workflow/. Each step is a regular bunqueue job on an internal __wf:steps queue. Persistence is the same SQLite store. State survives restarts, crashes, deploys.\nimport { Workflow, Engine } from 'bunqueue/workflow';\n\nconst flow = new Workflow('greet')\n  .step('hello', async (ctx) => {\n    return { message: `Hi, ${(ctx.input as { name: string }).name}` };\n  });\n\nconst engine = new Engine({ embedded: true });\nengine.register(flow);\n\nconst run = awa",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我为 Bun 构建了一个 Saga 工作流引擎（不需要 Temporal、Redis 或 Kafka）",
+        "summary": "作者在 bunqueue 中构建了一个基于 Saga 的工作流引擎，具有补偿、重试、分支和子工作流功能，仅使用 Bun 和 SQLite，无需使用 Temporal 或 Kafka 等外部基础设施。这个约 1500 行的实现通过 TypeScript DSL 提供了一流的分布式事务支持。这种方法为不需要重型工作流平台基础设施开销的团队提供了运营简便性。"
+      }
+    }
+  },
+  {
+    "title": "Why Your Scroll Deployment Cost $25 — And Then $0.04 the Next Attempt",
+    "slug": "scroll-deployment-cost-variance-l1-fees",
+    "url": "https://dev.to/satorigeeks/why-your-scroll-deployment-cost-25-and-then-004-the-next-attempt-4m8c",
+    "source": "DEV Community",
+    "date": "2026-04-11T11:44:55.000Z",
+    "summary": "A Scroll blockchain deployment showed a 625× cost variance ($25 vs $0.04) due to L1 fee parameters controlled by Scroll's team without governance oversight. The L1GasPriceOracle estimates fees using commitScalar and blobScalar values that are adjusted manually, though actual charges are typically ~2× lower. Recent developer feedback and parameter scaling prompted Scroll to add automated adjustment tools and governance controls.",
+    "content": "forge script returned an L1 fee estimate of roughly $25 to deploy a 6,452-byte contract on Scroll mainnet. L1 base fee at the time: 0.23 gwei — historically low. The wallet had ETH. The node rejected the transaction anyway.\nThe next morning, the same contract deployed for $0.04 total. The 625× gap comes down to two parameters and who controls them.\nEvery Scroll transaction carries an L1 data fee on top of the L2 execution fee. The Curie hardfork (mainnet July 3, 2024) introduced this formula:\nl1Fee = (commitScalar × l1BaseFee + blobScalar × txDataLength × l1BlobBaseFee) / 1e9\n\nBoth parameters are in the L1GasPriceOracle contract at 0x5300000000000000000000000000000000000002. Call getL1Fee(bytes calldata data) with your serialised transaction to see what Scroll will estimate.\nAt peak: L1 base fee was 0.23 gwei, commitScalar was 6,195,200,000,000. The oracle returned 15,216,334,956,613,434 wei — roughly $25. The math checks out.\ngetL1Fee is an upper-bound estimate, not the amount charged. The oracle is a push model — a Scroll-operated relayer updates l1BaseFee and l1BlobBaseFee when the change crosses a threshold. Once your transaction lands in an L2 block, the L1 fee locks in at whatever value the oracle holds at that moment. The sequencer absorbs the difference between quoted and actual L1 cost. The actual charge is typically ~2× lower than the estimate.\nThe $25 estimate wasn't caused by high Ethereum gas or unusual contract size. Over roughly four days, the Scroll team made six consecutive setCommitScalar and setBlobScalar calls from a team multisig — a cumulative 1,280× increase.\nThere's no onchain governance vote required to update these parameters. No timelock. The L1GasPriceOracle owner calls the setter directly. Scroll's own SDK docs noted as of early 2025 that tooling to automate updates was \"currently being built\" — the adjustments are manual operational decisions.\nOn April 9, 2026, after developer pushback — notably from the Succinct relayer team — the scal",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么你的 Scroll 部署花费 $25 — 然后下一次尝试只花费 $0.04",
+        "summary": "一个 Scroll 区块链部署显示出 625 倍的成本差异（$25 对比 $0.04），原因是 L1 费用参数由 Scroll 团队控制，没有治理监督。L1GasPriceOracle 使用 commitScalar 和 blobScalar 值来估计费用，这些值由手动调整，但实际收费通常约低 2 倍。最近的开发者反馈和参数扩展促使 Scroll 添加了自动调整工具和治理控制。"
+      }
+    }
+  },
+  {
+    "title": "I taught Open Relay's attach panel to accept pasted desktop files",
+    "slug": "open-relay-paste-attach-files-ui",
+    "url": "https://dev.to/albertwoo/i-taught-open-relays-attach-panel-to-accept-pasted-desktop-files-2ia6",
+    "source": "DEV Community",
+    "date": "2026-04-11T11:41:56.000Z",
+    "summary": "Open Relay's attach panel now accepts pasted desktop files and clipboard images in addition to traditional file-picker uploads, reducing friction in the supervision loop for long-running sessions. The improvement includes focused tests ensuring consistent handling of drag-drop, paste, and upload flows. This change prioritizes practical usability for the web UI's role as a handoff layer for CLI and agent session management.",
+    "content": "I taught Open Relay's attach panel to accept pasted desktop files\n\n\nI shipped a small Open Relay web UI improvement that matters more than its diff size suggests: the attach panel can now accept pasted desktop files and clipboard images, not just file-picker uploads.\nThat sounds minor, but it removes friction in a place I care about a lot.\nI am building Open Relay / oly to supervise long-running CLI and agent sessions like manageable services. In that model, the web UI is not decoration. It is the handoff layer when I need to jump in, inspect a session, send input, or attach something useful without breaking flow.\nIf I want that handoff to feel natural, attaching files needs to be fast.\nSo this change now lets the attach panel:\naccept a directly transferred desktop file\nfall back to clipboard file items for pasted screenshots and images\nkeep the existing upload flow while aligning the desktop drop zone around drop, paste, and upload\nI also added focused tests around the transfer helper so the behavior is explicit:\ndetect transfer payloads that actually contain files\nprefer the first direct file when one exists\nfall back to pasted clipboard file items\nignore transfers that do not include files\nThis is the kind of feature I like shipping in Open Relay. Not flashy, but it makes the supervision loop smoother. When a running session needs a screenshot, a note, or a local artifact, I want the path from desktop to session to be short.\nRepo: https://github.com/slaveOftime/open-relay",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我教会了 Open Relay 的附件面板接受粘贴的桌面文件",
+        "summary": "Open Relay 的附件面板现在除了传统的文件选择器上传外，还接受粘贴的桌面文件和剪贴板图像，减少了长期运行会话的监管循环中的摩擦。这项改进包括针对性的测试，确保拖放、粘贴和上传流程的一致处理。这项更改优先考虑了网络用户界面作为 CLI 和代理会话管理的交接层的实际可用性。"
+      }
+    }
+  },
+  {
     "title": "I Put pg_stat_activity in My SQL Client — And Added a Kill Button",
     "slug": "pg-stat-activity-sql-client-kill-button",
     "url": "https://dev.to/gillarohith/i-put-pgstatactivity-in-my-sql-client-and-added-a-kill-button-481i",
