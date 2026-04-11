@@ -1,5 +1,197 @@
 [
   {
+    "title": "I Put pg_stat_activity in My SQL Client — And Added a Kill Button",
+    "slug": "pg-stat-activity-sql-client-kill-button",
+    "url": "https://dev.to/gillarohith/i-put-pgstatactivity-in-my-sql-client-and-added-a-kill-button-481i",
+    "source": "DEV Community",
+    "date": "2026-04-11T06:25:11.000Z",
+    "summary": "A developer built a Connection Health Monitor tab into their SQL client to diagnose PostgreSQL performance issues without leaving the IDE. The tool monitors active queries, table sizes, cache hit ratios, and locks—key system metrics previously only accessible through shell commands.",
+    "content": "It was 11:47 PM when the Datadog alert came in. API latency on /checkout had\nSELECT pid, state, EXTRACT(EPOCH FROM (now() - query_start)) AS seconds, query\nFROM pg_stat_activity\nWHERE state != 'idle'\nORDER BY query_start;\n\nThen I ran it. Then I ran it again six seconds later. Then again. Then I\nSELECT * FROM pg_locks because I was\nEvery Postgres operator has been here. The data you need lives in system\npg_stat_activity, pg_locks, pg_statio_user_tables,\npg_stat_user_tables. Reaching for them through a shell at midnight is a\nSo I built the Connection Health Monitor into data-peek.\n\nThe Health Monitor is a dedicated tab — not a modal, not a sidebar — that\nActive Queries — everything in pg_stat_activity that isn't idle, with\nduration, wait events, and a kill button next to each row.\nTable Sizes — the top 50 tables by total size, including heap and index\nbytes, with a row-count estimate from pg_stat_user_tables.n_live_tup.\nCache Hit Ratios — buffer and index cache hit percentages, plus a\nper-table breakdown of seq-scan vs index-scan counts.\nLocks & Blocking — the classic blocked/blocking join from pg_locks,\nwith both the blocked query and the query holding the lock visible side by\nside.\nThe kill button calls pg_cancel_backend(pid). No confirmation dialog. If\n\nEvery panel has a \"Share\" button that generates a clean screenshot suitable\n\nThe Health Monitor is an honest, boring pipeline, and I think that is the\n┌────────────────────────────┐\n│  HealthMonitor.tsx (React) │  ← refresh interval, kill buttons, share UI\n└──────────────┬─────────────┘\n               │ window.api.db.*\n┌──────────────┴─────────────┐\n│  health-handlers.ts (IPC)  │  ← ipcMain.handle('db:active-queries', …)\n└──────────────┬─────────────┘\n               │ getAdapter(config)\n┌──────────────┴─────────────┐\n│  postgres-adapter.ts       │  ← the actual SQL against pg_stat_*\n└────────────────────────────┘\n\nThe IPC handlers (src/main/ipc/health-handlers.ts) are wafer-thin — each\nIpcResponse<T> shape:\nipcMain.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我在 SQL 客户端中集成了 pg_stat_activity —— 并添加了杀死连接按钮",
+        "summary": "一个开发者在他们的 SQL 客户端中构建了一个连接健康监控标签页，用于诊断 PostgreSQL 性能问题，无需离开 IDE。该工具监控活跃查询、表大小、缓存命中率和锁——这些关键系统指标以前只能通过 shell 命令访问。"
+      }
+    }
+  },
+  {
+    "title": "Nobody Tells You This About Slow Transformer Models — I Fixed Mine in 3 Steps",
+    "slug": "optimize-slow-transformer-models-batching-onnx",
+    "url": "https://dev.to/mansi0317/nobody-tells-you-this-about-slow-transformer-models-i-fixed-mine-in-3-steps-518c",
+    "source": "DEV Community",
+    "date": "2026-04-11T06:23:34.000Z",
+    "summary": "Most slow transformer model problems stem from inefficient usage patterns, not the model itself. The author achieved significant speedups through batching (36% faster), converting to ONNX Runtime, and other optimization techniques—reducing 750ms inference time considerably.",
+    "content": "Hot take: most \"my model is slow\" problems are not model problems.\nWhat I was building\nMODEL_PATH = \"distilbert-base-uncased-finetuned-sst-2-english\"\ndef predict(text: str):\ntexts = [\"My payment didn't go through\"] * 10\nprint(f\"Avg: {elapsed/10:.0f}ms per request\")\n750ms. Let's fix this.\nStep 1: I was running a dishwasher for a single fork\npython# step1_batching.py\nfor i in range(0, len(texts), batch_size):\n    batch = texts[i : i + batch_size]\n\n    inputs = tokenizer(\n        batch,\n        return_tensors=\"pt\",\n        truncation=True,\n        max_length=128,\n        padding=True  # pads all texts to the same length within the batch\n    )\n\n    with torch.no_grad():\n        outputs = model(**inputs)\n\n    all_predictions.extend(outputs.logits.argmax(dim=-1).tolist())\n\nreturn all_predictions\n\ntexts = [\"My payment didn't go through\"] * 10\nprint(f\"Avg: {elapsed/10:.0f}ms per request\")\n750ms → 480ms. 36% faster. One change. I genuinely stared at the screen for a moment.\n💡 What batch size? I'd start with 16. Drop to 8 if you're hitting memory limits, try 32 if you have room. Dynamic batching (queuing requests for ~30–50ms before processing) is the next level if you're building a real API.\nStep 2: PyTorch was carrying bags it didn't need to\npython# export_onnx.py\nMODEL_PATH = \"distilbert-base-uncased-finetuned-sst-2-english\"\ndummy_input = tokenizer(\ntorch.onnx.export(\n⚠️ Don't skip dynamic_axes. I learned this the hard way. Without it you'll get cryptic shape errors in production and spend an hour wondering why requests work in your test script but fail in your API.\nThen switched to running inference with ONNX Runtime:\npython# step2_onnx.py\nclass SupportBotClassifier:\ninit(self, model_path: str, tokenizer_path: str):\n    self.session = ort.InferenceSession(\n        model_path,\n        sess_options=opts,\n        providers=[\"CPUExecutionProvider\"]\n    )\n    self.tokenizer = DistilBertTokenizer.from_pretrained(tokenizer_path)\n\ndef predict(self, texts: list) -> list:\n    inpu",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "没人告诉你关于缓慢 Transformer 模型的这一点 —— 我用 3 个步骤解决了我的问题",
+        "summary": "大多数缓慢 Transformer 模型问题源于低效的使用模式，而不是模型本身。作者通过批处理（快 36%）、转换为 ONNX Runtime 和其他优化技术实现了显著的速度提升——大幅减少了 750ms 的推理时间。"
+      }
+    }
+  },
+  {
+    "title": "Designing and Optimizing Image Delivery with a CDN",
+    "slug": "optimizing-image-delivery-cdn-modern-web",
+    "url": "https://dev.to/catatsuy/designing-and-optimizing-image-delivery-with-a-cdn-35ia",
+    "source": "DEV Community",
+    "date": "2026-04-11T06:21:53.000Z",
+    "summary": "Image delivery is now critical system design, not just frontend work. Size matters more than quality; the backend should control URL design and provide multiple image variants for browsers to select from based on device capabilities.",
+    "content": "In modern web services, it is no longer enough to handle images the way we did in the past.\nA long time ago, it was common to generate a few fixed thumbnail sizes when a user uploaded an image, then serve those files as they were. That approach was often good enough. But today, high-density smartphone displays are common, and the same image may need different sizes and formats depending on the client. On top of that, CDNs and image optimization services can now generate image variants dynamically and cache them efficiently.\nBecause of this, image delivery is no longer just a frontend concern. It is part of system design.\nWhat matters most to me is this:\nimage size matters more than quality\nimage URL design should be controlled by the backend, not the frontend\nthe backend should return multiple candidate URLs for the same image, and the browser should choose one\nmodern formats and image optimization services are useful, but they need to be used with a good understanding of their behavior\nIn this article, I will explain how I think image delivery should be designed for modern web services.\nFor JPEG-like images, there are two major parameters: image size and quality. But if your goal is visual quality, image size is more important than quality.\nWhen an image is too small, people notice it immediately. A difference in quality is often more subtle. Because of that, the first step should not be fine-tuning quality. The first step should be making sure the image is large enough.\nToday, devices like iPhones with Retina displays are normal. On smartphones, an image often needs to be 2x larger than its display size, and sometimes 3x larger, to look good. The visual quality of thumbnail images directly affects user experience. In some services, it can even affect click-through rate or sales.\nOf course, larger images increase transfer size. That affects CDN cost, response time, and mobile data usage. But even with that trade-off, the right order is still important: first make s",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用 CDN 设计和优化图像传输",
+        "summary": "图像传输现在是关键的系统设计，而不仅仅是前端工作。大小比质量更重要；后端应该控制 URL 设计，并为浏览器提供多个图像变体，供浏览器根据设备功能选择。"
+      }
+    }
+  },
+  {
+    "title": "I was tired of json-server — so I built a free mock API tool (no signup needed)",
+    "slug": "mockbolt-free-mock-api-tool-no-setup",
+    "url": "https://dev.to/mockbolt02/i-was-tired-of-json-server-so-i-built-a-free-mock-api-tool-no-signup-needed-fkn",
+    "source": "DEV Community",
+    "date": "2026-04-11T06:21:45.000Z",
+    "summary": "MockBolt provides instant mock API endpoints without setup—paste JSON, get a live URL in seconds. The tool supports all HTTP methods, custom status codes, CORS headers, and latency simulation, eliminating the need for json-server or terminal configuration.",
+    "content": "Every frontend project I start hits the same wall.\nI have a UI to build. I know what the API responses should look like. But the backend isn't ready yet.\nSo I spend 15–20 minutes doing the same setup ritual:\nnpm install -g json-server\n# create db.json\n# configure routes\n# run json-server --watch db.json --port 3001\n\nAnd that's the fast version. If I need CORS headers, custom status codes, or simulated delay, it gets longer.\nI built MockBolt to remove that setup time entirely.\nPaste JSON → click Generate → get a live public API URL.\nThat's it. No npm install. No terminal tab. No local port.\ncurl https://mockbolt.com/b/7f3d2c1a-9b8e-4f5a-b6d0-3e2c1f4a8b7d\n# returns your JSON immediately\n\nThe endpoint:\nSupports all HTTP methods (GET, POST, PUT, PATCH, DELETE)\nReturns your JSON with the right status code\nHas open CORS — works from any browser origin\nAccepts custom response headers\nCan simulate latency up to 10 seconds\nEach mock gives you two URLs:\nPublic URL — share this with your frontend or teammates\nManagement URL — keep this private; edit payload, status code, methods, and delay anytime\nNo account. No email. No credit card. Free for 24 hours.\nSay I'm building a frontend that needs a /users endpoint but the backend isn't ready. In MockBolt:\n1. Paste this JSON:\n{\n  \"users\": [\n    { \"id\": 1, \"name\": \"Alice\", \"role\": \"admin\" },\n    { \"id\": 2, \"name\": \"Bob\", \"role\": \"viewer\" }\n  ],\n  \"total\": 2\n}\n\n2. Select GET, click Generate Endpoint\n3. Get a URL like https://mockbolt.com/b/e8bdb0ce-8ed9-44a8-adcc-b0af6a054443\n4. Hit it immediately:\ncurl https://mockbolt.com/b/e8bdb0ce-8ed9-44a8-adcc-b0af6a054443\n# {\"users\":[{\"id\":1,\"name\":\"Alice\",\"role\":\"admin\"},{\"id\":2,\"name\":\"Bob\",\"role\":\"viewer\"}],\"total\":2}\n\nDone in under 30 seconds.\nMockBolt lets you set any status code from 100 to 599 and add a response delay.\nWant to test how your app handles a 503 Service Unavailable? Set the status code, generate the endpoint, point your error-state tests at it.\nWant to test loading spinners",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我讨厌json-server——所以我开发了一个免费的模拟API工具(无需注册)",
+        "summary": "MockBolt 提供无需设置的即时模拟 API 端点——粘贴 JSON，几秒内获得实时 URL。该工具支持所有 HTTP 方法、自定义状态码、CORS 标头和延迟模拟，无需 json-server 或终端配置。"
+      }
+    }
+  },
+  {
+    "title": "Understanding SQL: DDL, DML, and data manipulation",
+    "slug": "understanding-sql-ddl-dml-data-manipulation",
+    "url": "https://dev.to/tom_chege/understanding-sql-ddl-dml-and-data-manipulation-4ad",
+    "source": "DEV Community",
+    "date": "2026-04-11T06:20:44.000Z",
+    "summary": "DDL manages database structure (tables, columns) while DML manipulates data within those structures. Understanding this distinction is fundamental to SQL: DDL defines the house, while DML furnishes and maintains it.",
+    "content": "What are DDL and DDL?\n\n\nSQL commands are grouped based on what they act on.\nThink of a database as a house:\nDDL builds the house (structure)\nDML furnishes and maintains the house (data inside it)\nDDL is used to define and manage the structure of your database.\nIt answers questions like:\nWhat tables exist?\nWhat columns do they have?\nWhat type of data goes into them?\nCREATE -> create new tables\n\n\nALTER -> modify existing tables\n\n\nDROP -> delete tables\n\n\n\n\n  \n  \n  Example: creating a table\n\n\n\n\n\nCREATE TABLE students (\n    student_id INT PRIMARY KEY,\n    first_name VARCHAR(50),\n    age INT,\n    city VARCHAR(50)\n);\n\nDDL works on the entire structure, not individual rows.\nDML is used to interact with the actual data inside the tables.\nIt answers questions like:\nWhat data do we have?\nHow do we add, update, or remove it?\nSELECT -> retrieve data\n\n\nINSERT -> add data\n\n\nUPDATE -> modify data\n\n\nDELETE -> remove data\n\n\n\n\n\n\n\n  \n  \n  Examples of DDL in action\n\n\n\n  \n  \n  Inserting data\n\n\n\n\n\nINSERT INTO students (student_id, first_name, age, city)\nVALUES (1, 'Alice', 14, 'Nakuru');\n\nSELECT * FROM students;\n\nUPDATE students\nSET city = 'Nairobi'\nWHERE student_id = 1;\n\nDELETE FROM students\nWHERE student_id = 1;\n\n\n\n\naspect\nDDL (data definition language)\nDDL (data manipulation language)\n\n\n\n\nPurpose\ndefines and manages database structure\nworks with the data inside tables\n\n\nFocus\ntables, schemas, columns\nrows and records\n\n\nLevel of impact\naffects entire objects (tables, schemas)\naffects specific rows\n\n\nCommon commands\n\nCREATE, ALTER, DROP\n\n\nSELECT, INSERT, UPDATE, DELETE\n\n\n\nTransaction behaviour\nauto-committed (usually cannot rollback)\ntransactional (can rollback before commit)\n\n\nUse of WHERE\nnot used (operates on full objects)\nheavily used to filter specific rows\n\n\nReal-world analogy\nbuilding or modifying a house\nadding, changing, or removing furniture\n\n\nRisk level\nhigh (can remove entire structures)\nmoderate (usually scoped to selected data)\n\n\n\nThe WHERE clause helps you target specific",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "理解 SQL：DDL、DML 和数据操作",
+        "summary": "DDL 管理数据库结构(表、列)，而 DML 在这些结构中操作数据。理解这种区别是 SQL 的基础：DDL 定义了房子，DML 则对其进行装修和维护。"
+      }
+    }
+  },
+  {
+    "title": "AI-Driven Growth: Indus Towers & L&T's Future Gains with AI",
+    "slug": "ai-driven-growth-indus-towers-larsen-toubro",
+    "url": "https://dev.to/arthfy/ai-driven-growth-indus-towers-lts-future-gains-with-ai-4p0m",
+    "source": "DEV Community",
+    "date": "2026-04-11T06:20:17.000Z",
+    "summary": "Indian infrastructure companies Indus Towers and Larsen & Toubro are leveraging AI for operational efficiency and innovation. Indus Towers uses AI for predictive maintenance and network optimization, while L&T applies it to project management and construction innovation.",
+    "content": "AI-Driven Growth: How Indus Towers and Larsen & Toubro are Leveraging AI for Future Gains\n\n\nIn the fast-evolving landscape of technology, artificial intelligence (AI) is no longer just a buzzword. It's a key driver of growth, innovation, and competitive advantage. For Indian retail investors, understanding how major companies like Indus Towers and Larsen & Toubro (L&T) are leveraging AI can provide valuable insights into potential investment opportunities.\nIndus Towers, a leading telecommunications infrastructure provider, is at the forefront of integrating AI into its operations. With the increasing reliance on mobile networks and the anticipated rollout of 5G, Indus Towers is using AI to enhance its operational efficiency and network management.\nOperational Efficiency: AI-powered analytics are helping Indus Towers optimize its tower operations by predicting maintenance needs and reducing downtime. This proactive approach increases the reliability of their services, which is crucial as data consumption continues to rise.\n\n\nNetwork Management: AI is also enhancing network performance by analyzing data in real time and adjusting network parameters for optimal service delivery. This capability is essential as India continues to witness a surge in mobile data usage and the demand for faster, more reliable connectivity.\n\n\n\n\n  \n  \n  Larsen & Toubro: Engineering Excellence with AI\n\n\nLarsen & Toubro, one of India's largest engineering and construction companies, is not far behind in adopting AI. The company is strategically using AI to improve project management and drive innovation in construction.\nProject Management: L&T is utilizing AI to streamline its project management processes. By integrating AI algorithms, L&T can predict project delays and cost overruns more accurately. This foresight allows for better resource allocation and project planning, leading to enhanced efficiency and profitability.\n\n\nInnovation in Construction: AI is enabling L&T to innovate in constru",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI 驱动的增长：Indus Towers 和 L&T 的 AI 未来收益",
+        "summary": "印度基础设施公司 Indus Towers 和 Larsen & Toubro 正在利用 AI 提高运营效率和创新。Indus Towers 使用 AI 进行预测性维护和网络优化，而 L&T 将其应用于项目管理和建筑创新。"
+      }
+    }
+  },
+  {
+    "title": "32 Days, One Dev, One App to Replace Them All",
+    "slug": "blue-synergy-32-days-unified-productivity-tool",
+    "url": "https://dev.to/ivorinoxblue/32-days-one-dev-one-app-to-replace-them-all-4o48",
+    "source": "DEV Community",
+    "date": "2026-04-11T06:18:09.000Z",
+    "summary": "A developer built Blue Synergy—a unified productivity tool replacing three separate apps—in 32 days using Rust and Tauri. The entire application adheres to a Zero-Latency Doctrine ensuring all actions complete in under 50ms for seamless user experience.",
+    "content": "Imagine walking into your garage, locking the door, and telling yourself: I am going to build a Formula 1 car. Alone. From scratch.\nNo factory. No engineering team. Just you, your tools, and total tunnel vision.\nNow imagine that 32 days later, the car rolls out of the garage — and on its very first lap, breaks every track record.\nThat sounds absurd. But in software, that is exactly what happened.\nI was running three apps to do one thing: work faster.\nA clipboard manager. A text expander. A screenshot and OCR tool. Three separate windows. Three sets of shortcuts. Three regular invoices.\nEvery day I was switching between them. Every context switch could cost you 15 to 25 minutes of ramp-up time per switch. Blue Synergy keeps you in flow.\nSo I did what any developer does when the right tool does not exist: I built it.\nOn March 8, 2026, at 17:03, I opened a blank Rust project.\n\n\n\nBefore writing a single feature, I set one constraint that every line of code had to obey:\nUnder 50 milliseconds. Always.\nOverlay opens? Under 50ms. Search across 10,000 clips? Under 50ms. Paste action? Under 20ms. Idle RAM usage? Under 50MB.\nThis is not a marketing metric. It is a physical law of human cognition.\nWhen you press a key and the visual response arrives in under 100 milliseconds, your brain processes action and reaction as a single continuous event. The tool feels like an extension of your hand.\nThe moment you cross that threshold — even by a few milliseconds — your subconscious registers a gap. It sends a signal: you are waiting for the machine. That friction adds up across a workday into massive cognitive fatigue.\nI call this the Zero-Latency Doctrine. And it dictated every architectural decision that followed.\nThe stack to make this real: Rust for the backend (no garbage collection pauses, memory safety guaranteed at compile time), Tauri instead of Electron (no bundled Chromium — 80-90% less RAM from the start), Solid.js for the frontend.\nWith the RAM budget freed up, I invested",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "32天打造统一生产力工具:一位开发者用一款应用替代三个应用",
+        "summary": "一位开发者用Rust和Tauri在32天内构建了Blue Synergy——一个统一生产力工具,用来替代三个独立的应用。整个应用遵循零延迟原则,确保所有操作在50毫秒以内完成,提供无缝用户体验。"
+      }
+    }
+  },
+  {
+    "title": "Claude Code vs Codex CLI vs Gemini CLI: Which AI Terminal Agent Wins in 2026?",
+    "slug": "ai-terminal-agents-claude-codex-gemini-2026",
+    "url": "https://dev.to/rahulxsingh/claude-code-vs-codex-cli-vs-gemini-cli-which-ai-terminal-agent-wins-in-2026-55f5",
+    "source": "DEV Community",
+    "date": "2026-04-11T06:00:00.000Z",
+    "summary": "Claude Code leads in code reasoning and multi-file editing, Codex CLI offers open-source flexibility, and Gemini CLI provides the largest context window (1M tokens). The choice depends on whether you prioritize capability, budget, or context size.",
+    "content": "Quick verdict\n\n\nClaude Code is the most capable AI terminal coding agent in 2026, offering the deepest code reasoning, best multi-file editing, and a proven multi-agent Code Review system. Codex CLI is the best free, open-source option with strong autonomous task execution in sandboxed environments. Gemini CLI wins on context window size and free-tier generosity, making it ideal for large codebases and budget-conscious developers.\nChoose Claude Code if: You want the best code reasoning, multi-file editing, and code review capabilities and are willing to pay for a premium experience.\nChoose Codex CLI if: You want an open-source CLI with autonomous cloud execution, parallel task support, and you already use ChatGPT or OpenAI's API.\nChoose Gemini CLI if: You need the largest context window (1M tokens), want the most generous free tier, or your team is invested in the Google Cloud ecosystem.\nAI coding has moved beyond autocomplete. The latest generation of AI tools runs directly in your terminal, reads your entire codebase, edits multiple files, runs tests, commits changes, and even reviews pull requests - all from the command line.\nThree tools dominate this space in 2026: Claude Code from Anthropic, Codex CLI from OpenAI, and Gemini CLI from Google. Each takes a different approach to terminal-based AI coding, and choosing the wrong one can cost your team hours of productivity every week.\nThis comparison breaks down every meaningful difference so you can pick the right tool for your workflow.\n\n\n\nFeature\nClaude Code\nCodex CLI\nGemini CLI\n\n\n\n\nDeveloper\nAnthropic\nOpenAI\nGoogle\n\n\nUnderlying model\nClaude Opus 4.6 / Sonnet 4.6\nGPT-5-Codex\nGemini 2.5 Pro / Flash\n\n\nContext window\n200K tokens\n128K-200K tokens\n1M tokens\n\n\nFree tier\nNo (Pro from $20/mo)\nOpen-source CLI (API costs apply)\n180K completions/month + 240 chats/day\n\n\nStarting price\n$20/month (Pro)\n$20/month (ChatGPT Plus)\nFree / $19/user/month (Standard)\n\n\nOpen source\nNo\nYes (Apache 2.0)\nNo\n\n\nMulti-file editing\nYes - best",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Claude Code与Codex CLI与Gemini CLI对比:2026年哪个AI终端代理最强?",
+        "summary": "Claude Code在代码推理和多文件编辑方面领先,Codex CLI提供开源灵活性,Gemini CLI提供最大的上下文窗口(100万个token)。选择取决于你是优先考虑能力、预算还是上下文大小。"
+      }
+    }
+  },
+  {
+    "title": "Stop Blind-CURLing in Production: How I Built an Audit Layer for API Operations",
+    "slug": "heimdall-audit-layer-production-api-operations",
+    "url": "https://dev.to/lerufic/stop-blind-curling-in-production-how-i-built-an-audit-layer-for-api-operations-2aln",
+    "source": "DEV Community",
+    "date": "2026-04-11T05:52:03.000Z",
+    "summary": "Heimdall enforces two-person-rule approval and audit logging for production API operations in Fintech, replacing ad-hoc curl commands. Built with Next.js and Prisma, it logs all headers, parameters, and responses for compliance and security.",
+    "content": "If you’ve ever worked in Fintech, you know the feeling. It’s 2:00 PM on a Tuesday, and a production sync has failed. A developer needs to manually trigger a Stripe webhook or hit an internal reconciliation endpoint.\nIn most places, this involves someone opening a terminal, pasting a curl command with a production secret, and hitting enter.\nAs a DevOps, this keeps me up at night.\nWho executed that? What exactly was in the JSON body? Did anyone double-check the URL search params? In a world of SOC2 compliance and strict financial audits, “trust me, I ran the right command” isn’t an answer.\nThat’s why I built Heimdall.\nDevelopers need to do HTTP requests at production. It’s a fact of life. But terminal history is easily lost, and there is zero “Human-in-the-Loop” validation.\nIn Fintech, every state-changing request needs four eyes. One to request, and one to approve.\nI needed a tool that:\nSeparated Duties: Developers can draft requests, but only designated Approvers can click “Execute.”\nLogged Everything: A permanent, uneditable audit trail of every header, param, and response payload.\nUsed Enterprise Identity: No “admin/admin” logins. It had to speak LDAP/Active Directory or SSO out of the box.\n\nHeimdall isn't just an API client; it's a Governance Layer.\nBuilt with Next.js 16 and Prisma, it acts as a centralized dashboard where your team can manage production API operations without ever touching a terminal.\n🛠 The Workflow\nThe Request: A developer (Requester) builds the request—Method, URL, Headers, and Body. They can even save it as a \"Template\" for common tasks like \"User Password Reset\" or \"Force Cache Purge.\"\nThe Review: An Approver resets the dashboard. They see the pending request, verify the parameters, and check for any security red flags.\nThe Execution: Once approved, the platform executes the request from within the secure network environment.\nThe Audit: The system logs the latency, the status code, and the full raw response for future debugging or complianc",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "别在生产环境中盲目cURL:我如何构建API操作审计层",
+        "summary": "Heimdall为金融科技生产环境中的API操作强制执行双人审批规则和审计日志,替代临时cURL命令。使用Next.js和Prisma构建,记录所有请求头、参数和响应以确保合规性和安全性。"
+      }
+    }
+  },
+  {
+    "title": "I rewrote my encrypted form tool because I was tired of Cloudflare owning my setup",
+    "slug": "formseal-embed-encrypted-forms-vendor-agnostic",
+    "url": "https://dev.to/grayguava/i-rewrote-my-encrypted-form-tool-because-i-was-tired-of-cloudflare-owning-my-setup-9j",
+    "source": "DEV Community",
+    "date": "2026-04-11T05:46:39.000Z",
+    "summary": "The rewritten formseal-embed prioritizes vendor agnosticism, working with any endpoint accepting POST requests. By stripping away vendor-specific optimizations, the tool now offers true portability without locking users into particular platforms.",
+    "content": "formseal-embed is a drop-in utility for client side encrypted contact forms. You drop it in, it encrypts submissions in the browser before they're sent, and your backend receives ciphertext it can decrypt on its own terms.\nThat's the pitch. The reality is I had a working version of this before the rewrite and it drove me insane. Every time I touched it I was thinking about Cloudflare. Cloudflare KV. Cloudflare Workers. The challenge/verify pipeline. It worked, but it was a house of cards. One config change upstream and everything downstream quietly broke.\nSo I started over. And the whole rewrite was basically one question on repeat: does this belong here, or am I just rebuilding the thing I hated?\nI gave myself one rule going in: it has to work with any endpoint that accepts a POST request. That's it. No assumptions about the backend, no vendor-specific hooks, no \"but it's optimized for X.\" If you've got a URL, it works.\nThat constraint sounds simple but it changes everything. It means the embed can't do clever backend stuff. It means the CLI can't assume what platform you're on. It means every feature I wanted to add had to pass the test: does this break vendor agnosticism? A lot of them didn't survive.\nMy first instinct was to make the embed smart. Field-level validation, custom error messages, auto-generated markup. But every time I built one of those things I was making decisions that belonged to the developer using the tool, not me.\nSo I cut it back. The embed reads name attributes, manages button state, encrypts the payload, and posts it. That's all it touches. You own all the HTML. If that sounds limiting, it's actually the point: it means formseal-embed works with whatever form structure you already have.\nI thought about this way too long. Rust felt right - fast, single binary, no runtime. Go too. But I kept coming back to the same mental image: someone running fse init for the first time, on whatever machine they have, with whatever they've got installed.\nP",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我重写了我的加密表单工具，因为我厌倦了Cloudflare掌控我的设置",
+        "summary": "重写的formseal-embed优先考虑供应商无关性，可与任何接受POST请求的端点配合使用。通过去除供应商特定的优化，该工具现在提供了真正的可移植性，不会将用户锁定在特定平台上。"
+      }
+    }
+  },
+  {
+    "title": "Every Trending AI Agent Project Is Reinventing Something Humans Already Built",
+    "slug": "ai-agents-reinventing-human-organizational-structures",
+    "url": "https://dev.to/willamhou/every-trending-ai-agent-project-is-reinventing-something-humans-already-built-469e",
+    "source": "DEV Community",
+    "date": "2026-04-11T05:44:30.000Z",
+    "summary": "AI agent projects recreate human organizational structures (protocols, hierarchies, controls) but lack the most critical one: signatures and audit trails for accountability. This gap leaves agent actions undocumented and non-repudiable.",
+    "content": "Every Trending AI Agent Project Is Reinventing Something Humans Already Built\n\n\nI've been watching GitHub Trending for the past six months. The same category of project keeps appearing: infrastructure for AI agents.\nLook closely and they're all doing the same thing. Taking organizational structures that humans have used for centuries and rebuilding them for agents.\n\n\n\nHuman world\nAgent world\nExample project\n\n\n\n\nWorkflow manuals / API standards\nTool-calling protocol\nMCP (Anthropic)\n\n\nTeam collaboration / org charts\nMulti-agent orchestration\nCrewAI, AutoGen, LangGraph\n\n\nSecurity policies / firewalls\nAgent behavior control\nAegis, Invariant\n\n\nContracts / signatures / audit\n?\n?\n\n\n\nThe first three rows are well covered. Multiple teams shipping production-grade tools.\nThe last row is empty.\nHuman civilization has run on one mechanism from Mesopotamian clay tablets to DocuSign: signatures.\nSign a contract. Sign for a delivery. Sign an expense report. Sign a bank transfer. When something goes wrong and you end up in court, the first question is always: \"Is there a signature?\"\nSignatures don't solve trust. They solve proof. Not \"I trust you,\" but \"you did this, here is the evidence, you cannot deny it.\"\nNow look at the agent world.\nYour agent calls dozens of APIs every day. Creates issues. Sends messages. Places orders. Modifies configurations. What did it actually do?\nNo signature. No receipt. No evidence.\nMCP, the protocol agents use to talk to tools, has no signing mechanism. Your agent acts with your credentials, your API keys, on your behalf. When something goes wrong, you can't even prove whether your agent did it.\nYou run a multi-agent pipeline. An orchestrator delegates to a research agent, a writing agent, a review agent. The final report contains incorrect data. Which agent introduced it? When? With what parameters? Without signatures, you trace manually.\nSecurity asks you a question. \"What did your agent do last week? Which services did it call?\" You open the MCP s",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "每个热门的AI代理项目都在重新发明人类已经建造的东西",
+        "summary": "AI代理项目重新创建人类组织结构（协议、层级、控制），但缺少最关键的一个：用于问责的签名和审计跟踪。这个差距导致代理行为无法记录和不可否认。"
+      }
+    }
+  },
+  {
+    "title": "Create a website that can generate high-end, free, and ready-to-download eBooks that includes automated pictures per slide.",
+    "slug": "generate-ebooks-automated-pictures-free",
+    "url": "https://dev.to/biomed_cosca/create-a-website-that-can-generate-high-end-free-and-ready-to-download-ebooks-that-includes-12f1",
+    "source": "DEV Community",
+    "date": "2026-04-11T05:41:34.000Z",
+    "summary": "A proposal for a website tool that automatically generates professional eBooks with AI-generated illustrations for each slide, offering free downloads without cost to users.",
+    "content": "",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "创建一个网站，可以生成高端、免费、可直接下载的电子书，每张幻灯片都包含自动生成的图片",
+        "summary": "一个网站工具的提案，可以自动为每张幻灯片生成包含AI生成插图的专业电子书，为用户提供免费下载。"
+      }
+    }
+  },
+  {
     "title": "Hello, Dev.to Community! 👋 I'm Thabang, a Full-Stack Developer from South Africa",
     "slug": "hello-devto-community-full-stack-developer",
     "url": "https://dev.to/gideon877/hello-devto-community-im-thabang-a-full-stack-developer-from-south-africa-1bog",
@@ -28,6 +220,22 @@
       "zh": {
         "title": "🚫 停止编写旧的JavaScript — ✅ 开始使用现代内置API（第2部分）",
         "summary": "本指南演示了现代JavaScript内置API（如Object.hasOwn和Array.prototype.toSorted()）如何替代旧模式，通过避免hasOwnProperty和数组变异的常见陷阱来提高代码安全性。"
+      }
+    }
+  },
+  {
+    "title": "Artemis II safely splashes down",
+    "slug": "artemis-ii-safely-splashes-down",
+    "url": "https://www.cbsnews.com/live-updates/artemis-ii-splashdown-return/",
+    "source": "Hacker News",
+    "date": "2026-04-11T00:10:51.000Z",
+    "summary": "NASA's Artemis II mission successfully completed its splashdown return, marking another milestone in the Artemis program's goal to return humans to the Moon.",
+    "content": "Article URL: https://www.cbsnews.com/live-updates/artemis-ii-splashdown-return/\nComments URL: https://news.ycombinator.com/item?id=47725583\nPoints: 700\n# Comments: 248",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "阿尔特弥斯二号安全溅落",
+        "summary": "美国宇航局阿尔特弥斯二号任务成功完成了溅落返回，这标志着阿尔特弥斯计划让人类重返月球目标中的又一个里程碑。"
       }
     }
   },
