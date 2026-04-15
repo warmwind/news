@@ -1,5 +1,197 @@
 [
   {
+    "title": "Terragrunt folder structure and include",
+    "slug": "terragrunt-folder-structure-include",
+    "url": "https://dev.to/bard/terragrunt-folder-structure-and-include-33d7",
+    "source": "DEV Community",
+    "date": "2026-04-15T12:21:09.000Z",
+    "summary": "Terragrunt organizes infrastructure code using a root configuration file inherited by per-unit terragrunt.hcl files through include blocks, eliminating duplication across environments. The root.hcl defines shared settings like remote state backend and providers, which child units automatically inherit while specifying only their own unique inputs.",
+    "content": "folder structure\n\n\nTerragrunt projects split config into two layers: a root hcl file with shared settings, and per-unit terragrunt.hcl files that inherit from it.\nroot.hcl\nenvironments/\n├── dev/\n│   ├── vpc/\n│   │   └── terragrunt.hcl\n│   ├── rds/\n│   │   └── terragrunt.hcl\n│   └── eks/\n│       └── terragrunt.hcl\n└── prod/\n    ├── vpc/\n    │   └── terragrunt.hcl\n    ├── rds/\n    │   └── terragrunt.hcl\n    └── eks/\n        └── terragrunt.hcl\n\nEach leaf terragrunt.hcl is one Terraform unit - its own state file, its own apply.\ninclude - inherit from root\n\n\n\n\n\n# environments/prod/vpc/terragrunt.hcl\ninclude \"root\" {\n  path = find_in_parent_folders(\"root.hcl\")\n}\n\nterraform {\n  source = \"git::https://github.com/org/tf-modules.git//vpc?ref=v1.2.0\"\n}\n\ninputs = {\n  name       = \"prod-vpc\"\n  cidr_block = \"10.0.0.0/16\"\n}\n\n# root.hcl\nlocals {\n  env    = basename(dirname(get_terragrunt_dir()))\n  region = \"eu-west-1\"\n}\n\nremote_state {\n  backend = \"s3\"\n  config = {\n    bucket         = \"my-tf-state\"\n    key            = \"${path_relative_to_include()}/terraform.tfstate\"\n    region         = local.region\n    encrypt        = true\n    dynamodb_table = \"terraform-locks\"\n  }\n  generate = {\n    path      = \"backend.tf\"\n    if_exists = \"overwrite_terragrunt\"\n  }\n}\n\ngenerate \"provider\" {\n  path      = \"provider.tf\"\n  if_exists = \"overwrite_terragrunt\"\n  contents  = <<EOF\nprovider \"aws\" {\n  region = \"${local.region}\"\n}\nEOF\n}\n\nfind_in_parent_folders\n\n\nWalks up the directory tree until it finds the file - no hardcoded paths needed.\ninclude \"root\" {\n  path = find_in_parent_folders()          # finds root.hcl by default\n}\n\ninclude \"root\" {\n  path = find_in_parent_folders(\"root.hcl\") # explicit name\n}\n\nOriginally published at https://bard.sh/posts/terragrunt_folder_structure/",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Terragrunt 文件夹结构和 include 块",
+        "summary": "Terragrunt 使用通过 include 块继承的根配置文件来组织基础设施代码，将其继承到单位级 terragrunt.hcl 文件，消除了环境间的重复。root.hcl 定义了共享设置（如远程状态后端和提供程序），子单位自动继承这些设置，同时只指定自己的唯一输入。"
+      }
+    }
+  },
+  {
+    "title": "Guilty Until Proven Real: How Deepfakes Broke the Rules of Evidence",
+    "slug": "guilty-until-proven-real-deepfakes-broke-rules-evidence",
+    "url": "https://dev.to/caracomp/guilty-until-proven-real-how-deepfakes-broke-the-rules-of-evidence-5d3a",
+    "source": "DEV Community",
+    "date": "2026-04-15T12:20:34.000Z",
+    "summary": "Federal Rules of Evidence updates now require forensic tools to provide explainable analysis of facial comparisons, not just confidence scores or match results. This shift places the burden of proof on the underlying algorithm's mathematical geometry—landmark coordinates and Euclidean distances—rather than accepting the tool's black-box opinion, fundamentally changing computer vision requirements for court-admissible evidence.",
+    "content": "Navigating the new technical standards for digital evidence\nThe recent shifts in how courts handle synthetic media aren't just a legal headache—they represent a fundamental change in the requirements for computer vision (CV) and biometric applications. For developers building facial comparison or forensic tools, the \"Liar’s Dividend\" is officially moving from a theoretical risk to a production constraint. When any piece of video evidence can be dismissed as \"AI-generated\" by a savvy defense team, the burden of proof shifts from the user to the underlying algorithm.\nFor years, many CV implementations have focused on simple inference: does Face A match Face B? We’ve optimized for accuracy metrics like Precision and Recall, but we’ve often treated the \"how\" as a black box. The proposed updates to the Federal Rules of Evidence (specifically Rule 901(c) and Rule 707) suggest that a simple \"match/no-match\" boolean is no longer sufficient for professional investigative tools.\nAs developers, we need to move toward explainable Euclidean distance analysis. Instead of just returning a confidence score, our systems must be able to output the underlying geometry—the specific landmark coordinates and the mathematical distance between them in a high-dimensional vector space. This allows an investigator to present a court-ready report that shows the math, not just the machine's opinion. \nThe news highlights a critical technical gap: visual inspection of single frames is becoming obsolete. As generative models improve, static \"glitches\" are being smoothed out. The next frontier for forensic dev work is temporal consistency. \nWhen building comparison pipelines, we need to look at:\nPhysiologically Implausible Blink Patterns: Implementing LSTMs or 3D CNNs to detect micro-flickers in facial landmarks over a time series.\nLighting Vector Mismatches: Using shaders and ray-tracing logic in reverse to see if the facial highlights match the scene's global illumination.\nEuclidean Landmark Jitt",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "有罪直到证明真实：深度伪造如何打破证据规则",
+        "summary": "联邦证据规则更新现在要求法证工具提供面部比较的可解释分析，而不是仅仅提供信度分数或匹配结果。这一转变将证明负担放在底层算法的数学几何上——地标坐标和欧几里得距离——而不是接受该工具的黑箱意见，从根本上改变了法庭可接受证据的计算机视觉要求。"
+      }
+    }
+  },
+  {
+    "title": "Terragrunt remote_state and generate blocks",
+    "slug": "terragrunt-remote-state-generate-blocks",
+    "url": "https://dev.to/bard/terragrunt-remotestate-and-generate-blocks-ejc",
+    "source": "DEV Community",
+    "date": "2026-04-15T12:19:59.000Z",
+    "summary": "Terragrunt's remote_state and generate blocks in root.hcl auto-generate backend and provider configurations for all child modules that include it, enforcing consistency without duplication. The remote_state block automatically assigns unique state keys to each unit using path_relative_to_include(), while generate blocks write provider.tf and backend.tf files before Terraform runs.",
+    "content": "remote_state\n\n\nDefines the backend once in root.hcl - Terragrunt auto-generates the backend config for every unit that includes it.\n# root.hcl\nremote_state {\n  backend = \"s3\"\n  config = {\n    bucket         = \"my-tf-state\"\n    key            = \"${path_relative_to_include()}/terraform.tfstate\"\n    region         = \"eu-west-1\"\n    encrypt        = true\n    dynamodb_table = \"terraform-locks\"\n  }\n  generate = {\n    path      = \"backend.tf\"\n    if_exists = \"overwrite_terragrunt\"\n  }\n}\n\npath_relative_to_include() resolves to the path of the calling terragrunt.hcl relative to root.hcl - e.g. environments/prod/vpc - giving each unit a unique state key automatically.\ngenerate block\n\n\nWrites any file before running Terraform - typically used for provider.tf and backend.tf so they don't need to be duplicated in every module.\ngenerate \"provider\" {\n  path      = \"provider.tf\"\n  if_exists = \"overwrite_terragrunt\"\n  contents  = <<EOF\nprovider \"aws\" {\n  region = \"eu-west-1\"\n\n  default_tags {\n    tags = {\n      ManagedBy   = \"terraform\"\n      Environment = \"prod\"\n    }\n  }\n}\nEOF\n}\n\nif_exists options\n\n\n\n\noverwrite_terragrunt - overwrite only if Terragrunt generated the file (safe default)\noverwrite - always overwrite\nskip - skip if file exists\nerror - error if file exists\ngenerate \"versions\" {\n  path      = \"versions.tf\"\n  if_exists = \"overwrite_terragrunt\"\n  contents  = <<EOF\nterraform {\n  required_version = \">= 1.5\"\n  required_providers {\n    aws = {\n      source  = \"hashicorp/aws\"\n      version = \"~> 5.0\"\n    }\n  }\n}\nEOF\n}\n\nOriginally published at https://bard.sh/posts/terragrunt_remote_state/",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Terragrunt remote_state 和 generate 块",
+        "summary": "Terragrunt 中 root.hcl 中的 remote_state 和 generate 块自动为所有包含它的子模块生成后端和提供程序配置，强制实现一致性而无需重复。remote_state 块使用 path_relative_to_include() 自动为每个单位分配唯一的状态键，而 generate 块在 Terraform 运行之前写入 provider.tf 和 backend.tf 文件。"
+      }
+    }
+  },
+  {
+    "title": "What is Terragrunt and why you need it",
+    "slug": "what-is-terragrunt-why-you-need-it",
+    "url": "https://dev.to/bard/what-is-terragrunt-and-why-you-need-it-5hcl",
+    "source": "DEV Community",
+    "date": "2026-04-15T12:19:14.000Z",
+    "summary": "Terragrunt solves the multi-environment configuration problem by using a single root.hcl that inherits to all child units, eliminating the need to duplicate main.tf, variables.tf, and backend.tf across dev, staging, and prod. Child terragrunt.hcl files contain only what differs—typically 5 lines of include directives and input values.",
+    "content": "the multi-env problem\n\n\nWith plain Terraform, managing multiple environments means duplicating config - same modules, different variable files, same backend boilerplate repeated everywhere.\nenvironments/\n├── dev/\n│   ├── main.tf        # copy\n│   ├── variables.tf   # copy\n│   └── backend.tf     # copy with different key\n├── staging/\n│   ├── main.tf        # copy\n│   ├── variables.tf   # copy\n│   └── backend.tf     # copy with different key\n└── prod/\n    ├── main.tf        # copy\n    ├── variables.tf   # copy\n    └── backend.tf     # copy with different key\n\nAny change to the module requires updating all three.\nTerragrunt is a thin wrapper around Terraform that adds:\nDRY backend config - define once, inherit everywhere\ndependency blocks - wire modules together without a monolith\nrun-all - apply/plan/destroy across multiple modules in one command\ngenerate blocks - auto-generate files (provider configs, backend configs)\nmock_outputs - unblock plan in CI when dependencies haven't been applied yet\n\n\n\n\nTerraform\nTerragrunt\n\n\n\n\nBackend config\nper-module\ninherited from root\n\n\nMulti-module apply\nmanual\nrun-all\n\n\nModule wiring\nterraform_remote_state\n\ndependency block\n\n\nDRY config\nvariables only\nfull config inheritance\n\n\n\nasdf plugin-add terragrunt\nasdf install terragrunt 0.67.0\nasdf local terragrunt 0.67.0\n\nor developer.hashicorp.com/terraform/tutorials/automation/terragrunt\nInstead of duplicated .tf files, you get one root.hcl and small terragrunt.hcl files per unit that only define what's different:\nroot.hcl\nenvironments/\n├── dev/\n│   ├── vpc/\n│   │   └── terragrunt.hcl   # 5 lines: include + inputs\n│   ├── rds/\n│   │   └── terragrunt.hcl\n│   └── eks/\n│       └── terragrunt.hcl\n└── prod/\n    ├── vpc/\n    │   └── terragrunt.hcl\n    ├── rds/\n    │   └── terragrunt.hcl\n    └── eks/\n        └── terragrunt.hcl\n\nA typical leaf terragrunt.hcl:\ninclude \"root\" {\n  path = find_in_parent_folders(\"root.hcl\")\n}\n\nterraform {\n  source = \"git::https://github.com/org/tf-modules.git//vpc?ref",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Terragrunt 是什么，为什么你需要它",
+        "summary": "Terragrunt 通过使用单个 root.hcl 来解决多环境配置问题，该文件继承到所有子单元，消除了在 dev、staging 和 prod 中重复 main.tf、variables.tf 和 backend.tf 的需要。子 terragrunt.hcl 文件只包含不同的部分——通常是 5 行包含指令和输入值。"
+      }
+    }
+  },
+  {
+    "title": "See Every AI Tool Call: MCP Tool Call Metrics in Real Time",
+    "slug": "see-every-ai-tool-call-mcp-metrics-real-time",
+    "url": "https://dev.to/shriyachauhan/see-every-ai-tool-call-mcp-tool-call-metrics-in-real-time-358i",
+    "source": "DEV Community",
+    "date": "2026-04-15T12:19:13.000Z",
+    "summary": "benchmark-broccoli is an MCP proxy that sits between AI clients and servers to measure tokens, estimated cost, and latency for each tool call, providing visibility into otherwise opaque AI infrastructure costs. It intercepts all tool interactions to log token counts, per-call pricing across 12+ models, and latency, helping developers optimize expensive tool patterns.",
+    "content": "Your AI agent just made 47 tool calls. How much did that cost?\nIf you answered \"uh... no idea,\" you're not alone. Most developers building with the MCP Tools are flying blind when it comes to observability. Your AI client talks to MCP servers, tools get called, tokens get consumed, and your bill quietly climbs, but where is all that spend going?\nEnter benchmark-broccoli: a transparent MCP proxy that sits between your AI client and any MCP server, measuring tokens, estimated cost, and latency for every single tool call. Think of it as the missing dashboard for your AI infrastructure, showing you exactly what's happening under the hood, in real time.\nThe Model Context Protocol is Anthropic's standard for connecting AI applications to data sources and tools. Your AI client (Opencode,Claude , Cursor, VS Code) calls MCP servers (filesystem, database, GraphQL, custom tools) to get things done. The catch:out of the box you get almost no signal about those tool round-trips, only the model’s usual chat tokens, not what each tools/call actually cost you in time, tokens, or money.\nMCP tool-call monitoring solves this by intercepting the communication between client and server, logging every interaction, and giving you actionable metrics:\nToken counts — Input/output tokens per call (using tiktoken o200k_base)\nCost estimates — Per-call and per-session pricing across 12+ AI models\nLatency tracking — How long each tool call actually takes\nSession grouping — Automatic clustering of related calls by time gap\nSchema overhead — The hidden cost of listTools() payloads\nWithout this layer, you're optimizing in the dark. With it, you know exactly which tools are expensive, which prompts are inefficient, and where to focus your optimization efforts.\nbenchmark-broccoli is a stdio MCP proxy written in TypeScript. You configure your AI client to run it instead of your real MCP server command, with the real command after --. Tool results are not rewritten—the proxy forwards work to the upstrea",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "查看每一个 AI 工具调用：MCP 工具调用实时指标",
+        "summary": "benchmark-broccoli 是一个 MCP 代理，位于 AI 客户端和服务器之间，用于测量每个工具调用的令牌、估计成本和延迟，提供对不透明的 AI 基础设施成本的可见性。它拦截所有工具交互以记录令牌计数、12+ 个模型的每次调用定价和延迟，帮助开发人员优化昂贵的工具模式。"
+      }
+    }
+  },
+  {
+    "title": "Terraform data sources",
+    "slug": "terraform-data-sources",
+    "url": "https://dev.to/bard/terraform-data-sources-6a9",
+    "source": "DEV Community",
+    "date": "2026-04-15T12:19:13.000Z",
+    "summary": "Terraform data sources let you reference existing infrastructure created outside Terraform or in separate state files without managing or modifying those resources. Common uses include looking up VPCs by tags, retrieving latest AMIs, reading remote state from other modules, and accessing current AWS account information.",
+    "content": "data sources\n\n\nData sources let you read existing infrastructure without managing it - useful for referencing resources created outside Terraform or in another state file.\ndata \"aws_vpc\" \"main\" {\n  filter {\n    name   = \"tag:Name\"\n    values = [\"main\"]\n  }\n}\n\nresource \"aws_subnet\" \"app\" {\n  vpc_id     = data.aws_vpc.main.id\n  cidr_block = \"10.0.1.0/24\"\n}\n\n# latest Amazon Linux 2 AMI\ndata \"aws_ami\" \"amazon_linux\" {\n  most_recent = true\n  owners      = [\"amazon\"]\n\n  filter {\n    name   = \"name\"\n    values = [\"amzn2-ami-hvm-*-x86_64-gp2\"]\n  }\n}\n\n# current AWS account ID\ndata \"aws_caller_identity\" \"current\" {}\n\noutput \"account_id\" {\n  value = data.aws_caller_identity.current.account_id\n}\n\n# existing S3 bucket (not managed by this config)\ndata \"aws_s3_bucket\" \"shared_logs\" {\n  bucket = \"my-shared-logs\"\n}\n\ndata \"terraform_remote_state\" \"network\" {\n  backend = \"s3\"\n  config = {\n    bucket = \"my-tf-state\"\n    key    = \"network/terraform.tfstate\"\n    region = \"us-east-1\"\n  }\n}\n\nresource \"aws_instance\" \"app\" {\n  subnet_id = data.terraform_remote_state.network.outputs.private_subnet_id\n  ami       = data.aws_ami.amazon_linux.id\n}\n\n\n\n\n\nresource\ndata\n\n\n\n\ncreates/modifies\nyes\nno\n\n\nshows in plan\nyes\nno\n\n\ncan destroy\nyes\nno\n\n\nreads on\napply\nplan + apply\n\n\n\nOriginally published at https://bard.sh/posts/terraform_data_sources/",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Terraform 数据源",
+        "summary": "Terraform 数据源让你可以引用在 Terraform 外创建或在单独状态文件中的现有基础设施，无需管理或修改这些资源。常见用途包括通过标签查找 VPC、检索最新的 AMI、从其他模块读取远程状态以及访问当前 AWS 账户信息。"
+      }
+    }
+  },
+  {
+    "title": "SSE Is the Right Answer More Often Than You Think — A Hono + TypeScript Reference Service",
+    "slug": "sse-right-answer-hono-typescript-reference-service",
+    "url": "https://dev.to/sendotltd/sse-is-the-right-answer-more-often-than-you-think-a-hono-typescript-reference-service-3p74",
+    "source": "DEV Community",
+    "date": "2026-04-15T12:19:05.000Z",
+    "summary": "Server-Sent Events (SSE) is often the simpler alternative to WebSockets for server-to-client push scenarios like log tails, progress bars, and stock tickers, requiring only standard HTTP and working with existing reverse proxies and middleware. The sse-ticker reference service demonstrates a complete implementation in 500 lines of TypeScript using Hono and includes ticker, log feed, progress stream, and in-memory pub-sub patterns.",
+    "content": "SSE Is the Right Answer More Often Than You Think — A Hono + TypeScript Reference Service\n\n\n\nTicker, log tail, progress bar, in-memory pub-sub. Four endpoints, one wire format, zero WebSockets.\n📦 GitHub: https://github.com/sen-ltd/sse-ticker\n\nThe default answer to \"how do I push from server to browser\" has quietly become WebSockets. Whenever I see it in a code review I ask the same question: which direction is the data flowing? And nine times out of ten the answer is from the server to the client. Maybe there's a click or two going back — a subscribe message, a pause — but the volume, the frequency, the thing that actually forced the decision, is all one-way.\nThat's the case SSE was built for. Server-Sent Events is a tiny HTML5 spec with native browser support through EventSource, it rides inside a regular HTTP response, and every reverse proxy, load balancer, auth middleware, and log shipper already understands what it's looking at. The wire format is four fields and a blank line. If your problem is \"push notifications\", \"live log tail\", \"progress bar for a long job\", or \"stock ticker\", SSE is almost certainly the simpler tool, and the one that won't make your ops team grumble.\nI built sse-ticker as a reference service that you can drop into a team's internal dashboard stack tomorrow — ticker, log feed, progress stream, and a minimal in-memory pub-sub, all in about 500 lines of TypeScript on top of Hono + @hono/node-server. This article is the design rationale behind it.\nWebSockets solve a real problem: two parties talking to each other, in binary, at full duplex, with very low overhead. For a collaborative editor, a multiplayer game, a chat app, or a real-time trading desk where clients send frequent commands, they're the right tool. But every one of those is bidirectional.\nIf your client isn't sending anything, or is sending one-off commands that an ordinary HTTP POST would cover perfectly well, then asking for WebSockets means paying all of their costs with non",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "SSE 通常是正确的答案——Hono + TypeScript 参考服务",
+        "summary": "服务器发送事件(SSE)通常是WebSocket在日志尾部、进度条和股票行情等服务器到客户端推送场景中的更简单替代方案，只需要标准HTTP并可与现有反向代理和中间件协作。sse-ticker 参考服务演示了使用 Hono 的 500 行 TypeScript 完整实现，包括行情、日志流、进度流和内存中的发布-订阅模式。"
+      }
+    }
+  },
+  {
+    "title": "Every AI Coding CLI in 2026: The Complete Map (30+ Tools Compared)",
+    "slug": "every-ai-coding-cli-2026-complete-map",
+    "url": "https://dev.to/soulentheo/every-ai-coding-cli-in-2026-the-complete-map-30-tools-compared-4gob",
+    "source": "DEV Community",
+    "date": "2026-04-15T12:18:51.000Z",
+    "summary": "A comprehensive comparison of 30+ AI coding tools shows Claude Code leading in capability with 1M context and 80.9% SWE-bench score, while Cursor dominates UX and Windsurf and Antigravity bet on parallel agent capabilities. Token efficiency matters more than subscription price—Claude Code uses 5.5x fewer tokens than Cursor, making the real cost difference larger than the monthly fee gap suggests.",
+    "content": "A sequel to my most-read post. Six months later, the landscape exploded. Here's every tool that matters, what it costs, and what it actually does.\nThe AI coding tool market went from \"a few options\" to \"overwhelming\" in about six months. New CLIs weekly. Pricing wars. Open-source alternatives rivaling the paid ones. Chinese models hitting 77%+ on SWE-bench. Free tiers that would've been unthinkable a year ago.\nI've tested, researched, or tracked 30+ tools. Here's the complete map.\nThese are the \"just works\" options. You pay, they handle models, infrastructure, and updates.\n\n\n\nTool\nMonthly Cost\nModel(s)\nType\nSWE-bench\nNotable\n\n\n\n\nClaude Code\n$17-20 (Pro), $100-200 (Max)\nClaude 4.6 Opus/Sonnet\nTerminal agent\n80.9%\n1M context. Uses 5.5x fewer tokens than Cursor. Full hook/plugin system.\n\n\nCursor\n$16/mo\nMulti-model\nVS Code fork\nVaries\nLargest community. Best tab completions. Most polished UX.\n\n\nWindsurf\n$20/mo\nMulti-model\nIDE\nVaries\n\"Flows\" persistent context. Raised from $15 in March 2026.\n\n\nCodex CLI\nWith ChatGPT Plus ($20/mo)\nGPT-5 series\nCLI + Desktop\n—\nCloud sandbox execution. Autonomous agent.\n\n\nAntigravity\n$20 (Pro), $250 (Ultra)\nGemini\nAgent IDE\n—\nGoogle's entry. Parallel agents. Built-in Chrome for testing.\n\n\nMistral Vibe\n$15/mo (Le Chat Pro)\nDevstral 2\nCLI\n—\nApache 2.0 source code. Paid models.\n\n\n\nAmp (Sourcegraph)\nFree tier ($10/day cap)\nMulti-model\nCLI + IDE\n—\n\"Deep mode\" autonomous research. No markup on API costs.\n\n\n\nThe verdict: Claude Code wins on capability (1M context, best SWE-bench, hook system). Cursor wins on UX. Windsurf and Antigravity bet on parallel agents. Codex bets on cloud sandboxing.\nToken efficiency matters more than subscription price. Claude Code using 5.5x fewer tokens than Cursor means the real cost difference is bigger than the $1-4/mo subscription gap suggests.\nThese tools offer meaningful free access — not \"free trial\" but actually usable for daily work:\n\n\n\nTool\nFree Tier\nWhat You Get\nUpgrade Path\n\n\n\n\nGemini CLI\n1,000 requests/day",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "2026年的每个AI编码CLI：完整地图（30多个工具对比）",
+        "summary": "30多个AI编码工具的综合对比显示Claude Code在1M上下文和80.9% SWE-bench得分方面领先，而Cursor主导用户体验，Windsurf和Antigravity则押注并行代理能力。令牌效率比订阅价格更重要——Claude Code使用的令牌数比Cursor少5.5倍，使实际成本差异大于月费差异。"
+      }
+    }
+  },
+  {
+    "title": "Terragrunt run-all",
+    "slug": "terragrunt-run-all",
+    "url": "https://dev.to/bard/terragrunt-run-all-fej",
+    "source": "DEV Community",
+    "date": "2026-04-15T12:18:43.000Z",
+    "summary": "Terragrunt's run-all command executes Terraform operations across all units in a directory tree while respecting dependency order, and includes options to exclude or include specific units, cap parallelism, and detect drift in CI. The command outputs prefixed logs showing which module each result came from, making multi-unit deployments and rollbacks manageable in a single operation.",
+    "content": "run-all\n\n\nRuns a Terraform command across all units in the current directory tree, respecting dependency order.\ncd environments/prod\nterragrunt run-all plan\nterragrunt run-all apply\nterragrunt run-all destroy   # reverse order\n\nenvironments/prod/\n├── vpc/\n├── rds/          # depends on vpc\n└── eks/          # depends on vpc\n\nrun-all apply applies vpc first, then rds and eks in parallel.\n# .github/workflows/deploy.yml\n- name: Plan all\n  run: terragrunt run-all plan --terragrunt-non-interactive\n  working-directory: environments/prod\n\n- name: Apply all\n  run: terragrunt run-all apply --terragrunt-non-interactive -auto-approve\n  working-directory: environments/prod\n  if: github.ref == 'refs/heads/main'\n\nDetect drift in CI without applying:\n# exit code 2 = changes detected, 0 = no changes, 1 = error\nterragrunt run-all plan \\\n  --terragrunt-non-interactive \\\n  -detailed-exitcode\n\n# skip a unit\nterragrunt run-all apply --terragrunt-exclude-dir environments/prod/rds\n\n# target a single unit and its dependencies\nterragrunt run-all apply --terragrunt-include-dir environments/prod/eks\n\n# default is unlimited parallel - cap it if you hit API rate limits\nterragrunt run-all apply --terragrunt-parallelism 4\n\nEach unit prefixes its own output:\n[environments/prod/vpc] Apply complete! Resources: 12 added.\n[environments/prod/rds] Apply complete! Resources: 4 added.\n[environments/prod/eks] Apply complete! Resources: 31 added.\n\nOriginally published at https://bard.sh/posts/terragrunt_run_all/",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Terragrunt run-all",
+        "summary": "Terragrunt的run-all命令在目录树中的所有单位上执行Terraform操作，同时尊重依赖关系顺序，包括排除或包含特定单位、限制并行性和在CI中检测偏移的选项。该命令输出带前缀的日志，显示每个结果来自哪个模块，使多单位部署和回滚可以在单个操作中管理。"
+      }
+    }
+  },
+  {
+    "title": "Terraform S3 backend with state locking",
+    "slug": "terraform-s3-backend-state-locking",
+    "url": "https://dev.to/bard/terraform-s3-backend-with-state-locking-3an2",
+    "source": "DEV Community",
+    "date": "2026-04-15T12:18:42.000Z",
+    "summary": "S3 backend with DynamoDB state locking prevents concurrent Terraform applies from corrupting shared state by ensuring only one operation can hold a lock at a time. When another process holds the lock, Terraform shows who holds it and when it was acquired, and provides force-unlock as a last resort if the lock process crashes.",
+    "content": "S3 backend with state locking\n\n\nS3 stores the state file, DynamoDB handles locking - prevents two apply runs from corrupting state simultaneously.\nterraform {\n  backend \"s3\" {\n    bucket         = \"my-tf-state\"\n    key            = \"prod/terraform.tfstate\"\n    region         = \"us-east-1\"\n    encrypt        = true\n    dynamodb_table = \"terraform-locks\"\n  }\n}\n\nresource \"aws_s3_bucket\" \"tf_state\" {\n  bucket = \"my-tf-state\"\n}\n\nresource \"aws_s3_bucket_versioning\" \"tf_state\" {\n  bucket = aws_s3_bucket.tf_state.id\n  versioning_configuration {\n    status = \"Enabled\"\n  }\n}\n\nresource \"aws_s3_bucket_server_side_encryption_configuration\" \"tf_state\" {\n  bucket = aws_s3_bucket.tf_state.id\n  rule {\n    apply_server_side_encryption_by_default {\n      sse_algorithm = \"AES256\"\n    }\n  }\n}\n\nresource \"aws_dynamodb_table\" \"tf_locks\" {\n  name         = \"terraform-locks\"\n  billing_mode = \"PAY_PER_REQUEST\"\n  hash_key     = \"LockID\"\n\n  attribute {\n    name = \"LockID\"\n    type = \"S\"\n  }\n}\n\n$ terraform apply\nAcquiring state lock. This may take a few moments...\n\n# if another process holds the lock:\nError: Error acquiring the state lock\nLock Info:\n  ID:        abc-123\n  Path:      prod/terraform.tfstate\n  Operation: OperationTypeApply\n  Who:       alice@machine\n  Created:   2024-10-14 12:00:00\n\nterraform force-unlock <lock-id>\n\n# dev\nbackend \"s3\" {\n  key = \"dev/terraform.tfstate\"\n}\n\n# prod\nbackend \"s3\" {\n  key = \"prod/terraform.tfstate\"\n}\n\nOriginally published at https://bard.sh/posts/terraform_s3_backend/",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Terraform S3 后端与状态锁定",
+        "summary": "使用 DynamoDB 状态锁定的 S3 后端通过确保一次只有一个操作可以持有锁来防止并发 Terraform 应用损坏共享状态。当另一个进程持有锁时，Terraform 会显示谁持有该锁以及何时获取的，如果锁进程崩溃，还提供强制解锁作为最后手段。"
+      }
+    }
+  },
+  {
+    "title": "Parsing phpinfo() in Pure PHP — or, How to Diff Two Containers",
+    "slug": "parsing-phpinfo-pure-php-diff-containers",
+    "url": "https://dev.to/sendotltd/parsing-phpinfo-in-pure-php-or-how-to-diff-two-containers-43j8",
+    "source": "DEV Community",
+    "date": "2026-04-15T12:18:14.000Z",
+    "summary": "A PHP CLI tool parses phpinfo() HTML tables into structured JSON, enabling jq and grep queries and cross-environment diffing for debugging configuration differences between containers. The parser uses DOMDocument instead of regex to robustly handle phpinfo()'s HTML structure, handling edge cases like empty cells without special-casing throughout the code.",
+    "content": "Parsing phpinfo() in Pure PHP — or, How to Diff Two Containers\n\n\n\nphpinfo() is the most-used PHP debugging tool on earth, and its output format is hostile to every reasonable thing you'd want to do with it. This is a small CLI that parses it into JSON so you can jq it, grep it, and — the real motivator — diff two environments.\nYou know the ritual. Something is weird on one container. It works on your laptop, it works in staging, but production is quietly doing the wrong thing. You suspect opcache, or memory_limit, or whether a particular extension got loaded, so you reach for the one tool that has never failed you in fifteen years: phpinfo().\nYou get back 72 KB of HTML tables. Then you stare at it, because what are you going to do — Cmd+F through it?\n🔗 GitHub: https://github.com/sen-ltd/phpinfo-json\n\nI wrote a small CLI called phpinfo-json that parses the HTML dump (or the text dump from php -i) into a clean JSON shape with sections, modules, and general keys. It's ~400 lines of strict PHP 8.2 with no Composer runtime dependencies — just DOMDocument, DOMXPath, and json_encode. The point of this article is not the tool. The point is a few specific decisions I made while writing the parser that are more interesting than they look: why you should use DOMDocument and not regex, how phpinfo() actually structures its HTML once you look closely, how to handle the \"no value\" cells without special-casing them everywhere, and the diff-two-environments use case that turned out to be the whole reason I bothered.\nHere is what phpinfo() produces when you call it from a PHP web process:\n<h2><a name=\"module_core\" href=\"#module_core\">Core</a></h2>\n<table>\n<tr><td class=\"e\">PHP Version </td><td class=\"v\">8.2.30 </td></tr>\n</table>\n<table>\n<tr class=\"h\"><th>Directive</th><th>Local Value</th><th>Master Value</th></tr>\n<tr><td class=\"e\">allow_url_fopen</td><td class=\"v\">On</td><td class=\"v\">On</td></tr>\n<tr><td class=\"e\">display_errors</td><td class=\"v\">Off</td><td class=\"v\">On</td></t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "用纯 PHP 解析 phpinfo() —— 或如何对比两个容器",
+        "summary": "PHP CLI 工具将 phpinfo() HTML 表格解析为结构化 JSON，支持 jq 和 grep 查询以及跨环境对比，用于调试容器间的配置差异。解析器使用 DOMDocument 而不是正则表达式来健壮地处理 phpinfo() 的 HTML 结构，可以处理空单元格等边界情况，无需在代码中特殊处理。"
+      }
+    }
+  },
+  {
+    "title": "Why Your Kubernetes Pod Keeps Getting Killed — And It's Not an OOMKill",
+    "slug": "why-kubernetes-pod-keeps-getting-killed-not-oomkill",
+    "url": "https://dev.to/ssshreyans26/why-your-kubernetes-pod-keeps-getting-killed-and-its-not-an-oomkill-3ji6",
+    "source": "DEV Community",
+    "date": "2026-04-15T12:16:25.000Z",
+    "summary": "A production Kubernetes pod terminated mysteriously despite having no memory limit set and the replacement pod running successfully at lower memory usage, eventually traced to a node-level issue rather than a container-level OOMKill. The debugging process revealed that Kubernetes node events can expire before you notice the problem, requiring closer monitoring of node health rather than just container metrics.",
+    "content": "A real-world debugging guide: from mysterious pod terminations to discovering a hidden kernel memory leak consuming 55% of node RAM.\nIt was a regular morning when we noticed something off. One of our production services — running on an EKS cluster — had been terminated and a new pod had spun up in its place. No deployment had been triggered. No config changes. The pod just... died.\nThe Grafana dashboard for the old pod told a strange story:\nMemory usage had climbed to 832 MiB, then abruptly dropped to zero\nCPU dropped to zero at the same time\nAfter a ~45 minute gap, a new pod appeared and started running normally\nThe new pod was already using 757 MiB of memory and running just fine. So what killed the old one?\nThis is the story of how we debugged it — and what we found.\nWhen a Kubernetes pod dies unexpectedly, the first thing most engineers check is whether it was killed for using too much memory (an OOMKill). We looked at the deployment spec:\nresources:\n  requests:\n    cpu: 100m\n    memory: 500Mi\n  # No limits set\n\nNo memory limit was configured. In Kubernetes, if you don't set a limit, the container can use as much memory as the node has available. So this wasn't a container-level OOMKill — the pod had no ceiling to hit.\nBut wait — if the new pod was happily running at 757 MiB, why would 832 MiB on the old pod be a problem? Something else was going on.\nWe tried to pull events for the terminated pod:\nkubectl get events -n live --field-selector involvedObject.name=<pod-name>\n\nNothing. Kubernetes only retains events for about an hour, and the pod had died over 4 hours ago. The events had expired.\nBut when we checked broader events in the namespace, we found something interesting:\nTaintManagerEviction  pod/<new-pod>  Cancelling deletion of Pod\n\nAnd the node had recent events:\nNodeNotReady   node/<node-name>   Node status is now: NodeNotReady\nNodeReady      node/<node-name>   Node status is now: NodeReady\n\nThe node itself had gone NotReady. When a Kubernetes node stops",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么你的 Kubernetes Pod 一直被杀死 —— 而且不是 OOMKill",
+        "summary": "一个生产环境中的 Kubernetes Pod 神秘地终止，尽管没有设置内存限制，替换 Pod 在较低的内存使用下成功运行，最终追踪到节点级别问题而非容器级别 OOMKill。调试过程发现 Kubernetes 节点事件可能在你注意到问题之前过期，因此需要更密切地监控节点健康状况，而不仅仅是容器指标。"
+      }
+    }
+  },
+  {
     "title": "7 Tips to Pass the Stripe Certified Professional Implementation Architect Exam",
     "slug": "stripe-certified-professional-exam-tips",
     "url": "https://dev.to/focused_dot_io/7-tips-to-pass-the-stripe-certified-professional-implementation-architect-exam-363h",
