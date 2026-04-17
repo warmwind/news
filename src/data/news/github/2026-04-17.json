@@ -1,0 +1,194 @@
+[
+  {
+    "title": "Como importei 55 milhões de empresas para PostgreSQL em menos de 3 horas",
+    "slug": "importing-55-million-companies-postgresql",
+    "url": "https://dev.to/pedroparker/como-importamos-55-milhoes-de-empresas-para-postgresql-em-menos-de-3-horas-9fe",
+    "source": "DEV Community",
+    "date": "2026-04-17T00:29:21.000Z",
+    "summary": "Developer optimized bulk import of 55 million Brazilian company records into PostgreSQL, reducing import time from 12+ hours to under 3 hours using batch processing and direct SQL instead of ORM overhead. Techniques including psycopg2 batching (5,000 rows per batch) and connection pooling proved significantly faster than SQLAlchemy's row-by-row approach. Demonstrates practical optimization strategies for large-scale data migrations in real-world projects.",
+    "content": "Quando decidi construir o CNPJ Aberto, que é uma plataforma gratuita de consulta de empresas brasileiras, o primeiro desafio foi óbvio: como colocar 55 milhões de registros dentro do PostgreSQL de forma rápida e repetível (a base atualiza todo mês)?\nOs dados vêm dos Dados Abertos da Receita Federal, distribuídos em dezenas de ZIPs com CSVs em latin-1, separados por ;, com campos inconsistentes (muito inconsistentes!!).\nA ideia deste post rápido é mostrar as técnicas que transformaram uma importação de 12+ horas em menos de 3 horas.\n\n\n\nTabela\nRegistros aproximados\nPeso CSV\n\n\n\n\nempresas\n~55M\n~4 GB\n\n\nestabelecimentos\n~70M\n~15 GB\n\n\nsocios\n~25M\n~3 GB\n\n\nsimples\n~35M\n~2 GB\n\n\nTabelas auxiliares\n~15K total\n<1 MB\n\n\n\nTotal: ~25 GB de CSVs descompactados, distribuídos em ~40 arquivos ZIP. Nestes ponto é visível que os maiores problemas seriam empresas e estabelecimentos, não só para querys como para joins, que são muitos para criar um sistema legal e atrativo.\nA abordagem ingênua com SQLAlchemy:\nfor row in csv_reader:\n    empresa = Empresa(**parse_row(row))\n    session.add(empresa)\n    if i % 1000 == 0:\n        session.commit()\n\nResultado: ~1.200 inserts/segundo. Para 55M de registros, isso dá ~12 horas só para a tabela empresas. Inaceitável. Eu acabei ingerindo tudo pois imaginava que > 12 horas de espera seirma melhores que > X horas de implementação e pesquisa para melhoria de queries. Talvez fossem, mas pelo desafio, fui além.\nO ORM adiciona overhead em cada objeto: validação de tipo, tracking de estado, construção de SQL dinâmico.\nPara melhorias, a IA acaba ajudando um pouco, não muito, ela alucinada bastante na ajuda e as vezes acaba piorando querys e criando index sem sentido, usei o Opus 4.6. Muito útil, mas o double check é necessário.\nexecutemany com batches (4+ horas)\n\n\nRemovendo o ORM e usando psycopg2 direto:\nBATCH_SIZE = 5000\nbatch = []\nfor row in csv_reader:\n    batch.append(parse_row(row))\n    if len(batch) >= BATCH_SIZE:\n        cursor.executemany(INSERT_SQL, b",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何在3小时内将5500万家企业导入PostgreSQL",
+        "summary": "开发者通过批量处理和直接SQL而非ORM开销，将5500万条巴西公司记录的批量导入时间从12小时以上优化到3小时以内。包括psycopg2批处理和连接池在内的技术被证明比SQLAlchemy逐行方法快得多。展示了大规模数据迁移的实用优化策略。"
+      }
+    }
+  },
+  {
+    "title": "OpenClaw and the Boundary Problem",
+    "slug": "openclaw-boundary-problem",
+    "url": "https://dev.to/crisiscoresystems/openclaw-and-the-boundary-problem-5f85",
+    "source": "DEV Community",
+    "date": "2026-04-17T00:25:31.000Z",
+    "summary": "OpenClaw is a self-hosted personal AI system that prioritizes privacy through local-first behavior, explicit consent for pairing, and protection against data exfiltration. Unlike commercial AI assistants, it makes security boundaries visible and exposes inspectable local state through plain-file memory storage. The design emphasizes transparent documentation of risks—including the fact that agents can execute shell commands—over false claims of complete safety.",
+    "content": "This is a submission for the OpenClaw Writing Challenge.\nPersonal AI is usually sold as convenience.\nThat is the wrong frame.\nIf you want privacy-first, offline health tech to exist without surveillance funding it: sponsor the build → https://paintracker.ca/sponsor\nThe real question is not how much the assistant can do. It is what\nThat is why OpenClaw is interesting.\nNot because it is another chatbot with better branding. Because it makes the boundary visible.\nThe docs describe a self-hosted gateway you run on your own machine or\nOpenClaw also says the quiet part out loud.\nIts security model is a personal-assistant model, not a hostile\nThat is the boundary problem.\nA personal AI system owes the person using it a few things.\nIt owes them local-first behavior when possible. OpenClaw runs on your\nIt owes them explicit consent. OpenClaw pairing is an owner approval\nIt owes them restraint.\nThis is where most products start lying.\nThe FTC's Alexa case was about keeping voice and geolocation data for\nIt also owes them protection against exfiltration and tool abuse.\nOpenClaw's own trust docs are useful here because they are not\nThat last part is where people get confused.\nThey think the fix is a better prompt.\nIt is not.\nOpenClaw's own security docs say access control before intelligence.\nAnd this is where release discipline stops being a side concern.\nIf a personal AI product claims local-first privacy, visible state,\nThe exact OpenClaw version was unspecified, so the argument here uses\nThat claim is backed by concrete architecture.\nOpenClaw supports built-in channels such as Discord, Signal, Slack,\nIt also exposes unusually inspectable local state.\nMemory is stored as plain files in the workspace, including\nMEMORY.md, daily note files, and optionally DREAMS.md, and the\nJust as important, the docs do not pretend this somehow dissolves risk.\nOpenClaw's trust site is explicit that agents can execute shell\nThat honesty matters.\nIt means the right essay is not OpenClaw is priv",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "OpenClaw和边界问题",
+        "summary": "OpenClaw是一个自托管的个人AI系统，通过本地优先行为、配对时的明确同意和防止数据泄露来优先考虑隐私。与商业AI助手不同，它使安全边界可见，并通过普通文件内存存储公开可检查的本地状态。该设计强调对风险的透明文档化而不是对完全安全的虚假声称。"
+      }
+    }
+  },
+  {
+    "title": "AI University: 3-File Pattern to Add Any AI Provider + Offline Fallback Content",
+    "slug": "ai-university-3-file-pattern-providers",
+    "url": "https://dev.to/kanta13jp1/ai-university-3-file-pattern-to-add-any-ai-provider-offline-fallback-content-24c3",
+    "source": "DEV Community",
+    "date": "2026-04-17T00:23:43.000Z",
+    "summary": "Article describes a 3-file pattern for adding any new AI provider to an educational platform covering 20+ providers, using database migrations, configuration maps, and offline fallback content. Demonstrated with Reka AI integration, the approach maintains idempotence through SQL conflict resolution and graceful degradation when network unavailability occurs. Enables teams to scale multi-provider AI education with minimal boilerplate across Supabase, Dart, and backup content.",
+    "content": "AI University: 3-File Pattern to Add Any AI Provider + Offline Fallback Content\n\n\n\n  \n  \n  What Is AI University\n\n\n自分株式会社 includes \"AI University\" — a tab-based learning UI for 20+ AI providers (OpenAI, Google, Anthropic, Meta, xAI, Mistral, DeepSeek, etc.):\nOverview / Models / API / News tabs per provider\nQuiz for comprehension check\nLearning scores stored in Supabase + leaderboard\nShare card generation (RenderRepaintBoundary → PNG)\nConsecutive learning streaks\nThis post covers the 3-file pattern to add any new provider in under 15 minutes.\nAdding a new AI provider requires exactly 3 changes:\n-- supabase/migrations/20260412000001_seed_reka_ai_university.sql\nINSERT INTO ai_university_content (provider, category, title, content, published_at)\nVALUES\n  ('reka', 'overview',\n   'Reka AI — Multimodal-First LLM',\n   '## What is Reka AI\\n\\nReka AI is a 2023 AI startup specializing in multimodal models...',\n   '2026-04-12'),\n  ('reka', 'models',\n   'Reka Core / Flash / Edge Model Family',\n   '## Model Overview\\n\\n### Reka Core\\n- Largest model in the family...',\n   '2026-04-12')\nON CONFLICT (provider, category) DO UPDATE\n  SET title = EXCLUDED.title,\n      content = EXCLUDED.content,\n      published_at = EXCLUDED.published_at;\n\nON CONFLICT ... DO UPDATE makes the migration idempotent — safe to re-run.\n_providerMeta Map\n\n\n\n\n\n// lib/pages/gemini_university_v2_page.dart\nstatic const Map<String, _ProviderMeta> _providerMeta = {\n  // ... existing entries\n  'reka': _ProviderMeta(\n    displayName: 'Reka AI',\n    emoji: '🦁',\n    color: Color(0xFF7B2FF7),\n  ),\n};\n\nThis controls how the provider tab renders: name, emoji, accent color. If omitted, the tab still appears (driven by DB), just with default styling.\nIn case the Edge Function is unavailable (network error, EF not deployed yet):\nstatic const Map<String, String> _fallback = {\n  // ... existing entries\n  'reka': '''## Reka AI\n\nMultimodal-first AI startup focused on Reka Core, Flash, and Edge models.\n\n**Key strengths**: Image",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI大学：3文件模式用于添加任何AI提供商和离线回退内容",
+        "summary": "文章描述了为教育平台添加任何新AI提供商的3文件模式，该平台覆盖20多个提供商，使用数据库迁移、配置映射和离线回退内容。通过Reka AI集成演示，该方法通过SQL冲突解决和网络不可用时的优雅降级来维持幂等性。使团队能够以最少样板跨Supabase、Dart和备份内容扩展多提供商AI教育。"
+      }
+    }
+  },
+  {
+    "title": "SM-2 Spaced Repetition in Deno + Flashcard UI in Flutter Web: Building a Duolingo Competitor",
+    "slug": "sm2-spaced-repetition-deno-flutter-learning",
+    "url": "https://dev.to/kanta13jp1/sm-2-spaced-repetition-in-deno-flashcard-ui-in-flutter-web-building-a-duolingo-competitor-4e82",
+    "source": "DEV Community",
+    "date": "2026-04-17T00:23:41.000Z",
+    "summary": "Developer implemented SM-2 spaced repetition algorithm server-side in Deno for language learning competing with Duolingo, paired with Flutter Web flashcard UI featuring streak tracking and statistics. The algorithm manages scheduling intervals (6 days for first correct answer, compounding multiplier on repeats) and ease factors. UI includes deck management, progress indicators, and accuracy tracking across vocabulary reviews.",
+    "content": "SM-2 Spaced Repetition in Deno + Flashcard UI in Flutter Web\n\n\n\n  \n  \n  What We Built\n\n\nA language learning feature for 自分株式会社 competing with Duolingo and Anki:\nSM-2 spaced repetition algorithm (server-side in Deno)\nFlashcard flip UI with progress indicator\nVocabulary deck management\nStreak tracking (🔥 consecutive days)\nStatistics tab: accuracy rate, total reviews, streak records\nThe SM-2 algorithm runs server-side in the language-learning Edge Function — not in Dart. This keeps the scheduling logic centralized and testable:\n// SM-2 implementation in Deno\nfunction calculateNextReview(\n  correct: boolean,\n  quality: number,  // 0-5 response quality\n  interval: number, // current interval in days\n  ease: number,     // ease factor (default 2.5)\n): { interval: number; ease: number; nextReview: string } {\n  if (correct) {\n    if (interval === 1) interval = 6;\n    else interval = Math.round(interval * ease);\n    ease = ease + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));\n    if (ease < 1.3) ease = 1.3;  // minimum ease factor\n  } else {\n    interval = 1;  // wrong answer → review again in 1 day\n  }\n  const nextReview = new Date(Date.now() + interval * 86400000).toISOString();\n  return { interval, ease, nextReview };\n}\n\nKey SM-2 mechanics:\nFirst correct answer → 6 days (not 1)\nSubsequent correct → interval × ease (compounding)\nWrong answer → reset to 1 day, ease unchanged\nEase floor at 1.3 prevents intervals from collapsing to 1 day permanently\nLanguageLearningPage\n├── Tab 1: Decks\n│   ├── Streak banner (🔥 N consecutive days)\n│   ├── Deck list (source language → target language)\n│   └── Card list for selected deck\n├── Tab 2: Flashcard Review\n│   ├── LinearProgressIndicator (current session progress)\n│   ├── Flashcard (front / back with tap-to-flip)\n│   └── \"Got it!\" / \"Review again\" buttons\n└── Tab 3: Statistics\n    ├── Streak (current + personal best)\n    ├── Stats grid: decks / total cards / total reviews / accuracy %\n    └── Study tips card\n\nGestureDetector(",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "SM-2间隔重复算法在Deno中的实现 + Flutter Web闪卡UI：打造Duolingo竞品",
+        "summary": "开发者在Deno中服务端实现了SM-2间隔重复算法用于语言学习市场竞争，配合Flutter Web闪卡UI，具有连胜追踪和统计功能。该算法管理调度间隔（首次正确答题6天，重复时倍增乘数）和易度因子。UI包含卡组管理、进度指示和词汇复习的准确性追踪。"
+      }
+    }
+  },
+  {
+    "title": "Building a Public Guitar Gallery With 4 Users: Action Extension Pattern + Viral Design",
+    "slug": "public-guitar-gallery-action-extension",
+    "url": "https://dev.to/kanta13jp1/building-a-public-guitar-gallery-with-4-users-action-extension-pattern-viral-design-fln",
+    "source": "DEV Community",
+    "date": "2026-04-17T00:23:12.000Z",
+    "summary": "At 4 registered users, the team built a public guitar gallery as a discoverable sharing destination using an action extension pattern to avoid exceeding Supabase's 94-function deployment limit. This counter-intuitive approach demonstrates that community features should exist before users develop motivation to share. Implementation includes pagination, sorting validation, and hard-cap enforcement to manage limited deployment slots.",
+    "content": "Building a Public Guitar Gallery With 4 Users: Action Extension Pattern + Viral Design\n\n\n\n  \n  \n  Why Build Community Features at 4 Users\n\n\n自分株式会社 had 4 registered users when this was built.\nThe counterintuitive argument: a discoverable place must exist before sharing behavior can emerge. If you wait until you have 100 users to add a public gallery, those first 100 users never experienced the motivation to share. Build the destination first, then let sharing behavior follow.\nSupabase (Free tier) caps Edge Functions at 94. The app was at 93 deployed. Adding a new function was impossible without deleting one.\nSolution: add an action to an existing function.\nguitar-recording-studio already handled save, share, and delete. Add public_gallery as a new action:\ncase \"public_gallery\":\n  return jsonResponse(\n    await listPublicRecordings(auth.adminClient, url),\n  );\n\nNo new deployment slot used.\nlistPublicRecordings Implementation\n\n\n\n\n\nasync function listPublicRecordings(\n  adminClient: SupabaseClient,\n  url: URL,\n) {\n  const limit = Math.min(\n    parseInt(url.searchParams.get(\"limit\") ?? \"20\", 10),\n    50,   // hard cap\n  );\n  const offset = parseInt(url.searchParams.get(\"offset\") ?? \"0\", 10);\n  const sortBy = url.searchParams.get(\"sortBy\") ?? \"created_at\";\n\n  // Whitelist validation — prevents SQL injection via sortBy param\n  const validSorts = [\"created_at\", \"likes\", \"plays\"];\n  const orderColumn = validSorts.includes(sortBy) ? sortBy : \"created_at\";\n\n  const { data, error, count } = await adminClient\n    .from(\"guitar_recordings\")\n    .select(\"*\", { count: \"exact\" })  // get total for pagination\n    .eq(\"is_public\", true)\n    .order(orderColumn, { ascending: false })\n    .range(offset, offset + limit - 1);\n\n  if (error) throw error;\n  return { success: true, recordings: data ?? [], total: count ?? 0, offset, limit };\n}\n\nThree security/performance notes:\nWhitelist sortBy — user-controlled sort columns are a SQL injection vector if not validated\nHard cap at 50 — prevents",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "以4个用户构建公开吉他库：Action Extension模式 + 病毒式设计",
+        "summary": "拥有4个注册用户的团队使用action extension模式构建了公开吉他库作为可发现的共享目标，以避免超过Supabase的94函数部署限制。这种反直觉的方法表明社区功能应在用户产生分享动力之前就存在。实现包括分页、排序验证和硬上限执行以管理有限的部署插槽。"
+      }
+    }
+  },
+  {
+    "title": "Travel Planner + Whiteboard + Recipe Manager in Flutter Web: RadioListTile Migration & const Propagation",
+    "slug": "travel-planner-whiteboard-recipe-flutter",
+    "url": "https://dev.to/kanta13jp1/travel-planner-whiteboard-recipe-manager-in-flutter-web-radiolisttile-migration-const-50nl",
+    "source": "DEV Community",
+    "date": "2026-04-17T00:23:10.000Z",
+    "summary": "Three features (travel itinerary planner, virtual whiteboard, recipe manager) were built in one session using Flutter Web UI consuming pre-existing Supabase Edge Functions, demonstrating independent frontend and backend delivery timelines. Migration from deprecated RadioListTile widgets to ListTile + Icon pattern shows Flutter 3.32+ adoption. All features use TabController for organized multi-tab productivity interfaces.",
+    "content": "Travel Planner + Whiteboard + Recipe Manager in Flutter Web\n\n\n\n  \n  \n  What We Shipped\n\n\nThree features in one session for 自分株式会社:\nTravel Itinerary Planner — competing with Google Travel, TripAdvisor\nVirtual Whiteboard — competing with Miro, Microsoft Whiteboard\nRecipe & Meal Planner — competing with Cookpad, Amazon Fresh\nAll three used pre-existing Edge Functions — the session was entirely Flutter UI.\n// Travel planner: invoke the EF, parse the response\nfinal response = await _supabase.functions.invoke(\n  'travel-itinerary-planner',\n  queryParameters: {'view': 'itinerary', 'trip_id': tripId},\n);\nfinal data = response.data as Map<String, dynamic>?;\nif (data?['itinerary'] is Map) {\n  final raw = data!['itinerary'] as Map;\n  setState(() {\n    _itinerary = raw.map(\n      (k, v) => MapEntry(\n        k.toString(),\n        (v as List).cast<Map<String, dynamic>>(),\n      ),\n    );\n  });\n}\n\nThe Edge Functions (travel-itinerary-planner, virtual-whiteboard, recipe-meal-planner) already existed. The Flutter UI was built to consume them. Pattern: deploy backend logic first, ship UI when ready. The two timelines are independent.\n\n\n\nFeature\nTabs\n\n\n\n\nTravel Planner\nItinerary / Bookings / Packing List / Budget\n\n\nWhiteboard\nMy Boards / Templates\n\n\nRecipe Manager\nRecipes / Meal Plan / Shopping List\n\n\n\nAll use SingleTickerProviderStateMixin + TabController:\nclass _TravelItineraryPageState extends State<TravelItineraryPage>\n    with SingleTickerProviderStateMixin {\n  late final TabController _tabController;\n\n  @override\n  void initState() {\n    super.initState();\n    _tabController = TabController(length: 4, vsync: this);\n    _fetchTrips();\n  }\n\nRadioListTile → ListTile + Icon Migration\n\n\nFlutter 3.32+ deprecated RadioListTile.groupValue / onChanged. For simple dialogs, replace with ListTile + a check icon:\n// DEPRECATED\nRadioListTile<String>(\n  value: tmplId,\n  groupValue: _selectedTemplateId,\n  onChanged: (v) => setState(() => _selectedTemplateId = v),\n  title: Text(template['name'])",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Flutter Web中的旅行计划器 + 白板 + 食谱管理器：RadioListTile迁移与const传播",
+        "summary": "三个功能（旅行行程规划器、虚拟白板、食谱管理器）在一个会话中使用Flutter Web UI构建，这些UI使用了预先存在的Supabase Edge Functions，展示了独立的前端和后端交付时间线。从已废弃的RadioListTile小部件迁移到ListTile + Icon模式展示了Flutter 3.32+的采用。所有功能都使用TabController实现组织有序的多标签生产力界面。"
+      }
+    }
+  },
+  {
+    "title": "Notion-Style Team Workspace in Flutter Web: Supabase RLS EXISTS Subquery + Invite Code Pattern",
+    "slug": "notion-team-workspace-supabase-rls-invite",
+    "url": "https://dev.to/kanta13jp1/notion-style-team-workspace-in-flutter-web-supabase-rls-exists-subquery-invite-code-pattern-2k01",
+    "source": "DEV Community",
+    "date": "2026-04-17T00:22:38.000Z",
+    "summary": "Team collaboration layer uses Supabase RLS with EXISTS subquery policies to enforce per-team isolation without expensive JOINs, and implements 8-character alphanumeric invite codes for email-free team joining. Architecture supports shared notes and role-based memberships (owner/member) with cascading deletes maintaining referential integrity. Efficient EXISTS-based RLS prevents users from seeing teams they don't belong to.",
+    "content": "Notion-Style Team Workspace in Flutter Web: Supabase RLS EXISTS Subquery + Invite Code Pattern\n\n\n\n  \n  \n  What We Built\n\n\nA team collaboration layer for 自分株式会社:\nTeam creation with invite codes (8-char alphanumeric)\nJoin via invite code (no email required)\nShared notes within a team\nSupabase RLS enforces per-team isolation\n-- Teams\nCREATE TABLE teams (\n  id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,\n  owner_id    uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,\n  name        text NOT NULL,\n  description text,\n  invite_code text NOT NULL UNIQUE DEFAULT upper(substring(gen_random_uuid()::text, 1, 8)),\n  created_at  timestamptz DEFAULT now()\n);\n\n-- Memberships\nCREATE TABLE team_memberships (\n  id         uuid DEFAULT gen_random_uuid() PRIMARY KEY,\n  team_id    uuid NOT NULL REFERENCES teams(id) ON DELETE CASCADE,\n  user_id    uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,\n  role       text NOT NULL DEFAULT 'member' CHECK (role IN ('owner', 'member')),\n  joined_at  timestamptz DEFAULT now(),\n  UNIQUE (team_id, user_id)\n);\n\n-- Shared Notes\nCREATE TABLE team_shared_notes (\n  id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,\n  team_id     uuid NOT NULL REFERENCES teams(id) ON DELETE CASCADE,\n  shared_by   uuid NOT NULL REFERENCES auth.users(id),\n  note_id     uuid NOT NULL,\n  shared_at   timestamptz DEFAULT now()\n);\n\nTeams are visible to owners AND members — the key is EXISTS on the membership table:\n-- Users see teams they own OR are a member of\nCREATE POLICY \"teams_select\" ON teams FOR SELECT\n  USING (\n    owner_id = auth.uid()\n    OR EXISTS (\n      SELECT 1 FROM team_memberships tm\n      WHERE tm.team_id = teams.id\n        AND tm.user_id = auth.uid()\n    )\n  );\n\nNo JOIN in the policy — EXISTS is more efficient (short-circuits on first match).\nShared notes have a three-way policy (sharer, member, or team owner):\nCREATE POLICY \"team_shared_notes_select\" ON team_shared_notes FOR SELECT\n  USING (\n    shared_by = auth.uid()\n    OR EXISTS",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Notion风格的Flutter Web团队工作空间：Supabase RLS EXISTS子查询 + 邀请码模式",
+        "summary": "团队协作层使用Supabase RLS和EXISTS子查询策略强制执行每个团队的隔离，无需昂贵的JOIN操作，并实现了8个字符的字母数字邀请码，支持无需电子邮件的团队加入。架构支持共享笔记和基于角色的成员身份（所有者/成员），具有级联删除以维护参考完整性。高效的基于EXISTS的RLS防止用户看到他们不属于的团队。"
+      }
+    }
+  },
+  {
+    "title": "CVR Tracking by Competitor Comparison Page: StatelessWidget StatefulWidget + unawaited() Pattern",
+    "slug": "cvr-tracking-competitor-comparison-pages",
+    "url": "https://dev.to/kanta13jp1/cvr-tracking-by-competitor-comparison-page-statelesswidget-statefulwidget-unawaited-pattern-3neo",
+    "source": "DEV Community",
+    "date": "2026-04-17T00:22:36.000Z",
+    "summary": "To measure which competitor comparison pages drive conversions, the team implemented two-signal tracking (page touch and signup attribution) that credits last-visited comparison page when users sign up. Migration from StatelessWidget to StatefulWidget with initState hooks demonstrates lifecycle dependency for analytics instrumentation. Approach enables per-page conversion ranking: \"Notion comparison visitors convert at 8%, Slack at 3%.\"",
+    "content": "CVR Tracking by Competitor Comparison Page: StatelessWidget → StatefulWidget + unawaited()\n\n\n\n  \n  \n  The Problem\n\n\n自分株式会社 has 21 competitor comparison pages (/vs-notion, /vs-slack, /vs-moneyforward, etc.). The question we couldn't answer: which comparison page drives the most signups?\nAdd two signal types per competitor:\nstatic const String touchComparison = 'touch_comparison';\nstatic const String signupSubmitComparison = 'signup_submit_comparison';\n\n// Per-competitor signal (granular analysis)\nFuture<void> recordComparisonTouch(String competitorKey) async {\n  await _persistLatestTouchpoint(touchComparison);\n  await _recordSignal('touch_comparison_$competitorKey');  // e.g. 'touch_comparison_notion'\n}\n\ntouch_comparison_notion is recorded when /vs-notion is viewed. When that visitor later signs up, signup_submit_comparison is attributed to their last-touch competitor. Now you can rank: \"Notion visitors convert at 8%, Slack visitors at 3%.\"\nComparisonPage was a StatelessWidget — no lifecycle hooks. Recording on page view requires initState. Migration pattern:\n// BEFORE — StatelessWidget, no lifecycle\nclass _ComparisonShell extends StatelessWidget {\n  final _CompetitorInfo info;\n  const _ComparisonShell({required this.info});\n\n  @override\n  Widget build(BuildContext context) { ... }\n}\n\n// AFTER — StatefulWidget with initState\nclass _ComparisonShell extends StatefulWidget {\n  final _CompetitorInfo info;\n  final String competitorKey;  // added\n  const _ComparisonShell({required this.info, required this.competitorKey});\n\n  @override\n  State<_ComparisonShell> createState() => _ComparisonShellState();\n}\n\nclass _ComparisonShellState extends State<_ComparisonShell> {\n  static const _acquisitionService = GrowthAcquisitionService();\n\n  @override\n  void initState() {\n    super.initState();\n    unawaited(_acquisitionService.recordComparisonTouch(widget.competitorKey));\n  }\n\n  _CompetitorInfo get _info => widget.info;\n\n  @override\n  Widget build(BuildContext context) { ... }\n}\n\nu",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "按竞争对手比较页面的CVR追踪：StatelessWidget StatefulWidget + unawaited()模式",
+        "summary": "为了衡量哪些竞争对手比较页面驱动转化，团队实现了两个信号追踪系统（页面访问和注册归属），在用户注册时将转化归功于最后访问的比较页面。从StatelessWidget迁移到StatefulWidget并使用initState钩子演示了分析工具的生命周期依赖。该方法支持按页面的转化排名：Notion比较访问者转化率8%，Slack为3%。"
+      }
+    }
+  },
+  {
+    "title": "CRM Pipeline + Horse Racing AI in Flutter Web: Lead Scoring Formula & Kanban with LinearProgressIndicator",
+    "slug": "crm-pipeline-horse-racing-ai-flutter",
+    "url": "https://dev.to/kanta13jp1/crm-pipeline-horse-racing-ai-in-flutter-web-lead-scoring-formula-kanban-with-3kla",
+    "source": "DEV Community",
+    "date": "2026-04-17T00:20:36.000Z",
+    "summary": "Two competitive features were built: a CRM pipeline with server-side lead scoring (0-100 scale based on email/company/phone/referral signals) and horse-racing predictor using weighted formula (recent form, jockey/trainer win rates, track affinity). Flutter UI uses kanban columns for pipeline stages and LinearProgressIndicator for visualization. Both evaluations run server-side in Deno.",
+    "content": "CRM Pipeline + Horse Racing AI in Flutter Web\n\n\n\n  \n  \n  What We Shipped\n\n\nTwo features in one session for 自分株式会社:\nCRM Sales Pipeline — competing with Salesforce (kanban + AI lead scoring)\nHorse Racing Predictor — competing with netkeiba (~17M users, AI prediction model)\nThe lead scoring formula runs server-side in Deno:\nfunction calculateLeadScore(lead: LeadRecord): number {\n  let score = 50;  // base score\n  if (lead.email)                score += 10;\n  if (lead.company)              score += 15;\n  if (lead.phone)                score += 10;\n  if (lead.source === 'referral') score += 15;\n  // Cap at 100\n  return Math.min(score, 100);\n}\n\nScore interpretation: 0–49 = cold, 50–74 = warm, 75+ = hot. The Flutter UI shows a colored badge based on these buckets — no scoring logic in Dart.\nlead → qualified → proposal → negotiation → closed_won / closed_lost\n\nTab 1: Pipeline (horizontal-scroll kanban)\n  └── Column per stage, cards draggable between stages\n\nTab 2: Leads\n  └── List with lead score badge (color by tier)\n  └── Filter by stage\n\nTab 3: Statistics\n  └── Win rate (LinearProgressIndicator)\n  └── Revenue breakdown per stage\n  └── Lost deals analysis\n\nfinal winRate = totalDeals > 0 ? wonDeals / totalDeals : 0.0;\nRow(\n  children: [\n    Expanded(\n      child: LinearProgressIndicator(\n        value: winRate.clamp(0.0, 1.0),\n        backgroundColor: Colors.grey.shade200,\n        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF059669)),\n        minHeight: 8,\n      ),\n    ),\n    const SizedBox(width: 8),\n    Text('${(winRate * 100).toStringAsFixed(1)}%'),\n  ],\n)\n\nLinearProgressIndicator again as a stats bar — no chart package needed.\nfunction calculateRaceScore(horse: HorseRecord): number {\n  return (\n    horse.recent_form_score  * 3 +   // last 3 races weighted heaviest\n    horse.jockey_win_rate    * 2 +   // jockey skill\n    horse.trainer_win_rate       +   // trainer skill\n    horse.track_affinity             // course specialization bonus\n  );\n}\n\nHigher score = hig",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "CRM管道 + Flutter Web中的赛马AI：潜在客户评分公式 & 带LinearProgressIndicator的看板",
+        "summary": "构建了两个竞争性功能：一个CRM管道，具有基于邮件/公司/电话/推荐信号的服务器端潜在客户评分（0-100分），和一个使用加权公式（最近表现、骑手/训练师胜率、赛道亲和力）的赛马预测器。Flutter UI使用看板列表示管道阶段并使用LinearProgressIndicator进行可视化。两个评估都在Deno中服务器端运行。"
+      }
+    }
+  },
+  {
+    "title": "Guitar Recording Auto-Post to X: OAuth 1.0a Server-Side + Twitter Intent Fallback",
+    "slug": "guitar-recording-auto-post-x-oauth",
+    "url": "https://dev.to/kanta13jp1/guitar-recording-auto-post-to-x-oauth-10a-server-side-twitter-intent-fallback-2jln",
+    "source": "DEV Community",
+    "date": "2026-04-17T00:20:34.000Z",
+    "summary": "Guitar recordings auto-post to X through three-hop OAuth 1.0a architecture keeping credentials server-side: Flutter triggers Edge Function which calls dedicated OAuth-signed endpoint to post to X API. Implementation includes graceful fallback to Twitter intent URL when OAuth fails (timeouts, rate limits, expired keys), ensuring users can still share even if automated posting breaks. No OAuth keys exposed to client.",
+    "content": "Guitar Recording → Auto-Post to X: OAuth 1.0a Server-Side + Twitter Intent Fallback\n\n\n\n  \n  \n  The Architecture\n\n\n\n\n\nFlutter UI (guitar_recording_studio_page.dart)\n  └─ _postToX(title, recordingId, isPublic: true)\n       └─ supabase.functions.invoke('guitar-recording-studio', {action: 'share_to_x'})\n            └─ guitar-recording-studio Edge Function\n                 └─ postPublicRecordingToX(recording)\n                      └─ POST /functions/v1/post-x-update  ← OAuth 1.0a signed\n                           └─ X API v2 POST /tweets\n\nThree hops. Flutter → EF → X. No OAuth keys in the client.\nisPublic Flag + Fallback\n\n\n\n\n\nFuture<void> _postToX(\n  String title,\n  String recordingId, {\n  bool isPublic = false,\n}) async {\n  setState(() => _isPostingToX = true);\n  try {\n    final user = _supabase.auth.currentUser;\n\n    // Auto-post path: public recording + logged-in user\n    if (isPublic && recordingId.isNotEmpty && recordingId != 'unknown' && user != null) {\n      final res = await _supabase.functions.invoke(\n        'guitar-recording-studio',\n        body: {'action': 'share_to_x', 'recordingId': recordingId},\n      );\n      final data = res.data as Map<String, dynamic>?;\n      if (data?['success'] == true) {\n        if (!mounted) return;\n        ScaffoldMessenger.of(context).showSnackBar(\n          const SnackBar(\n            content: Text('Posted to X (@kanta13jp1)'),\n            backgroundColor: Color(0xFF1DA1F2),\n          ),\n        );\n        return;\n      }\n      // EF failed → fall through to Twitter intent\n    }\n\n    // Fallback: Twitter intent (manual post, no OAuth needed)\n    final intentUrl = Uri.parse('https://twitter.com/intent/tweet')\n        .replace(queryParameters: {'text': '#guitar $title https://my-web-app-b67f4.web.app/'});\n    web.window.open(intentUrl.toString(), '_blank');\n  } finally {\n    if (mounted) setState(() => _isPostingToX = false);\n  }\n}\n\nWhy the fallback: EF failures (network timeout, X API rate limit, OAuth key expired) should never",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "吉他录音自动发布至X：服务器端OAuth 1.0a与Twitter意图备选方案",
+        "summary": "吉他录音通过三层OAuth 1.0a架构自动发布到X，凭证保留在服务器端：Flutter触发Edge Function，调用专用OAuth签名端点发布到X API。实现包括当OAuth失败时（超时、速率限制、密钥过期）优雅回退到Twitter意图URL，确保用户即使在自动发布失败时仍可分享。OAuth密钥不暴露给客户端。"
+      }
+    }
+  },
+  {
+    "title": "I built an open-source Python tool to detect drift in embedding spaces",
+    "slug": "open-source-python-detect-embedding-drift",
+    "url": "https://dev.to/prafulreddy/i-built-an-open-source-python-tool-to-detect-drift-in-embedding-spaces-2ea4",
+    "source": "DEV Community",
+    "date": "2026-04-17T00:19:56.000Z",
+    "summary": "drift-lens-monitor is an open-source Python package detecting statistical shifts in embedding spaces before downstream metrics degrade, supporting three drift detection approaches (statistical distance, kernel-based permutation testing, and topological shape changes). Tool addresses gap where monitoring business metrics alone misses gradual embedding drift caused by model updates, data source changes, or new user behavior. Available on PyPI.",
+    "content": "I built an open-source Python tool to detect drift in embedding spaces\n\n\nMost monitoring pipelines wait for a downstream metric to break: accuracy drops, retrieval quality slips, or user-facing behavior gets worse.\nBy then, the shift has already happened.\nI wanted a simpler way to catch changes earlier by looking directly at the embeddings themselves.\nSo I built drift-lens-monitor — an open-source Python package for detecting drift in embedding spaces.\nGitHub: https://github.com/PRAFULREDDYM/Drift_lense\n\nPyPI: https://pypi.org/project/drift-lens-monitor/\n\n\n\n\n  \n  \n  What problem this solves\n\n\nA lot of modern ML systems depend on embeddings:\nsemantic search\nRAG pipelines\nrecommenders\nclustering\nclassification pipelines with embedding-based features\nEven when the raw system looks “healthy,” the embedding space can start changing underneath you.\nThat change may come from:\nnew user behavior\nmodel updates\ndata source changes\nupstream preprocessing differences\ngradual distribution shift over time\nIf you only monitor business metrics or model accuracy, you often detect the issue late.\nThe idea behind this project is simple:\ntake snapshots of embeddings over time and compare them directly.\nThe package currently supports three drift detection approaches.\nThis is inspired by FID-style comparison, but applied to arbitrary embeddings.\nAt a high level, it compares the mean and covariance of two embedding distributions.\nUseful when you want a compact statistical distance between a reference snapshot and a current snapshot.\nThis is a kernel-based, non-parametric method for comparing two samples.\nI included permutation-based p-values so it can be used not just as a raw distance, but also as a statistical test.\nUseful when you want a more flexible distribution comparison without assuming Gaussian structure.\nThis is the unusual one.\nInstead of only asking whether two embedding clouds differ statistically, this looks at whether their shape changes.\nIt builds topological summaries over",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我开发了一个开源Python工具来检测嵌入空间的漂移",
+        "summary": "drift-lens-monitor是一个开源Python包，可在下游指标恶化前检测嵌入空间的统计偏移，支持三种漂移检测方法（统计距离、基于核的排列检验和拓扑形状变化）。该工具弥补了仅监控业务指标无法捕捉由模型更新、数据源变化或新用户行为引起的逐步嵌入漂移的空白。可在PyPI上获取。"
+      }
+    }
+  },
+  {
+    "title": "ArchRad 0.3.0 — Two commands to find architecture violations in your existing stack",
+    "slug": "archrad-find-architecture-violations",
+    "url": "https://dev.to/archrad_architect/archrad-030-two-commands-to-find-architecture-violations-in-your-existing-stack-2eed",
+    "source": "DEV Community",
+    "date": "2026-04-17T00:18:34.000Z",
+    "summary": "ArchRad 0.3.0 addresses cold-start architecture validation by adding archrad init command that generates IR graphs from existing Docker Compose files in under 60 seconds, eliminating manual JSON schema authoring. Tool automatically infers node types from Docker image patterns and creates edges from depends_on directives and connection URL environment variables. Two commands enable violation detection without prior schema learning.",
+    "content": "All our early release of ArchRad has assumed one thing: that you already have an IR graph of your system to validate. You needed to author JSON by hand, learn the schema, map your services yourself before you could see a single violation.\nThe cold start problem\nThe feedback we kept hearing — from developers who found ArchRad on npm, from platform engineers who tried it in CI — was always the same: the first step is too hard. Before you could run archrad validate, you had to write an IR graph. Before you could write an IR graph, you had to understand the schema. Most people never got that far.\nThat's the cold start problem. And archrad init is the fix.\narchrad init generates a valid IR graph from artifacts you already have. Starting with Docker Compose.\narchrad init --from docker-compose.yml --output graph.json\narchrad validate --ir graph.json\n\nTwo commands. No JSON authoring. No schema learning. If you have a docker-compose.yml, you can see your architecture violations in under 60 seconds.\nEvery service in your Compose file becomes a node in the IR graph. The node type is inferred from the image:\n\n\n\nImage pattern\nnode.type\n\n\n\n\npostgres, mysql, mariadb, timescale, cockroach\npostgres\n\n\nredis, memcached\ncache\n\n\nrabbitmq, kafka, nats, pulsar\nqueue\n\n\nnginx, traefik, caddy, kong, envoy\ngateway\n\n\nelasticsearch, opensearch\nsearch\n\n\nminio, localstack\nstorage\n\n\nunknown image + published ports\n\ngateway (HTTP-facing fallback)\n\n\nunknown image, no ports\n\nservice (with warning)\n\n\n\ndepends_on → edges\nBoth list and object forms are supported. Each dependency becomes a directed edge in the IR graph.\nConnection URL detection\nThis is where it gets interesting. If a service has a DATABASE_URL, REDIS_URL, AMQP_URL, MONGODB_URI, or any of eight other connection URL environment variables, and the hostname in that URL matches another service in the compose file — archrad init creates an edge.\nThis is how it catches direct database access automatically. You didn't have to tell it. It found i",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "ArchRad 0.3.0——两条命令查找现有堆栈中的架构违规",
+        "summary": "ArchRad 0.3.0通过添加archrad init命令解决冷启动架构验证问题，该命令可在60秒内从现有Docker Compose文件生成IR图，无需手动编写JSON模式。该工具可从Docker镜像模式自动推断节点类型，从depends_on指令和连接URL环境变量创建边。两条命令无需事先学习模式即可启用违规检测。"
+      }
+    }
+  }
+]
