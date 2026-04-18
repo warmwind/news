@@ -1,5 +1,197 @@
 [
   {
+    "title": "Productionizing LLMs in Go: Distributed Budgeting, LangChain, and ROI Tracking",
+    "slug": "productionizing-llms-go-distributed-budgeting",
+    "url": "https://dev.to/oluwajubelo1/productionizing-llms-in-go-distributed-budgeting-langchain-and-roi-tracking-4omn",
+    "source": "DEV Community",
+    "date": "2026-04-18T06:30:12.000Z",
+    "summary": "Otellix, a Go-native SDK for LLM observability, introduces production-ready cost tracking with LangChainGo integration, automatic identity middleware, and distributed Redis budget enforcement to prevent bill shock in large-scale systems.",
+    "content": "From \"Hello World\" to Production: Stop the LLM Bill Shock for Good\n\n\nA few weeks ago, we introduced Otellix—the Go-native observability SDK designed to help you stop bleeding money on LLMs. The response was incredible, but the feedback was clear: \"How do we scale this to production?\"\nWhen you move from a single script to a distributed system with hundreds of users, cost management becomes a distributed systems problem. Today, I’m excited to share how we’ve leveled up Otellix to make it truly production-ready.\nMany of you are building complex AI agents using LangChainGo. Tracking costs inside deeply nested chains and tool calls used to be a nightmare of manual context plumbing.\nNot anymore. We’ve released the OtellixHandler, a drop-in callback for LangChainGo.\nimport \"github.com/oluwajubelo1/otellix/integrations/langchaingo\"\n\n// One line to hook it up\nhandler := langchaingo.NewOtellixHandler()\nllm, _ := openai.New(openai.WithCallback(handler))\n\n// Everything—from chains to tools—is now automatically traced and cost-tracked.\nres, err := llm.GenerateContent(ctx, parts)\n\nManual attribution (passing user_id and project_id everywhere) is error-prone. In v0.2, we’ve added HTTP middleware for Gin and Echo that does the heavy lifting for you.\nSimply add the middleware to your router, and Otellix will automatically \"discover\" the identity from your headers (like X-User-ID) and carry it through the entire request lifecycle.\nr := gin.Default()\nr.Use(otellixgin.Middleware()) // Automatically populates context with User/Project IDs\n\nIn a distributed environment, an InMemoryBudgetStore isn't enough. You need a source of truth that spans your entire cluster. \nWe’ve introduced the Redis Budget Store. Now, if user_123 hits their $5.00 daily limit on Instance A, they are immediately blocked on Instance B.\nstore := redis.NewBudgetStore(redis.Config{\n    Addr: \"localhost:6379\",\n})\n\nconfig := &otellix.BudgetConfig{\n    Store: store,\n    PerUserDailyLimit: 5.00,\n}\n\nPrompt caching (Anthrop",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在Go中将LLM投入生产：分布式预算、LangChain和ROI追踪",
+        "summary": "Otellix是一个Go原生的LLM可观测性SDK，引入了生产级别的成本追踪功能，支持LangChainGo集成、自动身份中间件和分布式Redis预算执行，以防止大规模系统中的账单冲击。"
+      }
+    }
+  },
+  {
+    "title": "The Developer Who Reviews Everything and Ships Nothing",
+    "slug": "developer-reviews-everything-ships-nothing",
+    "url": "https://dev.to/adamthedeveloper/the-developer-who-reviews-everything-and-ships-nothing-1e28",
+    "source": "DEV Community",
+    "date": "2026-04-18T06:28:10.000Z",
+    "summary": "Some senior engineers spend disproportionate time reviewing code while shipping little of their own, measurably increasing cycle time without improving quality. This pattern, often rooted in past trauma, warrants organizational attention when it becomes a bottleneck.",
+    "content": "You've seen this person. Maybe you've worked with them for years.\nThey leave 40 comments on your PR. Variable names, spacing philosophy, whether your abstraction is \"truly necessary,\" a link to a 2014 blog post about hexagonal architecture. The review sits open for a week. Then two.\nMeanwhile, their own tickets age quietly in the backlog. Untouched.\nMost strict reviewers are not villains.\nA lot of them have been burned. They've watched a rushed merge take down production at 2am. They've inherited a codebase where \"we'll clean it up later\" compounded for three years into something unmaintainable. Strictness in review often comes from real scar tissue. That's not dysfunction. That's experience talking.\nThis article isn't about those people.\nIt's about a specific, observable pattern: the developer whose review activity is consistently high, whose shipping activity is consistently low, and whose involvement reliably increases cycle time without a corresponding increase in outcome quality. That pattern has a real cost and it rarely gets named out loud.\nSo let's name it.\nIt doesn't require mind-reading. It shows up in the data.\nPRs they author are rare. When they do appear, they're small, low-risk, or six weeks overdue. PRs they touch accumulate long threads, mostly non-blocking comments that aren't labeled as such, leaving authors to guess what actually needs to change. Review cycles on their queue run longer than the team average. Features that slip usually have their fingerprints somewhere in the timeline.\nThat's the shape of it. Measurable. Repeatable. Worth paying attention to.\nSenior engineers have limited hours. Where those hours go is a signal.\nA senior spending eight hours a week in code review and two hours writing code has made a choice. Sometimes that's the right call — architecture, incident response, debugging gnarly production issues, mentorship. Real contributions that don't show up in merge counts.\nBut when the same person's review comments outnumber thei",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "评审一切却没有交付任何东西的开发者",
+        "summary": "一些高级工程师花费过多时间审查代码，却很少发布自己的代码，这明显增加了周期时间而不改善质量。这种模式通常源于过去的创伤，当它成为瓶颈时值得组织关注。"
+      }
+    }
+  },
+  {
+    "title": "Should We Still Care About Our Code?",
+    "slug": "should-we-care-about-code",
+    "url": "https://dev.to/js402/should-we-still-care-about-our-code-47mc",
+    "source": "DEV Community",
+    "date": "2026-04-18T06:28:02.000Z",
+    "summary": "AI-generated code can pass tests and compile while violating fundamental software principles, raising questions about code quality standards in an era of AI-assisted development. The article questions whether teams maintain architectural integrity when AI writes the code.",
+    "content": "As part of a new feature, I was looking at a \"Human in the Loop\" wrapper:\nfunc (h *HITLWrapper) Exec(\n    ctx context.Context,\n    startTime time.Time,\n    input any,\n    debug bool,\n    hook *taskengine.HookCall,\n) (any, taskengine.DataType, error)\n\nThat’s a lot of code... but it’s not the interesting part here.\nI wanted to take a look at something smaller, something simpler... a little helper:\n// buildDiff generates a simple human-readable unified diff for file-write\n// operations (write_file and sed). It avoids external dependencies by doing a\n// straightforward line-level comparison.\n\nThat’s a solid contract. And here is what we got:\n// buildDiff generates a simple human-readable unified diff for file-write\n// operations (write_file and sed). It avoids external dependencies by doing a\n// straightforward line-level comparison.\nfunc buildDiff(hookName, toolName string, args map[string]any) string {\n    switch {\n    case hookName == \"local_fs\" && toolName == \"write_file\":\n        path, _ := args[\"path\"].(string)\n        newContent, _ := args[\"content\"].(string)\n        if path == \"\" || newContent == \"\" {\n            return \"\"\n        }\n        oldBytes, _ := os.ReadFile(path)\n        return unifiedDiff(path, string(oldBytes), newContent)\n\n    case hookName == \"local_fs\" && toolName == \"sed\":\n        path, _ := args[\"path\"].(string)\n        pattern, _ := args[\"pattern\"].(string)\n        replacement, _ := args[\"replacement\"].(string)\n        if path == \"\" || pattern == \"\" {\n            return \"\"\n        }\n        oldBytes, err := os.ReadFile(path)\n        if err != nil {\n            return \"\"\n        }\n        newContent := strings.ReplaceAll(string(oldBytes), pattern, replacement)\n        return unifiedDiff(path, string(oldBytes), newContent)\n    }\n    return \"\"\n}\n\nYep, this is AI-generated code. It's part of ~3,000 new or changed lines. Everything compiles, everything is tested, coverage looks good.\nSo… why even write about this?\nIt’s in the title: Should we still",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我们还应该关心我们的代码吗？",
+        "summary": "AI生成的代码可以通过测试并编译，同时违反基础软件原则，这在AI辅助开发的时代引发了对代码质量标准的疑问。文章质疑当AI编写代码时，团队是否保持了架构完整性。"
+      }
+    }
+  },
+  {
+    "title": "I Built a Bulletproof Web Scraper That Hasn't Been Blocked in 6 Months — Here's Every Trick I Use",
+    "slug": "bulletproof-web-scraper-unblocked",
+    "url": "https://dev.to/vasquezventures/i-built-a-bulletproof-web-scraper-that-hasnt-been-blocked-in-6-months-heres-every-trick-i-use-1hc5",
+    "source": "DEV Community",
+    "date": "2026-04-18T06:24:01.000Z",
+    "summary": "A production web scraper avoiding detection handles JavaScript rendering, realistic header rotation, request throttling, and TLS fingerprinting to scrape millions of pages without blocking. The article details five anti-detection techniques with practical code examples.",
+    "content": "Every web scraper tutorial shows you requests.get() and BeautifulSoup. Then you run it against a real website and get a 403 Forbidden. Or a CAPTCHA. Or your IP gets banned after 50 requests.\nI've been running production scrapers for clients for over a year. The one I'm sharing here has scraped over 2 million pages without getting blocked once. Not because I'm lucky — because I built in every anti-detection technique that actually matters.\nHere's the full code, broken down line by line.\nWhen a website detects you're a bot, it's usually because of one of these tells:\nNo JavaScript rendering — your scraper can't execute JS, so fingerprinting scripts flag you\nRequest patterns — you hit 100 pages in 3 seconds at 2AM. Humans don't do that\nMissing headers — no Accept-Language, no sec-ch-ua, no proper User-Agent rotation\nTLS fingerprint — Python's requests library has a distinct TLS handshake that Cloudflare detects\nIP repetition — same IP hitting every page sequentially\nLet me show you how to handle all five.\nI use three libraries:\nplaywright — headless Chromium that renders JavaScript natively\nhttpx — async HTTP client with HTTP/2 support\nfake-useragent — rotating user agent strings\n\n\n\n\npip install playwright httpx fake-useragent asyncio\nplaywright install chromium\n\nMost scrapers send 3-4 headers. Real browsers send 15+. Here's what Chrome actually sends:\nimport random\n\ndef get_stealth_headers() -> dict:\n    \"\"\"Generate headers that match a real Chrome browser.\"\"\"\n    platforms = [\n        \"Windows NT 10.0; Win64; x64\",\n        \"Macintosh; Intel Mac OS X 10_15_7\",\n        \"X11; Linux x86_64\",\n    ]\n    platform = random.choice(platforms)\n\n    chrome_versions = [\n        f\"125.0.{random.randint(6400, 6700)}.{random.randint(50, 200)}\",\n        f\"126.0.{random.randint(6400, 6700)}.{random.randint(50, 200)}\",\n    ]\n    chrome_version = random.choice(chrome_versions)\n\n    return {\n        \"User-Agent\": f\"Mozilla/5.0 ({platform}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{c",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我开发了一个防弹网络爬虫，6个月未被封禁——以下是我使用的所有技巧",
+        "summary": "一个避免被检测的生产级网络爬虫处理JavaScript渲染、真实的请求头轮换、请求节流和TLS指纹识别，可以在无阻塞的情况下爬取数百万个页面。文章详细说明了五种反检测技术及其实用代码示例。"
+      }
+    }
+  },
+  {
+    "title": "The Largest SQL Injection Breach Ever — How 77 Million PSN Accounts Were Exposed published",
+    "slug": "largest-sql-injection-breach-psn-accounts",
+    "url": "https://dev.to/caisd/the-largest-sql-injection-breach-ever-how-77-million-psn-accounts-were-exposedpublished-3pk9",
+    "source": "DEV Community",
+    "date": "2026-04-18T06:23:51.000Z",
+    "summary": "The 2011 Sony PlayStation Network breach exposed 77 million accounts through SQL injection despite the vulnerability being known for over a decade. The incident demonstrates catastrophic impact when basic security practices like parameterized queries are neglected at scale.",
+    "content": "⚠️ Educational content only — this article is for cybersecurity awareness and defensive learning.\nIn April 2011, Sony’s PlayStation Network (PSN) suffered one of the most devastating cybersecurity incidents in history.\nWhat began as a hidden vulnerability escalated into a global-scale data breach that shocked the entire tech industry.\n\n\n\nMetric\nValue\n\n\n\n\nCompromised accounts\n77,000,000\n\n\nService downtime\n23 days\n\n\nEstimated financial damage\n$171 million\n\n\nPayment records exposed\n~12,000 users\n\n\nData leaked\nEmails, passwords, addresses, DOB\n\n\n\nThe root cause was a well-known vulnerability:\nSQL Injection (SQLi)\nA security flaw that occurs when user input is directly embedded into database queries without proper validation or parameterization.\nThis allows attackers to manipulate backend SQL logic and extract sensitive data.\nSQL Injection is not a new concept.\nIt had been publicly known for over a decade before the PSN incident.\nYet the system still failed to implement basic protections like:\nParameterized queries\nInput validation\nDatabase access restrictions\nProper encryption of sensitive data\nAttackers exploited a vulnerable web endpoint and gained entry into the internal system.\nOnce inside, the attackers mapped critical database structures:\nUser accounts\nAuthentication data\nPersonal information\nPayment records\nLarge-scale extraction of user data began without detection.\nSensitive information was pulled in bulk, including:\nEmails\nUser credentials\nPhysical addresses\nPartial financial data\nSony eventually shut down PSN completely.\nEntire network offline\nMillions of users affected\nGlobal disruption across gaming services\nDirect interpolation of user input into SQL queries.\nSome sensitive data was stored without proper encryption or hashing.\nNo effective WAF\nWeak monitoring systems\nLimited intrusion detection\nAlways separate data from SQL logic.\nUse modern algorithms like bcrypt or Argon2.\nDatabase users should only have the permissions they absolutely \nDetect and block",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "有史以来最大的SQL注入泄露——7700万个PSN账户如何被曝光",
+        "summary": "2011年索尼PlayStation网络泄露事件通过SQL注入暴露了7700万个账户，尽管该漏洞已知超过十年。该事件表明当基本安全措施（如参数化查询）在大规模应用中被忽视时会造成灾难性影响。"
+      }
+    }
+  },
+  {
+    "title": "I Stopped Taking AI Advice Seriously, and It Helped",
+    "slug": "stopped-taking-ai-advice-seriously",
+    "url": "https://dev.to/jaideepparashar/i-stopped-taking-ai-advice-seriously-and-it-helped-4nfi",
+    "source": "DEV Community",
+    "date": "2026-04-18T06:14:25.000Z",
+    "summary": "AI's confident, well-structured answers can lead to uncritical adoption rather than independent thinking, narrowing decision-making and reducing originality. The author found value treating AI as a perspective to challenge rather than authority to follow.",
+    "content": "I’ve been using AI for months now.\nThe Observation\nThe more I used AI for advice, the more confident it sounded.\nClean answers.\nWhether it was:\nbusiness decisions\ncontent strategy\ntechnical direction\nAI always had an answer.\nAnd not just an answer, a good-sounding answer.\nOver time, I realised something:\nI had started trusting it more than I should.\nBreaking the Expectation\nMost people believe AI is getting smarter.\nAnd it is.\nBut that’s not the real shift.\nThe real shift is this:\nAI is getting better at sounding right—not necessarily being right.\nThat’s a dangerous difference.\nBecause humans don’t evaluate truth first.\nWe evaluate:\nclarity\nconfidence\nstructure\nAnd AI is exceptionally good at all three.\nSo what happens?\nWe stop questioning.\nThe Insight\nI realised I wasn’t using AI as a thinking tool anymore.\nI was using it as a decision-maker.\nThat’s where things started to go wrong.\nBecause AI doesn’t:\nunderstand context deeply\nfeel consequences\ncarry responsibility\nIt predicts.\nIt generates.\nIt optimises for likelihood—not accuracy.\nAnd when I followed its advice blindly, I noticed:\nMy decisions became safer\nMy thinking became narrower\nMy originality started dropping\nNot because AI was bad.\nBut because I had stopped challenging it.\nWhat I Changed\nI didn’t stop using AI.\nI stopped taking it seriously.\nThat small shift changed everything.\nNow:\nI question every answer\nI look for what’s missing\nI treat AI as a perspective—not authority\nInstead of asking:\n“What should I do?”\nI ask:\n“What am I not seeing?”\nAI became more useful the moment it lost authority.\nThe Reflection\nAI is powerful.\nBut the moment it becomes your source of truth…\nIt starts limiting you.\nNot because it’s wrong all the time.\nBut because it’s convincing enough to stop you from thinking further.\nThe real advantage is not in getting answers faster.\nIt’s in staying intellectually independent while using those answers.\nBecause in the end…\nAI should support your thinking.\nNot replace it.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我停止将AI的建议当回事，这很有帮助",
+        "summary": "AI自信、结构良好的答案可能导致盲目采纳而不是独立思考，缩小决策范围并降低原创性。作者发现将AI视为需要质疑的视角而不是遵循的权威更有价值。"
+      }
+    }
+  },
+  {
+    "title": "Why Solo Developers Should Embrace Docker Containers: The Ultimate Tool for Independence",
+    "slug": "solo-developers-docker-containers",
+    "url": "https://dev.to/glad_labs/why-solo-developers-should-embrace-docker-containers-the-ultimate-tool-for-independence-1d19",
+    "source": "DEV Community",
+    "date": "2026-04-18T06:12:14.000Z",
+    "summary": "Docker containers solve the \"works on my machine\" problem for solo developers by creating portable, consistent environments that survive machine switches and OS updates. Containerization is accessible beyond enterprise infrastructure and reclaims development time lost to debugging.",
+    "content": "There is a specific moment in every solo developer's career that feels like a victory, but also a source of deep frustration. It is the moment you finally get your local environment working. You have installed the right version of Node.js, configured the database connection strings, set up the environment variables, and managed to get your first commit pushed to the repository. You are ready to code.\nThen, you hand the laptop over to a colleague, or you switch machines, or--perhaps worst of all--you update your operating system. Suddenly, the \"It works on my machine\" adage becomes a self-fulfilling prophecy. The npm install command fails. The database won't start. The ports are already in use. The project that was a flowing river of productivity yesterday is now a dried-up creek of debugging.\nFor the solo developer, this scenario is not just annoying; it is a productivity killer. It is the primary reason why many talented individuals shy away from the world of containerization. The term \"DevOps\" and the complex command-line interfaces of Kubernetes and Docker Swarm can feel like a mountain too high to climb for a single person working on a side project.\nHowever, the narrative that Docker is exclusively for enterprise infrastructure is a myth that is costing solo developers time and money. The truth is, Docker containers for solo developers are not about managing complex clusters; they are about reclaiming your time. They are about creating a portable, consistent environment that travels with you wherever you go.\nThe traditional method of setting up a development environment is a game of chance. You rely on the operating system you are currently using and the installed software versions. If you are on a Mac, you might use Homebrew; if you are on Windows, you might use WSL2. While these package managers are powerful, they introduce variability.\nWhen a solo developer spends two hours troubleshooting why their local version of Python is not compatible with a specific li",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么独立开发者应该拥抱Docker容器：独立的终极工具",
+        "summary": "Docker容器通过为独立开发者创建便携、一致的环境来解决\"在我的机器上工作\"的问题，这些环境可以在机器切换和操作系统更新中存活。容器化超越了企业基础设施的范畴，并回收了在调试中浪费的开发时间。"
+      }
+    }
+  },
+  {
+    "title": "I Built a Simple CLI to Check Plagiarism and AI-Generated Text (Locally)",
+    "slug": "cli-check-plagiarism-ai-generated-text",
+    "url": "https://dev.to/thavarshan/i-built-a-simple-cli-to-check-plagiarism-and-ai-generated-text-locally-2kil",
+    "source": "DEV Community",
+    "date": "2026-04-18T06:09:54.000Z",
+    "summary": "Dokimos is a lightweight, offline Python CLI for checking plagiarism and AI-generated text signals without uploading content to external services. It prioritizes speed, simplicity, and privacy for integration into developer workflows and student submissions.",
+    "content": "Most tools for checking plagiarism or AI-generated content share a few drawbacks:\nthey require uploading your text to a website\nthey are often paywalled or rate-limited\nthey lack transparency in how results are generated\nI ran into this problem a few times and wanted a simpler alternative I could run locally.\nSo I built dokimos — a lightweight Python CLI for checking:\ntext similarity (potential plagiarism)\nAI-likeness signals\n```bash id=\"k29sdf\"\nPlagiarism risk: Low (12%)\n\n\n\nThe goal is not to replace large commercial tools, but to provide something that is:\n\n* fast\n* minimal\n* scriptable\n* privacy-friendly (no text leaves your machine)\n\n## Why I Built This\n\nI wanted a tool that could:\n\n* quickly validate content before submitting or sharing\n* integrate into scripts or developer workflows\n* work entirely offline\n\nMany existing solutions feel heavy or opaque. This is intentionally simple and local-first.\n\n## How It Works (High-Level)\n\nAt the moment, dokimos focuses on:\n\n* similarity checks to flag potentially copied content\n* heuristic-based indicators to estimate AI-generated patterns\n\nIt is still an early-stage project, and the results should be treated as signals rather than definitive conclusions.\n\n## Target Use Cases\n\n* developers who prefer CLI-based tools\n* students and writers who want a quick local check\n* teams looking for simple automation hooks\n\n## Roadmap\n\nPlanned improvements include:\n\n* better detection accuracy\n* clearer explanations for scores\n* structured output (e.g., JSON) for integration\n* deeper similarity insights\n\n## Repository\n\nhttps://github.com/Thavarshan/dokimos\n\n## Feedback\n\nThis is an early project, so feedback is very valuable.\n\nIf you have suggestions around accuracy, usability, or features, I would appreciate hearing your perspective.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个简单的CLI来检查剽窃和AI生成的文本（本地）",
+        "summary": "Dokimos是一个轻量级、离线的Python CLI，用于检查剽窃和AI生成的文本信号，无需将内容上传到外部服务。它优先考虑速度、简单性和隐私，以便集成到开发工作流和学生提交中。"
+      }
+    }
+  },
+  {
+    "title": "Amazon ECR Pull Through Cache (PTC)",
+    "slug": "amazon-ecr-pull-through-cache",
+    "url": "https://dev.to/viradiaharsh/amazon-ecr-pull-through-cache-ptc-2p22",
+    "source": "DEV Community",
+    "date": "2026-04-18T06:07:09.000Z",
+    "summary": "Amazon ECR Pull Through Cache automatically caches external container images from Docker Hub and other registries, eliminating manual workflows while providing security scanning and resilience against upstream outages. It bridges public registry convenience with private network security.",
+    "content": "What is ECR Pull Through Cache?\n\n\nNormally, to use an external image in the private environmet, we have to manually download the image and push it to ECR. With Pull Through Cache, we can simply pull the image using our ECR URL. AWS ECR automatically fetches the images from the upstream registry, caches it in our private registry and keeps it up to date with latest version. \nNo Auth registries like AWS Public ECR, Kubernetes, Quay. \nAuth registries like Docker Hub, Azure ACR, GHCR, Gitlab SaaS, Chainguard. \nEven Cross Account AWS ECR also but it require IAM authemtication. \nCreate a Rule to define which upstream registry we want to sync for an example let's say Docker Hub. \nLet's pull an image with our private URL of ECR.\n<aws_account_id>.dkr.ecr.<region>.amazonaws.com/docker-hub/library/nginx:latest\n\nRest automatic caching by AWS ECR, ECR will create repository for us and stores the image and it will check for updates in every 24 hours for latest updates. \nObvisouly performance, once the images cached into the ECR we can directly pull it from the ECR privatly no need to travel over the internet. \nSecurity is key as image is in the ECR we can utilize the ECR buit in security tools to scan the images and also we can apply our own lifecycle policy. \nReliability, as if upstream refistry goes down still our image is still available, which all Kubernetes engineers have feeled this issue when Docker has remove so many images from it's regiestry and it has created a huge chaos. \nECR Pull through the cache eliminates the manual download, re-tag and push workflow and it will give the convenience the public registries with the security and speed of AWS private network ad environment. \nhttps://docs.aws.amazon.com/AmazonECR/latest/userguide/pull-through-cache.html\nhttps://aws.amazon.com/about-aws/whats-new/2026/04/amazon-ecr-pull-through-cache-referrers/\nVisit me:\nhttps://harshviradia.vercel.app/\nhttps://www.linkedin.com/in/harsh-viradia/",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Amazon ECR Pull Through Cache (PTC)",
+        "summary": "Amazon ECR Pull Through Cache自动缓存来自Docker Hub和其他注册表的外部容器镜像，消除了手动工作流，同时提供安全扫描和对上游中断的恢复能力。它在公共注册表便利性和私有网络安全之间架起了桥梁。"
+      }
+    }
+  },
+  {
+    "title": "I built nftguard: atomic nftables versioning with instant rollback",
+    "slug": "nftguard-atomic-nftables-versioning",
+    "url": "https://dev.to/onceupontry/i-built-nftguard-atomic-nftables-versioning-with-instant-rollback-1pn4",
+    "source": "DEV Community",
+    "date": "2026-04-18T06:06:47.000Z",
+    "summary": "Nftguard provides atomic versioning and rollback for nftables firewall rules with SHA-256 fingerprinting, deletion-threshold guards, and cascading boot recovery to prevent misconfigurations and accidental SSH lockouts. It fills a critical gap in Linux firewall management tooling.",
+    "content": "I manage multiple Linux servers. Each one has its own nftables firewall config — some with 50 rules, some with 200+. And for years, my \"versioning system\" was a mix of .bak files, commented-out lines, and the vague hope that I'd remember what changed last Tuesday.\nThen one night I fat-fingered a flush command and locked myself out of a production box via SSH. Recovery took 40 minutes. The fix took 10 seconds — I just needed the previous ruleset. But I didn't have it.\nSo I built nftguard.\nThere's nothing else like this. Seriously — I searched. There are iptables backup scripts. There are Ansible playbooks that template firewall configs. But there is zero tooling for atomic nftables versioning with rollback. nftguard is the first.\nHere's what it actually does that nothing else can:\n1. SHA-256 fingerprinted rule tracking\nEvery rule gets individually hashed after normalization (counters and handles stripped). This means nftguard detects semantic changes — not just text diffs. If you reorder rules but the logic is identical, it knows.\n2. Retention guard (the \"oops\" detector)\nIf your new config would delete more than 40% of existing rules, nftguard stops and asks. This catches the most common disaster: accidentally applying a minimal test config over your production ruleset.\n3. Selective table flush\nMost tools do nft flush ruleset then nft -f config. That creates a window — maybe 50ms, maybe 500ms — where your firewall has zero rules. nftguard only flushes the tables that appear in your new config, preserving everything else. No gap.\n4. Cascading boot recovery\nAt boot, before any network interface comes up, nftguard loads your firewall. If the latest snapshot is corrupted, it tries the previous one. Then the one before that. Then the conf file. Five layers of fallback before giving up.\n5. Transparent nft wrapper\nInstall it as /usr/local/sbin/nft and every nft -f call from any source — scripts, kube-proxy, manual — gets versioned automatically. Nothing changes in your work",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了 nftguard：原子化 nftables 版本控制与即时回滚",
+        "summary": "Nftguard 为 nftables 防火墙规则提供原子化版本控制和回滚功能，具有 SHA-256 指纹识别、删除阈值保护和级联启动恢复，可防止配置错误和意外 SSH 锁定。它填补了 Linux 防火墙管理工具的关键空白。"
+      }
+    }
+  },
+  {
+    "title": "I spent 500 hours & $5,000 on OpenClaw - Here's the best setup guide you'll ever need.",
+    "slug": "openclaw-setup-guide-500-hours",
+    "url": "https://dev.to/aibughunter/i-spent-500-hours-5000-on-openclaw-heres-the-best-setup-guide-youll-ever-need-4mpg",
+    "source": "DEV Community",
+    "date": "2026-04-18T06:04:56.000Z",
+    "summary": "An updated OpenClaw setup guide reflecting 500+ hours of production use covers selecting model providers (Claude, GPT, Gemini, local models) and configuring agents properly. The guide recommends Claude Opus 4.7 as the primary model for agent work.",
+    "content": "This is a submission for the OpenClaw Writing Challenge\n'i spent 90 hours & $800 setting up openclaw so you don't have to.'\nhalf of it is already wrong or banned.\nthe install process changed. anthropic killed subscription access for third-party tools. new models dropped. the whole landscape shifted in two months.\nso here's the updated version. everything i know after running openclaw 24/7 since january, clocking over 500 hours. the right way to set it up from birth, the best practices nobody tells you, and the stuff every other guide skips.\nif you read my first article – this replaces it. if you're brand new – start here. if you've already got far with your openclaw – skip to the end.\nstraight in – you need three things ready before you even touch a terminal.\n1. an AI model API key\nopenclaw works with multiple model providers. you're not locked to one. here's what's available right now:\n#1 and my pick – anthropic (claude)\n\nthe best overall for agents. opus 4.7 is the smartest model available and what i recommend for setup. sonnet 4.6 is cheaper and handles everyday tasks well. console.anthropic.com\n\n\nopenai (GPT-5.4)\n\nstrong alternative. great tool calling, solid all-rounder. a lot of people switched here last week when anthropic cut off subscription access – also where the founder of openclaw now works. platform.openai.com\n\n\ngoogle (gemini 3.1 pro)\n\ngood for long context tasks. generous free tier to get started. worth having as a backup or starting point if budget is tight. aistudio.google.com\n\n\nollama (local models)\n\nrun gemma 4 or other open source models directly on your machine. completely free. not frontier quality but handles routine agent tasks without breaking a sweat.\n\n\ndeepseek\n\nstrong reasoning model from china. very competitive pricing. worth looking at if you want a cheaper alternative to opus for complex tasks.\n\n\n\nmy recommendation:\n\nstart with anthropic (opus 4.7) as your primary. it's the king of models for agent work. load $250 in API credits to ge",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我在 OpenClaw 上花了 500 小时和 5,000 美元 - 这是你需要的最好的设置指南",
+        "summary": "最新的 OpenClaw 设置指南反映了 500+ 小时的生产使用经验，涵盖选择模型提供商（Claude、GPT、Gemini、本地模型）和正确配置智能体。该指南推荐使用 Claude Opus 4.7 作为智能体工作的主要模型。"
+      }
+    }
+  },
+  {
+    "title": "Building the Full Website Around the Product",
+    "slug": "building-website-around-product",
+    "url": "https://dev.to/harshalrudra/building-the-full-website-around-the-product-9cc",
+    "source": "DEV Community",
+    "date": "2026-04-18T05:58:09.000Z",
+    "summary": "Building coherent website infrastructure around a product—landing pages, docs, checkout flows—signals legitimacy that separates a prototype from a professional offering. Design thinking shifted focus from developer-centric features to the core user pain point.",
+    "content": "Building the Full Website Around the Product\n\n\nA web app is one thing.\nOnce the core product worked, I needed the rest of the experience to feel like a real product, not a prototype that escaped the lab.\nThat meant building the site around the app itself:\na clearer landing page\na more structured product narrative\na checkout / launch-access flow\nexplanatory docs\nbetter routing and navigation\na layout that looks like something people can trust\nThis is where product thinking starts sneaking into engineering.\nYou are no longer only asking, “Does it work?”\n“Does it feel understandable?”\nI wanted the site to explain the value of Archimedes without making people decode the interface. The message is simple:\nArchimedes helps you search academic papers, analyze them with an LLM, synthesize evidence, and export the result as a PDF.\nEverything else exists to support that.\nThe site also helped me add the rough edges that early users expect:\na demo path\nlaunch-interest capture\nBYOK verification\na subscription-shaped access flow\nIt is not about pretending the product is finished.\nThat coherence matters a lot when a project moves from a personal tool to a public product.\nIf the website feels chaotic, the product feels chaotic.\nThis was the stage where Archimedes started looking like something I could actually launch, instead of something I hacked together for my own use.\nLately, I started taking a design thinking course at my university, and it completely shifted how I approach Archimedes.\nBefore that, I was focused on building features that felt cool as a developer:\nfancier LLM prompts\nfaster search pipelines\nshinier CLI flags\nThe course forced me to step back and ask a much more uncomfortable question:\nWhat problem am I actually solving?\nThrough empathy mapping and problem-statement workshops, I realized the real pain point isn’t just that research is tedious. It’s that researchers lose the thread between scattered papers and their own hypotheses.\nThat’s the gap.\nDesign thinking",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "围绕产品构建完整网站",
+        "summary": "围绕产品构建连贯的网站基础设施（包括登陆页面、文档、结账流程）传达了合法性，将原型与专业产品区分开来。设计思维将焦点从以开发者为中心的功能转移到核心用户痛点。"
+      }
+    }
+  },
+  {
     "title": "Midnight Zero-Knowledge Briefing: Dual State Model Developer Walkthrough",
     "slug": "midnight-zero-knowledge-briefing-dual-state-model",
     "url": "https://dev.to/spycrypto/midnight-zero-knowledge-briefing-dual-state-model-developer-walkthrough-3bep",
