@@ -1,5 +1,213 @@
 [
   {
+    "title": "From Generic Evals to Specific Monitors: The Annotation Queue Bridge",
+    "slug": "from-generic-evals-to-specific-monitors-annotation-queue",
+    "url": "https://dev.to/paulacavero/from-generic-evals-to-specific-monitors-the-annotation-queue-bridge-4lma",
+    "source": "DEV Community",
+    "date": "2026-04-20T12:26:20.000Z",
+    "summary": "Generic evaluation metrics often fail to catch product-specific failures in AI systems. Annotation queues solve this by capturing real production failures and using them to build targeted evaluations tailored to each product's unique failure modes.",
+    "content": "How to turn generic evaluation metrics into a useful starting point for AI Reliability.\nIt's common now with all the talk about AI reliability to come to a bit of a conundrum: you know quality matters, but you don't yet know which failures matter most. You deploy a handful of broad evaluations like toxicity, hallucination, response length, and hope they catch the important stuff. Often what you find is that either you get no triggers because your prompt already passes them (models are being constantly trained to be better at these) or that your product is failing in a million other ways that aren't captured by those default evals.\nGeneric evals are dogwater. They are drinkable, but they won't sustain your product beyond the beginning of its lifecycle. Failure modes are not universal standards. They are unique to the product. But the idea of a universal standard is not useless for AI reliability. That is the problem annotation queues propose to solve.\nWriting a precise evaluation from day one is a chicken-and-egg problem. A good eval needs examples of the failure it's trying to detect. What does a bad interaction actually look like in your system? You can't know that until you've been running in production long enough to observe it. And you can't observe it systematically without an evaluation.\nTeams have the tendency to get around this with guesswork. They write eval scripts based on what they think will go wrong, test against a handful of hand-crafted examples, ship, and don't take another look after that. Months later they discover the eval has been quietly passing traces that any human would flag. The real failure pattern looked nothing like what they imagined.\nThis is where system queues come into play. Every project ships with default checks covering universal failure categories: jailbreaking, user frustration, lazy responses, forgotten context, tool call errors, and more. These aren't trying to be your final monitoring layer. System queues are a net that captu",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "从通用评估到特定监控：标注队列桥梁",
+        "summary": "通用评估指标通常无法捕捉AI系统中特定产品的故障。标注队列通过捕捉真实生产故障并利用其构建针对各产品独特故障模式的有针对性评估来解决此问题。"
+      }
+    }
+  },
+  {
+    "title": "Why JavaScript forEach() Does Not Work with await (How to Fix It)",
+    "slug": "why-javascript-foreach-does-not-work-with-await-fix",
+    "url": "https://dev.to/idioms/why-javascript-foreach-does-not-work-with-await-how-to-fix-it-3idj",
+    "source": "DEV Community",
+    "date": "2026-04-20T12:24:45.000Z",
+    "summary": "JavaScript's forEach() ignores await and runs all iterations immediately, causing race conditions instead of sequential execution. Developers must use for loops or other patterns when sequential async operations are required.",
+    "content": "Why JavaScript forEach() Does Not Work with await (And How to Fix It)\nOne of the most confusing async problems in JavaScript happens when developers use await inside forEach() and expect everything to run in order.\nIt looks correct.\nIt feels correct.\nBut it breaks in production.\nThis issue appears often in API requests, database operations, email sending, payment processing, and file uploads.\nMany developers lose hours debugging this.\nLet’s fix it properly.\nSuppose you want to process users one by one.\nYou write this:\nconst users = [\"John\", \"Emma\", \"Michael\"];\n\nusers.forEach(async (user) => {\n  await sendEmail(user);\n  console.log(`Email sent to ${user}`);\n});\n\nconsole.log(\"All emails processed\");\n\nAt first glance, this looks perfect.\nYou expect:\nSend email to John\nSend email to Emma\nSend email to Michael\nPrint final message\nExpected output:\nEmail sent to John\nEmail sent to Emma\nEmail sent to Michael\nAll emails processed\n\nBut the actual output is often:\nAll emails processed\nEmail sent to John\nEmail sent to Emma\nEmail sent to Michael\n\nSometimes even worse—execution becomes unpredictable.\nVery frustrating.\nThe problem is simple:\nforEach() does not wait for async/await.\nIt completely ignores Promises.\nEven if you write await inside it, forEach() itself does not pause.\nIt immediately starts all iterations and moves on.\nThat means this line:\nconsole.log(\"All emails processed\");\n\nruns before the async work finishes.\nThis creates race conditions and broken logic.\nEspecially dangerous in production systems.\nLet’s simplify it.\nThis:\nusers.forEach(async (user) => {\n  await sendEmail(user);\n});\n\ndoes NOT mean:\n“Wait for each task one by one”\nIt actually means:\n“Start everything immediately and do not wait”\nThat is the real problem.\nforEach() was designed for synchronous operations—not async control flow.\nImagine payment processing:\norders.forEach(async (order) => {\n  await chargeCustomer(order);\n});\n\ncloseDailyReport();\n\nDanger:\nThe report may close before payments finish.\nTha",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么JavaScript的forEach()不能与await协同工作（修复方法）",
+        "summary": "JavaScript的forEach()会忽略await，立即运行所有迭代，导致竞态条件而非顺序执行。当需要顺序异步操作时，开发者必须使用for循环或其他模式。"
+      }
+    }
+  },
+  {
+    "title": "I Tracked Every LLM API Call For a Week — 65% Were Unnecessary",
+    "slug": "tracked-every-llm-api-call-week-65-percent-unnecessary",
+    "url": "https://dev.to/noahbatish/i-tracked-every-llm-api-call-for-a-week-65-were-unnecessary-5h9f",
+    "source": "DEV Community",
+    "date": "2026-04-20T12:23:31.000Z",
+    "summary": "A developer tracking LLM API calls discovered 65% were unnecessary, typically for lookups solvable through local code search. Extrapolated to typical usage, this wasteful pattern could cost ~$100/month per developer.",
+    "content": "I've been using GPT-5 and Claude via API for coding tasks — refactoring, code review, architecture questions, debugging. The bill was creeping past $150/month and I had no idea which calls were actually worth the money.\nProvider dashboards show you totals. Tokens used, dollars spent, done. But they don't tell you which specific calls were unnecessary. Was that $2.80 request for \"where is the auth middleware\" really worth sending to GPT-4o?\nSo I built a tracker to find out.\nI wrote a small Python library called llm-costlog that wraps around any LLM API call and records:\nTokens used (prompt + completion)\nCost in USD (built-in pricing for 40+ models)\nRoute — did this go to the API, or was it handled locally?\nIntent — what kind of request was this? (code lookup, architecture question, debugging, etc.)\nFive lines to integrate:\nfrom llm_cost_tracker import CostTracker\n\ntracker = CostTracker(\"./costs.db\")\n\ntracker.record(\n    prompt_tokens=847,\n    completion_tokens=234,\n    model=\"gpt-4o-mini\",\n    provider=\"openai\",\n    intent=\"code_lookup\",\n)\n\nAfter a week of tracking everything, I ran the waste analysis.\nTotal cost: $0.2604\n**65% of my external API calls were for things that didn't need an LLM at all. Symbol lookups, config checks, \"where is this function defined,\" file searches. Stuff that can be answered by searching the codebase directly.\nThis was from a small test run. The dollar amounts are tiny because the test used short prompts. But the ratio is what matters — at real-world usage with large contexts (2K-8K tokens per request, which is typical for code work), that 65% avoidable rate translates to serious money. If you're spending $150/month on LLM APIs and 65% of calls are avoidable, that's ~$100/month in waste.\nKnowing the waste exists is step one. Fixing it automatically is step two.\nSo I built promptrouter — a gateway that sits between your code and the LLM API. For every prompt, it decides:\nCan this be answered locally? Symbol lookups, config checks, file se",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我追踪了一周的所有LLM API调用——65%毫无必要",
+        "summary": "一名开发者追踪LLM API调用发现，其中65%属于不必要，通常是可通过本地代码搜索解决的查询。根据典型使用情况推算，这种浪费模式每个开发者每月可能需花费约100美元。"
+      }
+    }
+  },
+  {
+    "title": "Building an AI companion with persistent memory — Redis + ChromaDB",
+    "slug": "building-ai-companion-persistent-memory-redis-chromadb",
+    "url": "https://dev.to/sm1ck/building-an-ai-companion-with-persistent-memory-redis-chromadb-4i8k",
+    "source": "DEV Community",
+    "date": "2026-04-20T12:16:42.000Z",
+    "summary": "This architecture uses Redis for recent messages and ChromaDB for semantic recall of summarized conversation chunks, enabling long-term contextual memory while minimizing token usage through efficient summary storage.",
+    "content": "📦 Full runnable example: github.com/sm1ck/honeychat/tree/main/tutorial/01-memory — clone, docker compose up, chat with the demo bot on Telegram. Every code snippet below is pulled from that repo.\nMost AI chatbots still struggle with reliable, queryable long-term recall. Character.AI has pinned and chat memories, but unpinned details can still fall out of the active conversation context. Replika remembers profile facts, preferences, and generated memories, but that is not the same as semantic recall over the full conversation. Even ChatGPT's Memory is built for useful preferences and details, not verbatim replay of long sessions.\nI wanted a chat companion with practical persistent memory — not just the current conversation, but older facts and events surfaced when they matter. Here's the architecture that worked well for this use case.\nHot layer (Redis) — recent messages per conversation, short TTL, low-latency reads.\nCold layer (ChromaDB) holds summaries of chunks, not individual messages. Every N bot turns, a background task summarizes that window via a cheap LLM and stores the summary as a document. Keeps the vector index tiny, queries fast.\nOn every user message, three retrieval paths fire in parallel via asyncio.gather: recent buffer, latest summary, top-K semantic search. All three get assembled into the system prompt.\nResult: substantially fewer tokens than full-history replay, while still making old context retrievable weeks later.\nBefore the architectural deep-dive, boot the demo so you can poke the memory layers live.\n1. Clone and enter the folder\ngit clone https://github.com/sm1ck/honeychat\ncd honeychat/tutorial/01-memory\n\n2. Configure two tokens\ncp .env.example .env\n\nOpen .env and fill:\nTELEGRAM_BOT_TOKEN — get it from @BotFather (30 seconds: /newbot, pick a name, copy the token)\nOPENROUTER_API_KEY — from openrouter.ai/keys. The default LLM_MODEL is a free-tier Llama 3.1 8B so you don't spend a cent.\n3. Start the stack\ndocker compose up --build -d\ndocker",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用 Redis 和 ChromaDB 构建具有持久记忆的 AI 伴侣",
+        "summary": "该架构使用 Redis 存储最近的消息，使用 ChromaDB 进行总结对话块的语义回忆，在最小化 Token 使用的同时启用长期上下文记忆。"
+      }
+    }
+  },
+  {
+    "title": "The Oracle MOS Shortcut: A Life-Saver for P1 Issues",
+    "slug": "oracle-mos-shortcut-life-saver-p1-issues",
+    "url": "https://dev.to/abhilash8/the-oracle-mos-shortcut-a-life-saver-for-p1-issues-563m",
+    "source": "DEV Community",
+    "date": "2026-04-20T12:14:50.000Z",
+    "summary": "A direct URL structure bypasses slow Oracle MOS dashboard navigation, allowing DBAs to jump instantly to Service Requests during P1 production incidents and set auto-refresh for real-time update monitoring.",
+    "content": "{ Abhilash Kumar Bhattaram :  Follow on LinkedIn }\nIf you’ve ever worked on a Priority 1 (P1) \"Production Down\" event ( which most of us DBA's would have) , you know that every second counts. Navigating through the My Oracle Support (MOS) dashboard can feel like running through sand when you're stressed—the widgets take time to load, the tabs can be laggy, and searching for an SR ID manually is a click-heavy chore. There is a much better way. \nBy using a direct-link utility, you can jump straight to your Service Request (SR) from your browser address bar or a chat window.\nMOS SR works on a X-XXXXXXXXXX ( single_digit-hyphen_ten_digit )\nTo bypass the standard navigation and go straight to the SR details, use this URL structure:\n\nhttps://support.oracle.com/ic/builder/rt/customer_portal/live/webApps/customer-portal/?SR=X-XXXXXXXXXX\n\n\nPS : I found this accidentally while working on numerous SR's , this works well for Open and closed SR's\nHow to use it:\nZero Dashboard Latency\n\n\nWar Room Coordination\n\n\nEffortless Re-Authentication\n\n\n\nOracle MOS sessions eventually timeout. Usually, this means being kicked back to the login screen and then dumped on the homepage, forcing you to find your SR all over again. If your session expires, clicking this direct link will take you to the SSO login page, and once you authenticate, it will redirect you straight back to the SR. No lost context.\nDuring a P1, you are often waiting with bated breath for an update from an Oracle engineer. Manually hitting F5 every 30 seconds is a distraction you don't need.\nOpen your SR using the direct link.\nUse a Browser Refresh Extension that suits your browser\nSet a tab to auto-refresh every 2 to 5 minutes.\nBy keeping this \"Live\" tab on a second monitor, you can focus on logs or troubleshooting, knowing that the moment the Oracle engineer posts an update, it will appear on your screen without you lifting a finger.\nIn the world of Oracle Support, efficiency is king. Bookmark this URL structure or set up",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Oracle MOS 快捷方式：P1 问题的救星",
+        "summary": "直接的 URL 结构绕过缓慢的 Oracle MOS 仪表板导航，允许 DBA 在 P1 生产事件期间直接跳转到服务请求，并设置自动刷新进行实时监控。"
+      }
+    }
+  },
+  {
+    "title": "Confused between Routing APIs and Route Optimization APIs? This guide breaks down the difference with clear examples, a side-by-side comparison, and when to use each in real applications.",
+    "slug": "routing-apis-vs-route-optimization-apis-comparison",
+    "url": "https://dev.to/geoapify/confused-between-routing-apis-and-route-optimization-apis-this-guide-breaks-down-the-difference-1gp5",
+    "source": "DEV Community",
+    "date": "2026-04-20T12:12:12.000Z",
+    "summary": "Routing APIs calculate paths between predefined waypoints returning geometry and timing, while Route Optimization APIs determine the most efficient order of multiple stops without necessarily providing full route details.",
+    "content": "What Is the Difference Between a Routing API and a Route Optimization API?\n\n\n  \nAlfiya Tarasenko\n                    \n                  \n\n                \n for Geoapify Maps API\n            \n          \nApr 20\n        \n#api\n            #maps\n            #routing\n            #appdev\n        \nAdd Comment\n            \n        \n        \n          \n            4 min read",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Routing API 与路由优化 API 傻傻分不清？本指南通过清晰示例、对比和实际应用场景来区分两者",
+        "summary": "Routing API 计算预定义路点之间的路径，返回几何和时间，而路由优化 API 确定多个站点的最有效顺序，但不一定提供完整路由细节。"
+      }
+    }
+  },
+  {
+    "title": "What Is the Difference Between a Routing API and a Route Optimization API?",
+    "slug": "difference-routing-api-route-optimization-api",
+    "url": "https://dev.to/geoapify-maps-api/what-is-the-difference-between-a-routing-api-and-a-route-optimization-api-17ol",
+    "source": "DEV Community",
+    "date": "2026-04-20T12:11:30.000Z",
+    "summary": "Routing APIs calculate paths between predefined points returning geometry and travel time, while Route Optimization APIs determine the most efficient stop ordering across multiple vehicles for logistics applications.",
+    "content": "If you're building a map-based or logistics application, you’ll likely come across two terms that sound very similar: Routing API and Route Optimization API.\nAt first glance, they may seem interchangeable. Both deal with routes, distances, and travel time. But in practice, they solve very different problems.\nA routing API calculates the path between given points and returns the actual route (geometry, distance, time)\n\nA route optimization API determines the most efficient order of stops, without necessarily returning full route geometry\n\n\n\nFor example, a routing service like the Geoapify Routing API helps you build directions from point A to point B, from B to C, and so on — following a predefined order. \nIn contrast, the Geoapify Route Optimization API is designed to organize multiple stops — even across multiple vehicles — into the most efficient routes.\nIn this article, we’ll break down the difference step by step, compare how each API works, and show when to use one over the other.\nA routing API is used to calculate the path between locations in a predefined order.\n\nYou provide a list of waypoints, and the API returns the route that connects them — including distance, estimated travel time, and often turn-by-turn instructions.\nWorks with a fixed sequence of points (A → B → C)\n\nReturns full route geometry (coordinates for map display)\n\nProvides distance and travel time\n\nCan include turn-by-turn navigation instructions\n\nSupports different travel modes (driving, walking, cycling, etc.)\n\nAllows avoiding specific route parts (tolls, highways, ferries, etc.)\n\nCan provide additional details like road type, surface, and other route attributes \nShowing directions from a user’s location to a destination\n\nDisplaying a route on a map\n\nBuilding navigation features in apps\n\n\n\n\n  \n  \n  Try it yourself\n\n\nYou can test routing requests in the. Geoapify API Playground: enter a few waypoints and see how the API builds a route step by step.\nA route optimization API is designed to fi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "路由API和路由优化API有什么区别?",
+        "summary": "路由API计算预定点之间的路径，返回几何和行驶时间，而路由优化API则为物流应用确定多辆车辆间最有效的停靠点顺序。"
+      }
+    }
+  },
+  {
+    "title": "Testing your routes",
+    "slug": "testing-your-routes-go-unit-testing-guide",
+    "url": "https://dev.to/alcb1310/testing-your-routes-3582",
+    "source": "DEV Community",
+    "date": "2026-04-20T12:09:38.000Z",
+    "summary": "This Go testing guide demonstrates unit testing route handlers using testify for cleaner assertions and mockery to simulate database connections, replacing verbose manual test logic with maintainable code.",
+    "content": "If you've been following this tutorial, you'd have the following file structure:\n\nWith unit testing we just want to verify that the tested functions work as expected in isolation, so we will mock database behavior. I like having the tests I write next to the files where the functions reside.\npackage router_test\n\nimport \"testing\"\n\nfunc TestHealthRoute(t *testing.T) {\n    a := true\n    if a {\n        t.Log(\"a is true\")\n        t.Fail()\n    }\n}\n\nTo run the tests, you have to execute the following command:\ngo test ./...\n\nWith the test we wrote we will expect the following:\n\nLets fix the previous test so it is a successful test\npackage router_test\n\nimport \"testing\"\n\nfunc TestHealthRoute(t *testing.T) {\n    a := false\n    if a {\n        t.Log(\"a is true\")\n        t.Fail()\n    }\n}\n\nAfter running the test, this is what we've got\n\nNow that we've seen what a failing and successful test look like lets continue with the process.\nThe method to perform checks in our test works, but it is to verbose in my opinion, luckily there is a library that helps us with that\ngo get github.com/stretchr/testify\n\nNow that we have the testing library, the code we had before will look like the following:\npackage router_test\n\nimport (\n    \"testing\"\n\n    \"github.com/stretchr/testify/assert\"\n)\n\nfunc TestHealthRoute(t *testing.T) {\n    a := true\n    assert.Equal(t, a, false)\n}\n\nAnd its output will be:\n\nWith this library we gain two main things:\nAn easier to read code\nA more understandable test results\nA successful running test will look the same as before.\nWith what we've got at the moment, we don't have all the tools to test the router, unless we have a database for testing purposes only. There is an application in Go called mockery that we will use to simultate the connection. \nTo install we need to run:\ngo install github.com/vektra/mockery/v2@2.53.6\n\nThis will install mockery to our system, to check if it is working properly\nmockery --version\n\nTo setup mockery we need to create a configuration fil",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "测试你的路由",
+        "summary": "这个Go测试指南演示了如何使用testify进行更清洁的断言和使用mockery模拟数据库连接来对路由处理程序进行单元测试，用可维护的代码替换冗长的手动测试逻辑。"
+      }
+    }
+  },
+  {
+    "title": "Why Most Developers Lose Downloads by Skipping App Store Localization",
+    "slug": "why-developers-lose-downloads-skipping-app-store-localization",
+    "url": "https://dev.to/datakaz/why-most-developers-lose-downloads-by-skipping-app-store-localization-fnb",
+    "source": "DEV Community",
+    "date": "2026-04-20T12:06:27.000Z",
+    "summary": "72% of App Store revenue comes from non-English markets, yet most developers ship single-language listings. One productivity app saw downloads increase 4x after localizing into eight languages, with no other changes.",
+    "content": "War Diary Entry // Article 2: PAIN\nDate: April 20, 2026. Status: Frontline Report. Subject: The silent casualty count of unlocalized app store listings.\n0300 hours. The dashboard glows cold in the dark. You refresh the numbers again, hoping the algorithm will finally notice your app. It won't. Not like this.\nI have watched hundreds of developers march into the App Store with a single-language listing and return with casualty reports they don't fully understand. They blame the algorithm. They blame Apple. They blame the market. They never blame the fact that their app is screaming into a room where 72% of the occupants don't speak English.\nThe App Store spans 175 regions and supports over 40 languages. Yet most developers ship one listing, in one language, and wonder why their download graph looks like a flatline on a heart monitor.\nLet me walk you through the trenches.\nHere is the brutal arithmetic that most teams refuse to face. According to Distimo and subsequent App Annie data, 72% of App Store revenue comes from markets where English is not the primary language. Let that sink in. Nearly three quarters of the purchasing power sits behind language barriers you chose not to cross.\nI remember a mid-tier productivity app that launched in early 2024. English only. 12,000 downloads in the first month across all markets. Six weeks later, they localized into eight languages. Downloads jumped to 47,000. Same app. Same features. Same screenshots. The only variable was language.\nKey Takeaway: If your listing speaks only English, you are not competing in 72% of the revenue-generating territory on the App Store. You are conceding it without a fight.\nThe pattern repeats across categories. Games. Finance. Health. The territory you abandon is not empty. It is occupied by competitors who bothered to translate their metadata.\nLet me show you the body count in precise numbers.\nAn app ranked in the top 100 for a keyword in the United States might see 500 to 800 organic impressions p",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么大多数开发者因跳过应用商店本地化而失去下载",
+        "summary": "72%的应用商店收入来自非英语市场，但大多数开发者只发布单语言列表。一款生产力应用在本地化为八种语言后，下载量增加了4倍，没有其他任何变化。"
+      }
+    }
+  },
+  {
+    "title": "Mastering Regular Expressions in Go",
+    "slug": "mastering-regular-expressions-go-guide",
+    "url": "https://dev.to/meroline_lizlent_0199c1e2/mastering-regular-expressions-in-go-53en",
+    "source": "DEV Community",
+    "date": "2026-04-20T12:05:28.000Z",
+    "summary": "Go's regexp package using the RE2 engine provides production-ready regex with methods for pattern compilation, string matching, substring extraction, and both numbered and named capture group support.",
+    "content": "Go has an inbuilt regexp package which supports regular expression by the RE2 engine. This is because of this single and self-sufficient design choice, Go regexps are safe, predictable and production-ready.\n1. Compile vs MustCompile\n*regexp.Regexp. Two functions handle this:\n// Compile → returns an error. Use for dynamic / user-supplied patterns.\nre, err := regexp.Compile(`\\d{3}-\\d{4}`)\nif err != nil {\n    log.Fatal(\"invalid pattern:\", err)\n}\n\n// MustCompile → panics on invalid pattern. Use for known-good package-level vars.\nvar phoneRe = regexp.MustCompile(`\\d{3}-\\d{4}`)\n\n// Invalid pattern example\n_, badErr := regexp.Compile(`[invalid`)\n// error parsing regexp: missing closing ]: `[invalid`\n\n\n2. Basic Matching\nvar digitRe = regexp.MustCompile(`\\d+`)\n\ntext := \"Order #4821 placed on 2024-06-15, total: $99.99\"\n\nfmt.Println(digitRe.MatchString(text))      // true\nfmt.Println(digitRe.FindString(text))       // \"4821\"\nfmt.Println(digitRe.FindAllString(text, -1)) // [4821 2024 06 15 99 99]\nfmt.Println(digitRe.FindAllString(text, 2))  // [4821 2024]  (first 2)\n\n3. Positional (Index) Matching\nloc := digitRe.FindStringIndex(text)\n// loc = [7, 11]  →  text[7:11] = \"4821\"\n\nallLocs := digitRe.FindAllStringIndex(text, -1)\n// [[7 11] [22 26] [27 29] [30 32] [42 44] [45 47]]\n\n\nCapture Groups (Numbered)\nUse FindStringSubmatch to get the full match plus all capture group contents. Index 0 is always the full match.\n\n\n\n\nvar ipRe = regexp.MustCompile(`(\\\\d{1,3})\\\\.(\\\\d{1,3})\\\\.(\\\\d{1,3})\\\\.(\\\\d{1,3})`)\n\nm := ipRe.FindStringSubmatch(\"Server: 192.168.1.42\")\n// m[0] = \"192.168.1.42\"   (full match)\n// m[1] = \"192\"             (group 1)\n// m[2] = \"168\"             (group 2)\n// m[3] = \"1\"               (group 3)\n// m[4] = \"42\"              (group 4)\n\n// FindAllStringSubmatch — all matches with their groups\nallMatches := ipRe.FindAllStringSubmatch(input, -1)\n\n5. Named Capture Groups\nvar dateRe = regexp.MustCompile(\n    `(?P<year>\\\\d{4})-(?P<month>\\\\d{2})-(?P<day>\\\\d{2})`)\n\nfunc ParseDate(s s",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "掌握Go中的正则表达式",
+        "summary": "Go的regexp包使用RE2引擎提供生产级正则表达式，支持模式编译、字符串匹配、子字符串提取以及编号和命名捕获组的方法。"
+      }
+    }
+  },
+  {
+    "title": "Deep Agents: Building Long-Running Autonomous Agents with LangChain's New Framework",
+    "slug": "deep-agents-long-running-autonomous-agents-langchain",
+    "url": "https://dev.to/richard_dillon_b9c238186e/deep-agents-building-long-running-autonomous-agents-with-langchains-new-framework-1bpn",
+    "source": "DEV Community",
+    "date": "2026-04-20T12:03:14.000Z",
+    "summary": "LangChain's Deep Agents framework enables autonomous agents spanning hours with planning loops, persistent memory, and sub-agent delegation—supporting complex workflows like code review pipelines and multi-stage research synthesis.",
+    "content": "Deep Agents: Building Long-Running Autonomous Agents with LangChain's New Framework\n\n\nThe era of single-turn, reactive agents is ending. As engineering teams push toward workflows that span hours instead of seconds—internal coding pipelines, multi-stage research synthesis, iterative design systems—the limitations of flat tool-calling architectures become painfully obvious. You cannot orchestrate a code review that spawns test generation, runs CI, waits for human approval, and then deploys without a fundamentally different approach to agent architecture. LangChain's Deep Agents framework, announced alongside Deep Agents Deploy in March 2026, represents the clearest attempt yet to provide production-grade abstractions for this class of problem.\nThis isn't just another wrapper. Deep Agents introduces a layered architecture where planning loops, persistent memory, and sub-agent delegation are first-class concerns—not afterthoughts bolted onto a ReAct loop. The framework sits deliberately above LangGraph (which gives you fine-grained state machine control) and the standard LangChain abstractions (which optimize for quick iteration). If you're building agents that need to survive restarts, coordinate specialized sub-agents, and maintain coherent long-term memory across sessions, this is the stack to understand.\nThe use cases driving adoption are telling: Open SWE for internal coding agents that autonomously fix bugs across repositories, GTM workflow automation that coordinates across CRM systems and communication channels, and design iteration systems like the Moda case study where agents loop through revision cycles with human feedback gates. In this deep-dive, we'll dissect the architecture, walk through the key APIs, examine deployment considerations, and build a working research-then-draft agent from scratch.\nThe Deep Agents framework rests on three architectural pillars that distinguish it from simpler agent implementations: planning loops that decompose goals into t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "深度代理：使用LangChain新框架构建长期运行的自主代理",
+        "summary": "LangChain的Deep Agents框架支持跨越数小时的自主代理，具有规划循环、持久化内存和子代理委派—支持复杂工作流程，如代码审查管道和多阶段研究综合。"
+      }
+    }
+  },
+  {
+    "title": "TechDistill: A Low-Noise AI Information Extraction Workflow Run with GitHub Actions",
+    "slug": "techdistill-low-noise-ai-information-extraction",
+    "url": "https://dev.to/junstinlee/techdistill-a-low-noise-ai-information-extraction-workflow-run-with-github-actions-3f2l",
+    "source": "DEV Community",
+    "date": "2026-04-20T12:03:04.000Z",
+    "summary": "TechDistill automatically aggregates trending projects from GitHub, Hugging Face, and Product Hunt using AI, delivering daily summaries while running entirely on GitHub Actions for ~$3/year with zero maintenance.",
+    "content": "As a developer, I've long suffered from developer information overload. I want to keep up with the latest tech trends on GitHub, Hugging Face, and Product Hunt, but I invariably end up wasting hours filtering out the fluff. I tried RSS feed alternatives and various content aggregators, but they merely turned \"doomscrolling Twitter\" into \"clearing hundreds of unread links\"—treating the symptoms, not the root cause.\nTo save my attention span, I built TechDistill ,  an automated AI summary tool written in Python.\nSimply put, I hired a tireless AI assistant. Every day, it goes straight to the sources to scrape trending projects, scrubs away the messy code and marketing jargon, and tells me exactly \"what this thing actually is\" in plain English.\nI've now completely quit endless tech news feeds. I just spend 3 minutes over my morning coffee skimming the \"Daily Overview,\" diving into the detailed reports only if something catches my eye.\nBest of all, the entire workflow relies on serverless automation with GitHub Actions. It requires zero server maintenance, and running this automated daily execution for a whole year costs just $3.\nThis minimalist, low-noise AI automated workflow has been running stably for over 10 days. Today, I want to share how it was built. Even if you're not a professional programmer, you’ll find it easy to follow.\nBefore firing up this \"information distillery,\" we first need to secure data access permissions and configure them locally or in the cloud. We need to obtain Access Tokens for GitHub, Hugging Face, and Product Hunt, alongside an OpenRouter API key for calling Large Language Models (LLMs).\nFor security purposes, these sensitive credentials cannot be hardcoded into the script. They must be safely protected by setting up environment variables.\n\nThink of it like building a fully automated digital alchemy factory: First, you must issue \"mining permits\" (Access Tokens) to your automated mining vehicles and mandate exactly where these confidential",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "TechDistill：低噪音AI信息提取工作流，运行在GitHub Actions上",
+        "summary": "TechDistill使用AI自动从GitHub、Hugging Face和Product Hunt聚合热门项目，提供每日摘要，完全在GitHub Actions上运行，年成本约3美元，无需维护。"
+      }
+    }
+  },
+  {
+    "title": "GitHub's Fake Star Economy",
+    "slug": "github-fake-star-economy-investigation",
+    "url": "https://awesomeagents.ai/news/github-fake-stars-investigation/",
+    "source": "Hacker News",
+    "date": "2026-04-20T08:26:52.000Z",
+    "summary": "An investigation into the market for fake GitHub stars reveals how automated systems artificially inflate repository popularity, undermining the platform's credibility as a measure of project quality and adoption.",
+    "content": "Article URL: https://awesomeagents.ai/news/github-fake-stars-investigation/\nComments URL: https://news.ycombinator.com/item?id=47831621\nPoints: 246\n# Comments: 154",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "GitHub 的虚假星标经济",
+        "summary": "对虚假 GitHub 星标市场的调查揭示了自动化系统如何人为地夸大项目受欢迎程度，削弱平台作为项目质量和采用情况衡量标准的可信度。"
+      }
+    }
+  },
+  {
     "title": "Anthropic Just Passed OpenAI in Revenue. Here's What Actually Built That Lead.",
     "slug": "anthropic-overtakes-openai-revenue",
     "url": "https://dev.to/om_shree_0709/anthropic-just-passed-openai-in-revenue-heres-what-actually-built-that-lead-2kmo",
