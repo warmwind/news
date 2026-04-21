@@ -1,5 +1,197 @@
 [
   {
+    "title": "Your MediatR Command Just Lost an Email. Here's Why.",
+    "slug": "mediatr-command-lost-email",
+    "url": "https://dev.to/jfmeyers/your-mediatr-command-just-lost-an-email-heres-why-24pg",
+    "source": "DEV Community",
+    "date": "2026-04-21T06:40:05.000Z",
+    "summary": "MediatR is an in-process command dispatcher that doesn't handle transactional side effects or retries—when an SMTP timeout causes a transaction rollback, the card is already charged but the email never sends, leaving customers stranded. The pattern works for simple write operations but fails for workflows requiring separated concern boundaries, post-commit notifications, or failure resilience across systems.",
+    "content": "You ship a CheckoutCommand. It writes an Order, charges the card, then calls _mediator.Publish(new OrderPlaced(...)) which fires off SendConfirmationEmailHandler and NotifyWarehouseHandler.\nA week later, support pings you: a customer was charged, sees the order in their history, but never got a confirmation email. The warehouse has no record either. You dig into the logs.\n[18:42:13] INF  Order 4f2a... created\n[18:42:14] INF  Payment captured\n[18:42:15] ERR  SMTP timeout (System.Net.Sockets.SocketException)\n[18:42:15] ERR  Unhandled: OrderPlaced handler failed\n[18:42:15] WRN  Transaction rolled back\n\nThe SMTP call threw inside the same using var tx = ... block as your DB writes. The transaction rolled back. The payment provider does not care about your transaction — the card was already charged. You now owe the customer either a refund or a manual fix, and the only reason you know is because they emailed you.\nThis is not a MediatR bug. MediatR did exactly what it promises. The bug is that the pattern you picked doesn't match the job. Let me show you what does.\nRead the MediatR source. It's about 400 lines. What it actually does:\n// Pseudocode of MediatR.Send\nvar handler = serviceProvider.GetRequiredService<IRequestHandler<T, R>>();\nreturn await handler.Handle(request, cancellationToken);\n\nThat's the whole value proposition. A dictionary lookup plus a method call, wrapped in a pipeline. In-process. Same thread. Same transaction. Same exception path.\nThe things you assumed you were getting — the things the term \"CQRS bus\" implies — MediatR does not do:\nPersist the command so it survives a pod kill\nRetry transient failures with backoff\nDispatch the side effect after the DB transaction commits\nSchedule work for later\nCross module or service boundaries\nDead-letter poison messages\nPropagate tenant / user / trace context across async hops\nEvery single one of those is exactly what you need the moment your command does anything other than \"write one row and return\". SMTP, web",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的 MediatR 命令为什么丢失了一封邮件？",
+        "summary": "MediatR 是一个进程内命令调度器，不处理事务副作用或重试——当 SMTP 超时导致事务回滚时，卡已经被扣款但电子邮件未发送，使客户陷于困境。该模式适用于简单的写操作，但对于需要分离关注点边界、事后提交通知或跨系统故障复原的工作流程来说效果不佳。"
+      }
+    }
+  },
+  {
+    "title": "MCP Server Kubernetes Deployment — Surviving the 52% Death Rate",
+    "slug": "mcp-kubernetes-deployment-death-rate",
+    "url": "https://dev.to/jangwook_kim_e31e7291ad98/mcp-server-kubernetes-deployment-surviving-the-52-death-rate-1h2m",
+    "source": "DEV Community",
+    "date": "2026-04-21T06:38:23.000Z",
+    "summary": "An April 2026 survey found 52% of remote MCP endpoints completely dead, with root causes being abandoned deployments, expired credentials, and serverless cold starts. The article explains best practices for keeping MCP servers alive in production, focusing on Kubernetes deployment with proper credential rotation, monitoring, and avoiding serverless pitfalls.",
+    "content": "Last month I was connecting a few external MCP servers and noticed something odd. READMEs had \"stable\" tags, GitHub star counts in the hundreds — yet hitting /mcp just dropped the connection. I figured it was my config at first. Then another server, then another. Same result.\nTurns out it wasn't just me. An April 2026 scan of 2,181 remote MCP endpoints found 52% completely dead, with only 9% fully healthy. The rest responded but weren't actually usable.\nI went through why MCP servers die so often and put together what I've learned about keeping mine alive.\nThree root causes account for most dead endpoints.\nAbandoned servers — Someone builds a toy project, deploys it, forgets about it. API keys expire or upstream services change and nobody notices. The process is alive, the responses are errors.\nCredential problems — Astrix analyzed over 5,200 MCP server implementations. 88% require credentials to operate, yet 53% rely on long-lived API keys or Personal Access Tokens. When a key rotates, the server breaks silently. Only 8.5% use OAuth.\nServerless cold starts — MCP servers on AWS Lambda or Google Cloud Functions spin down when idle. If the first response doesn't come back within the default timeout (30 seconds), clients consider the server dead.\nIf you're running an MCP server, you're probably exposed to at least one of these already.\nThis guide assumes a FastMCP (Python) server. Building an MCP server from scratch is covered in a previous post — this one focuses entirely on deployment.\nWhat you need:\nKubernetes cluster (1.28+)\nkubectl + helm installed\nA container registry (Docker Hub, ECR, GCR, etc.)\nMCP server source code (FastMCP, uvicorn-compatible)\nNo cluster? Use kind or minikube locally.\nBefore deploying, clean up the container image. These are the things that get skipped most often.\nFROM python:3.12-slim\n\n# Security: don't run as root\nRUN groupadd -r mcpuser && useradd -r -g mcpuser mcpuser\n\nWORKDIR /app\n\n# Pin dependencies — this matters more than anything el",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "MCP 服务器 Kubernetes 部署——在 52% 故障率下存活",
+        "summary": "2026 年 4 月的一份调查发现 52% 的远程 MCP 端点完全无法使用，根本原因是被遗弃的部署、过期的凭证和无服务器冷启动。该文章解释了在生产环境中保持 MCP 服务器活跃的最佳实践，重点关注 Kubernetes 部署、适当的凭证轮换、监控和避免无服务器陷阱。"
+      }
+    }
+  },
+  {
+    "title": "Postgres MCP in Go - Giving Claude Code a Live Line to Your Database",
+    "slug": "postgres-mcp-go-claude-database",
+    "url": "https://dev.to/akshay_gupta/postgres-mcp-in-go-giving-claude-code-a-live-line-to-your-database-1m7m",
+    "source": "DEV Community",
+    "date": "2026-04-21T06:36:13.000Z",
+    "summary": "A new Go-based MCP server integrates Claude Code directly with PostgreSQL, enabling AI assistants to run EXPLAIN queries, analyze slow workloads, and recommend indexes without manual SQL copying. The single ~15 MB binary requires no Python runtime and includes nine tools for schema exploration, query analysis, and health checks.",
+    "content": "Introduction\n\n\nCopy-pasting SQL from a chat window into a DB client and back again is how most \"AI + database\" workflows actually feel. 🙃 It breaks flow, loses context, and the assistant never sees your real schema - so it guesses.\nThe Model Context Protocol fixes that by letting an AI assistant speak to tools over a standard channel. This project is a Go MCP server that plugs Claude Code (or Cursor) directly into a live PostgreSQL database. Ask \"why is this query slow?\" and the assistant can actually run EXPLAIN ANALYZE, peek at pg_stat_statements, and even simulate an index with hypopg before you ever touch the schema.\nIt's inspired by the excellent Python crystaldba/postgres-mcp, reimplemented from scratch in Go so the whole thing ships as a single ~15 MB static binary - no Python runtime, no CGo, no system libs to chase down.\nThe server exposes nine tools over MCP. The assistant picks whichever fits the question:\n\n\n\nTool\nWhat the AI can do with it\n\n\n\n\n\nlist_schemas / list_objects / get_object_details\n\nUnderstand your real tables, columns, indexes, constraints\n\n\nexecute_sql\nRun arbitrary SQL (read-only when started in restricted mode)\n\n\nexplain_query\n\nEXPLAIN (ANALYZE) a query, optionally with a hypothetical index\n\n\nget_top_queries\nPull the slowest queries from pg_stat_statements\n\n\n\nanalyze_workload_indexes\nRecommend indexes from real workload via a DTA greedy algorithm\n\n\nanalyze_query_indexes\nSame, but for an explicit list of queries you care about\n\n\nanalyze_db_health\nParallel health checks: vacuum, XID wraparound, connections, sequences, replication lag, buffer cache, invalid indexes\n\n\n\nTranslated into actual conversations, that means you can just say things like:\n\"Show me the 10 slowest queries right now, then simulate adding an index on orders(user_id, status) and tell me if it would help.\"\n…and the assistant does the work instead of handing you a snippet to paste.\n\nZooming into the server itself, each layer has one job:\nTransport - two MCP transports are su",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Postgres MCP in Go - 让 Claude Code 直接访问你的数据库",
+        "summary": "一个新的基于 Go 的 MCP 服务器将 Claude Code 直接集成到 PostgreSQL，使 AI 助手能够运行 EXPLAIN 查询、分析缓慢的工作负载并推荐索引，无需手动复制 SQL。这个约 15 MB 的二进制文件不需要 Python 运行时，包含九个用于架构探索、查询分析和健康检查的工具。"
+      }
+    }
+  },
+  {
+    "title": "After 34 Dev.to Posts: What My \"Second Brain\" Project Really Taught Me About Failure",
+    "slug": "second-brain-project-failure-lessons",
+    "url": "https://dev.to/kevinten10/after-34-devto-posts-what-my-second-brain-project-really-taught-me-about-failure-2bib",
+    "source": "DEV Community",
+    "date": "2026-04-21T06:34:51.000Z",
+    "summary": "The author spent 1,847 hours building an AI-powered knowledge management system (Papers) but achieved only a 2.9% efficiency rate—reading 84 of 2,847 saved articles—and earned just 6 GitHub stars. The failure taught that complex, over-engineered systems with fancy AI features often create worse problems than they solve, and simpler approaches work better.",
+    "content": "After 34 Dev.to Posts: What My \"Second Brain\" Project Really Taught Me About Failure\n\n\nYou know that moment when you look at your GitHub stars and realize you've spent 1,847 hours on a project with only 6 stars? Yeah, that's me staring at Papers right now. After writing 34 articles about this thing, I think it's time for some brutal honesty.\nLet me take you back to 2024. I had this brilliant idea: \"I'll build a personal knowledge base that uses AI to organize all my notes!\" I envisioned this beautiful system where I could dump random thoughts, code snippets, and research papers, and the AI would magically connect everything into some kind of \"second brain.\"\nThe reality? I now have 2,847 articles saved and only 84 that I've actually read. That's a 2.9% efficiency rate. If I were running a business, I'd be bankrupt with numbers like that.\nHonestly? I feel like a complete idiot. I built this complex AI-powered system, spent countless hours tuning algorithms, and what did I accomplish? I created the world's most expensive digital hoarding problem.\nLet me break down the cold, hard numbers:\nTotal hours invested: 1,847 hours\nArticles saved: 2,847 \nArticles actually read: 84\nEfficiency rate: 2.9%\nFinancial ROI: -99.4%\nGitHub stars: 6\nIf I were to charge my consulting rate for those 1,847 hours, I'd be looking at over $200,000. And what do I have to show for it? A system that's essentially a digital landfill with a fancy AI label.\nHere's the kicker: I'm actually proud of this failure. Why? Because it taught me something valuable about software development that I never learned from all those \"successful\" projects.\nMy first version of Papers was this monster:\nNeo4j graph database for relationships\nRedis caching for performance\n\nSpring Boot backend with REST APIs\nAI-powered content analysis\nComplex tagging system with ML algorithms\nThe result? It took me 15 minutes just to add a simple note. The AI kept suggesting stupid connections like \"This Java code snippet is related to qu",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "34篇Dev.to文章后：我的\"第二大脑\"项目真正教会我关于失败的一切",
+        "summary": "作者花费1,847小时构建了一个AI驱动的知识管理系统（Papers），但仅实现了2.9%的效率——在保存的2,847篇文章中只阅读了84篇——并只获得了6个GitHub星。这个失败教会人们，复杂、过度设计的系统以及花哨的AI功能往往会创造比解决的问题更多的问题，而更简单的方法反而效果更好。"
+      }
+    }
+  },
+  {
+    "title": "Best Arcade.dev alternatives for AI agent integrations in 2026",
+    "slug": "arcade-dev-alternatives-ai-agent-2026",
+    "url": "https://dev.to/nangohq/best-arcadedev-alternatives-for-ai-agent-integrations-in-2026-c1e",
+    "source": "DEV Community",
+    "date": "2026-04-21T06:34:25.000Z",
+    "summary": "Arcade.dev is an MCP runtime for AI agents that excels at tool calls and OAuth, but production systems need more: Nango covers the full integration stack with data syncs and webhooks; Composio offers more pre-built tools but lacks data-sync capabilities; teams should choose based on their actual integration surface, not just tool-calling needs.",
+    "content": "TL;DR\n\n\nArcade.dev is an MCP runtime that executes authenticated tool calls for AI agents. It works well for MCP-first teams that need a hosted runtime and user-scoped auth. But production AI agents usually need more than tool calls: continuous data syncs for RAG, webhook ingestion, and deep observability across API integrations.\nIf you are evaluating alternatives, pick the one that covers your full integration surface: not just the tool calls you need today, but the data syncs, webhooks, auth, and observability your agents will need once they ship to real customers.\nTop Arcade.dev alternatives for 2026:\nNango: Best for teams building production AI agent API integrations that need tool calls, data syncs, webhooks, and auth on a single code-first platform. Supports 700+ APIs with open-source tools and works with Claude Code, Cursor, and other AI coding agents.\nComposio: An MCP-native alternative aimed mainly at internal and personal automation agents. Larger pre-built catalog than Arcade (500+ apps), but closed-source tools and no data syncs, webhooks, or per-customer configuration.\nPipedream Connect: Fits teams that prefer a low-code, UI-based workflow builder with a large action library.\nMerge Agent Handler: Fits teams that want pre-built MCP tool-packs for common SaaS actions and don't need custom tool logic or data syncs.\nArcade.dev positions itself as the MCP runtime that makes AI agents production-ready. It handles OAuth, runs tool calls, and supports server-level and tool-level authorization.\n\nThat positioning works well for a specific profile: teams that are already committed to MCP, want a hosted runtime, and only need tool calls. But as teams move from prototyping to production API integrations, several limitations surface.\nDrawbacks of using Arcade for production AI agent integrations:\nTool calls only: Arcade is a tool-calling runtime. It does not offer data syncs (for RAG pipelines), webhook ingestion, polling triggers, or unified APIs. If your AI product",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "2026年AI代理集成的最佳Arcade.dev替代方案",
+        "summary": "Arcade.dev是AI代理的MCP运行时，在工具调用和OAuth方面表现出色，但生产系统需要更多：Nango覆盖了完整的集成堆栈，包括数据同步和webhooks；Composio提供更多预构建工具，但缺乏数据同步功能；团队应根据其实际集成需求而非仅工具调用能力来选择。"
+      }
+    }
+  },
+  {
+    "title": "From Knowledge Chaos to Clarity: What 2,847 Articles Taught Me About Building a Real \"Second Brain\"",
+    "slug": "knowledge-chaos-clarity-simple-second-brain",
+    "url": "https://dev.to/kevinten10/from-knowledge-chaos-to-clarity-what-2847-articles-taught-me-about-building-a-real-second-brain-og9",
+    "source": "DEV Community",
+    "date": "2026-04-21T06:32:37.000Z",
+    "summary": "After accumulating 2,847 articles with minimal reading, the author discarded complex AI features and embraced radical simplicity: a 100-article hard limit, basic tagging, and no fancy algorithms. The shift from overthinking to pragmatism proved far more effective, teaching that constraints and simplicity beat sophisticated systems.",
+    "content": "From Knowledge Chaos to Clarity: What 2,847 Articles Taught Me About Building a Real \"Second Brain\"\n\n\nHonestly, when I first started this \"second brain\" project, I thought I was being brilliant. I spent countless hours building an AI-powered knowledge management system that would revolutionize how I work. Two years and 2,847 articles later, I'm here to tell you the brutal truth about what actually happened.\nSo here's the thing: I failed spectacularly. And I learned more from that failure than any success could have taught me.\nRemember those glossy blog posts about \"build your second brain\"? They paint this beautiful picture of an AI-powered system that reads your mind, organizes your thoughts perfectly, and makes you 10x more productive. That's what I was chasing.\n// My dream \"AI-powered\" knowledge system\nclass DreamKnowledgeManager {\n  constructor() {\n    this.brain = new NeuralNetwork();\n    this.memory = new Neo4jDatabase();\n    this.cache = new RedisCluster();\n    this.index = new Elasticsearch();\n  }\n\n  async understand(query) {\n    const aiInsights = await this.brain.analyze(query);\n    const semanticConnections = await this.memory.findRelated(aiInsights);\n    const cachedResults = await this.cache.get(query);\n\n    return this.rankResults(semanticConnections, cachedResults);\n  }\n}\n\nThis beautiful dream system had everything: AI-powered understanding, graph databases, caching, full-text search. It was perfect. On paper.\nAfter months of complex AI implementations that kept breaking, I ended up with this:\n// What I actually use today\nclass SimpleKnowledgeManager {\n  constructor() {\n    this.articles = new Map();\n    this.tags = new Set();\n    this.maxArticles = 100; // Hard limit that saved me\n  }\n\n  addArticle(title, content, tags) {\n    if (this.articles.size >= this.maxArticles) {\n      this.removeOldestArticle();\n    }\n\n    const article = {\n      id: Date.now(),\n      title,\n      content: content.substring(0, 500), // Just the first 500 chars\n      tags: ne",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "从知识混乱到清晰：2,847篇文章教会我关于构建真实\"第二大脑\"的一切",
+        "summary": "在积累了2,847篇文章但阅读量极少的情况下，作者放弃了复杂的AI功能，拥抱了彻底的简洁性：设置100篇文章的硬性限制、使用基本标签和放弃复杂算法。从过度思考转向务实性的转变被证明更加有效，教会人们约束和简洁胜于复杂系统。"
+      }
+    }
+  },
+  {
+    "title": "Java Packages",
+    "slug": "java-packages",
+    "url": "https://dev.to/silambarasan_a_bd1d4d0a29/java-packages-29d7",
+    "source": "DEV Community",
+    "date": "2026-04-21T06:32:08.000Z",
+    "summary": "Java packages group related classes to avoid name conflicts and improve code maintainability, divided into built-in packages (like java.lang, java.util) and user-defined packages created by developers. Packages map to the file system directory structure and are declared using the package keyword before imports.",
+    "content": "A package in Java is used to group related classes. Think of it as a folder in a file directory. We use packages to avoid name conflicts, and to write a better maintainable code. Packages are divided into two categories.\nBuilt-in Packages (packages from the Java API)\nUser-defined Packages (create your own packages)\nThe Java API is a library of prewritten classes, that are free to use, included in the Java Development Environment.\nThe library contains components for managing input, database programming, and much much more. The complete list can be found at Oracles website: https://docs.oracle.com/javase/8/docs/api/.\nUser-defined Packages\nTo create your own package, you need to understand that Java uses a file system directory to store them. Just like folders on your computer.\njava.lang: This package holds the foundational classes.\njava.io: It handles all sorts of input and output operations.\njava.awt: This package provides the basic building blocks for creating graphical user interfaces (GUIs).\njavax.swing: It is best for more advanced and richer desktop application GUIs due to its comprehensive toolkit.\njava.net: It contains classes essential for developing network-aware applications.\njava.util: It is a versatile package filled with utility classes, including the powerful Collections Framework.\njava.applet: This package includes classes for building applets, which are small applications designed to run in web browsers (though less common now).\njava.sql: Here you will find the classes for interacting with databases and processing relational data.\nabove the all to be discussed.\nUser-defined packages in Java are not readily available, as their name suggests. These are created by developers to define interfaces and classes according to the application requirements. It is defined using a unique syntax as shown below:\n\npackage packageName;\n\nYou can see the package keyword in its syntax, it defines the package name. It is important to declare the package just before any im",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Java 包",
+        "summary": "Java 包将相关类组合在一起以避免名称冲突并提高代码可维护性,分为内置包(如java.lang、java.util)和由开发人员创建的用户定义包。包映射到文件系统目录结构,并使用 package 关键字在导入前声明。"
+      }
+    }
+  },
+  {
+    "title": "I’m about to curse the day I started programming…",
+    "slug": "bluetooth-kernel-debian-gpio-pin",
+    "url": "https://dev.to/huseyin_ylcn/bluetooth-gpio-power-pin-not-found-on-jr3288ls-2na-debian-9-1h7i",
+    "source": "DEV Community",
+    "date": "2026-04-21T06:32:06.000Z",
+    "summary": "A developer encountering a Bluetooth driver issue on Debian 9 reports that the kernel can't find the Bluetooth power GPIO pin, despite the board officially supporting that OS version. The question addresses whether kernel configuration mismatches could cause this hardware-level failure.",
+    "content": "I’m about to curse the day I started programming. I’m using a JR3288LS 2NA, and even though I installed Debian 9, I’m having issues with Bluetooth. When I check the kernel logs, it says it can’t find the Bluetooth power GPIO pin. Do you think that’s possible? The board officially supports Debian 9, yet the kernel configuration might still be wrong?",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我快要诅咒我开始编程的那一天了...",
+        "summary": "一位开发者在 Debian 9 上遇到蓝牙驱动问题,报告内核找不到蓝牙电源 GPIO 引脚,尽管该主板官方支持该操作系统版本。该问题涉及内核配置不匹配是否可能导致这种硬件级故障。"
+      }
+    }
+  },
+  {
+    "title": "Local LLM on NVIDIA GPU vs Cloud API: A Real Cost Analysis",
+    "slug": "local-llm-nvidia-gpu-vs-cloud-cost",
+    "url": "https://dev.to/ppcvote/local-llm-on-nvidia-gpu-vs-cloud-api-a-real-cost-analysis-3gg4",
+    "source": "DEV Community",
+    "date": "2026-04-21T06:30:03.000Z",
+    "summary": "For a low-to-medium volume workload (~3,150 requests/month), running LLM inference on a used RTX 3060 Ti GPU costs $13.33/month (hardware amortization + electricity), vastly cheaper than cloud APIs. The local approach wins if you have spare hardware, but cloud APIs remain cost-effective if purchasing a system from scratch.",
+    "content": "Local LLM on NVIDIA GPU vs Cloud API: A Real Cost Analysis\n\n\n\n\"The cheapest API call is the one you never make.\"\nEvery AI startup faces this question: should we run inference locally on GPUs, or use cloud APIs? The answer depends on your workload, your data sensitivity, and your scale.\nWe've been running both. For 30 days, we tracked every cost — hardware amortization, electricity, API fees, and the hidden costs nobody talks about. Here's what we found.\nBefore comparing costs, you need to understand what we're running:\n\n\n\nMetric\nValue\n\n\n\n\nAI agents\n4 autonomous agents\n\n\nDaily inference requests\n~105\n\n\nMonthly requests\n~3,150\n\n\nAverage output tokens per request\n~200\n\n\nTotal monthly output tokens\n~630,000\n\n\nTotal monthly input tokens\n~2,500,000\n\n\nTask types\nSocial media posts, engagement replies, research summaries, strategy memos\n\n\n\nThis is a low-to-medium volume workload. Not a high-throughput production API serving thousands of users — a fleet of autonomous agents doing internal automation.\n\n\n\nItem\nCost\nAmortized (36 months)\n\n\n\n\nRTX 3060 Ti (used)\n$300\n$8.33/mo\n\n\nNo other hardware needed\n$0\n—\n\n\nTotal hardware\n$300\n$8.33/mo\n\n\n\nWe already had a Windows desktop. The GPU was the only purchase. If you're buying a complete system, add ~$500-800 for a basic workstation.\n\n\n\nItem\nMonthly Cost\n\n\n\n\nElectricity (~15W idle, ~200W peak, avg ~25W)\n~$5\n\n\nInternet (already have)\n$0\n\n\nMaintenance (automated via systemd)\n$0\n\n\nTotal operating\n~$5/mo\n\n\n\nHardware amortization:  $8.33\nElectricity:            $5.00\n─────────────────────────────\nTotal:                  $13.33/mo\n\nAfter the GPU is paid off (month 37+): $5/month.\nWe calculated costs for our exact workload (~3,150 requests/month, ~2.5M input + ~630K output tokens):\n\n\n\nProvider\nModel\nInput Cost\nOutput Cost\nMonthly Total\n\n\n\n\nGoogle Gemini Flash\n2.5 Flash\nFree (1,500 RPD)\nFree\n$0\n\n\nOpenAI\nGPT-4o-mini\n$0.375\n$0.945\n$1.32\n\n\nAnthropic\nHaiku 4.5\n$2.00\n$6.30\n$8.30\n\n\n\n\n\n\nProvider\nModel\nInput Cost\nOutput Cost\nMonthly Total\n\n\n\n\nOpenAI\nG",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "本地 NVIDIA GPU 上的 LLM vs 云 API:真实成本分析",
+        "summary": "对于中等工作负载(约每月 3,150 个请求),在二手 RTX 3060 Ti GPU 上运行 LLM 推理每月成本为 $13.33(硬件摊销+电力),远便宜于云 API。如果有备用硬件,本地方法更划算,但如果从零开始购买系统,云 API 仍然具有成本效益。"
+      }
+    }
+  },
+  {
+    "title": "FinOps for AI vs MLOps: Understanding the Roles in AI Operations",
+    "slug": "finops-ai-mlops-operations",
+    "url": "https://dev.to/datta_kharad_3fd1383b5036/finops-for-ai-vs-mlops-understanding-the-roles-in-ai-operations-551a",
+    "source": "DEV Community",
+    "date": "2026-04-21T06:25:13.000Z",
+    "summary": "FinOps for AI (cost optimization) and MLOps (reliability/scalability) are complementary but sometimes conflicting disciplines—a high-performing model might be too expensive to scale, while cost cuts could degrade performance. Organizations need both roles to balance 'Can we run it?' with 'Can we afford it?' in production AI systems.",
+    "content": "AI is no longer an experiment—it’s an operational engine. But as organizations scale AI, two parallel disciplines emerge to keep things efficient, reliable, and sustainable: FinOps for AI and MLOps.\nWhere the Lines Intersect\nHere’s where it gets interesting:\n• MLOps may deploy a high-performing model… \n• But FinOps might flag it as too expensive to run at scale \nOr:\n• FinOps may push for cost reduction… \n• But MLOps must ensure performance doesn’t degrade \nThis creates a natural tension:\nCost vs Performance\nAnd that tension is where mature AI organizations operate effectively.\nWhy Both Are Critical in Modern AI\nLet’s challenge a common assumption:\n“If the model works, we’re done.”\nThat’s dangerously incomplete.\nA model that:\n• Costs too much → won’t scale \n• Performs poorly → won’t deliver value \nSo success lies in balancing:\n• MLOps → Can we run it? \n• FinOps → Can we afford it? \nCareer Perspective: Where Do You Fit?\nFinOps for AI is ideal if:\n• You have a cloud, finance, or cost optimization background \n• You enjoy analyzing usage, billing, and efficiency \n• You think in terms of ROI, not just architecture \nMLOps is ideal if:\n• You come from DevOps, data engineering, or ML background \n• You enjoy building pipelines and automation \n• You focus on system reliability and scalability \nMarket Reality: The Rise of AI Operations\nOrganizations are moving from:\n• “Let’s build AI” → to → “Let’s run AI efficiently” \nThis shift is creating demand for:\n• Professionals who can optimize cost (FinOps) \n• Professionals who can operationalize models (MLOps)",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI财务运营 vs MLOps：理解AI运营中的角色",
+        "summary": "AI财务运营（成本优化）和MLOps（可靠性/可扩展性）是互补但有时冲突的学科——高性能模型可能因成本过高而无法扩展，而成本削减可能降低性能。组织需要两个角色来平衡生产AI系统中的\"我们能运行吗？\"和\"我们能负担得起吗？\""
+      }
+    }
+  },
+  {
+    "title": "Apollo vs Hunter vs Lusha vs PDL: The Cost-Per-Contact Number Nobody Publishes (2026)",
+    "slug": "apollo-hunter-lusha-cost-per-contact",
+    "url": "https://dev.to/zackrag/apollo-vs-hunter-vs-lusha-vs-pdl-the-cost-per-contact-number-nobody-publishes-2026-4lj5",
+    "source": "DEV Community",
+    "date": "2026-04-21T06:24:33.000Z",
+    "summary": "Apollo.io, Hunter.io, Lusha, and People Data Labs advertise 95%+ accuracy at similar seat costs, but real cost-per-verified-contact ranges from 2x to 6x higher due to hidden factors like per-attribute credits, expiring unused quotas, and varying verification rates. The author provides a formula for calculating true cost and a 450-contact benchmark.",
+    "content": "I ran Apollo.io, Hunter.io, Lusha, and People Data Labs against the same 450-contact test set last quarter. Every tool claimed 95%+ accuracy on their pricing pages. None of them hit it. The gap between advertised per-seat cost and what I actually paid per working contact ranged from 2x to 6x depending on the tool and tier.\nHere's what the real math looks like — including PDL, which almost every comparison article skips entirely.\nApollo.io Basic: $49/seat/month. Lusha Pro: $49/seat/month. Same price, done, right?\nNot remotely. Apollo Basic gives you 75 credits/month. Lusha Pro gives you roughly 250 contacts/month — emails and phone numbers bundled per contact. And Apollo charges 8 credits for a single phone number. If you're pulling email + phone on every contact, Apollo's 75 monthly credits get you about 8 contacts with phones, not 75. Lusha's 250 contacts come with phones included.\nThat's before touching verification rates.\nThen there's the rollover issue: Apollo credits expire at month end. Unused credits don't carry forward. If your team has two slow weeks and doesn't hit the quota, those credits vanish. Lusha and Hunter.io don't do this. It's a small line item that compounds into real money across a 10-person SDR team over a year.\nI started calculating cost-per-verified-contact instead of cost-per-exported-contact. The difference matters because a contact that bounces costs you sender reputation, not just money.\nThe formula:\ncost_per_verified = monthly_spend / (contacts_exported × verified_delivery_rate)\n\nIf you spend $79/month, export 100 contacts, and 68 of those emails deliver without bouncing — your real cost-per-verified is $1.16, not the $0.79 the plan page suggests. That number changes the entire ranking.\nI pulled 450 unique LinkedIn profiles: 150 SaaS founders, 150 mid-market sales directors, 150 enterprise IT buyers across US and EU. I ran each profile through each tool's enrichment endpoint or browser extension, exported the contact data, and sent a pl",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Apollo vs Hunter vs Lusha vs PDL：没人公开的单位联系人成本数字（2026）",
+        "summary": "Apollo.io、Hunter.io、Lusha和People Data Labs宣称95%+的准确率和相似的座位成本，但实际的单位验证联系人成本由于隐藏因素（如按属性计费、未使用额度过期和不同的验证率）高出2至6倍。作者提供了计算真实成本的公式和450个联系人的基准。"
+      }
+    }
+  },
+  {
+    "title": "I built a 100-point prompt scorer for SUNO AI — 16 checks, open-source on npm",
+    "slug": "suno-prompt-scorer-100-point-npm",
+    "url": "https://dev.to/shaizadok/i-built-a-100-point-prompt-scorer-for-suno-ai-16-checks-open-source-on-npm-3dhn",
+    "source": "DEV Community",
+    "date": "2026-04-21T06:24:25.000Z",
+    "summary": "A new npm package (suno-prompt-scorer) scores SUNO AI prompts on 16 weighted criteria (character limits, genre validity, tag ordering, syntax) to reduce regeneration cycles from 20-30 tries to fewer iterations. The tool separates verified core nouns from creative modifiers, finding that position 1 tag dominates ~60-70% of output.",
+    "content": "Why deterministic prompt scoring?\n\n\nA few months ago I was using SUNO AI and kept regenerating the same song idea 20-30 times before getting something close to what I imagined. The prompt syntax felt opaque. Genre close but sub-genre missed. Mood right but vocals wrong.\nTurns out SUNO's prompt behavior is actually deterministic enough to score. So I wrote one: suno-prompt-scorer on npm (MIT).\nEach check is weighted; total is a percentage 0-100:\n\n\n\n#\nCheck\nCategory\nWeight\n\n\n\n\n1\nCharacter limit (v4: 200, v4.5+: 1000)\nstyle\n8%\n\n\n2\nGenre collisions (53 known pairs)\nstyle\n10%\n\n\n3\nWeak token detection (context-aware)\nstyle\n8%\n\n\n4\nStrong token reward (48 hardware/prod anchors)\nstyle\n8%\n\n\n5\nTag ordering weight 2/(1+k)\n\nstyle\n8%\n\n\n6\nGenre in position 1\nstyle\n7%\n\n\n7\nMood in position 2\nstyle\n5%\n\n\n8\nPer-category limits (genre 1-2, mood 1-2, instruments 2-3)\nstyle\n8%\n\n\n9\nInvalid tag detection (49 known bad)\nstyle\n8%\n\n\n10\nSuspicious tag detection (28 unverified)\nstyle\n4%\n\n\n11\nMisclassified subgenres (100 mapped)\nstyle\n5%\n\n\n12\nBracket syntax validation\nlyrics\n7%\n\n\n13\nRegional coherence\nadvanced\n4%\n\n\n14\nVersion-specific warnings\nadvanced\n5%\n\n\n15\nReady-package proximity to benchmarks\nstyle\n5%\n\n\n16\nBracket verbatim check (informational, weight 0)\nlyrics\n—\n\n\n\nThe most interesting design decision: separate core nouns (must be verified) from modifiers (creative freedom).\nSo [shofar blast] passes — \"Shofar\" is a verified instrument, \"blast\" is a free modifier. But [QuantumSynth breakdown] fails — no verified anchor.\nThis preserves creativity (real producers combine real instruments in unexpected ways) while catching hallucinations.\n// Core nouns: genres, instruments, keys, vocal types → verbatim\n// Structural: [Intro], [Verse], [Chorus], [Drop] → verbatim\n// Modifiers: blast, crystalline, thundering → free\n\nBuilding this surfaced several non-obvious findings:\nPosition 1 is 60-70% of output DNA. The first tag dominates.\nTag weight drops 2/(1+k) per position. Position 6 has ~30% of positio",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我为SUNO AI开发了一个100分的提示词评分器——16项检查，npm开源",
+        "summary": "一个新的npm包（suno-prompt-scorer）根据16个加权标准（字符限制、流派有效性、标签排序、语法）对SUNO AI提示词进行评分，以将再生成周期从20-30次减少到更少的迭代。该工具将验证的核心名词与创意修饰符分离，发现第1位标签占输出的约60-70%。"
+      }
+    }
+  },
+  {
     "title": "Part 7 - Spark Transform Local vs Cloud ⚡",
     "slug": "spark-transform-local-vs-cloud",
     "url": "https://dev.to/abdelrahman_adnan/part-7-spark-transform-local-vs-cloud-45l7",
