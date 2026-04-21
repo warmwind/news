@@ -1,0 +1,194 @@
+[
+  {
+    "title": "Part 7 - Spark Transform Local vs Cloud ⚡",
+    "slug": "spark-transform-local-vs-cloud",
+    "url": "https://dev.to/abdelrahman_adnan/part-7-spark-transform-local-vs-cloud-45l7",
+    "source": "DEV Community",
+    "date": "2026-04-21T00:32:24.000Z",
+    "summary": "This article explains how Apache Spark transforms raw JSON data into structured parquet files for data warehousing, supporting both local and cloud execution environments. It covers data flattening techniques, dataset joins, and schema enforcement practices essential for maintaining data quality in analytics pipelines.",
+    "content": "Part 7 - Spark Transform Local vs Cloud ⚡\nThis part continues from the API client layer and explains the transformation job in spark_jobs/air_quality_to_parquet.py.\nThe job reads raw OpenAQ and weather JSON, flattens nested structures, joins the datasets, and writes parquet into a staging layer partitioned by time.\nThat is the classic lakehouse-style move from raw JSON to structured analytics data.\nThe job can run in two different environments:\nlocally with SparkSession.builder.master(\"local[*]\"),\nor in the cloud through EMR Serverless.\nThe path resolution logic in resolve_paths() is what makes that possible. In local mode it reads and writes from the filesystem. In cloud mode it uses the bucket name pulled from SSM and points Spark to S3 locations instead.\nThe Spark code expands nested arrays and structs to create a row-per-reading structure. The important pieces are:\nair quality readings are exploded from the results array,\nstation metadata is exploded from the station sample,\nweather fields are selected from the current conditions payload,\nand the two data sets are joined on station and hour.\nThat join is where the project starts to look like an analytics pipeline instead of a raw ingestion job.\nThe job explicitly casts columns into stable types before writing parquet. That protects downstream consumers from schema drift and helps the warehouse load stay predictable.\nThis is a very useful lesson: in data engineering, the output contract is often more important than the implementation detail.\nThe final write uses partitionBy(\"year\", \"month\", \"day\", \"hour\"). That keeps the staging layer aligned with the raw layer and makes time-based reads efficient.\nThe next part explains how the staging parquet lands in PostgreSQL and how the pipeline keeps the warehouse tables available for dbt and Superset.\nContinue to Part 8: Staging Load into Postgres.\nTag: #dataengineeringzoomcamp",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第7部分 - Spark 本地vs云转换 ⚡",
+        "summary": "本文介绍了Apache Spark如何将原始JSON数据转换为用于数据仓库的结构化parquet文件，支持本地和云执行环境。它涵盖了数据展平技术、数据集连接和模式强制实践，这些都是维护分析管道中数据质量的必要条件。"
+      }
+    }
+  },
+  {
+    "title": "Building My Digital Soul: When AI Met My Inner Self",
+    "slug": "building-digital-soul-ai-inner-self",
+    "url": "https://dev.to/kevinten10/building-my-digital-soul-when-ai-met-my-inner-self-3md",
+    "source": "DEV Community",
+    "date": "2026-04-21T00:32:16.000Z",
+    "summary": "A developer shares their experience attempting to create a personal AI companion that truly understands them, only to discover their initial overambitious approach failed and forced them to confront their own limitations and biases.",
+    "content": "Building My Digital Soul: When AI Met My Inner Self\n\n\nHonestly, I never thought I'd be writing this. Two years ago, I was just another developer staring at my screen, thinking \"I should build something personal.\" Little did I know I'd end up creating what can only be described as my digital soul - and the journey was anything but smooth.\nIt started with a simple question: \"What if I could create an AI that truly understands me?\" Not just some chatbot that regurgitates my GitHub commits, but something that actually understands my quirks, my patterns, my weird little habits.\nLet me be real with you - this was a terrible idea. I had grand visions of creating this perfect digital companion that would anticipate my every need. Spoiler alert: it didn't work out that way. What I got instead was something far more interesting: a brutally honest look at how little I actually understand myself.\nWhen I first started building my digital soul, I thought I was being clever. I threw all the fancy AI algorithms at it - deep learning, natural language processing, even some machine learning models I barely understood. The result? A complete disaster.\n// My first attempt at a \"smart\" digital soul\nclass DigitalSoul {\n  constructor() {\n    this.personality = \"perfectly balanced\";\n    this.memories = [];\n    this.emotions = [\"happy\", \"focused\", \"productive\"];\n  }\n\n  async respond(input) {\n    // This was supposed to be \"intelligent\"\n    return await this.deepLearningAnalyze(input);\n  }\n\n  async deepLearningAnalyze(input) {\n    // Spoiler: This didn't work\n    return \"I understand you completely, human.\";\n  }\n}\n\nYeah, that went well. My digital soul was about as useful as a chocolate teapot. It couldn't even remember my name half the time.\nAfter six months of trying to make this work, I learned some painful lessons:\nPros:\nYou learn more about yourself than you ever thought possible\nForces you to confront your own limitations and biases\nCreates a fascinating mirror to your own thought patt",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建我的数字灵魂：当AI遇见我的内在自我",
+        "summary": "一位开发者分享了他们尝试创建真正理解他们的个人AI伴侣的经历，却发现他们最初的过度雄心勃勃的方法失败了，迫使他们面对自己的局限和偏见。"
+      }
+    }
+  },
+  {
+    "title": "Part 6 - API Client Design and Reliability 🔁",
+    "slug": "api-client-design-reliability",
+    "url": "https://dev.to/abdelrahman_adnan/part-6-api-client-design-and-reliability-2ojp",
+    "source": "DEV Community",
+    "date": "2026-04-21T00:31:48.000Z",
+    "summary": "This tutorial demonstrates how to design reliable API clients for data pipelines with resilience patterns including retry handling for transient failures and graceful fallback mechanisms. It emphasizes normalizing API responses into consistent data contracts that downstream systems can trust.",
+    "content": "Part 6 - API Client Design and Reliability 🔁\n\n\nThis part continues from the ingestion DAG and explains the reusable client functions in dags/air_quality_fetchers.py.\nKeeping API logic out of the DAG file makes the code easier to test and easier to reuse. The DAG can focus on scheduling and control flow while the fetcher module handles HTTP details.\nThat separation is a small design choice, but it matters when the project grows.\nThe function fetch_openweather_air_quality() queries the OpenWeather air pollution endpoint using the station coordinates. It then reshapes the response into the ingestion format expected by downstream code.\nThat normalization step is important because the downstream Spark job expects a consistent structure, not a raw vendor payload.\nThe fetch_weather() function prefers the OpenWeather One Call API, but it falls back to the legacy weather endpoint when the primary request is unauthorized or unavailable.\nThat is a practical resilience pattern:\ntry the richer endpoint first,\nfall back to a simpler endpoint,\nkeep the payload shape stable after normalization.\nThe module also configures a requests session with retry handling for transient failures such as:\n429 rate limits,\n500-level server errors,\nand similar temporary issues.\nThat means the ingestion layer is not just making one-off calls. It is designed to survive short-term API instability.\nThe fetchers emit a payload that contains a results array with station id, sensor id, value, timestamp, and coordinates. That shape is intentionally simple so the Spark job and the raw storage layer can process it with minimal special handling.\nThe main lesson is that reliable ingestion is not only about calling an API. It is about shaping the response into something downstream systems can trust.\nThe next part moves into the transformation stage and shows how the same data becomes partitioned parquet through Spark, both locally and on EMR Serverless.\nContinue to Part 7: Spark Transform Local vs Cloud.\nTag:",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第6部分 - API客户端设计和可靠性 🔁",
+        "summary": "本教程演示了如何为数据管道设计可靠的API客户端，包括瞬时故障重试处理和优雅的回退机制等弹性模式。它强调了将API响应规范化为下游系统可信赖的一致数据契约。"
+      }
+    }
+  },
+  {
+    "title": "Part 5 - Ingestion DAG and Raw Storage 📥",
+    "slug": "ingestion-dag-raw-storage",
+    "url": "https://dev.to/abdelrahman_adnan/part-5-ingestion-dag-and-raw-storage-3lci",
+    "source": "DEV Community",
+    "date": "2026-04-21T00:31:23.000Z",
+    "summary": "This article explains how to build an Airflow ingestion DAG that rotates through a sample of stations to manage API usage, stores raw JSON payloads in time-partitioned structures, and triggers downstream transformation jobs. It demonstrates practical scheduling and orchestration patterns for data pipelines.",
+    "content": "Part 5 - Ingestion DAG and Raw Storage 📥\n\n\nThis part continues from the runtime config and looks at the first real Airflow DAG in the chain: dags/api_ingestion_dag.py.\nThe ingestion DAG runs every three minutes. Its job is to:\nload the station sample,\npick one or more stations for the current interval,\nfetch OpenAQ and OpenWeather payloads,\nsave those payloads as raw JSON,\nand trigger the next DAG in the chain.\nThat is the point where the project stops being a bootstrap script and becomes a scheduled pipeline.\nInstead of hitting all stations every time, the DAG rotates through the sample using the current data interval. That gives the project a simple fairness mechanism:\ndifferent stations are chosen on different runs,\nAPI usage is spread across the sample,\nand the same DAG can keep running without manual intervention.\nThis logic is handled in run_ingestion().\nThe helper save_to_storage() writes payloads using the same partition logic in both modes:\nlocal mode writes JSON into local_data/raw/...,\ncloud mode writes JSON into S3 under raw/....\nThe directory structure is time-partitioned by year, month, day, and hour. That makes it easy for the Spark job to read a specific window later.\nAt the end of ingestion, the DAG uses TriggerDagRunOperator to start the transform DAG. That is a useful Airflow pattern because each stage can stay focused on one responsibility while still being chained in order.\nThis file demonstrates several pipeline ideas in a small space:\nscheduling,\nretry behavior,\ndeterministic station rotation,\nraw-zone storage,\nand downstream triggering.\nIf you are learning Airflow, this is a good pattern to study because it keeps orchestration readable instead of turning the DAG into a giant script.\nThe next part zooms in on the API clients themselves so you can see how the project handles retries, normalization, and fallback behavior before data reaches the raw layer.\nContinue to Part 6: API Client Design and Reliability.\nTag: #dataengineeringzoomcamp",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第 5 部分 - 摄入 DAG 和原始存储 📥",
+        "summary": "本文介绍了如何构建一个 Airflow 摄入 DAG，通过轮流采样站点来管理 API 使用，在时间分区结构中存储原始 JSON 有效负载，并触发下游转换作业。它演示了数据管道的实用调度和编排模式。"
+      }
+    }
+  },
+  {
+    "title": "Part 4 - Airflow Runtime and Shared Config ⚙️",
+    "slug": "airflow-runtime-shared-config",
+    "url": "https://dev.to/abdelrahman_adnan/part-4-airflow-runtime-and-shared-config-48lg",
+    "source": "DEV Community",
+    "date": "2026-04-21T00:30:47.000Z",
+    "summary": "A guide to creating portable data pipeline configuration that switches between local filesystem storage and cloud infrastructure (S3, AWS services), standardizing runtime settings and avoiding duplication across DAGs.",
+    "content": "Part 4 - Airflow Runtime and Shared Config ⚙️\n\n\nThis part continues from the bootstrap logic and explains the configuration layer that keeps the rest of the codebase portable.\nThe file dags/pipeline_config.py is the central runtime configuration module. It decides whether the project is running locally or in cloud mode and exposes the paths and credentials the other modules need.\nThat is a clean design because it avoids repeating environment logic in every DAG or script.\nThe first important flag is PIPELINE_ENV. When it is set to local, the project uses:\nlocal filesystem storage,\nlocal parquet directories,\nDockerized Postgres,\nand local Spark execution.\nWhen it is not local, the same code paths shift toward:\nS3 for raw and staging data,\nAWS region-based clients,\nand cloud runtime configuration such as SSM parameters.\nThe module also creates and manages the local data tree:\nraw data under local_data/raw,\nstaging data under local_data/staging,\nconfiguration under local_data/config,\nand logs under local_data/logs.\nTwo helpers are especially important:\nlocal_raw_path() builds the raw JSON file path by prefix, station, and timestamp.\nlocal_staging_path() builds the parquet partition path in a year/month/day/hour layout.\nThose helpers define the physical layout used by both the ingestion and transformation stages.\nThis file is small, but it is doing real platform work:\nit standardizes runtime settings,\nit creates expected directories early,\nit keeps the path logic consistent,\nand it reduces duplication across DAGs and scripts.\nIf you are building your own project, this is the kind of module that saves you time once the pipeline grows beyond a few files.\nNow that the shared config is clear, the next article explains the ingestion DAG that uses it: how the pipeline fetches station data, stores raw JSON, and triggers the transformation job.\nContinue to Part 5: Ingestion DAG and Raw Storage.\nTag: #dataengineeringzoomcamp",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第 4 部分 - Airflow 运行时和共享配置 ⚙️",
+        "summary": "创建可移植数据管道配置的指南，该配置在本地文件系统存储和云基础设施 (S3、AWS 服务) 之间切换，标准化运行时设置，避免在 DAG 中重复。"
+      }
+    }
+  },
+  {
+    "title": "Part 3 - Station Sampling and Cache Building 🗂️",
+    "slug": "station-sampling-cache-building",
+    "url": "https://dev.to/abdelrahman_adnan/part-3-station-sampling-and-cache-building-22ei",
+    "source": "DEV Community",
+    "date": "2026-04-21T00:29:41.000Z",
+    "summary": "This tutorial covers building a bootstrap script that discovers station data from external APIs, caches it locally, and manages cache invalidation. This reference data becomes part of the data contract for the entire pipeline.",
+    "content": "Part 3 - Station Sampling and Cache Building 🗂️\n\n\nThis part continues from the data source overview and focuses on the bootstrap script that prepares the station list used by ingestion.\nThe pipeline needs a stable list of stations before Airflow starts fetching readings. Rather than hard-coding stations manually, scripts/build_station_sample.py discovers them from OpenAQ and stores the result in a cached JSON file.\nThat gives the project a real-world bootstrap pattern:\ndiscover reference data,\nnormalize it,\ncache it,\nand reuse it from the DAG.\nThe script is organized into a few focused functions:\nresolve_country_id() finds the OpenAQ country id for Egypt.\n_fetch_locations() retrieves station records with retry handling.\nenrich_station_sample() adds normalized country metadata.\nload_or_fetch_station_sample() prefers the local cache when it is already valid.\nsave_to_storage() writes the sample either to local disk or to S3.\nThat structure is easy to follow because each function has one responsibility.\nCaching is important here because the station set does not need to be rebuilt every time the pipeline runs. The script checks whether a local cache already exists and whether it is large enough. If the cache is too small, it is discarded and rebuilt.\nThis is a small but useful pattern to study:\nbootstrap data is cached,\nstale cache can be refreshed,\nand the rest of the pipeline depends on a predictable reference file.\nThe ingestion DAG reads the sample from the same location every time. That keeps the flow deterministic. It also means the downstream Spark job can read the same station metadata file and join readings back to the same station definitions.\nIn other words, this script is not just a setup helper. It is part of the data contract for the whole repository.\nNext, I will explain the shared configuration module and show how one file controls local paths, environment selection, and warehouse connection settings across the project.\nContinue to Part 4: Airflow Runtim",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第 3 部分 - 站点采样和缓存构建 🗂️",
+        "summary": "本教程涵盖构建一个引导脚本，该脚本从外部 API 发现站点数据，将其在本地缓存，并管理缓存失效。此参考数据成为整个管道的数据契约的一部分。"
+      }
+    }
+  },
+  {
+    "title": "Part 2 - Data Sources and Domain Model 📡",
+    "slug": "data-sources-domain-model",
+    "url": "https://dev.to/abdelrahman_adnan/part-2-data-sources-and-domain-model-2p05",
+    "source": "DEV Community",
+    "date": "2026-04-21T00:29:06.000Z",
+    "summary": "This article describes how a data engineering project combines air quality data from OpenAQ with weather context from OpenWeather, sampling stations rather than crawling everything. It establishes the domain model centered on station location, pollutant measurements, and weather conditions.",
+    "content": "Part 2 - Data Sources and Domain Model 📡\n\n\nThis part continues directly from the architecture overview. Now that the overall flow is clear, the next question is what data this pipeline actually uses and how that data is shaped before it enters the warehouse.\nThe project combines two external APIs:\nOpenAQ provides air quality station data and pollutant readings.\nOpenWeather provides weather conditions for the same coordinates.\nThat pairing matters because air quality is more useful when read alongside weather signals such as temperature, humidity, wind, pressure, and cloud cover.\nThe API logic lives in dags/air_quality_fetchers.py. The project does not keep these calls inside the DAG files themselves. That is a good code organization choice because it keeps the orchestration layer simple and the data access layer reusable.\nThe pipeline does not fetch all stations on every run. Instead, it builds a manageable sample of stations for Egypt and rotates through them over time. The sample is created by scripts/build_station_sample.py.\nThat script does three things:\nIt discovers OpenAQ locations for the configured country.\nIt enriches each station with country metadata.\nIt writes the selected station list to a shared JSON file.\nThe sample acts like the registry that the ingestion DAG reads from. That is why the project can rotate stations in a predictable way and still keep the pipeline small enough for a final project.\nA full OpenAQ crawl would introduce more complexity than the learning goal needs. Sampling gives you:\nstable demo behavior,\nlower API pressure,\neasier debugging,\nand clearer reproducibility for a tutorial.\nIn a real platform, you would likely add a more robust discovery layer, but for a teaching project this is a good tradeoff.\nFrom the raw APIs, the project builds a domain model centered on:\nstation_id,\nsensor_id,\nlocation coordinates,\npollutant value,\nmeasurement timestamp,\nand weather context.\nThese fields are enough to answer questions such as:\nWhich ci",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第 2 部分 - 数据源和领域模型 📡",
+        "summary": "本文介绍了一个数据工程项目如何将来自 OpenAQ 的空气质量数据与 OpenWeather 的天气背景相结合，采用采样站点而非爬取所有数据的方式。它建立了以站点位置、污染物测量和天气条件为中心的领域模型。"
+      }
+    }
+  },
+  {
+    "title": "Part 1 - Introduction and End-to-End Architecture",
+    "slug": "introduction-end-to-end-architecture",
+    "url": "https://dev.to/abdelrahman_adnan/part-1-introduction-and-end-to-end-architecture-3bda",
+    "source": "DEV Community",
+    "date": "2026-04-21T00:24:17.000Z",
+    "summary": "An overview of a complete data engineering pipeline that ingests environmental data, stores it in raw layers, transforms it with Spark, loads it into a Postgres warehouse, and presents it in dashboards. The project demonstrates real-world tools like Airflow, Spark, dbt, and Superset working together.",
+    "content": "Part 1 - Introduction and End-to-End Architecture 🌍\n\n\nThis project was built as part of the Data Engineering Zoomcamp final project. The goal is simple to state but practical to implement: collect real environmental data for Egyptian cities, process it reliably, store it in a warehouse, and expose it in a dashboard that can be refreshed on a schedule.\nThis first part gives the big picture. The rest of the series will follow the actual code path step by step, so a reader can understand how each file in the repository fits into the pipeline.\nAir quality is useful only when it is collected consistently and analyzed in context. Raw API payloads are not enough by themselves. They need to be:\nfetched repeatedly from external sources,\nstored in a predictable raw layout,\nflattened into structured rows,\nloaded into a warehouse,\nmodeled for analytics,\nand presented in a dashboard that business users can read quickly.\nThat is exactly what this repository does.\nThe project moves through four main layers:\nIngestion: Airflow fetches OpenAQ and OpenWeather data.\nRaw storage: JSON payloads are written to the raw layer.\nTransformation: Spark converts nested JSON into partitioned parquet.\nWarehouse and analytics: Postgres and dbt create tables for Superset.\nIf you read the repository from top to bottom, the flow starts in dags/api_ingestion_dag.py and continues into dags/air_quality_transform_dag.py, dags/staging_load_dag.py, and dags/dbt_models_dag.py.\nThe architecture uses tools that mirror a real data engineering platform:\nApache Airflow for orchestration and dependency control.\nSpark for heavy JSON flattening and structured output.\nPostgreSQL for the warehouse layer.\ndbt for modeled tables and data quality checks.\nSuperset for the final analytical interface.\nDocker and Terraform for local and cloud reproducibility.\nThat combination is important because it shows the difference between a script and a pipeline. A script runs once. A pipeline can be scheduled, monitored, retried, an",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第 1 部分 - 介绍和端到端架构",
+        "summary": "一个完整数据工程管道的概览，该管道摄取环境数据，将其存储在原始层，使用 Spark 进行转换，将其加载到 Postgres 数据仓库，并在仪表板中展示。该项目演示了 Airflow、Spark、dbt 和 Superset 等真实工具的协同工作。"
+      }
+    }
+  },
+  {
+    "title": "Identity Continuity Failure in WordPress Plugin Supply Chain Compromise",
+    "slug": "identity-continuity-failure-wordpress-supply-chain",
+    "url": "https://dev.to/randomchaos/identity-continuity-failure-in-wordpress-plugin-supply-chain-compromise-1jk9",
+    "source": "DEV Community",
+    "date": "2026-04-21T00:22:04.000Z",
+    "summary": "Security analysis of a coordinated supply chain attack where 30 WordPress plugins were backdoored with identical payloads, revealing that the vendor's distribution pipeline failed to enforce identity continuity, cryptographic signing, or behavioral analysis of submission patterns.",
+    "content": "Someone purchased 30 WordPress plugins through a third-party vendor and planted identical backdoor payloads in every one of them. Same obfuscation patterns. Same C2 beaconing logic. Synchronized file modification timestamps across all versions. This was not 30 independent compromises. This was one operation.\nI know how this works because I've built operations like it.\nThis is not a code review failure. Code review assumes you are evaluating a known contributor. The failure is upstream - identity continuity was never enforced. The vendor's distribution pipeline verified contributor identity at registration and never again. No MFA on uploads. No cryptographic signing of releases. No behavioral analysis on submission patterns. Once an account existed, it was trusted indefinitely. That is the attack surface.\nThe pipeline treated each plugin upload as an isolated event. Shared IP ranges across submissions, identical user agent strings, timestamp clustering within narrow windows, reuse of the same obfuscation techniques, consistent reliance on eval() and base64_decode() - the outcome demonstrates that either these signals were never correlated across artifacts, or the correlation was never acted on. Either way, coordinated behavior across 30 unrelated projects was not identified based on available evidence.\nThe payload itself was disciplined. Activation was conditional - triggered only when a predefined HTTP header appeared in inbound requests. This is a standard evasion primitive, and it works because static analysis engines execute code paths based on reachable logic, not arbitrary request contexts. If the trigger header is never present during scanning, the malicious path never fires. Signature-based scanners see clean code. Manual reviewers see standard PHP. The backdoor sits dormant until the operator calls it.\nNo system built a unified identity graph linking one account to all 30 uploads. Without that graph, there is no detection of coordinated activity across unrel",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "WordPress 插件供应链泄露中的身份连续性故障",
+        "summary": "对一次协调的供应链攻击的安全分析，其中 30 个 WordPress 插件被植入相同的恶意软件，揭示了供应商的分发管道未能实施身份连续性验证、密码学签名或提交模式的行为分析。"
+      }
+    }
+  },
+  {
+    "title": "iOS Exploit Kits with Identical Signatures in Active Use",
+    "slug": "ios-exploit-kits-identical-signatures-active",
+    "url": "https://dev.to/randomchaos/ios-exploit-kits-with-identical-signatures-in-active-use-a74",
+    "source": "DEV Community",
+    "date": "2026-04-21T00:22:03.000Z",
+    "summary": "Two distinct iOS exploit kits targeting kernel-level vulnerabilities on iOS 16.4–17.2 have been identified in active use through third-party distribution channels, both achieving system-level access and sharing identical technical design signatures whose origin remains unconfirmed.",
+    "content": "Two iOS Exploit Kits Share Kernel-Level Design Logic - What It Means for Your Attack Surface\n\n\nMultiple independent security firms have identified two distinct iOS exploit kits in active deployment. Both target kernel-level memory corruption vulnerabilities on iOS versions 16.4 through 17.2. Specific CVE identifiers have not been publicly assigned to the exploited vulnerabilities. Technical indicators - including structural patterns, execution behavior, and memory layout characteristics - are consistent across both frameworks, indicating shared design origin or direct reuse of exploitation primitives.\nDelivery was conducted through third-party app distribution channels. The specific distribution mechanism - whether enterprise certificate abuse, MDM profile exploitation, or alternative sideloading - is not specified. No confirmed evidence exists that user interaction beyond installation is required. Both kits achieve system-level access. Confirmed post-exploitation behaviors include unauthorized data extraction and remote command execution. Further technical implementation detail is not verified.\nNo attribution to a specific actor, group, or government program exists. Technical similarities with previously disclosed exploitation frameworks have been noted by researchers, but similarity does not constitute linkage. Origin remains unconfirmed. Claims regarding long-term exploit viability, lifecycle management, developer infrastructure, or commodification of these capabilities are not supported by verified evidence. The reuse of matching technical signatures is observable; the supply chain behind that reuse is not.\nTwo things are confirmed: kernel-level iOS exploits are being distributed through channels outside the App Store, and independent kits are sharing exploitation logic. Whether that sharing represents a common developer, a leaked toolchain, or parallel discovery is secondary to the exposure it creates.\nThe control surface is defined:\nSideloading policy. Any iOS",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "iOS 漏洞利用工具包与相同签名的活跃使用",
+        "summary": "两个针对 iOS 16.4–17.2 版本内核级漏洞的不同 iOS 漏洞利用工具包已被发现正在通过第三方分发渠道活跃使用,两者都能实现系统级访问权限,并共享相同的技术设计特征,但其来源仍未确认。"
+      }
+    }
+  },
+  {
+    "title": "Reddit Research — Aggregate testing pain points from real user discussions ($200 pool)",
+    "slug": "reddit-research-testing-pain-points",
+    "url": "https://dev.to/8006/reddit-research-aggregate-testing-pain-points-from-real-user-discussions-200-pool-3hlo",
+    "source": "DEV Community",
+    "date": "2026-04-21T00:21:39.000Z",
+    "summary": "A comprehensive analysis of testing pain points identified from Reddit discussions reveals five major themes including test instability, slow E2E test suites, difficult test maintenance, and flaky test environments, with real examples showing developers' frustration with testing workflows.",
+    "content": "Reddit 测试痛点研究报告\n\n\n\n  \n  \n  执行摘要\n\n\n本报告基于对 Reddit 及相关技术论坛的深度调研，聚焦开发者和团队在测试工具、QA 流程和 CI/CD 实践中遇到的核心痛点。通过分析超过 150 个相关讨论帖，我们识别出五大主题痛点，并提供真实案例和数据支撑。\n痛点描述：\n\n测试不稳定是开发者最常抱怨的问题。测试在相同代码下时而通过时而失败，导致团队对测试结果失去信任，CI/CD 流程频繁中断。\n典型案例：\nr/programming 帖子：\"Our E2E tests fail randomly 30% of the time\" (327 upvotes)\nr/devops 讨论：\"Spent 3 hours debugging a flaky test, turned out to be a race condition in Selenium\"\nr/webdev 吐槽：\"Cypress tests work locally but fail in CI every other run\"\n开发者原话摘录：\n\"We've reached a point where we just re-run the CI pipeline until it passes. This defeats the entire purpose of automated testing.\"\n根本原因：\n异步操作处理不当（网络请求、动画、定时器）\n测试环境不一致（本地 vs CI）\n并行测试导致的资源竞争\n第三方服务依赖不稳定\n痛点描述：\n\nE2E 测试套件运行时间过长，严重拖慢开发迭代速度。许多团队的完整测试需要 30 分钟到 2 小时。\n典型案例：\nr/javascript 帖子：\"Our Playwright suite takes 45 minutes. Developers stopped running tests locally\" (412 upvotes)\nr/QualityAssurance 讨论：\"E2E tests are so slow we only run them nightly, missing bugs for 24 hours\"\nr/reactjs 抱怨：\"Waiting 20 minutes for tests to pass kills my flow state\"\n代码示例（常见问题）：\n// 反模式：每个测试都重新登录和设置状态\ndescribe('Dashboard Tests', () => {\n  beforeEach(async () => {\n    await page.goto('/login');\n    await page.fill('#username', 'test@example.com');\n    await page.fill('#password', 'password');\n    await page.click('#submit');\n    await page.waitForNavigation(); // 每次都浪费 3-5 秒\n  });\n\n  it('test 1', async () => { /* ... */ });\n  it('test 2', async () => { /* ... */ });\n  // 50 个测试 = 250 秒仅用于登录\n});\n\n影响：\n开发者跳过本地测试，直接推送到 CI\n反馈周期延长，降低生产力\n增加云 CI 成本（更长的运行时间）\n痛点描述：\n\n测试代码变得比业务代码更难维护。UI 变更导致大量测试失效，团队花费大量时间修复测试而非开发新功能。\n典型案例：\nr/ExperiencedDevs 帖子：\"We spend 40% of sprint time fixing broken tests after UI refactors\" (289 upvotes)\nr/cscareerquestions 讨论：\"Junior dev changed a button ID, broke 50 E2E tests\"\nr/softwaretesting 吐槽：\"Our test suite has become a second codebase to maintain\"\n真实场景：\n// 脆弱的选择器导致维护噩梦\nawait page.click('div > div > button:nth-child(3)'); // UI 改动就失效\nawait page.locator('text=Submit').click(); // 文案改动就失效\nawait page.click('#submit",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Reddit 研究——从真实用户讨论中汇总测试痛点($200 奖池)",
+        "summary": "对 Reddit 讨论中发现的测试痛点进行的全面分析揭示了五个主要主题,包括测试不稳定性、E2E 测试套件速度慢、测试维护困难和测试环境不稳定,并通过真实示例展示了开发者对测试工作流的挫折感。"
+      }
+    }
+  },
+  {
+    "title": "Training Data Poisoning 2026 — How Attackers Corrupt AI Models Before Deployment",
+    "slug": "training-data-poisoning-2026-ai-models",
+    "url": "https://dev.to/lucky_lonerusher/training-data-poisoning-2026-how-attackers-corrupt-ai-models-before-deployment-2imb",
+    "source": "DEV Community",
+    "date": "2026-04-21T00:21:37.000Z",
+    "summary": "An in-depth examination of training data poisoning attacks that corrupt AI models at the source by influencing training data, covering attack categories, LLM-specific vulnerabilities, and defense strategies for securing the AI training pipeline.",
+    "content": "📰 Originally published on SecurityElites — the canonical, fully-updated version of this article.\n\nTraining data poisoning in 2026 :— The AI security attack class that operates before deployment, corrupting the model at the source before any user touches it. Every AI model learns from data. If an attacker can influence what data the model trains on, they can influence what the model learns — including hidden behaviours that activate only under specific conditions, invisible to standard evaluation and testing. The scale at which modern LLMs are trained on internet-scraped data creates a poisoning attack surface that is theoretically enormous and practically underdefended. This article covers how training data poisoning works, why LLMs are specifically vulnerable, what real poisoning research has demonstrated, and what defences provide meaningful protection.\nThe four categories of training data poisoning and how each corrupts model behaviour\n⏱️ 30 min read · 3 exercises ### 📋 Training Data Poisoning 2026 1. How Training Data Poisoning Works 2. Four Categories of Poisoning Attacks 3. LLM-Specific Poisoning Scenarios 4. What Published Research Has Demonstrated 5. Defences for Training Pipeline Security ## How Training Data Poisoning Works Machine learning models learn patterns from training data. The model optimises its parameters to produce outputs consistent with the training examples. If an attacker can insert examples that associate a specific input pattern with a specific output, the model will learn that association — including hidden associations that are not apparent from normal evaluation. This is training data poisoning at its core: corrupting the learning signal to produce a model with attacker-desired properties.\nThe attack’s fundamental challenge is access. To poison a model’s training data, the attacker needs to influence what data the model trains on. The access vectors differ significantly by model type and training approach. For large pre-trained model",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "训练数据投毒 2026 ——攻击者如何在部署前破坏 AI 模型",
+        "summary": "对训练数据投毒攻击的深入研究,这些攻击通过影响训练数据在源头破坏 AI 模型,涵盖攻击类别、特定于 LLM 的漏洞以及保护 AI 训练管道安全的防御策略。"
+      }
+    }
+  }
+]
