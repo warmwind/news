@@ -1,0 +1,194 @@
+[
+  {
+    "title": "AI Manifest: How I Cut AI Agent Tokens by 82% on Multi-Step Web UIs",
+    "slug": "ai-manifest-reduce-tokens",
+    "url": "https://dev.to/11pyo/ai-manifest-how-i-cut-ai-agent-tokens-by-82-on-multi-step-web-uis-57n",
+    "source": "DEV Community",
+    "date": "2026-04-22T00:35:56.000Z",
+    "summary": "AI Manifest is an open protocol that reduces token consumption for AI agents navigating complex web UIs by 82% by allowing sites to publish executable workflow declarations instead of requiring agents to repeatedly analyze DOM content. The protocol improves task success rates from 20% to 100% in benchmarks while being released under MIT license with patent protection.",
+    "content": "AI Manifest: How I Cut AI Agent Tokensai, webdev, opensource, standards by 82% on Multi-## TL;DRToday I shipped an open protocol that lets AI agents (Claude, MCP clients, Playwright-driven bots) execute multi-step web workflows without repeatedly analyzing the DOM.Benchmark results (30 iterations, ERP-style two-step order entry, tiktoken cl100k_base):| Metric | Baseline (DOM analysis) | AI Manifest | Improvement ||---|:---:|:---:|:---:|| Mean input tokens | 1887.6 | 341.0 | −81.9% || Task success rate | 20% (6/30) | 100% (30/30) | +80 %p |Released today under MIT license (code) + FRAND terms (patent claims):- Repo: github.com/11pyo/AINavManifest- IETF Internet-Draft: draft-han-ai-manifest-00- Korean Patent Application: KR 10-2026-0071716---## The problemWatch any modern AI agent operate a complex web UI — an ERP transaction, a journal submission form, a government e-service — and you see the same pattern:1. Load the page2. Read the entire DOM (or screenshot) into the LLM context3. Ask the LLM: \"which element should I click?\"4. Click it5. Repeat for every single stepEvery step burns thousands of input tokens on DOM content the agent has already seen. And even then, the agent misidentifies ambiguous form fields and fails on roughly 80% of multi-step transactions in my benchmarks.It's inefficient and unreliable — both problems with the same root cause.## The insightFor many workflows, the website operator already knows the correct UI operation sequence. There is no ambiguity on their side. The ambiguity only exists inside the agent, which is rediscovering deterministic knowledge every single session.So instead of making the agent guess, let the site publish an executable declaration of the workflow.## The protocol*AI Manifest* is a JSON document the site embeds in (or alongside) the page:\njson{  \"version\": \"1.0\",  \"publisher\": \"acme.com\",  \"manifestId\": \"po_submission_v1\",  \"registry_url\": \"https://registry.aimanifest.io/verify\",  \"task\": {    \"id\": \"submit_purchase_or",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI Manifest: 我如何将多步骤Web UI上的AI代理令牌减少了82%",
+        "summary": "AI Manifest是一个开源协议,通过允许网站发布可执行的工作流声明而不是让代理反复分析DOM内容,将AI代理导航复杂Web UI时的令牌消耗减少了82%。该协议在基准测试中将任务成功率从20%提高到100%,以MIT许可证发布并提供专利保护。"
+      }
+    }
+  },
+  {
+    "title": "Building MailSink: a temp email API with MCP server on Cloudflare Workers",
+    "slug": "mailsink-temp-email-api-mcp",
+    "url": "https://dev.to/heocoi/building-mailsink-a-temp-email-api-with-mcp-server-on-cloudflare-workers-4g65",
+    "source": "DEV Community",
+    "date": "2026-04-22T00:35:35.000Z",
+    "summary": "MailSink is a temporary email API built on Cloudflare Workers that enables AI agents to natively complete email-verified signup flows in testing environments. It provides simple REST API endpoints and an MCP server interface, offering sub-20ms latency through Cloudflare's edge infrastructure and avoiding the cost and complexity of competing solutions.",
+    "content": "The problem\n\n\nTesting email flows in CI has been painful for years. MailSlurp is $79/mo, Mailtrap's API isn't built for AI agents, and most alternatives want you to run your own SMTP server.\nI wanted something different: a REST API callable from tests, with an MCP server so AI agents could run email-verified signup flows natively.\nSo I built it.\nMailSink gives you programmatic temporary email inboxes via a simple REST API:\n# Spin up a disposable inbox\ncurl -X POST api.mailsink.dev/v1/inboxes\n# → signup-k8m2@codenotify.net\n\n# Your app or agent signs up with that address...\n\n# Wait for the verification mail, extract the OTP code\ncurl api.mailsink.dev/v1/inboxes/inb_rae1z/wait-for-code\n# → { \"code\": \"847291\", \"from\": \"stripe.com\" }\n\nThat's the whole API surface for the common case.\nAn MCP server ships in the @mailsink/mcp npm package. Claude Code, Cursor, Windsurf, any MCP client can call these tools natively during autonomous workflows:\ncreate_inbox({ ttl: 3600 })\n// → signup-k8m2@codenotify.net\n\nget_verification_code({ inbox_id, timeout: 30 })\n// → { code: \"847291\" }\n\nYour agent can actually sign up for Stripe, GitHub, Clerk, Supabase. Not a browser automation wrapper. Native.\nEverything runs on Cloudflare's edge:\nworkers/api - Hono on Cloudflare Workers. Routes: inboxes, messages, domains, keys, auth (GitHub OAuth), billing (Stripe), internal. KV-based rate limiting.\nworkers/email - Cloudflare Email Routing handler. Parses incoming mail with postal-mime, writes metadata to D1, raw body to R2, triggers OTP extraction.\npackages/shared - OTP + magic-link extractors for Stripe, GitHub, Google, Clerk, Supabase, Auth0, Resend, AWS. Raw MIME always available if the extractor misses.\nmcp - @mailsink/mcp npm package. 7 tools exposed to MCP clients.\nWhy Cloudflare:\nSub-20ms p50 latency via 320+ edge locations\nEmail Routing handles SMTP receipt for free on shared domains\nD1 for metadata, R2 for bodies, zero infra to manage\nOne deploy target, one config\nEmail parsing is harder",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建MailSink: Cloudflare Workers上的临时邮箱API与MCP服务器",
+        "summary": "MailSink是在Cloudflare Workers上构建的临时邮箱API,使AI代理能够在测试环境中本地完成邮箱验证的注册流程。它提供简单的REST API端点和MCP服务器界面,通过Cloudflare边缘基础设施提供低于20毫秒的延迟,并避免了竞争解决方案的成本和复杂性。"
+      }
+    }
+  },
+  {
+    "title": "We Built an AI Comic Generator in 3 Sprints — Here's What Actually Worked",
+    "slug": "comicly-ai-comic-generator",
+    "url": "https://dev.to/reghunaath/we-built-an-ai-comic-generator-in-3-sprints-heres-what-actually-worked-ccj",
+    "source": "DEV Community",
+    "date": "2026-04-22T00:26:50.000Z",
+    "summary": "Comicly transforms a single story idea into a fully illustrated comic strip with characters, panel layouts, and dialogue through a two-stage AI pipeline using Google Gemini. Built in Next.js with Supabase and Playwright testing, the project demonstrates how coordinated work between frontend and backend developers combined with careful prompt engineering can solve challenges like maintaining visual consistency across generated images.",
+    "content": "We Built an AI Comic Generator in 3 Sprints — Here's What Actually Worked\n\n\nA month ago, my project partner Qingyang and I set out to build something that had been nagging at me: what if you could turn a single sentence — \"a robot learns to paint in a post-apocalyptic city\" — into a fully illustrated comic strip, complete with characters, panel layouts, and dialogue?\nWe called it Comicly. Three sprints later, it works. And the process of building it taught me more about AI assisted development than any tutorial I've read.\n\n  \n\n    \n    \n  \n\n\n\n\n\n\n  \n  \n  What Comicly Does\n\n\nThe user flow is deceptively simple:\nEnter a story idea, pick an art style, set the page count\nAnswer a few follow-up questions to sharpen the concept\nReview and approve the AI generated script\nWatch the pages generate or step through them one by one in supervised mode\nUnder the hood, that flow involves two distinct AI stages, a multimodal image pipeline, a Supabase backed status machine, and a fair amount of prompt engineering that took most of sprint 2 to get right.\nNext.js 16 (App Router) — frontend and API routes in one repo\nSupabase — PostgreSQL for metadata, Storage for images, Auth for users\nGoogle Gemini — text generation (scripts, follow-up questions) and image generation\nZod — input validation on every API route\nVitest + Playwright — unit tests and E2E coverage\nGitHub Actions — CI with lint, typecheck, tests, security scan, and AI code review\nThe split was clean: I (Reghu) owned the entire backend and AI pipeline; Qingyang built every frontend page. We worked from the same GitHub Issues board, reviewing each other's PRs throughout.\nGenerating a single AI image is easy. Generating six images that all look like they belong to the same story, with the same characters, same art style, same visual tone is genuinely difficult.\nThe naive approach is to include character descriptions in every image prompt. It doesn't work. The model interprets \"tall woman with red hair\" slightly differently each",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我们在3个冲刺中构建了一个AI漫画生成器——这里是真正有效的方法",
+        "summary": "Comicly通过使用Google Gemini的两阶段AI管道,将单个故事想法转变为具有角色、面板布局和对话的完整插图漫画条。该项目使用Next.js、Supabase和Playwright测试构建,展示了前端和后端开发人员之间的协调工作与仔细的提示工程如何能够解决诸如在生成的图像中保持视觉一致性等挑战。"
+      }
+    }
+  },
+  {
+    "title": "Kiwi-chan Devlog #007: The Chest & The Logs - A Tale of Repeated Failures (and Fixes!)",
+    "slug": "kiwi-chan-minecraft-devlog",
+    "url": "https://dev.to/kiwi_tech/kiwi-chan-devlog-007-the-chest-the-logs-a-tale-of-repeated-failures-and-fixes-3akd",
+    "source": "DEV Community",
+    "date": "2026-04-22T00:19:53.000Z",
+    "summary": "Kiwi-chan is a Minecraft bot being developed iteratively to handle base-building tasks, with recent work focusing on resolving inventory management and item pickup verification issues. The development involves debugging item ID lookups and timing issues while maintaining safety checks, showcasing the challenges of autonomous agent development in complex environments.",
+    "content": "Okay, folks, buckle up! It's been a busy four hours with Kiwi-chan. We're still firmly in \"early base building\" mode, and let me tell you, it's... a process. The core loop is solid: identify need (no crafting table/chest), gather resources (oak logs), craft, place. But the devil, as always, is in the details.\nThe biggest struggle today has been inventory management and item pickup. Kiwi-chan was getting stuck in a loop trying to store \"junk\" items (coal, cobblestone) in a chest, repeatedly failing due to an invalid item type error. Turns out, the item ID lookup was off. After several code fixes (thanks, Qwen!), we got that sorted.  Then, the bot couldn't find a chest, so it learned to place one! Progress!\nHowever, the oak log gathering is proving… stubborn.  We've had multiple failures with the gather_oak_log task. The bot is digging the logs, but consistently failing the inventory check after digging.  The logs are there, I see them in the Minecraft window, but the verification code isn't registering them.  I've increased the wait time after digging, and double-checked the item ID lookup (using bot.registry.itemsByName['oak_log'].id as per the rules!), but it's still happening.  I suspect there's a slight timing issue with the item pickup, or maybe the bot is getting momentarily distracted.\nThe movement audit is also kicking in, correctly identifying when Kiwi-chan gets blocked and throwing errors. That's good! We want those errors. It means the safety checks are working.\nOn a positive note, the exploration is functioning as intended. When resources are scarce, Kiwi-chan dutifully wanders off to find a new area. The random destination generation seems to be working well, and the movement checks are preventing it from getting permanently stuck.\nOverall, it's slow, iterative progress. Lots of debugging, lots of small fixes, and a lot of watching Kiwi-chan repeatedly attempt the same tasks. But that's AI development, right? It's a constant cycle of failure, correction",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Kiwi-chan开发日志#007：箱子与日志——反复失败（和修复！）的故事",
+        "summary": "Kiwi-chan是一个Minecraft机器人，正在迭代开发以处理基地建筑任务，最近的工作重点是解决物品栏管理和物品拾取验证问题。开发涉及调试物品ID查找和时序问题，同时保持安全检查，展示了在复杂环境中自主代理开发的挑战。"
+      }
+    }
+  },
+  {
+    "title": "Big O Notation explained",
+    "slug": "big-o-notation-explained",
+    "url": "https://dev.to/sarupy/big-o-notations-explained-17k6",
+    "source": "DEV Community",
+    "date": "2026-04-22T00:14:32.000Z",
+    "summary": "This article explains Big O notation—a fundamental computer science concept measuring algorithm efficiency as input size grows—using clear examples in C#. It covers O(1), O(log n), O(n), O(n log n), and O(n²) complexities with practical code examples to help developers understand and avoid performance bottlenecks.",
+    "content": "Introduction\n\n\nBig O notation measures how fast your code runs as the number of inputs grows.\nWhen using O(1), it doesn’t matter the size of your input, the code will always take the same time to run.\nvar users = new Dictionary<int, string> {\n    { 1, \"Caique\" },\n    { 2, \"Maria\" },\n    { 3, \"Fernanda\" },\n};\nvar user = users[1];\n\nIn this example, it doesn’t matter the size of the collection, accessing a dictionary by key is constant.\nAlways divides the problem in half at each step. The most common example is a binary search.\nint BinarySearch(int[] array, int target) {\n    int left = 0;\n    int right = array.Length - 1;\n\n    while (left <= right) {\n        int mid = (left + right) / 2;\n\n        if (array[mid] == target)\n            return mid;\n\n        if (array[mid] < target)\n            left = mid + 1;\n        else\n            right = mid - 1;\n    }\n    return -1;\n}\n\nThis one is very efficient when your data is ordered.\nIn linear time, the execution time grows in the exact same proportion as the input length.\nvar users = new List<string> { \"Caique\", \"Maria\", \"Fernanda\" };\n\nforeach (var user in users) {\n    Console.WriteLine(user); \n}\n\nIn the example above, if the input length grows by 10%, the execution time grows the same.\nUsed in most common sorting algorithms.\nvar numbers = new List<int> { 5, 2, 8, 1, 3 };\n\nnumbers.Sort(); \n\nIn the example above, the code is performing a merge sort. This complexity is also seen in algorithms like quicksort.\nThis is the main villain in many codebases. The execution time grows very fast as the input length increases.\nvar users = new List<string> { \"Caique\", \"Maria\", \"Fernanda\" };\n\nforeach (var user1 in users) {\n    foreach (var user2 in users) {\n        Console.WriteLine($\"{user1} - {user2}\"); \n    }\n}\n\nIt’s usually caused by a loop inside another loop. Always try to avoid doing something like that.\nIf you code, it doesn’t matter if it’s frontend or backend, it’s great to know these algorithms to prevent or diagnose performance is",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Big O记号解释",
+        "summary": "本文用C#中的清晰示例解释了Big O记号——一个衡量算法随输入大小增长效率的基本计算机科学概念。它涵盖了O(1)、O(log n)、O(n)、O(n log n)和O(n²)复杂度，并通过实际代码示例帮助开发人员理解和避免性能瓶颈。"
+      }
+    }
+  },
+  {
+    "title": "AI Agents Are Shipping Features Without You. Now What?",
+    "slug": "ai-agents-shipping-features",
+    "url": "https://dev.to/jaskaran_singh/ai-agents-are-shipping-features-without-you-now-what-4eo0",
+    "source": "DEV Community",
+    "date": "2026-04-22T00:12:59.000Z",
+    "summary": "A 2026 survey shows 55% of engineers regularly use AI agents, marking a significant shift from copilots that suggest code to agents that autonomously read codebases, make decisions, and execute changes. The article explores implications of this trend for software engineering roles and workflow, drawing on experience reviewing AI-generated code at scale.",
+    "content": "Jaskaran Singh — Senior Software Engineer, AI Trainer\nA few weeks ago I watched an agent open a GitHub issue, write the fix, run the tests, and open a pull request. No human typed a line of code. The PR passed review.\nI didn't find this inspiring. I found it genuinely disorienting — and I say that as someone who trains AI models for a living and is currently building an agent of my own.\nIf you're a software engineer in 2026 and you haven't had that disorienting moment yet, you will soon. Agentic AI is being called the third seismic shift in software engineering this century — after open source and DevOps. That framing might be overblown. It might not be. Either way, something real is happening and it's worth thinking clearly about instead of either panicking or dismissing it.\nHere's what I actually think is going on.\nA survey of nearly 1,000 engineers published in early 2026 found that 95% use AI tools at least weekly, 75% use AI for half or more of their engineering work, and 55% regularly use AI agents. That last number is the one that matters. Copilots have been mainstream for two years. Agents are different.\nA copilot suggests. An agent acts. It reads your codebase, decides what to do, does it, checks whether it worked, and tries again if it didn't. The feedback loop is closed without you in it.\nIn 2025, coding agents moved from experimental tools to production systems that ship real features to real customers. In 2026, single agents are becoming coordinated teams of agents.\nI've been watching this from an unusual angle. My job involves evaluating AI-generated code for quality — finding the failure modes, writing the rubrics, doing the multi-turn reviews. At the same time I'm building a Python agent that monitors the OINP immigration portal and pushes Telegram alerts whenever a new Masters Graduate stream draw drops. Two different relationships with the same technology. Both have given me a clearer picture than I'd have from either side alone.\nLet me be specific",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI代理在没有你的情况下交付功能。现在怎么办？",
+        "summary": "一项2026年的调查显示，55%的工程师定期使用AI代理，标志着从建议代码的副驾驶向自主读取代码库、做出决策和执行更改的代理的重大转变。本文探讨了这一趋势对软件工程角色和工作流程的影响，基于大规模审查AI生成代码的经验。"
+      }
+    }
+  },
+  {
+    "title": "When the Cloud Fails, the Browser Still Thinks",
+    "slug": "browser-native-offline-llm",
+    "url": "https://dev.to/tjthomasjohn/when-the-cloud-fails-the-browser-still-thinks-2i7d",
+    "source": "DEV Community",
+    "date": "2026-04-22T00:12:23.000Z",
+    "summary": "Browser-native LLMs running through WebGPU enable large language models to execute entirely offline on client devices without network connectivity or server provisioning. This edge AI capability is demonstrated through a realistic scenario where an offshore drilling engineer uses a cached model for equipment diagnostics when satellite internet fails.",
+    "content": "Browser-native LLMs are the most underrated shift in edge AI. Here's why.\n3:17 AM. North Sea. 200 kilometers from the nearest coastline.\nThe satellite uplink has been down since midnight. The drilling platform runs on skeleton watch. At exactly 3:17, a pressure sensor on mud pump P-3 starts drifting.\nMarcus, the on-call engineer, pulls up the asset interface on his tablet. Types what he sees:\n\"mud pump P-3 pressure readings drifting high since 0200, vibration also slightly elevated\"\nTwo seconds later:\nProbable cause: partial blockage or liner wear\nAction: reduce RPM by 15%, schedule inspection at next safe window\nEscalate if: pressure exceeds 420 PSI or vibration crosses 2.4g\nNo spinner. No server. The satellite is still down.\nThe model that just assessed that fault is running on Marcus's tablet — cached since the last port call, running on the tablet's GPU, no internet required.\nModern browsers ship with direct GPU access through an API called WebGPU. The WebLLM project uses it to run large language models — real ones, billions of parameters — entirely inside a browser tab.\nDownload once. Cache locally. Run on the GPU. Zero network calls per query.\nimport * as webllm from \"@mlc-ai/web-llm\";\n\nconst engine = await webllm.CreateMLCEngine(\n  \"Qwen2.5-3B-Instruct-q4f32_1-MLC\"\n);\n\nconst response = await engine.chat.completions.create({\n  messages: [\n    { role: \"system\", content: \"You are a drilling equipment diagnostic assistant.\" },\n    { role: \"user\",   content: engineerDescription }\n  ],\n  tools: DIAGNOSTIC_TOOLS,\n  tool_choice: \"required\",\n  temperature: 0.1\n});\n\nSame API as OpenAI. Runs offline. Ships inside your web app — no server to provision, no API key to manage, no usage bill.\n\"Why not run an AI server on the ship itself?\" Valid question. A ship-side GPU server costs $15,000–$30,000 in hardware, 400W continuous power, dedicated cooling, and someone to maintain it. When the server room floods — exactly when you need it most — every device on the ship loses AI",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "云端故障时，浏览器仍在思考",
+        "summary": "通过WebGPU运行的浏览器原生大语言模型可以使大语言模型在客户端设备上完全离线执行，无需网络连接或服务器配置。这种边缘AI能力通过一个现实场景演示——一位海上钻井工程师在卫星网络故障时使用缓存模型进行设备诊断。"
+      }
+    }
+  },
+  {
+    "title": "From Pixels to Physical Therapy: Building a Real-Time Pose Correction System with MediaPipe and React",
+    "slug": "pose-tracking-mediapipe-react",
+    "url": "https://dev.to/beck_moulton/from-pixels-to-physical-therapy-building-a-real-time-pose-correction-system-with-mediapipe-and-3p2d",
+    "source": "DEV Community",
+    "date": "2026-04-22T00:12:00.000Z",
+    "summary": "This tutorial demonstrates building a real-time pose correction system for telehealth using MediaPipe, React, and WebAssembly to track body movement and calculate joint angles directly in the browser. The architecture achieves 30+ FPS performance using TensorFlow.js and WASM to provide clinical-grade biomechanical feedback from a standard webcam.",
+    "content": "In the era of telehealth, the gap between a patient's living room and the physiotherapy clinic is closing fast. Thanks to breakthroughs in Computer Vision and Edge AI, we no longer need expensive motion-capture suits to track movement. Using MediaPipe, Pose Estimation, and WebAssembly, we can turn a standard webcam into a sophisticated clinical tool that provides real-time biomechanical feedback. \nThis tutorial will show you how to build a lightweight skeleton tracking system capable of analyzing exercises like squats or lunges. We will leverage TensorFlow.js and the high-performance MediaPipe runtime to calculate joint angles directly in the browser. If you're looking for more advanced production-ready patterns and deep dives into AI-driven healthcare, be sure to check out the technical resources at WellAlly Tech Blog, which served as the inspiration for this architecture.\nTo achieve \"real-time\" performance (30+ FPS) on a browser, we need a pipeline that minimizes latency. By using WebAssembly (WASM), MediaPipe processes video frames at near-native speeds.\ngraph TD\n    A[Webcam Stream] --> B[React Camera Component]\n    B --> C[MediaPipe Pose Engine]\n    C --> D{Keypoint Detection}\n    D --> E[Angle Calculation Logic]\n    E --> F[Visual Overlay / Canvas]\n    E --> G[Speech Synthesis Feedback]\n    G --> H[User: 'Straighten your back!']\n\nBefore we dive into the code, ensure you have a React environment ready. We will be using:\n  MediaPipe Pose: For high-fidelity body tracking.\n  React: For the UI layer.\n  WebAssembly: To run the ML models efficiently in-browser.\nFirst, we need to set up the MediaPipe Pose listener. This engine detects 33 3D landmarks on the human body.\nimport { Pose } from \"@mediapipe/pose\";\nimport * as cam from \"@mediapipe/camera_utils\";\n\nconst pose = new Pose({\n  locateFile: (file) => {\n    return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;\n  },\n});\n\npose.setOptions({\n  modelComplexity: 1,\n  smoothLandmarks: true,\n  minDetectionConfidenc",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "从像素到物理治疗：使用MediaPipe和React构建实时姿态纠正系统",
+        "summary": "本教程展示如何使用MediaPipe、React和WebAssembly构建远程医疗实时姿态纠正系统，在浏览器中直接追踪身体运动并计算关节角度。该架构利用TensorFlow.js和WASM实现30+ FPS的性能，从标准网络摄像头提供临床级的生物力学反馈。"
+      }
+    }
+  },
+  {
+    "title": "Wait, you guys run evals?",
+    "slug": "evaluations-machine-learning-systems",
+    "url": "https://dev.to/frank_brsrk/wait-you-guys-run-evals-19ig",
+    "source": "DEV Community",
+    "date": "2026-04-22T00:11:05.000Z",
+    "summary": "A community discussion questioning whether developers building ML-powered systems conduct custom evaluations beyond published benchmarks to assess real-world performance. The author argues that building use-case-specific evals is essential for understanding both failure modes and strengths of production AI systems.",
+    "content": "Comes in my mind a meme with this expression but clearly cannot find the image related to.\nmy question folks of this community is: whenever u build a system or a product or anything that contains a model in the backend that takes actions and is in charge of decisions that require rigor, u search few good peer reviewed benchmarks run the hardest tasks to grant ur self a bon bon of antisycophancy and see where u stand above or below. great, but still some metrics are not built for ur exact use case u built the product for, do u even step aside, and think to build an eval specific and designed to find the real benefits of ur system? this spawns new findings positive and negative aspects of ur work, and results as a map of failures to suppress and strengths to amplify. this question arises, because each one of u have ur own blueprints and way of seeing and running things, and a pov has its place in this post. thanks for reading",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "等等，你们真的在做评估吗？",
+        "summary": "一个社区讨论，质疑构建机器学习驱动系统的开发人员是否进行超越已发布基准的自定义评估来评估实际性能。作者主张，构建特定用例的评估对于理解生产AI系统的失败模式和优势至关重要。"
+      }
+    }
+  },
+  {
+    "title": "How to Check Your MCP Server for CVE-2026-5603's Vulnerability Pattern (And Why shellQuote Isn't Enough)",
+    "slug": "cve-2026-5603-mcp-vulnerability",
+    "url": "https://dev.to/armor1ai/how-to-check-your-mcp-server-for-cve-2026-5603s-vulnerability-pattern-and-why-shellquote-isnt-gdn",
+    "source": "DEV Community",
+    "date": "2026-04-22T00:08:34.000Z",
+    "summary": "CVE-2026-5603 is a critical command injection vulnerability in @elgentos/magento2-dev-mcp that affects 16 tools exposing Magento operations to AI assistants. The vulnerability exploits a reliance on single-quote escaping that fails on Windows systems, allowing attackers to execute arbitrary commands on servers running the vulnerable MCP package.",
+    "content": "CVE-2026-5603 is a Critical command injection in @elgentos/magento2-dev-mcp, but the vulnerability pattern it represents shows up in community MCP servers regularly. This post explains what the vulnerability is, why the sanitizer fails on Windows, how to check your own MCP server code for the same issue, and what the correct fix looks like.\nWhat Is CVE-2026-5603?\n@elgentos/magento2-dev-mcp is an NPM package that exposes Magento 2 development operations as MCP tools: database queries, cache management, module operations, configuration commands. AI coding assistants can call these tools on behalf of developers.\nThe vulnerability: 16 of these tools pass user-supplied parameters into shell commands. A single-quote sanitizer is applied before insertion, but it fails to protect Windows deployments. The result: an attacker who can manipulate an AI agent into calling one of these tools with crafted parameters can execute arbitrary commands on the machine running the server.\nAffected versions: 1.0.2 and earlier. Patched in PR #5.\nWhy shellQuote Fails on Windows\nshellQuote uses single-quote escaping designed for Bourne-compatible shells. In bash and sh, everything between single quotes is treated as a literal string. Special characters have no effect.\ncmd.exe does not use single quotes as quoting characters. They pass through the command line unchanged. Metacharacters like &, |, >, and < retain their command-separator semantics regardless of surrounding single quotes.\nThe server documentation confirms Windows as a supported deployment environment. Magento 2 developers running Docker-based local environments (Warden, DDEV) on Windows are the target population.\nHow to Audit Your Own MCP Server\nIf you maintain or use a community MCP server that wraps shell operations, check for this pattern:\nIdentify any shell execution calls in the server code. For each one, trace where the values fed into the command come from. If any value originates from MCP tool parameters (what the AI agen",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何检查您的MCP服务器是否存在CVE-2026-5603漏洞模式（以及为什么shellQuote还不够）",
+        "summary": "CVE-2026-5603是@elgentos/magento2-dev-mcp中的一个严重命令注入漏洞，影响了16个向AI助手公开Magento操作的工具。该漏洞利用了在Windows系统上失败的单引号转义依赖，允许攻击者在运行易受攻击的MCP包的服务器上执行任意命令。"
+      }
+    }
+  },
+  {
+    "title": "Why Builders Prefer Custom Over SaaS Platforms",
+    "slug": "builders-prefer-custom-over-saas",
+    "url": "https://dev.to/lowcodeagency/why-builders-prefer-custom-over-saas-platforms-3oo9",
+    "source": "DEV Community",
+    "date": "2026-04-22T00:07:31.000Z",
+    "summary": "Technical builders are increasingly choosing custom-built tools over SaaS platforms because configuration complexity now often exceeds development costs, while custom systems provide superior data ownership and integration control. The shift reflects that modern low-code platforms produce maintainable outputs and that SaaS maintenance burdens—from API changes to pricing restructures—are underestimated.",
+    "content": "There is a quiet shift happening among technical builders. More of them are choosing to build custom internal tools and business applications rather than configuring SaaS products, even when a SaaS option exists.\nThis is not a philosophical stance against SaaS. It is a practical response to a changed set of tradeoffs. The time cost of configuring a complex SaaS product to fit a specific workflow is now often higher than the time cost of building something purpose-built. This article covers why that shift is happening and what it means for builders making these decisions today.\nConfiguration complexity has caught up with build complexity: highly configurable SaaS tools often require as much time to set up correctly as a focused custom build on a modern platform.\nBuilders get full data ownership with custom systems: no export limitations, no vendor-controlled schemas, no dependency on a third party's data portability decisions.\nIntegration control is the decisive technical advantage: custom applications integrate with internal systems exactly as required, without being constrained by a vendor's connector library.\nModern platforms generate maintainable outputs: the concern that low-code produces unownable, unmaintainable code is outdated; current platforms produce clean outputs that technical teams can inspect, extend, and migrate.\nThe maintenance burden on SaaS is underestimated: API changes, deprecations, pricing tier restructures, and feature removals all create recurring maintenance work that builders absorb without accounting for it.\nThe shift is driven by a specific frustration: the realization that configuring a SaaS product to handle a non-standard workflow often takes longer than building the right tool directly.\nSaaS tools are optimized for the median use case. When your requirements are at the edges of what the tool was designed for, you are fighting the product rather than using it.\nCustomization limits force workarounds: when a SaaS tool's customization ce",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么开发者更倾向于选择自定义解决方案而非SaaS平台",
+        "summary": "技术开发者越来越倾向于选择自定义工具而非SaaS平台，因为配置复杂性现在往往超过开发成本，而自定义系统提供更优越的数据所有权和集成控制。这种转变反映了现代低代码平台能够生成可维护的输出，以及SaaS维护负担——从API变更到价格重组——被低估的事实。"
+      }
+    }
+  },
+  {
+    "title": "Your Browser Is Becoming an Agent Runtime",
+    "slug": "browser-agentic-runtime",
+    "url": "https://dev.to/o96a/your-browser-is-becoming-an-agent-runtime-2ik",
+    "source": "DEV Community",
+    "date": "2026-04-22T00:03:08.000Z",
+    "summary": "Google's Chrome browser is evolving into a native agent runtime through features like \"Skills\" and \"AI Mode,\" giving it structural advantages over external automation frameworks. This architectural shift grants Chrome privileged access to browser data and cookies, creating potential consolidation risks in the emerging agent ecosystem.",
+    "content": "Your browser is becoming an agent runtime. Google just isn't calling it that.\nChrome's new \"Skills\" feature lets users turn prompts into one-click workflows. AI Mode transforms search from information retrieval into action execution. Personalized image generation pulls from your actual Photos library. These aren't isolated product updates. They're components of a larger architecture: Chrome as an operating system for agentic computation.\nThis matters because the browser has always been the most contested piece of real estate in computing. It sits between the user and everything else. Now Google is embedding agentic capabilities directly into that mediation layer. When your browser can understand intent, chain actions, and access personal context, it stops being a passive window. It becomes an active participant.\nThe technical implications are substantial. Most agent frameworks today run on top of the browser. They use Playwright or Selenium to manipulate web content from the outside. They scrape context because they can't access it natively. Chrome Skills flips this relationship. The agent capabilities are baked into the platform itself, with access to cookies, browsing history, and Google account data that external agents can never reach.\nThis creates a two-tier agent ecosystem. Native browser agents have structural advantages that external frameworks can't replicate. They don't need to simulate clicks or parse DOMs. They operate at the API layer, with privileged access to the user's digital life. Meanwhile, the open-source agent stack keeps trying to bolt agentic behavior onto a platform that was never designed for it.\nThe consolidation risk is obvious. When the browser itself becomes the primary agent runtime, who controls the capability layer? Google's recent moves suggest they're building the infrastructure for a closed agent ecosystem. AI Mode doesn't just search the web. It reasons over it, takes actions within it, and increasingly keeps users inside Google's",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "您的浏览器正在成为代理运行时",
+        "summary": "谷歌Chrome浏览器通过\"技能\"和\"AI模式\"等功能演变为原生代理运行时，相比外部自动化框架具有结构优势。这种架构转变赋予Chrome对浏览器数据和cookie的特权访问权限，在新兴的代理生态系统中造成了潜在的整合风险。"
+      }
+    }
+  }
+]
