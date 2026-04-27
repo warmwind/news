@@ -1,0 +1,194 @@
+[
+  {
+    "title": "Async Transactions for Signals: Batching Updates Across await",
+    "slug": "async-transactions-signals-batching-updates-await",
+    "url": "https://dev.to/luciano0322/async-transactions-for-signals-batching-updates-across-await-32hj",
+    "source": "DEV Community",
+    "date": "2026-04-27T00:39:00.000Z",
+    "summary": "This article explores how to batch multiple state updates across async boundaries (await calls) into a single effect rerun using a transaction wrapper. The solution extends an existing scheduler to handle updates that cross await boundaries while maintaining existing lazy computed behavior and microtask-based scheduling.",
+    "content": "Introduction\n\n\nIn the previous articles, we demonstrated how to integrate our signal mechanism into two mainstream frameworks: React and Vue.\nStarting from this article, we will return to the core signal kernel we designed and examine which parts can be improved further.\nThe goal is to merge “multi-step updates across await boundaries” into a single effect rerun, while keeping our existing lazy computed behavior and microtask-based scheduling model intact.\nIn this article, we only extend scheduler.ts and a few minimal integration points, without changing the public API.\nOur current system is already stable:\nWithin the same call stack, multiple set() calls are merged by our scheduler — using Set + queueMicrotask — into the same microtask, so the effect only reruns once.\nBut this does not work across await.\nEach await creates a new microtask. Without a transaction, effects will run once per async boundary.\n// ❌ Without transaction: the effect runs twice\nasync function onClick() {\n  a.set(1); // schedules the first flush\n  await fetch(\"/api\");\n  b.set(2); // schedules the second flush\n}\n\n// ✅ With transaction: the effect runs once after the transaction completes\nasync function onClick() {\n  await transaction(async () => {\n    a.set(1);\n    await fetch(\"/api\");\n    b.set(2);\n  });\n}\n\nscheduler.ts\n\n\n\n  \n  \n  Core Idea\n\n\nReuse the existing batchDepth, so batch() and transaction() can be nested freely.\nWhen batchDepth > 0, scheduleJob() only adds the job to the queue and does not schedule a microtask.\nWhen the outermost transaction exits, we call flushJobs() once.\n// scheduler.ts\nexport interface Schedulable { run(): void; disposed?: boolean }\n\nconst queue = new Set<Schedulable>();\nlet scheduled = false;\nlet batchDepth = 0;\n\nexport function scheduleJob(job: Schedulable) {\n  if (job.disposed) return;\n  queue.add(job);\n\n  // Only schedule a microtask when we are not inside a batch/transaction\n  if (!scheduled && batchDepth === 0) {\n    scheduled = true;\n    queueMicrotask(fl",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "信号的异步事务：跨 await 的批量更新",
+        "summary": "本文探讨了如何使用事务包装器将跨异步边界（await 调用）的多个状态更新批处理为单个效果重新运行。该解决方案扩展了现有调度器，以处理跨越 await 边界的更新，同时保持现有的延迟计算行为和基于微任务的调度。"
+      }
+    }
+  },
+  {
+    "title": "[Rust Guide] 10.4. Trait Pt.2 - Traits as Parameters and Return Types, Trait Bounds",
+    "slug": "rust-guide-traits-parameters-return-types-trait-bounds",
+    "url": "https://dev.to/someb1oody/rust-guide-104-trait-pt2-traits-as-parameters-and-return-types-trait-bounds-280a",
+    "source": "DEV Community",
+    "date": "2026-04-27T00:35:22.000Z",
+    "summary": "This guide explains how to use Rust traits as function parameters through the impl Trait syntax and trait bounds, allowing functions to accept multiple types that implement the same trait. The article demonstrates how both impl Summary and generic trait bound syntax enable flexible, polymorphic function design.",
+    "content": "If you find this helpful, please like, bookmark, and follow. To keep learning along, follow this series.\nBy the way, writing this article took even longer than writing the ownership chapter. Traits are truly a concept that is hard to understand.\nLet’s continue using the content from the previous article as the example:\npub trait Summary {\n    fn summarize(&self) -> String;\n}\n\npub struct NewsArticle {\n    pub headline: String,\n    pub location: String,\n    pub author: String,\n    pub content: String,\n}\n\nimpl Summary for NewsArticle {\n    fn summarize(&self) -> String {\n        format!(\"{}, by {} ({})\", self.headline, self.author, self.location)\n    }\n}\n\npub struct Tweet {\n    pub username: String,\n    pub content: String,\n    pub reply: bool,\n    pub retweet: bool,\n}\n\nimpl Summary for Tweet {\n    fn summarize(&self) -> String {\n        format!(\"{}: {}\", self.username, self.content)\n    }\n}\n\nIf we define a new function notify, which takes NewsArticle and Tweet as the two types and prints Breaking news!, followed by the return value of calling the summarize method from Summary on the parameter, there is a problem: \nthe function accepts two different struct types. How can we make the parameter work for two types?\nLet’s think about it: what do these two structs have in common? Exactly—they both implement the Summary trait. Rust provides a solution for this situation:\npub fn notify(item: &impl Summary) {  \n    println!(\"Breaking news! {}\", item.summarize());  \n}\n\nJust write the parameter type as impl some_trait. Since both of these structs implement the Summary trait, we write impl Summary. And because this function does not need ownership of the data, we write it as a reference: &impl Summary. If some other data type also implements Summary, it can be passed in as well.\nThe impl trait syntax is suitable for simple cases. For more complex cases, trait bound syntax is usually used.\nUsing the same code, but written with trait bounds:\npub fn notify<T: Summary>(item: &T) {",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "[Rust 指南] 10.4. 特性第 2 部分 - 作为参数和返回类型的特性、特性边界",
+        "summary": "本指南解释了如何通过 impl Trait 语法和特性边界将 Rust 特性用作函数参数，允许函数接受实现相同特性的多种类型。文章演示了 impl Summary 和泛型特性边界语法如何实现灵活的多态函数设计。"
+      }
+    }
+  },
+  {
+    "title": "Breaking the MoE Speculative Trap: 460 t/s on AMD Strix Halo",
+    "slug": "breaking-moe-speculative-trap-460-tokens-amd-strix-halo",
+    "url": "https://dev.to/agustinsacco/breaking-the-moe-speculative-trap-460-ts-on-amd-strix-halo-446d",
+    "source": "DEV Community",
+    "date": "2026-04-27T00:29:37.000Z",
+    "summary": "This technical deep-dive benchmarks Mixture-of-Experts model inference on AMD Strix Halo hardware, revealing that speculative decoding—a common optimization—can sometimes reduce performance due to expert loading overhead. The optimal configuration achieved 460 tokens/second by disabling speculative decoding and adjusting parallelism settings.",
+    "content": "Breaking the MoE Speculative Trap: 460 t/s on AMD Strix Halo\n\n\nMixture-of-Experts (MoE) architectures like Qwen 3.6 35B-A3B have redefined the performance-per-watt ratio for consumer hardware. However, as LLM inference engines mature, we are discovering that traditional optimizations like Speculative Decoding (using a draft model) can sometimes become a \"Performance Trap.\"\nIn this technical deep-dive, we benchmark the AMD Strix Halo (Radeon 8060S) using the latest llama.cpp stack to identify the \"Gold Configuration\" for sovereign agents.\nSpeculative decoding uses a tiny \"Junior\" model to guess the next few tokens, which a large \"Senior\" model verifies in parallel. On paper, this skips the memory-bandwidth bottleneck of the large model for several tokens at a time.\n[ Draft Model (1.5B) ]       [ Target Model (35B MoE) ]       [ Output ]\n          |                              |                       |\n          |--- Draft 5 tokens (Fast) --->|                       |\n          |                              |                       |\n          |                              |-- Parallel Verify --->|\n          |                              |                       |\n          |                              |<--- Accept/Correct ---|\n\nWe tested the Qwen 3.6 35B A3B (UD-Q4) model on an AMD Strix Halo rig with 128GB of LPDDR5X-8000 memory.\n\n\n\nConfig ID\nModel\nParallel\nDraft\nPP (t/s)\nTG (t/s)\nResult\n\n\n\n\nBaseline\nQwen 3.6 Q4\n4\nNone\n439\n17.7\nStandard\n\n\nSpec_N5\nQwen 3.6 Q4\n4\nQ2.5 1.5B\n446\n17.8\n0% Gain\n\n\nOptimal\nQwen 3.6 Q4\n1\nNone\n466\n43.1\nWinner 🏆\n\n\nSpec-Regress\nQwen 3.6 Q4\n1\n1.5B Q8\n445\n17.5\n-60% Drop\n\n\n\nOur testing confirms a counter-intuitive reality: The Expert Loading Tax.\nActive vs. Total Parameters: Qwen 3.6 35B only activates 3B parameters per token. This is why it’s fast.\nThe Verification Thrasher: When verifying a draft of 5–16 tokens, each token likely routes to a different set of experts. \nThe Bottleneck: The system is forced to load nearly all 35B parameters into",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "打破混合专家模型推理陷阱：AMD Strix Halo 上的 460 t/s",
+        "summary": "这篇技术深度文章对 AMD Strix Halo 硬件上的混合专家模型推理进行了基准测试，揭示了推测解码——一种常见的优化——有时可能由于专家加载开销而降低性能。最优配置通过禁用推测解码和调整并行性设置实现了 460 tokens/秒的性能。"
+      }
+    }
+  },
+  {
+    "title": "Kiro Forgets Everything Every Session. So I've Built It a Memory.",
+    "slug": "kiro-forgets-everything-session-built-memory",
+    "url": "https://dev.to/tverney_77/kiro-forgets-everything-every-session-so-ive-built-it-a-memory-1e86",
+    "source": "DEV Community",
+    "date": "2026-04-27T00:29:07.000Z",
+    "summary": "The author describes solving the problem of AI assistants forgetting context between sessions by implementing a split architecture where memory is written by a separate process and read by the agent on startup. This approach avoids the inconsistency issues that arise when delegating memory management to the AI itself.",
+    "content": "Originally posted on AWS Builder.\nI work with an AI every day. It's smart. It writes decent code. And every single morning, it forgets who I am.\nI open kiro-cli chat, and the first 10 minutes are the same tax I paid yesterday:\nYes, we use pnpm. No, not npm. Yes, Vitest. No, not Jest. The main entry is src/cli.ts. We already decided to use Result<T, E> at the CLI boundary. You told me that last week. I told you that last week. We had this exact conversation.\nMy teammate calls it the project re-discovery tax. Every session, you pay it. Every. Session.\nI got tired of paying it.\nI tried the obvious things first.\n\"Just use steering files.\" Steering files are great for what is this project. They're static markdown you maintain by hand. They don't capture what the AI figured out during a session. The whole point of working with an AI is that it learns things with you. Steering files can't capture that.\n\"Tell the agent to call a remember() tool when it learns something.\" I tried this. Claude is inconsistent about when to call it. GPT is inconsistent. Kiro is inconsistent. Every model is inconsistent, because memory management is a side-quest to whatever task you're actually doing. The agent forgets to remember. Turtles all the way down.\n\"Use a SQLite knowledge graph MCP server.\" Same problem. Fancier storage, same failure mode. The agent still has to decide when to store.\n\"Wait for Kiro to ship it.\" There's a proposal floating around for .kiro/tasks/*.md with auto-read/auto-write. No ETA. I had work to do this week.\nHere's what clicked for me, and I'll give credit where it's due — it came from a design doc by a coworker, I just productized it:\nThe agent should be a reader of memory, not a writer.\nWriting memory is a different job from using memory. They should not share a context window. The writer can be slow, deliberate, even expensive. The reader needs to be fast, cheap, and running on every session start.\nSo I split them:\n┌──────────────┐     MCP/stdio     ┌────────────",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Kiro每个会话都会忘记一切。所以我给它建立了一个记忆库。",
+        "summary": "作者描述了通过实现分离的架构来解决AI助手在会话之间忘记上下文的问题，其中内存由独立的进程写入，代理在启动时读取。这种方法避免了将内存管理委托给AI本身时出现的不一致问题。"
+      }
+    }
+  },
+  {
+    "title": "Qmims, One Year Later (almost)",
+    "slug": "qmims-one-year-later",
+    "url": "https://dev.to/wsoltani/qmims-one-year-later-almost-43pk",
+    "source": "DEV Community",
+    "date": "2026-04-27T00:24:51.000Z",
+    "summary": "The author discusses updating Qmims, an AI-powered documentation generator, from the deprecated Amazon Q to the newer Kiro-Cli platform after a year of downtime. The migration maintains the tool's core functionality for automatically generating and updating project README files.",
+    "content": "Almost 1 year ago, I joined dev.to and participated in my first challenge. At the time, it was the Amazon Q Developer \"Quack The Code\" Challenge.\nI picked Crushing the Command Line as my prompt, and got to work.\nIterative, AI-Powered Documentation with Templates & Inline Edits! - Quack The Code\n\n\n  \nWassim Soltani\n                    \n                  \n\n                \nMay 10 '25\n        \n#devchallenge\n            #awschallenge\n            #ai\n            #webdev\n        \n23 reactions\n            \nAdd Comment\n            \n        \nI created Qmims—a command-line tool that automatically generates, updates, and refines READMEs and doc files for your projects.\nI personally use Qmims so I felt the impact when it broke; Amazon Q is a thing of the past. Amazon rebranded and released it as Kiro.\nDue to life/time constraints, I wasn't able to fix it.\nBut good news! I had some time over the weekend to finally dust off the old repos again. I migrated Qmims to work with Kiro-Cli instead of Amazon Q, and fully updated its docs to reflect the changes.\nWhat's funny though is that I'm keeping the name. It's a battle scar at this point.\nGive it a go, shoot me some feedback!",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Qmims，一年后（差不多）",
+        "summary": "作者讨论了在停机一年后，将Qmims（一个AI驱动的文档生成器）从已弃用的Amazon Q迁移到更新的Kiro-Cli平台。这次迁移保持了该工具自动生成和更新项目README文件的核心功能。"
+      }
+    }
+  },
+  {
+    "title": "The 7 Types of AI Reasoning That Will Reshape Knowledge Work",
+    "slug": "7-types-ai-reasoning-reshape-knowledge-work",
+    "url": "https://dev.to/eagleeyethinker/the-7-types-of-ai-reasoning-that-will-reshape-knowledge-work-2h20",
+    "source": "DEV Community",
+    "date": "2026-04-27T00:22:57.000Z",
+    "summary": "This article explores seven emerging types of AI reasoning—including chain-of-thought, tree-of-thought, and ReAct—that enable AI systems to break down complex problems step-by-step, explore alternatives, and take actions iteratively. These approaches represent a shift from systems that simply provide answers to those that demonstrate auditable reasoning.",
+    "content": "Most people still think AI is about better answers. That phase is already behind us. What is emerging now is something fundamentally different: AI that reasons. Systems that do not just respond to prompts, but break problems into steps, explore alternatives, take actions, and refine decisions over time.\nChain-of-Thought\nAt its core, chain-of-thought reasoning is straightforward: instead of jumping straight to an answer, the model walks through the problem one step at a time. Research has shown that explicitly prompting models to reason this way dramatically improves accuracy on complex tasks.\nIn enterprise terms, this is the difference between a system that guesses and one that behaves like a junior analyst. It shows its work, exposes its assumptions, and makes every step auditable.\n\nExample Prompt\n\nRole: Senior Financial Analyst\nGoal: Evaluate profitability trend\n\nProcess:\n1. Calculate revenue growth %\n2. Calculate cost growth %\n3. Compute margin change\n4. Interpret trend\n\nOutput: Step-by-step reasoning, then a 2-line conclusion.\nData: Revenue: 2M → 3M | Costs: 1.2M → 1.8M\n\nTree-of-Thought\nReal-world decisions rarely have one path. Tree-of-thought reasoning lets AI explore multiple approaches, evaluate each one, and then converge on the best option. This is how architects think when weighing design options. AI can now simulate that same process, systematically and at scale.\nInstead of committing to the first plausible answer, the model generates and scores competing strategies before recommending one.\n\nExample Prompt\n\nRole: Enterprise Architect\nGoal: Recommend migration strategy\n\nProcess:\n1. Generate 3 approaches\n2. Score each on: complexity, risk, time-to-value\n3. Recommend best option with justification\n\nOutput: Comparison table + final recommendation\n\nReAct Reasoning\nThis is where AI stops being passive. In ReAct, the system reasons about a problem, takes a concrete action like querying logs or calling an API, observes what it finds, and keeps iterating until it",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "将重塑知识工作的7种AI推理类型",
+        "summary": "本文探讨了七种新兴的AI推理类型——包括思维链、思维树和ReAct——使AI系统能够逐步分解复杂问题、探索替代方案并迭代地采取行动。这些方法代表了从简单提供答案的系统向展示可审计推理的系统的转变。"
+      }
+    }
+  },
+  {
+    "title": "Beyond Keyword Search: How Synthadoc v0.2.0 Combines BM25 and Vector Search to Build a Smarter Domain Wiki",
+    "slug": "beyond-keyword-search-synthadoc-hybrid-retrieval",
+    "url": "https://dev.to/paul_chen_90371fe7426cb44/beyond-keyword-search-how-synthadoc-v020-combines-bm25-and-vector-search-to-build-a-smarter-43l7",
+    "source": "DEV Community",
+    "date": "2026-04-27T00:21:34.000Z",
+    "summary": "Synthadoc v0.2.0 releases a hybrid retrieval pipeline combining BM25 keyword search with vector semantic search to address limitations of each approach individually. The hybrid approach helps overcome vocabulary mismatches and synonym variations that plague traditional keyword-only search in domain-specific knowledge bases.",
+    "content": "What is Synthadoc?\n\n\nSynthadoc is an open-source, LLM-powered wiki engine. Point it at your\nUnlike general-purpose RAG pipelines that retrieve raw chunks at query\nIngest: extract and synthesise facts from any source format (PDF,\nXLSX, PNG, web URL)\nDetect: flag contradictions with existing pages and quarantine them\nfor review\nLink: connect related pages and surface knowledge gaps\nQuery: answer questions with hybrid BM25 + optional vector search, citing the pages used\nLint: resolve contradictions and surface orphan pages for human or\nautomated action\nSynthadoc is designed for organisations that need domain-specific, auditable knowledge management: legal teams tracking regulatory\nSynthadoc v0.2.0 is released last week, it scales seamlessly while maintaining accuracy through autonomous self-optimization.\n👉 Synthadoc GitHub: https://github.com/axoviq-ai/synthadoc\nMost LLM knowledge tools take one of two approaches to retrieval: pure\nSynthadoc v0.2.0 ships a hybrid retrieval pipeline that uses BM25 as a\nThis post explains how each technique works, where each one falls short\nBM25 (Best Match 25) is a probabilistic ranking function. It scores a\n\nVocabulary mismatch: query says \"contributions\", page says\n\"pioneered\". Score: near zero.\nSynonyms: \"ML\" and \"machine learning\" are different tokens.\nConceptual distance: \"reasoning under uncertainty\" and\n\"probabilistic inference\" are semantically identical but lexically\ndistant.\nOn a domain wiki ingested from diverse sources (papers, docs, blog posts, PDFs), the same concept will be described in many different vocabularies. BM25 alone misses a meaningful fraction of relevant pages.\nVector (semantic) search encodes text into dense numerical embeddings using a neural language model. Semantically similar texts land close together in that high-dimensional space regardless of surface wording.\n\nThe two sentences share almost no keywords, but their vectors point in nearly the same direction because the model understands they describe th",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "超越关键词搜索：Synthadoc v0.2.0 如何结合 BM25 和向量搜索来构建更智能的领域知识库",
+        "summary": "Synthadoc v0.2.0 发布了混合检索管道，将 BM25 关键词搜索与向量语义搜索相结合，以解决各种方法单独使用时的局限性。混合方法有助于克服传统仅关键词搜索在特定领域知识库中面临的词汇失配和同义词变体问题。"
+      }
+    }
+  },
+  {
+    "title": "AI Code review is broken. Here’s what nobody wants to admit",
+    "slug": "ai-code-review-broken-nobody-admits",
+    "url": "https://dev.to/vera_dev/ai-code-review-is-broken-heres-what-nobody-wants-to-admit-17e9",
+    "source": "DEV Community",
+    "date": "2026-04-27T00:18:23.000Z",
+    "summary": "This article critiques the economics and effectiveness of AI-powered automated code review, arguing that token costs make it expensive for repetitive analysis while missing the architectural and cross-file logic issues that matter most. Current tools primarily catch surface-level issues like style inconsistencies—problems that existing linters already handle.",
+    "content": "I’ve been doing DevOps and infrastructure work for 8 years. Last week I saw a dev on X say he burned $250 in 2 days running Claude for automated PR reviews. That number didn’t surprise me at all.\nWe tried the same thing. Wire up an LLM to your CI pipeline, send every PR through it, get automated review comments. Sounds great in theory. In practice, you get two problems that nobody in the AI tooling space wants to talk about.\nYou’re paying per token. That means a one-line README typo costs the same to review as a 500-line auth refactor. Every review round resends the full diff plus repo context, so you’re paying for the same tokens over and over. You’re not paying for intelligence, you’re paying for repetition.\nSomeone on Twitter put it perfectly: “the bill is mostly cache misses.”\nAnd no, cheaper models don’t fix this. Token costs drop but usage scales faster. Teams just send more code through the pipe. The bill stays the same or grows. It’s Jevons paradox applied to AI.\nHere’s what the models actually catch: style inconsistencies, naming conventions, missing error handling, “consider adding a try-catch here.” Stuff your linter already catches or should catch.\nHere’s what they miss: cross-file dependencies, architectural issues, subtle logic bugs, race conditions, security implications that require understanding your codebase as a whole. The stuff that actually breaks prod.\nSo you end up paying cloud API rates for reviews that still need human oversight. You didn’t replace code review. You added a cost layer on top of it.\nAI made writing code almost free. A junior dev with Claude or Copilot can produce PRs at 5x the speed they could a year ago. But reviewing that code is still slow, expensive, and manual.\nThe bottleneck is no longer production. It’s review.\nAnd the current tools make this worse, not better. Your team opens more PRs than ever, and every one of them generates 800 lines of AI suggestions that someone has to read, triage, and mostly ignore.\nHonestly, I",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI 代码审查已被破坏。这是没人想承认的问题",
+        "summary": "本文批评了 AI 驱动的自动化代码审查的经济性和有效性，论证令牌成本使其在重复分析中变得昂贵，同时错失了最重要的架构和跨文件逻辑问题。当前工具主要捕捉样式不一致等表面级问题——这些都是现有代码检查工具已能处理的问题。"
+      }
+    }
+  },
+  {
+    "title": "AI photo tagging app",
+    "slug": "ai-photo-tagging-app",
+    "url": "https://dev.to/siwave/ai-photo-tagging-app-5db9",
+    "source": "DEV Community",
+    "date": "2026-04-27T00:14:33.000Z",
+    "summary": "An iPhone app using AI vision models to automatically tag and manage photos, born from the creator's need to validate ML models in real-world conditions before deployment. The app supports 50+ vision models across 10+ categories and can automatically copy tags between similar photos.",
+    "content": "Introducing a newly released AI photo tagging app for the iphone. More details on our website (https://siwave.io) and a link to the kickstarter project.\nWe were having a hard time matching vision ML models accuracy results on static datasets with post deployment results. Therefore, we decided to create a simple-to-use internal tool to test models in real world situation before we actually deploy them on embedded platforms.\nThe tool metamorphosed into a productivity app to tag and manage photos. For example, the app will automatically compare a captured photo with similar photos in the library and copy over all custom tags.\nWe currently support 10+ different categories of vision applications that includes 50+ models. The list is dynamically updated to include additional categories and newly released models.\nWould greatly appreciate any feedback or comments on the merits of the app (pros/cons/etc.)",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI 照片标签应用",
+        "summary": "一款 iPhone 应用，使用 AI 视觉模型自动标记和管理照片，源于开发者在部署前在真实条件下验证机器学习模型的需求。该应用支持 10 多个类别中的 50 多个视觉模型，并可以自动在类似照片之间复制标签。"
+      }
+    }
+  },
+  {
+    "title": "10 Best Free APIs Every Developer Should Know in 2024",
+    "slug": "10-best-free-apis-developers-know",
+    "url": "https://dev.to/orbit_websites_b004ed2787/10-best-free-apis-every-developer-should-know-in-2024-4moo",
+    "source": "DEV Community",
+    "date": "2026-04-27T00:10:13.000Z",
+    "summary": "This article lists 10 free, well-documented APIs useful for building side projects and MVPs, including JSONPlaceholder for mock data, OpenWeatherMap for weather data, and ipapi.co for geolocation. The guide emphasizes practical APIs with real-world use cases rather than obscure or unreliable services.",
+    "content": "10 Best Free APIs Every Developer Should Know in 2024\n\n\nIf you're building side projects, prototypes, or even MVPs, free APIs are your best friend. They let you add real-world data and functionality without spinning up backend services or paying for third-party tools. In 2024, the ecosystem is richer than ever — from weather and geolocation to AI-powered text analysis and public datasets.\nHere are 10 free, well-documented, and reliable APIs I’ve used and trust. No fluff, no affiliate links — just tools that work.\nJSONPlaceholder – Fake REST API for Testing\n\n\nWhen you need mock data fast — for frontend demos, testing API calls, or learning — JSONPlaceholder is gold.\nIt simulates a full REST API with posts, users, and comments. No auth, no rate limits (within reason), and returns predictable JSON.\nfetch('https://jsonplaceholder.typicode.com/posts/1')\n  .then(response => response.json())\n  .then(post => console.log(post.title));\n\nUse case: Mock backend for React, Vue, or mobile apps during development.\nPro tip: Use it with msw (Mock Service Worker) for offline testing.\nOpenWeatherMap (Free Tier) – Real-Time Weather Data\n\n\nNeed weather in your app? OpenWeatherMap’s free tier gives you current weather, forecasts, and even UV index.\nSign up for a free API key (takes 30 seconds), then hit the endpoint:\nconst API_KEY = 'your-key';\nfetch(`https://api.openweathermap.org/data/2.5/weather?q=London&appid=${API_KEY}&units=metric`)\n  .then(res => res.json())\n  .then(data => console.log(`${data.name}: ${data.main.temp}°C`));\n\nLimits: 1,000 calls/day, 60 calls/minute.\nUse case: Travel apps, dashboards, or IoT displays.\nWatch out: They’ve gotten stricter on referer/header checks. Always call from server-side or use CORS proxies during dev.\nIP Geolocation API (ipapi.co)\n\n\nWant to detect a user’s location from their IP? ipapi.co is fast, free, and doesn’t require auth for basic use.\nfetch('https://ipapi.co/json/')\n  .then(res => res.json())\n  .then(location => {\n    console.log(`City:",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "2024年开发者必知的10个最佳免费API",
+        "summary": "本文列举了10个免费、文档完善的API，适用于构建副业项目和MVP，包括用于模拟数据的JSONPlaceholder、用于天气数据的OpenWeatherMap和用于地理定位的ipapi.co。本指南强调实用的API及其真实应用场景，而不是晦涩或不可靠的服务。"
+      }
+    }
+  },
+  {
+    "title": "A 230-Line Chrome MV3 Extension That Copies the Page Selection as Markdown — Without `<all_urls>`",
+    "slug": "chrome-extension-copy-selection-markdown",
+    "url": "https://dev.to/sendotltd/a-230-line-chrome-mv3-extension-that-copies-the-page-selection-as-markdown-without--2jo",
+    "source": "DEV Community",
+    "date": "2026-04-27T00:06:06.000Z",
+    "summary": "A Chrome MV3 extension that converts selected text to Markdown before copying to the clipboard, solving the problem of HTML-formatted text not converting properly when pasted into Markdown destinations like GitHub and Notion. The extension uses 230 lines of vanilla JavaScript and includes 35 tests.",
+    "content": "Engineers paste into Markdown destinations all day — GitHub Issues, dev.to, Notion, Obsidian — but the browser's \"Copy\" command writes HTML to the clipboard, and that HTML lands as escaped tags or stripped formatting. Here's a Chrome MV3 extension that does the obvious thing: convert the selection to Markdown before it hits the clipboard.\n230 lines of vanilla JS, 35 jsdom-backed tests, no host_permissions.\n\n🧩 Demo: https://sen.ltd/portfolio/copy-as-md/\nGitHub: https://github.com/sen-ltd/copy-as-md\nChrome's \"Copy\" puts both text/plain and text/html on the clipboard. Whichever the destination accepts, Chrome serves. The problem is that almost every text destination engineers care about ignores both:\n\n\n\nDestination\nWhat it actually wants\n\n\n\n\nGitHub issues / PRs\nMarkdown\n\n\ndev.to / Zenn / Qiita\nMarkdown\n\n\nNotion\nNotion's own format (Markdown is plain text on paste)\n\n\nObsidian / Bear / Joplin\nMarkdown\n\n\nSlack\na Markdown subset\n\n\n\nPasting HTML into a GitHub issue gets you escaped tags. Pasting into Notion gets you plain text with the formatting stripped. The fix is obvious: write Markdown to the clipboard before the paste happens.\nThree triggers all funnel into the same code:\n[ user action ]\n   │\n   ├─ Right-click → \"Copy selection as Markdown\"  (contextMenus)\n   ├─ Cmd/Ctrl + Shift + M                         (commands)\n   └─ Toolbar icon → popup → \"Copy\" button         (runtime.sendMessage)\n              │\n              ▼\n   [ service worker (background.js) ]\n              │\n              ▼\n   chrome.scripting.executeScript twice:\n     1) files: [\"html-to-md.js\"]   ← inject the converter\n     2) func: runner                ← read selection, convert, write clipboard\n\nThe combined helper:\nasync function runOnTab(tabId) {\n  await chrome.scripting.executeScript({\n    target: { tabId },\n    files: [\"html-to-md.js\"],   // defines globalThis.htmlToMarkdown\n  });\n  const [{ result }] = await chrome.scripting.executeScript({\n    target: { tabId },\n    func: runner,\n  });\n  retu",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "一个230行的Chrome MV3扩展，可将页面选中内容复制为Markdown——无需`<all_urls>`权限",
+        "summary": "一个Chrome MV3扩展程序，在复制到剪贴板之前将所选文本转换为Markdown格式，解决了将HTML格式文本粘贴到GitHub和Notion等Markdown目标时转换不正确的问题。该扩展使用230行原生JavaScript编写，包含35个测试。"
+      }
+    }
+  },
+  {
+    "title": "From Panic to Paper: Building a Multilingual Medical RAG with BGE-M3 & Qdrant",
+    "slug": "medical-rag-bge-m3-qdrant-multilingual",
+    "url": "https://dev.to/beck_moulton/from-panic-to-paper-building-a-multilingual-medical-rag-with-bge-m3-qdrant-9a1",
+    "source": "DEV Community",
+    "date": "2026-04-27T00:05:00.000Z",
+    "summary": "This tutorial demonstrates building a multilingual medical literature search system using BGE-M3 embeddings and Qdrant vector database with hybrid BM25 and semantic search. The system addresses limitations of standard RAG in specialized domains by combining dense vectors, sparse retrieval, and multi-vector approaches to handle medical terminology and multiple languages.",
+    "content": "Ever find yourself spiraling down a WebMD rabbit hole at 3 AM? For those of us without a medical degree, navigating clinical research can feel like deciphering an ancient dialect. But what if you could build a personal AI assistant that sifts through thousands of PubMed abstracts to find exactly what you need?\nIn this tutorial, we are diving deep into Semantic Search and Retrieval-Augmented Generation (RAG) to build a high-performance medical literature explorer. We’ll be leveraging the power of the BGE-M3 model, Hybrid Search, and LangGraph to create a system that understands medical nuances across multiple languages. Whether you're looking for \"hypertension\" or \"高血压,\" our system will find the right research papers using state-of-the-art vector embeddings and keyword matching.\nStandard RAG often fails in specialized fields like medicine because it relies solely on dense vectors. BGE-M3 (Multi-Lingual, Multi-Function, Multi-Granularity) changes the game by supporting:\n Dense Retrieval: Captures semantic meaning.\n Sparse Retrieval (BM25): Captures specific medical terminology and acronyms.\n Multi-Vector Retrieval: For fine-grained token-level matching.\nOur system follows a sophisticated pipeline: from parsing PDFs to orchestrating the final answer via a state machine.\ngraph TD\n    A[Medical PDFs/PubMed XML] --> B[PyMuPDF Parsing]\n    B --> C[Text Chunking]\n    C --> D[BGE-M3 Encoder]\n    D --> E{Hybrid Indexing}\n    E -->|Dense Vector| F[Qdrant Collection]\n    E -->|Sparse Vector| F\n    G[User Query] --> H[LangGraph Orchestrator]\n    H --> I[Query Rewriter]\n    I --> J[Qdrant Hybrid Search]\n    J --> K[Reranker]\n    K --> L[LLM Synthesis]\n    L --> M[Final Answer with Citations]\n\nBefore we start, ensure you have the following in your tech_stack:\nBGE-M3: Via FlagEmbedding or HuggingFace.\nQdrant: Our vector database for hybrid search.\nLangGraph: For managing the agentic workflow.\nPyMuPDF: For high-performance PDF extraction.\n\n\n\n\npip install qdrant-client langgraph Flag",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "从惊慌到论文：使用BGE-M3和Qdrant构建多语言医学RAG",
+        "summary": "本教程演示了如何使用BGE-M3嵌入和Qdrant向量数据库建立多语言医学文献搜索系统，结合混合BM25和语义搜索。该系统通过结合稠密向量、稀疏检索和多向量方法来解决标准RAG在专业领域的局限性，能够处理医学术语和多种语言。"
+      }
+    }
+  }
+]
