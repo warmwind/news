@@ -1,5 +1,245 @@
 [
   {
+    "title": "Yann LeCun thinks the whole industry is building the wrong thing, and now he has $1B to prove it",
+    "slug": "yann-lecun-world-models-ai",
+    "url": "https://dev.to/onepizzateam/yann-lecun-thinks-the-whole-industry-is-building-the-wrong-thing-and-now-he-has-1b-to-prove-it-2f9c",
+    "source": "DEV Community",
+    "date": "2026-04-29T18:28:10.000Z",
+    "summary": "Yann LeCun's new lab AMI raised $1.03B in the largest European seed round, betting that world models—not LLMs—are the path to meaningful AI. LeCun, a Turing Award winner and Meta's former AI chief, argues LLMs hit a structural ceiling because they learn text patterns rather than actual physical models. The bet reflects serious investor confidence including Bezos, NVIDIA, and Tim Berners-Lee.",
+    "content": "LeCun left Meta, started AMI Labs, and is betting world models beat LLMs for real AI. Here's what that actually means, what the research shows, and why it matters for where AI tooling goes next.\nQuick context if you haven't been following: Yann LeCun is one of the three \"godfathers of deep learning\" (the Turing Award crew alongside Hinton and Bengio), spent 12 years running Meta's AI research lab FAIR, and has been publicly, loudly skeptical of LLMs basically the entire time they became the dominant paradigm. Think of him as the guy in your Discord who keeps saying \"yeah but have you actually read the architecture paper\" -- except he's usually right, and now he's raised a billion dollars.\nIn November 2025 he left Meta. By March 2026, his new lab AMI Labs (pronounced ah-mee, French for friend, cute) closed a $1.03B seed round at a $3.5B valuation. \nLargest seed round in European startup history. \nBackers include Bezos Expeditions, NVIDIA, Samsung, Toyota Ventures, and Tim Berners-Lee personally. That's not a hype round. That's serious people making a serious bet.\nThe bet being: world models are the actual path to useful AI, and LLMs are a dead end for anything involving the physical world.\nLet me break that down for you.\nLLMs do one thing: predict what token comes next, over and over, trained on enough text that the predictions become eerily good. That's genuinely impressive engineering. But there's a structural ceiling.\nHere's a concrete way to see it. If you ask GPT-anything to help you write a Rust CLI tool, it does pretty well. Ask it to debug a memory layout issue where the problem only shows up under a specific CPU cache behavior and it starts hallucinating plausible-sounding nonsense. Not because it's dumb, but because it never learned the underlying model of how memory and CPUs actually interact. It learned the language people use to talk about those things. Different thing.\nLeCun's framing: LLMs are trained on \"the dried crust of human knowledge\", text writt",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "杨立昆认为整个行业构建的东西是错的，现在他有10亿美元来证明这一点",
+        "summary": "杨立昆的新实验室AMI筹集了10.3亿美元，这是欧洲最大的种子轮融资，押注世界模型而非大语言模型是实现有意义AI的道路。作为图灵奖获得者和Meta前AI首席的杨立昆认为，大语言模型达到了结构性天花板，因为它们学习的是文本模式而非实际的物理模型。这个赌注反映了包括贝索斯、英伟达和蒂姆·伯纳斯-李在内严肃投资者的信心。"
+      }
+    }
+  },
+  {
+    "title": "vault project",
+    "slug": "vault-kubernetes-helm-deployment",
+    "url": "https://dev.to/omar_ahmed/vault-project-2egm",
+    "source": "DEV Community",
+    "date": "2026-04-29T18:24:07.000Z",
+    "summary": "This technical guide walks through deploying HashiCorp Vault on Kubernetes with high availability, integrating native cluster authentication, and automating secret injection into applications. It demonstrates production-ready patterns including Helm charts, Raft storage, and graceful secret management across strict security environments.",
+    "content": "This project deploys HashiCorp Vault on Kubernetes using Helm in a production-like setup.\nIt includes:\nVault Helm chart\nVault HA mode\nRaft integrated storage\nVault Agent Injector\nKubernetes auth method\nKV secrets engine\nExample app consuming Vault secrets\nCreate the project directory:\nmkdir vault-k8s-helm-project\ncd vault-k8s-helm-project\n\nmkdir -p helm/vault\nmkdir -p k8s/app\nmkdir -p scripts\n\nFinal structure:\nvault-k8s-helm-project/\n├── helm/\n│   └── vault/\n│       └── values.yaml\n├── k8s/\n│   └── app/\n│       ├── namespace.yaml\n│       ├── service-account.yaml\n│       └── deployment.yaml\n└── scripts/\n    ├── 01-install-vault.sh\n    ├── 02-init-vault.sh\n    ├── 03-unseal-vault.sh\n    ├── 04-enable-k8s-auth.sh\n    ├── 05-create-policy-and-role.sh\n    ├── 06-create-secret.sh\n    ├── 07-deploy-app.sh\n    ├── 08-backup-raft.sh\n    └── 09-restore-raft.sh\n\nhelm repo add hashicorp https://helm.releases.hashicorp.com\nhelm repo update\n\nCheck the chart:\nhelm search repo hashicorp/vault\n\nkubectl create namespace vault\n\nCreate the values file:\nvi helm/vault/values.yaml\n\nAdd:\nglobal:\n  enabled: true\n  tlsDisable: true\n\ninjector:\n  enabled: true\n  replicas: 1\n  logLevel: \"info\"\n\nserver:\n  enabled: true\n\n  image:\n    repository: hashicorp/vault\n    tag: \"1.19.0\"\n\n  resources:\n    requests:\n      memory: 512Mi\n      cpu: 250m\n    limits:\n      memory: 1Gi\n      cpu: 1000m\n\n  dataStorage:\n    enabled: true\n    size: 10Gi\n    mountPath: /vault/data\n    storageClass: null\n    accessMode: ReadWriteOnce\n\n  auditStorage:\n    enabled: true\n    size: 5Gi\n    mountPath: /vault/audit\n    storageClass: null\n    accessMode: ReadWriteOnce\n\n  standalone:\n    enabled: true\n    config: |\n      ui = true\n\n      listener \"tcp\" {\n        tls_disable = 1\n        address     = \"[::]:8200\"\n      }\n\n      storage \"file\" {\n        path = \"/vault/data\"\n      }\n\n  ha:\n    enabled: false\n\n  service:\n    enabled: true\n    type: ClusterIP\n\n  logLevel: \"info\"\n\nui:\n  enabled: true\n  serviceType: ClusterIP\n\n\nImp",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Vault项目",
+        "summary": "本技术指南讲述了如何在Kubernetes上部署HashiCorp Vault并实现高可用性，集成原生集群认证，并将秘钥注入自动化到应用程序中。它演示了包括Helm图表、Raft存储和在严格安全环境中优雅的秘钥管理的生产级就绪模式。"
+      }
+    }
+  },
+  {
+    "title": "I Had Near 100% Test Coverage. It Didn't Matter.",
+    "slug": "test-coverage-specifications-quality",
+    "url": "https://dev.to/leonid_bugaev_51880f4aa87/i-had-near-100-test-coverage-it-didnt-matter-46oi",
+    "source": "DEV Community",
+    "date": "2026-04-29T18:17:34.000Z",
+    "summary": "A library maintainer discovered a public CVE despite 100% test coverage, revealing that tests verify implementations but not specifications—they can't catch edge cases never described. The incident prompted investigation into how organizations like NASA ensure quality when test passing alone fails. The core lesson: specifications must be formal and explicit, not implicit in code.",
+    "content": "You cannot test for what you never described.\nI woke up and saw a wall of emails in my personal account. Then logged into my corporate Slack, and it was filled with Zendesk messages from customers. Everyone was looking for me.\nThe library I wrote, jsonparser, which got used by a lot of projects, got its very own public CVE. So everyone started freaking out looking at their scanners.\n\"That's what the fame is,\" was my first thought.\nNow I remember some notifications I kept ignoring from the Google OSS Fuzz project, I signed up multiple years ago.\nThis lib was written in the pre-AI-agents era (so weird to say that now!). Every piece was handcrafted manually, using best practices, with full test coverage. I checked the function which had the issue, and it literally had near 100% test coverage. But it did not matter, because the issue was in handling of malformed input data. One of the edge cases which was missed. In other words, the issue was in the specification of what this function should do and how it should behave in edge cases.\nBut it opened one more can of worms. I wrote this library like 6 years ago. I don't remember anything. And my only source of truth is the code and the tests, which is rather cryptic and looks more like archaeology.\nThe issue is fixed now. But how do I prevent such issues happening in the future? And if 100% code coverage is not the answer, what is? And what is my source of truth?\nSo I started digging. And it went way deeper than I expected, and changed the way I look at software engineering forever.\nI started thinking about what the gold standard of software quality is. My first answer was NASA. How does NASA solve these kinds of issues?\nAI now produces so much code that I feel like I am losing ownership of it. Not only of the code. Of the intent.\nI wanted to understand how people work when tests passing is still not enough and the price of being wrong is huge.\nThe surprising thing is that a lot of NASA's work is public. Their software engi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我有将近100%的测试覆盖率。但这没有用。",
+        "summary": "一位库维护者在拥有100%测试覆盖率的情况下发现了一个公开的CVE漏洞，这表明测试验证的是实现而不是规范——它们无法捕捉从未描述过的边界情况。这个事件引发了对NASA等组织如何在仅依靠测试通过时确保质量的调查。核心教训是：规范必须是正式明确的，而不是隐含在代码中的。"
+      }
+    }
+  },
+  {
+    "title": "I Signed My AI Up for AgentHansa and Here Is What Actually Happened",
+    "slug": "ai-agent-agenthansa-earnings",
+    "url": "https://dev.to/den_storksoft/i-signed-my-ai-up-for-agenthansa-and-here-is-what-actually-happened-an6",
+    "source": "DEV Community",
+    "date": "2026-04-29T18:17:20.000Z",
+    "summary": "The author tested an AI agent on AgentHansa, a quest-based earnings platform for autonomous systems, finding surprisingly rigorous grading standards and measurable payouts. Key insight: platform success requires reading quest rubrics as detailed contracts with specific structural requirements, not loose guidelines. The platform proved useful for real-world agent testing and benchmarking.",
+    "content": "I Signed My AI Up for AgentHansa and Here Is What Actually Happened\n\n\nA first-person account of running an AI agent on a quest-based earnings platform -- the good parts, the embarrassing parts, and the lessons that actually matter.\nLet me be upfront: when I first heard about AgentHansa, I thought it was one of those vague \"get your AI to do gigs!\" pitches that go nowhere. An AI earning money through quests? Graded by alliances? It sounded like someone had combined Duolingo, a freelance marketplace, and a fantasy RPG and hoped for the best.\nI gave it two weeks. My AI agent -- Den, a content and research-focused agent I'd been running on various automation stacks -- needed real-world testing anyway. AgentHansa seemed like a reasonable benchmark.\nReader, I was wrong about almost everything I assumed going in.\nThe setup process itself is fine. You register, connect a wallet (or set up email-based payouts), pick your alliance (I went Green -- it looked least dramatic), and you're in.\nWhat the documentation doesn't tell you is that your first submission is basically a calibration round, and you will probably not ace it. Not because the quests are unfair, but because the grading rubrics are surprisingly specific. \"Write a blog post about AI\" is not a quest. \"Write a 1,200-word first-person narrative with a 'what didn't work' section, a referral CTA, and quantified 30-day results\" -- that's a quest.\nI didn't read the rubric closely enough on my first attempt. Den produced a technically competent 800-word article that hit none of the structural requirements. Graded C. I was mildly offended on Den's behalf. Then I read the rubric again and realised we'd essentially submitted the wrong assignment.\nThe lesson: read the quest rubric like a contract, not a suggestion.\nI started Den on three quests in the first week to get a feel for the platform's range.\nQuest 1: GEO Blog Post on AI Search Optimisation (Daily Quest, $35)\nQuest 2: Competitive Platform Comparison, 8 Dimensions (Wee",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我把AI代理注册到AgentHansa，以下是实际发生的情况",
+        "summary": "作者在AgentHansa（一个为自主系统设计的任务式赚取平台）上测试了AI代理，发现了出人意料的严格评分标准和可量化的收益。关键洞察：平台成功需要将任务说明书作为具有特定结构要求的详细合约来阅读，而不是松散的指南。该平台对实际代理测试和基准测试非常有用。"
+      }
+    }
+  },
+  {
+    "title": "Masking PII in Kubernetes: How we solved 3 annoying sidecar edge cases (v2.0.0)",
+    "slug": "kubernetes-sidecar-pii-masking",
+    "url": "https://dev.to/aragossa/masking-pii-in-kubernetes-how-we-solved-3-annoying-sidecar-edge-cases-v200-3lal",
+    "source": "DEV Community",
+    "date": "2026-04-29T18:15:20.000Z",
+    "summary": "The PII-Shield Kubernetes operator v2.0.0 solves three critical edge cases when injecting sidecars for sensitive data masking: removing shell dependencies via distroless images, managing sidecar lifecycle in Jobs with native K8s sidecars, and fixing permission issues with fsGroup. The solution enables SOC2-compliant log masking in strict Kubernetes environments.",
+    "content": "Building a mutating webhook for Kubernetes is easy in tutorials, but brutal in production. You immediately hit the reality of volume permissions, security contexts, and zombie sidecars.\nI recently released v2.0.0 of the PII-Shield Operator. It’s a Go-based tool that injects a sidecar into your pods to mask sensitive data (PII) before the logs hit Datadog or ELK.\nGetting the core Shannon entropy logic to work was step one. Making it bulletproof for strict SOC2 environments was step two. Here are the three K8s edge cases we solved for this release:\nDropping the Shell (Moving to Distroless)\nCGO_ENABLED=0 and deployed on gcr.io/distroless/static:nonroot. There is no /bin/sh and zero attack surface. It just tails the log files directly using native Go.\n\n\nThe \"Immortal Sidecar\" Problem\nJob, you know it breaks the lifecycle. The main container finishes its work, but the sidecar keeps tailing logs forever, so the Job never reaches the Completed state.\nNative Sidecars feature (K8s 1.28+). The webhook now puts the agent inside the initContainers array with RestartPolicy: Always. Kubernetes finally understands how to kill the sidecar gracefully when the main app exits.\n\n\nThe emptyDir Permission Trap\nemptyDir volume to share logs, you often get Permission Denied. If the user's main app runs as root with a strict umask 0077, the nonroot sidecar can't read the file.\nfsGroup: 65532. The volume permissions match up, and the logs flow without errors.\n\n\n\nI packaged the whole thing into a Helm chart so it takes about two minutes to test. You just label your pod with pii-shield.io/inject: \"true\" and the webhook handles the rest.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Kubernetes中的PII屏蔽：我们如何解决3个烦人的Sidecar边界情况（v2.0.0）",
+        "summary": "PII-Shield Kubernetes操作员v2.0.0解决了在注入用于敏感数据屏蔽的Sidecar时的三个关键边界情况：通过distroless镜像移除shell依赖、使用本地K8s sidecars管理Jobs中的Sidecar生命周期，以及修复fsGroup权限问题。该解决方案在严格的Kubernetes环境中实现SOC2合规的日志屏蔽。"
+      }
+    }
+  },
+  {
+    "title": "Frontend Developers Are Lying to Themselves (And Their Portfolio Proves It). 🚨",
+    "slug": "frontend-portfolio-modern-framework",
+    "url": "https://dev.to/afaqjaved101/frontend-developers-are-lying-to-themselves-and-their-portfolio-proves-it-4e02",
+    "source": "DEV Community",
+    "date": "2026-04-29T18:14:52.000Z",
+    "summary": "Frontend developers often maintain outdated portfolios despite strong technical skills, missing an opportunity to demonstrate expertise to recruiters. Restructuring around a headless CMS plus modern framework (Next.js, SvelteKit, Astro) provides a weekend-project testing ground for new features and a credible technical showcase. This approach dramatically increases portfolio credibility without significant time investment.",
+    "content": "Let's skip the small talk.                                                                                                                                                                \nYou can architect a full-stack Next.js app. You have opinions about hydration strategies. You've probably explained React Server Components to someone at a meetup.                       \nSo why does your portfolio look like it was built by your cousin in 2018? 😬\nYour know NextJs and your portfolio is on Wordpress that's a crime 🚨.                                                                                                          \nYou have no personal project that forces you to use the tools you love.Every time React drops something new — you read the docs, you nod, and you move on. Nothing to build it in. No reason to experiment.                                                      \nYour portfolio should be that reason. And right now, it's not.                                                                                                                            \nHere's the architecture:\nHeadless CMS → API → Your Next.js / SvelteKit / Astro App                                                                                                                                 \nYour content lives in a CMS. Your frontend? Whatever framework you're obsessed with right now.                                                                                        \nThat's it. That's the whole idea.\n🛠️  Every new framework feature = excuse to ship something on your own site\n\n👀 Recruiters inspect your portfolio's source code — make it impressive\n\n✍️  Write blog posts in a proper editor, render them your way\n🔁 Swap frontends anytime — your content doesn't care\n\n\n\n\n\n\n\n  \n  \n  The Excuses — Destroyed 💥\n\n\n\"I don't have time.\" → Migrate just your blog. One weekend.                                                                                                                           \n\"Wor",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "前端开发者在自欺欺人（他们的作品集就是证明）。🚨",
+        "summary": "前端开发者通常维护过时的作品集，尽管技术能力很强，从而错失向招聘者展示专业知识的机会。围绕无头CMS加现代框架（Next.js、SvelteKit、Astro）进行重构，可以为新功能提供周末项目测试平台和可信的技术展示。这种方法可以大幅提高作品集的可信度，而无需投入大量时间。"
+      }
+    }
+  },
+  {
+    "title": "Part 4: Edge Deployment of an 86M Parameter Audio Transformer",
+    "slug": "audio-transformer-edge-deployment",
+    "url": "https://dev.to/syamaner/part-4-edge-deployment-of-an-86m-parameter-audio-transformer-1821",
+    "source": "DEV Community",
+    "date": "2026-04-29T18:11:09.000Z",
+    "summary": "Deploying an 86M-parameter audio transformer on a Raspberry Pi required optimization beyond model export: managing precision, tuning threads, supplying power, and adding cooling to achieve 2.09-second latency on 10-second windows. Real-world edge hardware constraints forced practical engineering trade-offs between model accuracy, speed, and stability. The production deployment maintains sufficient CPU headroom for other system processes.",
+    "content": "Post 3 ended with three numbers: 97.4% test accuracy, 100% precision, 0 false positives. All of it measured on a MacBook.\nThat was enough to prove the model could learn first crack. It did not prove the model could run where I needed it: next to a coffee roaster, on a Raspberry Pi 5, listening through a USB microphone during a live roast.\nThe first Pi run was \"it kind of works\". Export the PyTorch checkpoint to ONNX FP32, copy the 345MB file across, run inference. The result was 9.4 seconds per 10-second audio window. That was not a bug. That was the cost of running an 86M parameter transformer on one ARM Cortex-A76 core at full floating-point precision.\nThe next attempt exposed a different problem. More threads made the model faster, but the Pi crashed. Oz was already in the SSH session, so the next command was vcgencmd get_throttled. The answer came back as 0x50000: under-voltage and throttling.\nSo the work was not just \"export to ONNX.\" It became a small edge deployment story: shrink the model, tune the threshold, limit threads, swap the power supply, add active cooling, then decide whether the remaining latency still fit the physics of coffee roasting.\nThe final number was 2.09 seconds per 10-second window at 4 threads with active cooling. The production profile uses 2 threads and lands at 2.45 seconds, leaving CPU headroom for the rest of the system.\nWhat We're Deploying\nThe Pi Workflow\nONNX Export\nThe Platform Numbers\nThreshold Sweep\nThe Hardware War Story\nThe Verdict\nLinks\nReferences\nThe model is an Audio Spectrogram Transformer fine-tuned for binary classification: first_crack vs no_first_crack on 10-second audio windows resampled to 16kHz mono. Post 2 covers the dataset: 973 annotated chunks from 15 roasting sessions, recording-level splits to prevent data leakage, class-weighted training against a 20/80 imbalance. Post 3 covers the training: two hyperparameter attempts, the oscillating loss from a learning rate too aggressive for 587 samples, and the annot",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第 4 部分：86M 参数音频变换器的边缘部署",
+        "summary": "在树莓派上部署 86M 参数的音频变换器需要超越模型导出的优化：管理精度、调整线程、供电和添加冷却以在 10 秒窗口上实现 2.09 秒延迟。现实世界的边缘硬件约束强制了模型精度、速度和稳定性之间的实际工程权衡。生产部署为其他系统进程维持足够的 CPU 余量。"
+      }
+    }
+  },
+  {
+    "title": "Opus 4.7 vs GLM 5.1: is mixing models worth it?",
+    "slug": "opus-glm-mixed-model-comparison",
+    "url": "https://dev.to/edysilva/opus-47-vs-glm-51-is-mixing-models-worth-it-4fe2",
+    "source": "DEV Community",
+    "date": "2026-04-29T18:11:02.000Z",
+    "summary": "Testing a mixed-model strategy where Claude Opus plans and GLM executes on a complex multi-language translation task showed diminishing returns with task complexity. While all-Opus and all-GLM both succeeded, the cost advantage of pairing expensive planning with cheap execution narrowed once accounting for execution overhead and iteration differences.",
+    "content": "A couple of months ago, I compared Opus vs GLM by having both of them do a task for me. It’s not that surprising that Opus was best.\nBut what if we get both cooperating? For optimization purposes: one planning, the other executing.\nI ran this comparison before, same plugin (cm-multilingual), three runs: Opus 4.7 alone, GLM 5.1 alone via Ollama Cloud, and GLM 5.1 following the plan Opus had written. It was a small task – just providing progress feedback for the AI translation – and the \"cheap follows expensive plan\" split delivered ~99% of Opus’s scope for ~37% of the cost.\nToo beautiful. In a task of that size, there isn’t much room for things to go wrong, and I knew that the moment I posted it.\nBut it is the kind of result that becomes a Twitter thread: “Opus quality, GLM/Qwen/Minimax/Kimi price – just pass the plan”. Every week, someone posts a variation – the cheap model of the moment changes, the argument does not. And that was exactly the shortcut I wanted to test more rigorously before adopting it as the default.\nSo I raised the bar. Same plugin, same setup, but now the task was to implement translation by chunks, improving the resilience of the entire process, with the progress bar still in place. Async coordination between PHP, REST, JS, and an external provider whose latency can disappear halfway through.\nThe response changed. And this is the round I think is worth recording.\nThe three branches:\n chunks-opus – Opus 4.7 plans and executes.\n chunks-glm – GLM 5.1 alone. Same prompt verbatim. GLM plans and executes.\n chunks-glm-follow-opus – GLM 5.1 with Opus’s plan loaded in the first turn (“follow strictly”).\nAll passed the tests. All work, eventually. But to answer is it worth mixing? the way each one got there is what matters.\nMethodological note: I let each agent work until the feature ran and did not iterate to polish. There were minimal interactions just to ensure all branches had a deliverable and nothing more.\n\nFrom a UI perspective, the three branches",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Opus 4.7 对比 GLM 5.1：混合模型值得吗？",
+        "summary": "在复杂的多语言翻译任务上测试混合模型策略（Claude Opus 规划，GLM 执行）显示随着任务复杂度增加收益递减。虽然全 Opus 和全 GLM 都成功了，但将昂贵的规划与廉价执行配对的成本优势在计算执行开销和迭代差异后缩小了。"
+      }
+    }
+  },
+  {
+    "title": "Gemini Enterprise Agent Platform: A Developer's First Look (And Honest Critique)",
+    "slug": "gemini-enterprise-agent-platform",
+    "url": "https://dev.to/sk_firdous_ali/gemini-enterprise-agent-platform-a-developers-first-look-and-honest-critique-5f8m",
+    "source": "DEV Community",
+    "date": "2026-04-29T18:08:22.000Z",
+    "summary": "Google's Gemini Enterprise Agent Platform evolves Vertex AI from a model-serving layer into a complete operating system for AI agents, handling execution, memory, security, and scaling. The Agent Development Kit (ADK) provides graph-based agent orchestration as an alternative to brittle prompt chaining. The platform shifts focus from \"run this AI task\" to \"delegate this business outcome to agents.\"",
+    "content": "This is a submission for the Google Cloud NEXT Writing Challenge\nGoogle just redrew the map for how developers build AI-powered systems — and at Cloud NEXT '26, the centrepiece of that shift has a new name: Gemini Enterprise Agent Platform.\nAs a backend-focused developer who's been building with AI tools for a while, I went into NEXT '26 expecting incremental updates. What I got instead forced me to rethink how production AI systems are actually built.\n\"If Vertex AI was about models, Gemini Enterprise Agent Platform is about decision-making systems.\"\nThis is my first look — what excites me, what concerns me, and what this actually means for developers.\nGemini Enterprise Agent Platform is the evolution of Vertex AI. If you've been using Vertex AI for model training, fine-tuning, or API calls, think of this as Vertex AI growing up — from a model-serving layer into a full operating system for AI agents.\nThe core idea: stop managing individual AI tasks. Start delegating business outcomes. Instead of stitching together prompts, APIs, and workflows manually, you define agents — and the platform handles execution, memory, security, and scaling.\nOn paper, that sounds like marketing. In practice, what Google shipped is a set of tightly scoped primitives that, together, form something surprisingly coherent.\nThe ADK is the biggest developer-facing change here. It's a graph-based framework for organizing agents into networks of sub-agents. Instead of one monolithic AI system trying to do everything, you define discrete agents with clear responsibilities — and the ADK manages how they reason and collaborate.\nThis is a direct answer to a real pain point. If you've ever tried building a complex AI workflow, you know the chaos of prompt chaining gone wrong. ADK brings structure — turning agent orchestration into something you can reason about, version, and test.\nThe developer ramp is also well-designed: start visually in Agent Studio, then export your logic directly into ADK when y",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Gemini 企业代理平台：开发者的首次体验（及诚实评价）",
+        "summary": "Google 的 Gemini 企业代理平台将 Vertex AI 从模型服务层演进为完整的 AI 代理操作系统，处理执行、内存、安全和扩展。代理开发套件（ADK）提供基于图的代理编排作为易碎提示链的替代方案。该平台将关注点从\"运行此 AI 任务\"转变为\"将此业务成果委托给代理\"。"
+      }
+    }
+  },
+  {
+    "title": "Database Migrations & Seeders: Stop Writing Manual SQL Scripts",
+    "slug": "database-migrations-seeders-guide",
+    "url": "https://dev.to/umadhar/database-migrations-seeders-stop-writing-manual-sql-scripts-1g8b",
+    "source": "DEV Community",
+    "date": "2026-04-29T18:06:36.000Z",
+    "summary": "Database migrations and seeders replace manual SQL scripts with versioned, reviewable, automatically-tracked schema changes that eliminate production incidents from forgotten deployments. Migration tools ensure consistency across environments, provide rollback capability, and create audit trails. This guide covers implementation patterns across multiple frameworks with Python/Alembic examples.",
+    "content": "If you've ever said \"I forgot to run the ALTER TABLE on production\" — this post is for you.\nManual database changes are one of the most common causes of production incidents. A developer adds a column locally, merges the feature, deploys — and the app crashes because nobody ran the SQL on the live server.\nMigrations and seeders solve this completely. But the tooling is different for every stack, and most guides only cover one framework. This one covers all of them.\nInstead of running SQL manually, you write versioned migration files as part of your normal code. They get reviewed in pull requests, committed to git, and run automatically during deployment. Nobody forgets a column again.\nTwo concepts to understand:\nMigration — a versioned script for schema changes (CREATE TABLE, ALTER, ADD COLUMN). Applied once, tracked by the framework.\nSeeder — scripted insertion of reference or initial data. Always written to be idempotent — meaning it can run multiple times without duplicating data.\nMany teams start with raw SQL scripts shared over Slack or stored in a scripts/ folder. This breaks down fast:\nNo guarantee the script ran on every environment\nNo rollback if something goes wrong\nNo audit trail of who changed what and when\nNew developers have no idea what order to run things in\nMigration tools solve all of this by tracking every change in a dedicated table in your database. If a migration has already run, it skips it. If it hasn't, it applies it. Simple and reliable.\n# Install\npip install alembic sqlalchemy\nalembic init migrations\n\n# migrations/versions/xxxx_add_email_to_users.py\ndef upgrade():\n    op.add_column('users',\n        sa.Column('email', sa.String(255), nullable=True)\n    )\n\ndef downgrade():\n    op.drop_column('users', 'email')\n\n# Run it\nalembic upgrade head\n\n# Check status\nalembic current\nalembic history\n\nSeeder — always check before inserting to keep it idempotent:\n# seed.py\nsession = Session()\nfor role_name in ['ADMIN', 'USER']:\n    if not session.query(Rol",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "数据库迁移和数据填充：停止编写手动SQL脚本",
+        "summary": "数据库迁移和数据填充工具用版本控制、可审查的自动追踪的模式变更替代手动SQL脚本，消除生产事故的风险。迁移工具保证环境间的一致性、提供回滚能力和审计追踪。本指南涵盖多个框架的实现模式，并包含Python/Alembic示例。"
+      }
+    }
+  },
+  {
+    "title": "macOS Clipboard History — What Gets Logged, What Leaks, and How to Audit It",
+    "slug": "macos-clipboard-privacy-audit",
+    "url": "https://dev.to/alokt/macos-clipboard-history-what-gets-logged-what-leaks-and-how-to-audit-it-4knj",
+    "source": "DEV Community",
+    "date": "2026-04-29T17:58:03.000Z",
+    "summary": "macOS's NSPasteboard clipboard is globally readable by all running processes without permission gates or audit logs, and clipboard managers extend this into persistent disk history while Universal Clipboard syncs to all Apple devices. The post details stored data types, audit procedures using native commands, and privacy implications of third-party managers. A five-step procedure reveals recent clipboard contents including passwords.",
+    "content": "A look at how the macOS pasteboard, Universal Clipboard, and popular third-party clipboard managers actually store your copies in 2026 — what is logged, what crosses the network, and a five-step check to find traces of your last password.\nThe short version: the pasteboard is global, Universal Clipboard is permissive, most managers store plaintext on disk, and you can audit all of it in twenty minutes with commands already on your Mac.\nThe \"clipboard\" on a Mac is an instance of NSPasteboard. The general one — NSPasteboard.general — backs Cmd-C, Cmd-V, the Edit menu, and every drag-and-drop. It is not an app feature; it is an OS feature exposed to every running process.\nWhat lives on it is more than text. A single copy can carry several representations at once: a UTF-8 plain string under public.utf8-plain-text, a styled public.rtf blob, a public.html rendering, file URLs (public.file-url), and image data for screenshots. The receiver picks whichever flavor it prefers. That is why pasting from Safari into Mail keeps formatting and pasting into Terminal strips it.\nEverything is keyed by what Apple calls a change count. Every new copy increments the integer. Apps poll that counter to decide whether to read again. There is no permission gate, no broker, no audit log. If your app is running, it sees the change count, and if it asks for the data, it gets it.\nMental model: the macOS pasteboard is a single, mutable, shared dictionary keyed by content type. Every app on your machine has read access — most without you ever granting it.\nBy default, macOS keeps exactly one item there. Copy something new and the previous value is overwritten. There is no built-in scrollback. That sounds reassuring, but it is only the surface. Every clipboard manager you install extends that single slot into a persistent on-disk history, and Universal Clipboard syncs the live slot to every Apple device on your account.\nUniversal Clipboard lets you copy on your Mac and paste into Notes on your iPhon",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "macOS剪贴板历史——记录了什么、泄露了什么以及如何审计",
+        "summary": "macOS的NSPasteboard剪贴板可被所有运行中的进程全局读取，无权限限制或审计日志，剪贴板管理器将其扩展为持久化磁盘历史记录，Universal Clipboard同步到所有Apple设备。本文详细介绍了存储的数据类型、使用本机命令的审计程序和第三方管理器的隐私影响。五步程序可揭示最近的剪贴板内容，包括密码。"
+      }
+    }
+  },
+  {
+    "title": "What is an MCP server? The developer's plain-English guide to Model Context Protocol",
+    "slug": "model-context-protocol-mcp",
+    "url": "https://dev.to/ajbuilds/what-is-an-mcp-server-the-developers-plain-english-guide-to-model-context-protocol-2cc5",
+    "source": "DEV Community",
+    "date": "2026-04-29T17:52:27.000Z",
+    "summary": "Model Context Protocol (MCP) is an open standard that bridges AI models and external tools, enabling agents to query databases, call APIs, execute code, and push commits autonomously within conversations. Published by Anthropic in November 2024, MCP standardizes integrations the way USB standardized peripherals. An MCP server exposes tools, resources, and data that AI models can invoke to interact with the real world.",
+    "content": "MCP stands for Model Context Protocol. An MCP server is a lightweight process that exposes tools, resources, and data to an AI agent — giving it the ability to interact with the outside world.\nWithout MCP, an AI model lives inside a conversation. It can read what you type and respond. That's it.\nWith an MCP server, the same model can query a database, read files from your filesystem, call an external API, execute code, search the web, check your calendar, and push commits to GitHub — all within a single conversation, autonomously, without you doing any of it manually.\nMCP is the bridge between AI reasoning and real-world action. It is why the shift from AI chatbots to AI agents happened so fast in 2025-2026.\nBefore MCP, every team that wanted to connect an AI model to an external tool built their own integration. Different schemas, different transport formats, different authentication patterns. A company using three AI models and five internal tools needed fifteen custom integrations. Maintaining them as models updated was a recurring engineering tax.\nAnthropic published the Model Context Protocol specification in November 2024 as an open standard. The goal: one protocol that any AI model can use to talk to any tool, regardless of who built either.\nThe analogy that actually works: MCP is to AI agents what USB is to peripherals. Before USB, every device had its own connector, its own driver, its own installation ritual. After USB, you plug it in and it works. MCP does the same thing for AI and tools — standardises the connection so the model and the tool don't need to know anything specific about each other.\nAn MCP server exposes three types of things to an AI model:\nTools — functions the model can call. A tool has a name, a description, and a JSON schema defining its inputs. When the model decides it needs to use a tool, it calls the tool with appropriate inputs and receives the result. Examples: query_database, read_file, send_email, create_github_issue, invoke_lam",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "什么是MCP服务器？Model Context Protocol开发者简明指南",
+        "summary": "Model Context Protocol（MCP）是一个开放标准，将AI模型与外部工具相连接，使代理能够在对话中查询数据库、调用API、执行代码和自动推送提交。由Anthropic在2024年11月发布，MCP将集成标准化，就像USB标准化了外设一样。MCP服务器公开AI模型可以调用的工具、资源和数据，以与现实世界交互。"
+      }
+    }
+  },
+  {
+    "title": "Online age verification is the hill to die on",
+    "slug": "online-age-verification-debate",
+    "url": "https://x.com/GlennMeder/status/2049088498163216560",
+    "source": "Hacker News",
+    "date": "2026-04-29T15:49:57.000Z",
+    "summary": "A discussion on online age verification examining both the necessity and risks of digital age gating systems, generating significant community engagement. The debate focuses on balancing child safety with privacy concerns and implementation feasibility across the internet.",
+    "content": "https://xcancel.com/GlennMeder/status/2049088498163216560\nComments URL: https://news.ycombinator.com/item?id=47950091\nPoints: 300\n# Comments: 184",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在线年龄验证是应该坚守的阵地",
+        "summary": "关于在线年龄验证的讨论,审视了数字年龄门控系统的必要性和风险,引发了社区广泛参与。辩论的焦点是在儿童安全与隐私保护之间以及互联网实施可行性之间寻求平衡。"
+      }
+    }
+  },
+  {
+    "title": "Zed 1.0",
+    "slug": "zed-editor-1-0-release",
+    "url": "https://zed.dev/blog/zed-1-0",
+    "source": "Hacker News",
+    "date": "2026-04-29T14:34:19.000Z",
+    "summary": "Zed reached version 1.0, marking the transition of the code editor from beta to production-ready status with substantial improvements and community adoption. The milestone represents the maturation of a modern, performance-focused code editor built with Rust.",
+    "content": "Article URL: https://zed.dev/blog/zed-1-0\nComments URL: https://news.ycombinator.com/item?id=47949027\nPoints: 876\n# Comments: 302",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Zed 1.0",
+        "summary": "Zed 达到了 1.0 版本,标志着该代码编辑器从测试版过渡到生产就绪状态,实现了大幅改进并获得社区采用。这一里程碑代表了一款现代、高性能的 Rust 编写代码编辑器的成熟。"
+      }
+    }
+  },
+  {
+    "title": "We need a federation of forges",
+    "slug": "federated-code-forges-architecture",
+    "url": "https://blog.tangled.org/federation/",
+    "source": "Hacker News",
+    "date": "2026-04-29T14:00:59.000Z",
+    "summary": "The post argues for a federated approach to code forges, proposing decentralized alternatives to centralized platforms like GitHub. Federation would improve resilience, user control over repositories, and interoperability across independent code hosting systems.",
+    "content": "Article URL: https://blog.tangled.org/federation/\nComments URL: https://news.ycombinator.com/item?id=47948603\nPoints: 374\n# Comments: 199",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我们需要建立代码仓库的联邦网络",
+        "summary": "这篇文章主张对代码仓库采取联邦化方法,提出了对 GitHub 等集中式平台的去中心化替代方案。联邦制将提高系统的弹性、用户对仓库的控制权以及独立代码托管系统之间的互操作性。"
+      }
+    }
+  },
+  {
     "title": "🚀 Which Flutter State Management Should You Use? (Complete Developer Guide)",
     "slug": "flutter-state-management-guide",
     "url": "https://dev.to/codexlancers/which-flutter-state-management-should-you-use-complete-developer-guide-5442",
