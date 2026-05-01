@@ -1,5 +1,197 @@
 [
   {
+    "title": "Sprint Briefing Agent: When Your AI Works While You Sleep",
+    "slug": "sprint-briefing-agent-ai-overnight",
+    "url": "https://dev.to/elenarevicheva/sprint-briefing-agent-when-your-ai-works-while-you-sleep-4hfa",
+    "source": "DEV Community",
+    "date": "2026-05-01T12:18:34.000Z",
+    "summary": "The article describes a sprint briefing agent that automatically delivers daily summaries of code repository changes, emphasizing reliable once-daily delivery as a critical production requirement. Built on AWS for under $2/month, it demonstrates that enterprise-grade operational intelligence can be delivered at startup infrastructure costs.",
+    "content": "The Morning Voice Note I Did Not Write\n\n\nAt 7 AM every day, I get a briefing on my phone.\nNot from a person. From a system I built — one that watches my codebases overnight, synthesizes what changed, and tells me what to focus on today.\nThis week I shipped a key improvement: the Sprint Briefing Agent now fires exactly once per morning. No duplicates. No missed days. In distributed systems with scheduled jobs, exactly-once delivery is harder to get right than it sounds.\nA briefing that fires three times is noise. One that sometimes does not fire is a broken promise. Production systems need reliability, not just capability.\nInfrastructure: $2 per month on AWS.\nI spent seven years as a Deputy CEO/CLO running large-scale digital government programs. I know what enterprises pay for operational intelligence systems. The gap is not small.\nI am building proof-of-concept for a different kind of operator: someone who understands both the boardroom decision and the code that executes it.\nTen live AI agents. Real production systems. Daily operation. Total infra cost under $10/month.\nPortfolio: aideazz.xyz/portfolio",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Sprint简报代理：当您的AI在您睡觉时工作",
+        "summary": "本文介绍了一个Sprint简报代理，它能自动提供代码仓库变更的每日摘要，强调可靠的每日一次交付是关键的生产需求。该系统建立在AWS上，月成本不到2美元，证明了企业级操作智能可以以创业级基础设施成本交付。"
+      }
+    }
+  },
+  {
+    "title": "Don't Put All Your Code in One Account: Multi-Account Deployments with AWS CodePipeline",
+    "slug": "multi-account-deployments-aws-codepipeline",
+    "url": "https://dev.to/chkso/dont-put-all-your-code-in-one-account-multi-account-deployments-with-aws-codepipeline-326h",
+    "source": "DEV Community",
+    "date": "2026-05-01T12:15:11.000Z",
+    "summary": "The article outlines AWS security best practices for improving multi-workload application landscapes through multi-account deployments following the AWS Well-Architected Framework. The approach establishes separate accounts for applications, environments, CI/CD tooling, and shared infrastructure to provide isolation boundaries for security and access control.",
+    "content": "... or how to turn your single account AWS Code Pipeline into a multi-account one.\nRecently I had an opportunity to improve the security posture of an application landscape which went to production in a bit of a rush so certain compromises were made on the way. Now that the applications have been running in a stable manner for some time, the time has come to make some security improvements.\nIn the current stage, multiple applications are running in the same AWS account together with all the other components such as the whole deployment pipeline, ECR repository, S3 buckets with artifacts and so on. \n\nThere are multiple ways how to improve the security posture of this landscape. \nIn this post I will focus on one of the best practices in the Security Pillar of the AWS Well Architected Framework - SEC01-BP01 Separate workloads using accounts which says:\nEstablish common guardrails and isolation between environments (such as production, development, and test) and workloads through a multi-account strategy. Account-level separation is strongly recommended, as it provides a strong isolation boundary for security, billing, and access.\nDesired outcome: An account structure that isolates cloud operations, unrelated workloads, and environments into separate accounts, increasing security across the cloud infrastructure.\nCommon anti-patterns: Placing multiple unrelated workloads with different data sensitivity levels into the same account.\n... the anti-pattern being exactly our case. \nI took the following steps to follow the AWS best practices and to improve the security posture of the workloads:\nEstablish a new AWS Organization and setup Organization Units as per the AWS Best Practices for OUs, such as: Infrastructure, Workloads, etc.\nCreate a separate AWS account for each application and its stage\nCreate a separate AWS account for the CI/CD tooling, ECR, Artifacts and other shared services\nCreate a separate AWS account for VPCs and Subnets, possibly a Transit Gateway and a VPN",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "不要将所有代码放在一个账户中：使用AWS CodePipeline进行多账户部署",
+        "summary": "本文概述了AWS安全最佳实践，通过遵循AWS架构完美框架的多账户部署来改进多工作负载应用程序环境。该方法为应用程序、环境、CI/CD工具和共享基础设施建立单独的账户，以提供安全性和访问控制的隔离边界。"
+      }
+    }
+  },
+  {
+    "title": "How to monitor Apache Airflow DAGs so you know when they silently fail",
+    "slug": "monitor-apache-airflow-dags-silent-failures",
+    "url": "https://dev.to/krissv/how-to-monitor-apache-airflow-dags-so-you-know-when-they-silently-fail-3pp0",
+    "source": "DEV Community",
+    "date": "2026-05-01T12:14:44.000Z",
+    "summary": "The article identifies silent failures in Airflow DAGs where tasks exit successfully but produce no output—failures that standard callbacks cannot detect. It proposes external monitoring using dead man's switch patterns with output assertions to catch both missed runs and zero-output completions.",
+    "content": "Your Airflow DAG ran last night. All tasks: green. All durations: normal. Export job completed at 02:14.\nZero rows exported. Nobody knows.\nThis is the silent failure Airflow's built-in alerting doesn't catch. on_failure_callback fires when a task crashes. It doesn't fire when a task exits 0 after connecting to a stale database replica and processing nothing. That's the failure mode that eats your Monday morning.\nThis article shows you two ways to add external monitoring to Airflow DAGs — so you get paged for both kinds of failures.\nAirflow gives you several callback hooks:\non_failure_callback — task or DAG run failed\non_success_callback — task or DAG run succeeded\non_retry_callback — task queued for retry\non_execute_callback — task about to start\non_skipped_callback — task raised AirflowSkipException\nThese are useful. But none of them answer the question that actually matters for data pipelines: did the job do something?\nYour export DAG catches a database timeout, logs it, and exits cleanly. Airflow marks it green. No callbacks fire. The data never lands.\nYou need an independent check — something outside Airflow that asks \"did this DAG complete, and did it report non-zero output?\" every time the schedule fires.\nA dead man's switch monitor works like this:\nYou set up a monitor with an expected interval — say, \"this DAG should report in every 24 hours\"\nYour DAG pings the monitor when it completes\nIf the monitor doesn't hear from the DAG within the window, it alerts you\nThis catches missed runs, paused DAGs, scheduler issues, and slow drift.\nBut the more powerful feature is output assertions: you pass a count with your ping, and the monitor alerts if count is 0 — even when the job completed and pinged successfully.\nI'll use DeadManCheck for the examples. It's the only cron monitoring tool that supports output assertions, and it has a free tier for up to 5 monitors.\nIf you want to monitor the whole DAG run — not individual tasks — use on_success_callback and on_failure_",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何监控Apache Airflow DAG以便您知道它们何时静默失败",
+        "summary": "本文识别了Airflow DAG中的静默失败，其中任务成功退出但产生无输出——这种失败是标准回调无法检测的。它提出了使用死人开关模式和输出断言进行外部监控的方案，以捕获漏失的运行和零输出完成。"
+      }
+    }
+  },
+  {
+    "title": "CSS property field-sizing: automatic resizing of input fields",
+    "slug": "css-field-sizing-auto-input-resizing",
+    "url": "https://dev.to/nickbenksim/css-property-field-sizing-automatic-resizing-of-input-fields-b59",
+    "source": "DEV Community",
+    "date": "2026-05-01T12:14:28.000Z",
+    "summary": "The CSS field-sizing property enables form inputs to automatically resize based on content without JavaScript, eliminating decades of workarounds and manual sizing hacks. This native browser feature significantly improves form handling across modern web applications.",
+    "content": "The Death of the Scrollbar: Why field-sizing is Your New Best Friend\nGrab a coffee, friend, because I’m about to show you something that would have saved us literally thousands of lines of fragile JavaScript back in the day. You know that classic UI problem? A user starts typing a comment, the text hits the edge of the textarea, and suddenly… an ugly, cramped scrollbar appears. To fix it, we’ve been jumping through hoops for a decade just to make a simple input field grow with its content. Well, the CSS WG finally gave us the “magic button.” It’s called field-sizing, and it’s honestly one of the most underrated quality-of-life improvements in modern CSS.\nHow we suffered before (The “Hacker” Era)\nBack in the day, if you wanted a textarea to expand as the user typed, you had two choices, and both were pretty terrible. The first was the JavaScript approach: you’d attach an input event listener, grab the scrollHeight, and manually update the element’s height in pixels. It was jittery, often felt a frame behind, and was a nightmare to manage with padding and box-sizing.\nThe second was the “Invisible Twin” hack. You’d create a hidden div that mirrored the styles of your textarea, put the same text inside it, and let that div’s height push the container, while the textarea sat on top of it with position: absolute. We had to use things like Creating Adaptive Typography with the clamp() Function just to ensure the text didn’t look like a mess across different screen sizes while these hacks were running. It worked, but it felt like building a house out of duct tape and prayers.\nThe modern way in 2026\nFast forward to today, and we can throw all that complexity in the trash. The field-sizing property allows an element to size itself based on its content, much like a div or a span does naturally. By default, form elements have a “fixed” size (the field-sizing: fixed default), which is why they don’t grow. By switching this to content, the browser takes over the heavy lifting.\nTh",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "CSS的field-sizing属性：输入字段自动调整大小",
+        "summary": "CSS field-sizing属性使表单输入能够根据内容自动调整大小，无需JavaScript，消除了数十年来的变通方案和手动调整技巧。这一原生浏览器功能显著改善了现代网络应用中的表单处理能力。"
+      }
+    }
+  },
+  {
+    "title": "php_clickhouse 0.8.1: Three Releases Later, Stable",
+    "slug": "php-clickhouse-0-8-1-stable",
+    "url": "https://dev.to/iliaa/phpclickhouse-081-three-releases-later-stable-1aid",
+    "source": "DEV Community",
+    "date": "2026-05-01T12:12:54.000Z",
+    "summary": "The php_clickhouse extension reached v0.8.1 stability through six days of focused development, delivering performance optimization, security hardening, and connection stability improvements. The native binary protocol provides 30-40% throughput gains while maintaining API compatibility with familiar PHP ClickHouse clients.",
+    "content": "The launch post for php_clickhouse 0.6.0 covered the framing: native binary protocol, soft fork of the stalled SeasClick, modern ClickHouse types, 30-40% faster than HTTP at high throughput. That post landed April 25, 2026. Today (May 1, 2026) the current tag is 0.8.1, and I'm calling the extension stable.\nThe six days in between were a focused quality cycle, not a feature sprint. Three buckets:\nPerformance. Insert and write paths build native ClickHouse columns one at a time directly from row-major input. Peak intermediate PHP memory dropped from N_rows × N_cols zvals to one column.\nSecurity. Strict full-consumption parsers across Map, narrow-int, Int128 / UInt128, geo, DateTime64, Time64, hex literals, and typed parameters. Wrong-type input throws instead of corrupting memory or coercing silently to zero. Recursive type-conversion gained a depth cap so adversarial server schemas can't blow the stack.\nStability. Per-Client state moved from file-scope std::map banks onto the zend_object itself. Unblocks ZTS, plugs leaks on bailout, fixes a refcount bug on the progress callback. Insert path recovers the native handle on every server-side rejection point so a thrown insert no longer wedges the connection.\nThree releases (0.7.0, 0.8.0, 0.8.1) closed the API gap with the most-used HTTP client, refactored the extension's state model, hardened the insert surface, and surfaced one upstream UB fix that has since merged into clickhouse-cpp.\nHere's the work.\nThe native binary protocol gives you 30-40% throughput. Most teams won't trade a familiar API for that, so the native client has to match the ergonomic surface of the most-used PHP HTTP client (smi2/phpClickHouse). 0.7.0 is the release that actually does that.\nWhat landed:\nsetSettings(array) for client-wide ClickHouse settings (max_execution_time, max_memory_usage, async_insert). Per-call settings as a 5th array argument on select() / insert() / execute() / writeStart(). Per-call overrides global.\nServer-side typed parame",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "php_clickhouse 0.8.1：三个版本后实现稳定版",
+        "summary": "php_clickhouse扩展通过六天的集中开发达到v0.8.1稳定版本，提供性能优化、安全加固和连接稳定性改进。原生二进制协议提供30-40%的吞吐量提升，同时保持与常见PHP ClickHouse客户端的API兼容性。"
+      }
+    }
+  },
+  {
+    "title": "RAG isn't memory. It's Ctrl+F with embeddings.",
+    "slug": "rag-not-memory-ctrl-f-embeddings",
+    "url": "https://dev.to/vbcherepanov/rag-isnt-memory-its-ctrlf-with-embeddings-1imi",
+    "source": "DEV Community",
+    "date": "2026-05-01T12:12:41.000Z",
+    "summary": "Vector-based retrieval (RAG) systems perform semantic search rather than true memory, often retrieving outdated or contextually wrong information based on cosine similarity. The article argues that production AI agents require actual memory systems with understood state management rather than embedding-based search to operate reliably.",
+    "content": "Part 1 of 3 — \"Memory for AI agents\"\n\nIt's 3 AM. I'm on my third night debugging an AI agent. I'm standing in the kitchen with a mug of tea, staring at a diff, swearing quietly. The agent has confidently rewritten the auth function — based on a chunk that belongs to a branch that was deleted from the repo two months ago.\nThe chunk lives in Qdrant. Its cosine similarity to my query is high. Top-1 in the retrieval. The agent honestly grabbed it, honestly stitched it into the prompt, honestly generated the \"correct\" patch. Against code from a different reality.\nI close the laptop and think: okay, I have RAG. I have vectors. I have long-term memory. I have everything every AI conference deck has been promising for the last two years. Why did my agent just propose a fix based on code that doesn't exist anymore?\nBecause my agent doesn't have memory. My agent has search results with cosine instead of BM25. And between those two sentences lies the entire difference between \"AI you can trust in production\" and \"AI you have to babysit on every line.\"\nThis piece is about that difference. And about why we, as engineers, are the ones to blame for not seeing it anymore.\nLet's be honest. What is the typical \"memory\" of an AI agent in 2026?\ntext → split into 512-1024 token chunks\n     → embedding (bge / text-embedding-3 / openai)\n     → vector DB (Qdrant / pgvector / Chroma / Pinecone)\n     → cosine similarity top-k\n     → concatenate into prompt\n\nThis is not memory. This is search. It's old-school Lucene from 2003, repainted in neural colors. Cosine instead of TF-IDF. Embeddings instead of an inverted index. Same thing.\nIf we just called it that — \"vector search,\" \"semantic retrieval\" — I'd have no complaints. Call Lucene Lucene, no problem. But when it's sold under the banner \"my AI has long-term memory\" — sorry. My AI has déjà vu and amnesia at the same time.\nThis isn't a terminology gripe. It's a question of expectations. When an engineer hears \"memory,\" they imagine a system t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "RAG不是记忆。它是带嵌入的Ctrl+F搜索。",
+        "summary": "基于向量的检索（RAG）系统执行语义搜索而非真正的记忆，通常基于余弦相似度检索过时或语境不当的信息。该文章论证生产环境中的AI代理需要具有可理解状态管理的实际记忆系统，而非基于嵌入的搜索，才能可靠运行。"
+      }
+    }
+  },
+  {
+    "title": "Google Just Moved the Control Plane Boundary",
+    "slug": "google-control-plane-boundary-kubernetes",
+    "url": "https://dev.to/ntctech/google-just-moved-the-control-plane-boundary-1fk8",
+    "source": "DEV Community",
+    "date": "2026-05-01T12:10:18.000Z",
+    "summary": "Google announced GKE Hypercluster, a single Kubernetes control plane spanning 256,000 nodes across regions managing a million accelerators as unified capacity. This architectural shift moves the unit of scale from clusters to the control plane, addressing fragmented capacity, duplicated policy, and operational overhead in traditional cluster designs.",
+    "content": "Need more capacity? Add a cluster. Need workload isolation? Add a cluster. Need regional separation? Add a cluster. Need a dedicated GPU pool? Add a cluster. The cluster became the unit of scale because the control plane could not scale far enough to avoid making it one.\nAt Google Cloud Next '26, Google made the opposite bet. A single Kubernetes-conformant control plane spanning 256,000 nodes across multiple regions, managing a million accelerators as a unified capacity reserve. Not bigger Kubernetes. A different architectural claim entirely.\nThe claim is this: the control plane is now the unit of scale. The cluster is not.\nMost platform architectures were not built around that assumption. They are still operating the old boundary — and that mismatch is what this post is actually about.\nThe cluster-as-boundary model made sense when it emerged. Kubernetes control planes had real scale limits. Policy enforcement was cluster-scoped. Observability was cluster-local. Capacity pools were physically tied to the node groups a given control plane could manage.\n\nThat solved the immediate problem. It also created a different class of problem that compounded silently:\nFragmented capacity. Idle capacity in one cluster could not be claimed by a workload running out of headroom in another.\nDuplicated policy. Every cluster needed its own RBAC, network policy, and admission control. Changes had to propagate across every cluster. Drift was structural.\nDisconnected observability. Metrics and logs were cluster-local. Understanding system-wide state required stitching together signals from dozens of independent sources.\nCompounding operational overhead. Each cluster was a discrete object requiring lifecycle management, upgrades, and failure response.\nThe industry normalized cluster multiplication because the alternative — scaling the control plane itself — was not a credible option. Until now.\nGKE Hypercluster is not a capacity announcement. It is an architectural boundary announcement.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Google 刚刚移动了控制平面边界",
+        "summary": "Google 宣布推出 GKE Hypercluster，这是一个跨越多个地区的单一 Kubernetes 控制平面，可管理 256,000 个节点和 100 万个加速器作为统一容量。这个架构转变将规模单位从集群转移到控制平面，解决了传统集群设计中的容量碎片化、策略重复和操作开销问题。"
+      }
+    }
+  },
+  {
+    "title": "AI Commerce Needs MLPerf — and Here's an Early Attempt",
+    "slug": "ai-commerce-mlperf-benchmark-standard",
+    "url": "https://dev.to/benjifisher/ai-commerce-needs-mlperf-and-heres-an-early-attempt-2lg1",
+    "source": "DEV Community",
+    "date": "2026-05-01T12:07:45.000Z",
+    "summary": "AI commerce lacks standardized benchmarking comparable to MLPerf, Lighthouse, or HumanEval, making vendor agent-readiness claims unverifiable. The article proposes creating an industry-standard evaluation framework for AI agents in e-commerce to enable credible comparisons across implementations.",
+    "content": "Validating a UCP manifest takes a second. Scoring it for agent-readiness takes another. Neither of those answers the harder question: when a real frontier agent — Claude or GPT or Gemini, picked by a user three weeks from now — walks up to your store with an ordinary shopping prompt, does it actually complete a checkout? Compared to the next implementation? Across the models people are actually using?\nToday there's no shared way to find out. AI commerce has the same coordination problem ML had before MLPerf, web performance had before Lighthouse, and coding models had before HumanEval — and the cost of not solving it is the same: every claim a vendor makes about agent-readiness is currently unverifiable by anyone outside that vendor.\nThis post is about what we've been building to close that gap.\nEvery category that grew up around AI has gone through a pre-benchmark moment.\nMachine learning before MLPerf was a pile of vendor-flavoured numbers. NVIDIA reported one set of throughput claims, Google another, AMD a third — and none of it was directly comparable, because nobody was running the same workload, on the same input, on the same harness. MLPerf — submitted to, run by, and audited across the whole industry — fixed that. Buyers could finally compare. The category matured.\nWeb performance before Lighthouse was the same. \"Fast website\" was vibes. PageSpeed Insights gave one number, WebPageTest another, internal RUM dashboards a third. Lighthouse — graded, reproducible, open — fixed it. Today nobody ships a serious site without checking their score.\nCoding models before HumanEval were even worse. Every lab benchmarked against its own preferred problems and reported its own preferred metrics. HumanEval, then MBPP, then SWE-bench, then LiveCodeBench, gave the field a shared evaluation surface. Comparisons stopped being marketing.\nAgentic commerce is in exactly the place those categories were before their benchmarks landed. The standard has converged — UCP is the open sp",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI 商务需要 MLPerf — 这是一次早期尝试",
+        "summary": "AI 商务缺乏可与 MLPerf、Lighthouse 或 HumanEval 相比的标准化基准测试，使供应商的 AI 代理就绪声称无法验证。该文章提议为电子商务中的 AI 代理创建行业标准评估框架，以便在实现之间进行可靠的比较。"
+      }
+    }
+  },
+  {
+    "title": "Your AI Agent Is Sending 10x More API Calls Than You Think — Here's Where the Cost Hides",
+    "slug": "ai-agent-hidden-api-call-costs",
+    "url": "https://dev.to/xidao/your-ai-agent-is-sending-10x-more-api-calls-than-you-think-heres-where-the-cost-hides-4mei",
+    "source": "DEV Community",
+    "date": "2026-05-01T12:06:00.000Z",
+    "summary": "Production AI agents trigger 5-20+ LLM API calls per user request due to planning loops, context accumulation, and redundant tool calls, creating costs 10x higher than simple chatbot interactions. A measured production agent averaged 14 round-trips costing $0.47 per query, revealing the hidden cost multiplier of agentic workflows.",
+    "content": "The hidden multiplier nobody budgets for\n\n\nWhen we moved from single-turn chatbots to agentic workflows in early 2026, the first thing that broke wasn't the code — it was the budget spreadsheet.\nA simple chat completion costs one API call. An agent that plans, selects tools, executes them, evaluates the results, and synthesizes a final answer? That same user request now triggers 5 to 20 LLM calls. Sometimes more.\nI ran an experiment last month with a production agent doing research tasks — web search, summarization, multi-hop reasoning. A single user prompt averaged 14 LLM round-trips across GPT-5 and Claude 4.6 Opus. At GPT-5's input/output pricing, that one \"simple question\" cost $0.47. Multiply by 1,000 daily active users and you're looking at $470/day you never planned for.\nAfter instrumenting our gateway logs for two weeks, here's what I found:\nEvery agent loop starts with a planning step. The model reads the full conversation history, decides what tool to call, and outputs a structured action. This step alone can consume 800–2,000 tokens of input per iteration — and it happens on every single loop.\nWith Claude 4.6 Opus at $15/M input tokens, a 5-iteration agent spends $0.06 just on planning. That's before it does anything useful.\nAgents accumulate context. By iteration 4, the prompt includes the original question, all prior tool outputs, all prior reasoning traces, and the full system prompt. I measured prompts growing from 1,200 tokens at iteration 1 to 18,000+ tokens by iteration 6.\nThis is the insidious part: each iteration's cost is superlinear because the context grows with every step.\nAgents are surprisingly bad at knowing when to stop. In our logs, 23% of agent runs made at least one redundant tool call — re-searching something it already found, or re-reading a document it already summarized. Each redundant call is a full LLM round-trip with the bloated context.\nWhen a primary model returns a 429 rate limit or 503 timeout, the agent retries — often with",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的 AI 代理发送的 API 调用是你想象的 10 倍 — 成本隐藏在这里",
+        "summary": "生产环境中的 AI 代理由于规划循环、上下文积累和冗余工具调用，每个用户请求会触发 5-20+ 次大语言模型 API 调用，成本比简单的聊天机器人交互高 10 倍。一个测量的生产代理平均每次查询需要 14 次往返，成本为 0.47 美元，揭示了代理工作流程的隐藏成本乘数。"
+      }
+    }
+  },
+  {
+    "title": "Five Deployment Blockers, One Breakthrough: When to Check Memory Before Reaching for New Infrastructure",
+    "slug": "deployment-blockers-check-memory-infrastructure",
+    "url": "https://dev.to/jeremy_longshore/five-deployment-blockers-one-breakthrough-when-to-check-memory-before-reaching-for-new-50i1",
+    "source": "DEV Community",
+    "date": "2026-05-01T12:00:29.000Z",
+    "summary": "Deployment of a static HTML diagram encountered multiple sequential blockers including TTY/GPG authentication issues and DNS configuration problems, but the breakthrough was discovering appropriate infrastructure already existed and simply needed to be checked first. The article emphasizes validating existing resources before defaulting to new infrastructure solutions.",
+    "content": "The Problem\n\n\nI needed to share a dental-billing MCP architecture diagram with stakeholders. Not tomorrow. Now. It was a static HTML file — should be five minutes to get it online.\nInstead, I hit five sequential blockers. Each one seemed independent. Each one cost time. By the fifth, I was deep in DNS cache debugging, TTY/GPG authentication issues, and wondering if I should just build a new demo subdomain from scratch.\nThe breakthrough? Stop building. The subdomain already existed. Memory had it configured. I just hadn't checked my own infrastructure before jumping to solutions.\nWe'd scaffolded a private dental-billing-mcp-demo repo via /repo-dress, generated an architecture diagram as HTML, and now needed a public URL. The diagram itself was solid — nine issues in the rendering (orange line routing, mobile horizontal scroll, code blocks breaking), but that's content polish. First: get it live.\nNormal answer: static site + GitHub Pages + done. We tried:\ncd dental-billing-mcp-demo\ngit push\n# repo settings → Pages → deploy from gh-pages branch\n\nIt worked. jeremylongshore.github.io/dental-billing-mcp-demo/ was live in minutes. But the URL had GitHub branding, and stakeholders expected *.intentsolutions.io — our company domain. GitHub Pages is great for open-source portfolios, less so for shared infrastructure within an org.\nSo I pivoted: \"Let me deploy this to demo.intentsolutions.io properly.\"\nThe Porkbun API key lives in pass (password-manager). To retrieve it:\npass show porkbun/api-key\n\nBut pass uses GPG, and GPG refuses to unlock keys without an interactive terminal (TTY). This Claude session runs headless. No TTY.\ngpg: waiting for lock...\ngpg: (there may be other `gpg' processes using the home directory)\n\nRecovery: \"Run pass show porkbun/api-key once in your own terminal to warm the GPG agent, then I can pick it up.\"\nTime cost: ~30 minutes waiting for the user to manually unlock pass.\nAfter generating the first demo URL (jeremylongshore.github.io/dental-billing-mc",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "五个部署障碍，一个突破：在扩展基础设施前先检查现有资源",
+        "summary": "静态HTML图表的部署遭遇多个顺序障碍，包括TTY/GPG认证问题和DNS配置问题。突破口是发现所需基础设施已存在，只需先检查。文章强调应在诉诸新基础设施前，先验证现有资源。"
+      }
+    }
+  },
+  {
+    "title": "Survival Guide for Golden Week: How to avoid the crowds & stay sane",
+    "slug": "golden-week-survival-guide-avoid-crowds",
+    "url": "https://dev.to/japan_refactor/survival-guide-for-golden-week-how-to-avoid-the-crowds-stay-sane-16lc",
+    "source": "DEV Community",
+    "date": "2026-05-01T12:00:00.000Z",
+    "summary": "Golden Week crowds in Tokyo have shifted with inbound tourism replacing departing locals, making strategic timing (early morning, off-peak destinations like Okutama) essential. The article recommends leveraging the unusual organizational quiet for focused work on long-delayed projects during peak travel dates (May 2-3, 5-6).",
+    "content": "On May 3rd last year, I stood in front of a ramen shop ten minutes before opening and watched a queue of nearly 50 people already forming. \nIt wasn't even 10:00 AM yet. A man in a Uniqlo windbreaker was silently reading a newspaper, resigned to the wait. We never got in.\nThat Golden Week, I fought crowds everywhere I went and came back more exhausted than when it started. \nThis year, I want to do it smarter. So I wrote down everything I learned the hard way — maybe it saves someone else the same trouble.\nA few years ago, the advice was simple: stay in Tokyo during Golden Week, because everyone leaves and the city gets quiet. \nThat's still partially true. Business districts do empty out.\nBut inbound tourism has changed the equation. The crowds that Japanese locals leave behind are now being replaced — Shibuya, Asakusa, Shinjuku fill back up with international visitors. \n\"Tokyo is quiet during GW\" is closer to myth than fact at this point.\nThe numbers that still matter:\nPeak outbound: May 2nd–3rd\nPeak return: May 5th–6th\nThe actual quiet windows: early morning (6–8am) and the business districts that tourists don't visit\nThe strategy has to shift too. Staying in the city no longer guarantees peace. \nIf you do move, go somewhere tourists haven't optimized for yet — places that require a bus from the station, spots that don't rank on the first page of travel apps. \nOkutama, an hour from Tokyo, or the quieter stretches of the Shonan coast, still have breathing room if you time it right.\nThe real edge move during Golden Week isn't a trip. It's using the city's uncharacteristic quiet for the focused work you've been putting off.\nI don't mean working overtime. I mean the kind of thinking that requires no Slack notifications interrupting you.\nThis is the time for:\nFinishing the side project that's been 80% done since February\nDeep-diving into one framework or concept you've been circling (Rust? System design? Your own money?)\nRefactoring something—your code, your resume, your",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "黄金周生存指南：如何躲避人群、保持理智",
+        "summary": "东京黄金周的人群构成已改变，入境游客取代了本地出行者。战略性安排时间（清晨、冷门目的地如奥多摩）至关重要。文章建议在高峰旅游日期（5月2-3日、5-6日）利用难得的组织安静时间，专注于处理长期搁置的项目。"
+      }
+    }
+  },
+  {
+    "title": "When AI Turns Over-Engineering into a Feature",
+    "slug": "ai-over-engineering-feature-design-debt",
+    "url": "https://dev.to/cleardatalabs/when-ai-turns-over-engineering-into-a-feature-3mm6",
+    "source": "DEV Community",
+    "date": "2026-05-01T11:58:05.000Z",
+    "summary": "The article critiques using sophisticated AI automation to mask structural design problems rather than fixing underlying issues, such as building synchronization scripts instead of implementing proper single-source-of-truth configuration. It warns that increasingly powerful tools enable developers to over-engineer workarounds rather than solving foundational design problems.",
+    "content": "When AI Turns Over-Engineering into a Feature\n\n\nIt happened during a routine code review. Nestled among the business logic and API endpoints, I found a new \"Skill\" file—a sophisticated piece of automation designed to synchronize configuration variables across several disparate locations in the software project.\nOn the surface, it was impressive. It utilized modern AI hooks and automation scripts to ensure that when a developer changed a setting in one place, it propagated flawlessly to the others. It was sleek, it was \"smart,\" and it was a questionable use of engineering effort.\nThe problem wasn’t that the code was poorly written. The problem was that the code shouldn't have existed at all. Had the project been designed following the fundamental DRY (Don’t Repeat Yourself) principle, there would be no \"multiple places\" to synchronize. The configuration would live in a single source of truth. But instead of fixing the underlying structure, the developer had built a high-tech bridge over a puddle they could have simply drained.\nWe are entering an era where increasingly powerful tools are applied to problems that arise from avoidable design decisions—and we are starting to call it progress.\nIn the current tech landscape, \"doing more\" is often confused with \"doing better.\" We are witnessing a trend where the sheer power of AI and advanced automation tools is being used to mask structural issues in system design. In the case of the synchronization script, the developer chose to write fifty lines of automation rather than moving five lines of configuration to a shared module.\nThis is a modern form of over-engineering: using a highly capable tool to solve a problem that should not exist in the first place. It’s like using a high-performance sports car as a farm tractor—technically possible, but missing the point entirely.\nThe Power Trap: If you need increasingly powerful tooling just to navigate your own codebase, the problem isn’t the tools—it’s the landscape you’ve built",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "当AI把过度设计变成了一个功能",
+        "summary": "文章批评用复杂的AI自动化掩盖结构设计问题，而不是解决根本问题，如编写同步脚本而非实现适当的单一真实来源配置。它警告说，越来越强大的工具让开发人员能够过度工程化变通方案，而非解决基础设计问题。"
+      }
+    }
+  },
+  {
     "title": "Internals: How Spring Boot 3.3’s New AOT Compilation Reduces Startup Times by 40% for 50k LOC Apps",
     "slug": "spring-boot-aot-faster-startup",
     "url": "https://dev.to/johalputt/internals-how-spring-boot-33s-new-aot-compilation-reduces-startup-times-by-40-for-50k-loc-apps-1n15",
