@@ -1,5 +1,117 @@
 [
   {
+    "title": "Keyboard Shortcuts in Firefox Extensions: A Complete Guide",
+    "slug": "keyboard-shortcuts-firefox-extensions-complete-guide",
+    "url": "https://dev.to/weatherclockdash/keyboard-shortcuts-in-firefox-extensions-a-complete-guide-2n8o",
+    "source": "DEV Community",
+    "date": "2026-05-03T23:59:56.000Z",
+    "summary": "Complete guide to implementing keyboard shortcuts in Firefox extensions, covering global shortcuts via manifest.json, local shortcuts for search focus and theme toggling, and best practices for avoiding system conflicts and typing context detection.",
+    "content": "Keyboard Shortcuts in Firefox Extensions: A Complete Guide\n\n\nGood keyboard support separates a great extension from a mediocre one. Here's everything you need to know.\nFor global keyboard shortcuts (accessible even when the extension isn't focused):\n{\n  \"commands\": {\n    \"_execute_action\": {\n      \"suggested_key\": {\n        \"default\": \"Ctrl+Shift+W\"\n      },\n      \"description\": \"Open Weather & Clock Dashboard\"\n    },\n    \"toggle-theme\": {\n      \"suggested_key\": {\n        \"default\": \"Ctrl+Shift+D\"\n      },\n      \"description\": \"Toggle dark/light mode\"\n    }\n  }\n}\n\nAvailable modifiers: Ctrl, Alt, Shift, MacCtrl (Mac Cmd key)\nNote: Ctrl+Alt+* combinations are blocked on Windows. Use Ctrl+Shift+* for cross-platform shortcuts.\nbrowser.commands.onCommand.addListener((command) => {\n  switch (command) {\n    case 'toggle-theme':\n      toggleTheme();\n      break;\n    // other commands...\n  }\n});\n\nFor shortcuts within your new tab page:\ndocument.addEventListener('keydown', e => {\n  // Don't intercept when user is typing\n  if (isTypingContext()) return;\n\n  switch (e.key) {\n    case '/':\n      e.preventDefault();\n      document.getElementById('search-input').focus();\n      break;\n    case 'Escape':\n      document.activeElement.blur();\n      break;\n    case 'd':\n      if (e.ctrlKey) break; // Don't intercept Ctrl+D (bookmark)\n      toggleTheme();\n      break;\n  }\n});\n\nfunction isTypingContext() {\n  const tag = document.activeElement.tagName;\n  return tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement.isContentEditable;\n}\n\nA common new tab pattern — pressing any letter key jumps to search:\ndocument.addEventListener('keydown', e => {\n  if (isTypingContext()) return;\n  if (e.ctrlKey || e.metaKey || e.altKey) return;\n  if (e.key.length !== 1) return;\n\n  const searchInput = document.getElementById('search-input');\n  searchInput.focus();\n  // Don't preventDefault — let the character go into the search box\n});\n\nShow shortcuts in a help overlay:\nconst SHORTCUTS = [\n  { key:",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Firefox 扩展中的键盘快捷键：完整指南",
+        "summary": "在 Firefox 扩展中实现键盘快捷键的完整指南，涵盖通过 manifest.json 的全局快捷键、搜索焦点和主题切换的本地快捷键，以及避免系统冲突和检测打字上下文的最佳实践。"
+      }
+    }
+  },
+  {
+    "title": "Search Bar in a Firefox New Tab Extension: Which Engine, How to Handle",
+    "slug": "firefox-search-bar-new-tab-extension-implementation",
+    "url": "https://dev.to/weatherclockdash/search-bar-in-a-firefox-new-tab-extension-which-engine-how-to-handle-3dl6",
+    "source": "DEV Community",
+    "date": "2026-05-03T23:57:17.000Z",
+    "summary": "Implementation guide for adding search bars to Firefox new tab extensions, including form setup, support for multiple search engines, automatic URL detection, and keyboard shortcuts for power users to quickly access search without manual focus.",
+    "content": "Search Bar in a Firefox New Tab Extension: Which Engine, How to Handle\n\n\nAdding a search bar to a new tab extension sounds simple — it's just a text input and a redirect. But there are enough details to get right that it's worth writing down.\n<form id=\"search-form\" role=\"search\">\n  <input\n    type=\"search\"\n    id=\"search-input\"\n    placeholder=\"Search...\"\n    autocomplete=\"off\"\n    autofocus\n  />\n</form>\n\ndocument.getElementById('search-form').addEventListener('submit', e => {\n  e.preventDefault();\n  const query = document.getElementById('search-input').value.trim();\n  if (query) {\n    window.location.href = buildSearchUrl(query);\n  }\n});\n\nconst SEARCH_ENGINES = {\n  google: {\n    name: 'Google',\n    url: 'https://www.google.com/search?q=',\n    icon: '🔍'\n  },\n  duckduckgo: {\n    name: 'DuckDuckGo',\n    url: 'https://duckduckgo.com/?q=',\n    icon: '🦆'\n  },\n  bing: {\n    name: 'Bing',\n    url: 'https://www.bing.com/search?q=',\n    icon: '🔷'\n  },\n  brave: {\n    name: 'Brave Search',\n    url: 'https://search.brave.com/search?q=',\n    icon: '🦁'\n  },\n  startpage: {\n    name: 'Startpage',\n    url: 'https://www.startpage.com/search?q=',\n    icon: '🔒'\n  },\n};\n\nfunction buildSearchUrl(query, engine = 'google') {\n  const { url } = SEARCH_ENGINES[engine] || SEARCH_ENGINES.google;\n  return url + encodeURIComponent(query);\n}\n\nFor power users — pressing any letter key should focus the search bar:\ndocument.addEventListener('keydown', e => {\n  // Don't steal focus if user is typing in another input\n  if (document.activeElement.tagName === 'INPUT') return;\n  if (document.activeElement.tagName === 'TEXTAREA') return;\n\n  // Skip special keys\n  if (e.ctrlKey || e.metaKey || e.altKey) return;\n  if (e.key.length !== 1) return; // Skip Shift, Enter, etc.\n\n  const searchInput = document.getElementById('search-input');\n  searchInput.focus();\n  // Don't prevent default — let the keystroke go into the input\n});\n\nUsers often type URLs into search bars. Detect and redirect directly:\nfunction",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Firefox 新标签页扩展中的搜索栏：选择哪个引擎，如何处理",
+        "summary": "向 Firefox 新标签页扩展添加搜索栏的实现指南，包括表单设置、对多个搜索引擎的支持、自动 URL 检测，以及为高级用户提供的键盘快捷键以快速访问搜索而无需手动焦点。"
+      }
+    }
+  },
+  {
+    "title": "How I Built a Free Online Time Toolkit with Next.js 16 (PWA, i18n, Web Audio)",
+    "slug": "clock-tani-next-js-16-time-management-pwa",
+    "url": "https://dev.to/tani_88ebba4f4650dac71286/how-i-built-a-free-online-time-toolkit-with-nextjs-16-pwa-i18n-web-audio-2la7",
+    "source": "DEV Community",
+    "date": "2026-05-03T23:55:45.000Z",
+    "summary": "Story of building Clock-Tani, a free PWA with nine time-management tools (world clocks, timers, stopwatch, alarms) using Next.js 16, React 19, and Tailwind CSS. Includes Korean/English localization, Web Audio API for sounds, Wake Lock for offline timers, and full offline functionality.",
+    "content": "A story about building Clock-Tani — 9 free time-management tools in a single PWA, written with Next.js 16 App Router. Live at https://clock-tani.com\nI needed a pomodoro timer at work, but every option was either ad-heavy, app-only, or just ugly. Same story for world clocks, countdown timers, and interval timers. So I built them all into one place.\nThat place is now Clock-Tani — 9 small but useful tools, no ads in the core experience, no signup required.\nWorld Clock — 70+ cities, drag to reorder\nTimer / Pomodoro / Interval (Tabata, HIIT) / Multi-Timer\nStopwatch with lap times\nAlarm Clock with 15 sounds\nServer Time (NTP) — for ticketing precision\nD-Day Counter — supports the Korean lunar calendar\nNext.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · next-intl (KR/EN) · PWA (Service Worker) · @dnd-kit · korean-lunar-calendar\nI used the /[locale]/[tool] structure with localePrefix: 'always' so even /clock redirects to /ko/clock. This kept canonical URLs clean.\n// src/middleware.ts\nimport createMiddleware from 'next-intl/middleware';\nexport default createMiddleware({\n  locales: ['ko', 'en'],\n  defaultLocale: 'ko',\n  localePrefix: 'always',\n});\n\nJust public/manifest.json + public/sw.js. Next.js doesn't need extra config. The service worker uses stale-while-revalidate so tools work offline.\n<link rel=\"manifest\" href=\"/manifest.json\" />\n\nThe classic <audio> tag often gets blocked by mobile autoplay policies. After the user has clicked once, Web Audio API plays consistently:\nconst audioCtx = new AudioContext();\nasync function playSound(url: string) {\n  const res = await fetch(url);\n  const buffer = await audioCtx.decodeAudioData(await res.arrayBuffer());\n  const source = audioCtx.createBufferSource();\n  source.buffer = buffer;\n  source.connect(audioCtx.destination);\n  source.start();\n}\n\nIf the screen sleeps mid-timer, alarms get delayed. Wake Lock fixes it:\nconst wakeLock = await navigator.wakeLock.request('screen');\n// release when timer ends\n\niOS Safari has su",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何用 Next.js 16 构建免费在线时间工具包（PWA、i18n、Web 音频）",
+        "summary": "分享使用 Next.js 16、React 19 和 Tailwind CSS 构建免费 PWA 应用 Clock-Tani 的故事，包含九个时间管理工具（世界时钟、计时器、秒表、闹钟）。支持韩文/英文本地化、Web Audio API 音效、Wake Lock 离线计时器和完整离线功能。"
+      }
+    }
+  },
+  {
+    "title": "Dark Mode in Firefox Extensions: Respecting System Preferences",
+    "slug": "dark-mode-firefox-extensions-system-preferences",
+    "url": "https://dev.to/weatherclockdash/dark-mode-in-firefox-extensions-respecting-system-preferences-1iok",
+    "source": "DEV Community",
+    "date": "2026-05-03T23:54:23.000Z",
+    "summary": "Guide to implementing dark mode in Firefox extensions that automatically respects system color scheme preferences using CSS custom properties and matchMedia API, with user override options for auto/light/dark themes.",
+    "content": "Dark Mode in Firefox Extensions: Respecting System Preferences\n\n\nFirefox users who prefer dark mode shouldn't have to manually toggle it in every extension. Here's how to automatically respect the system preference.\n/* Default: light mode */\n:root {\n  --bg: #ffffff;\n  --text: #1a1a1a;\n  --card-bg: #f5f5f5;\n  --border: #e0e0e0;\n}\n\n/* Auto dark mode from system */\n@media (prefers-color-scheme: dark) {\n  :root {\n    --bg: #1a1a2e;\n    --text: #e0e0e0;\n    --card-bg: #16213e;\n    --border: #2d3561;\n  }\n}\n\nUsing CSS custom properties makes this effortless — one block of overrides handles the whole page.\nFor dynamic behavior based on the current theme:\nconst isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;\n\n// Listen for changes (user switches system theme)\nwindow.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {\n  const newScheme = e.matches ? 'dark' : 'light';\n  applyTheme(newScheme);\n});\n\nFor maximum user control, offer three options:\n// Possible values: 'auto', 'light', 'dark'\nconst THEME_KEY = 'theme';\n\nasync function getCurrentTheme() {\n  const { theme } = await browser.storage.sync.get({ theme: 'auto' });\n  return theme;\n}\n\nfunction getEffectiveTheme(theme) {\n  if (theme === 'auto') {\n    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';\n  }\n  return theme;\n}\n\nasync function applyTheme() {\n  const stored = await getCurrentTheme();\n  const effective = getEffectiveTheme(stored);\n  document.documentElement.setAttribute('data-theme', effective);\n}\n\nThen in CSS:\n[data-theme=\"light\"] {\n  --bg: #ffffff;\n  --text: #1a1a1a;\n}\n\n[data-theme=\"dark\"] {\n  --bg: #1a1a2e;\n  --text: #e0e0e0;\n}\n\nThis is cleaner than combining CSS media queries with JS overrides.\nSoft transitions prevent jarring flashes:\n:root {\n  transition: background-color 0.2s ease, color 0.2s ease;\n}\n\n.card {\n  transition: background-color 0.2s ease, border-color 0.2s ease;\n}\n\nBut disable transitions on initial page load to avoid FO",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Firefox 扩展中的深色模式：尊重系统偏好设置",
+        "summary": "介绍如何在 Firefox 扩展中实现深色模式，使用 CSS 自定义属性和 matchMedia API 自动遵守系统配色方案偏好，并提供用户覆盖选项支持自动/浅色/深色主题。"
+      }
+    }
+  },
+  {
+    "title": "AI-Ready Is Universal. Hosting Is Regional.",
+    "slug": "ai-ready-universal-hosting-regional",
+    "url": "https://dev.to/studiomeyer_io/ai-ready-is-universal-hosting-is-regional-m11",
+    "source": "DEV Community",
+    "date": "2026-05-03T23:52:38.000Z",
+    "summary": "Analysis distinguishing two independent website layers: AI-ready (semantic HTML, Schema.org, robots.txt) which is universal across hosting locations, and hosting/infrastructure which affects latency, compliance, and data ownership but has minimal impact on AI crawler visibility.",
+    "content": "A website today has two layers that work completely independently of each other. The AI-Ready layer is universal. It makes your site readable for ChatGPT, Perplexity, Claude and Bing Copilot, no matter where the bot comes from. The hosting layer is regional. It decides who gets to touch your data, how fast the site loads for your customers, and which legal jurisdiction your business sits in. We build the first layer the same way for every client. The second layer we put where your market lives: Hetzner Germany, AWS us-east, AWS London, Infomaniak Switzerland. Multi-region failover on top when you need it.\nWe have been talking about AI-ready web design and AI visibility for months now. What got short shrift is the honest answer to a question that comes up more and more often: what does the physical location of a server still have to do with visibility in AI answers, when the bots crawl globally anyway? The answer is uncomfortable for anyone looking for a clean pitch. Hosting region and AI visibility have very little to do with each other. Hosting region and trust, latency, compliance and sales effectiveness have a lot to do with each other. The two should not be thrown into the same bucket.\nWhen we build a website, we think in two layers. The first layer is the AI-Ready layer. That covers semantic HTML5 as the skeleton, Schema.org JSON-LD as the meaning layer, agents.json and llms.txt as the table of contents for AI crawlers, robots.txt explicitly opened for GPTBot, ClaudeBot, PerplexityBot and Bing Copilot. Server-side rendering so the bot does not stare at an empty div. Factual text that answers direct questions instead of marketing fluff. This layer builds identically whether your site lives in Frankfurt, Dublin, Virginia or Zurich.\nThe second layer is the hosting layer. That covers the physical server, the data centre, the storage backend, the database, the CDN. This is where you decide who owns your data, which authority can demand access, how fast your site loa",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI 就绪是通用的。托管是区域性的。",
+        "summary": "分析区分网站的两个独立层：AI 就绪层（语义 HTML、Schema.org、robots.txt）在所有托管位置都是通用的，以及托管/基础设施层影响延迟、合规性和数据所有权但对 AI 爬虫可见性影响最小。"
+      }
+    }
+  },
+  {
+    "title": "New statue in London, attributed to Banksy, of a suited man, blinded by a flag",
+    "slug": "banksy-statue-london-blinded-flag-ledge",
+    "url": "https://www.smithsonianmag.com/smart-news/attributed-to-banksy-a-new-statue-of-a-suited-man-blinded-by-a-flag-and-walking-off-a-ledge-appeared-in-central-london-180988662/",
+    "source": "Hacker News",
+    "date": "2026-05-03T18:54:28.000Z",
+    "summary": "A new public statue attributed to street artist Banksy appeared in central London depicting a suited man blinded by a flag while walking off a ledge, adding to the artist's portfolio of socially-charged public artworks.",
+    "content": "Article URL: https://www.smithsonianmag.com/smart-news/attributed-to-banksy-a-new-statue-of-a-suited-man-blinded-by-a-flag-and-walking-off-a-ledge-appeared-in-central-london-180988662/\nComments URL: https://news.ycombinator.com/item?id=48000152\nPoints: 249\n# Comments: 247",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "伦敦新雕像据称出自班克西之手，描绘一名被旗帜蒙住眼睛的西装男子",
+        "summary": "据称出自街头艺术家班克西之手的新型公共雕像现身伦敦市中心，描绘一名被旗帜蒙住眼睛的西装男子走下悬崖的场景，进一步扩展了该艺术家具有社会意义的公共艺术作品集。"
+      }
+    }
+  },
+  {
+    "title": "Why TUIs Are Back",
+    "slug": "why-tuis-are-back",
+    "url": "https://wiki.alcidesfonseca.com/blog/why-tuis-are-back/",
+    "source": "Hacker News",
+    "date": "2026-05-03T18:42:28.000Z",
+    "summary": "Analysis examining the resurgence of text-based user interfaces (TUIs) as developers and users rediscover their efficiency, accessibility, and reduced resource consumption compared to graphical interfaces.",
+    "content": "Article URL: https://wiki.alcidesfonseca.com/blog/why-tuis-are-back/\nComments URL: https://news.ycombinator.com/item?id=48000028\nPoints: 243\n# Comments: 262",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么文本用户界面（TUI）重新流行起来",
+        "summary": "分析了文本用户界面（TUI）的重新流行现象，开发者和用户重新发现了相比图形界面更高的效率、可访问性和更低的资源消耗。"
+      }
+    }
+  },
+  {
     "title": "The AI \"Intelligence-Authority\" Gap: Why Your Agents Need a Deterministic Handbrake",
     "slug": "ai-intelligence-authority-gap-deterministic-handbrake",
     "url": "https://dev.to/dan_evans_1/the-ai-intelligence-authority-gap-why-your-agents-need-a-deterministic-handbrake-ca2",
@@ -28,6 +140,22 @@
       "zh": {
         "title": "向量搜索基准：FAISS 1.9 vs. Chroma 0.6 vs. Pinecone 1.6在1亿嵌入数据集上的比较",
         "summary": "一项为期6个月的向量搜索工具基准测试在1亿嵌入数据集上发现，FAISS 1.9的p99延迟比Chroma 0.6低4.2倍，而Pinecone等托管服务的成本比自托管方案高11倍，揭示了企业AI工作负载中显著的性能和成本权衡。"
+      }
+    }
+  },
+  {
+    "title": "BYOMesh – New LoRa mesh radio offers 100x the bandwidth",
+    "slug": "byomesh-lora-mesh-radio-100x-bandwidth",
+    "url": "https://partyon.xyz/@nullagent/116499715071759135",
+    "source": "Hacker News",
+    "date": "2026-05-03T18:03:14.000Z",
+    "summary": "BYOMesh introduces a new LoRa mesh radio platform delivering 100x the bandwidth of previous LoRa solutions, enabling higher-capacity mesh networks for connectivity in remote or uninfrastructured areas.",
+    "content": "Article URL: https://partyon.xyz/@nullagent/116499715071759135\nComments URL: https://news.ycombinator.com/item?id=47999636\nPoints: 237\n# Comments: 75",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "BYOMesh——新型LoRa网状无线电提供100倍带宽",
+        "summary": "BYOMesh推出新型LoRa网状无线电平台，带宽是之前LoRa解决方案的100倍，为偏远地区或基础设施不完善地区的网络连接提供更高容量的网状网络。"
       }
     }
   },
