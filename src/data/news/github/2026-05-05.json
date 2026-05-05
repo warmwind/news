@@ -1,5 +1,213 @@
 [
   {
+    "title": "TealTiger v1.2: 7 Governance Modules, Docker Sidecar, and Honest Benchmark Results",
+    "slug": "tealtiger-v1-2-governance-modules",
+    "url": "https://dev.to/nagasatish_chilakamarti_2/tealtiger-v12-7-governance-modules-docker-sidecar-and-honest-benchmark-results-247a",
+    "source": "DEV Community",
+    "date": "2026-05-05T12:20:53.000Z",
+    "summary": "TealTiger v1.2 is a deterministic governance engine that evaluates AI agent actions against policy at runtime without LLM inference, ensuring every decision is auditable and reproducible. The new modular architecture decomposes governance into independent subsystems—secrets, registry, reliability, and memory—that run in parallel and merge using a most-restrictive strategy. This matters because AI agents are shifting from answering questions to executing actions, requiring governance beyond content filtering.",
+    "content": "The Problem\n\n\nAI agents are moving from answering questions to taking actions — calling APIs, querying databases, executing code, managing memory. The security surface has shifted from \"what the model says\" to \"what the agent does.\"\nMost guardrail solutions address the first problem. They filter content. They detect prompt injection. They moderate output. These are necessary but insufficient.\nThe gap: who decides what the agent is allowed to do once it's been talked into doing it?\nTool authorization. Memory governance. Cost limits. Audit evidence. These aren't content safety problems — they're governance problems. And they require a different architecture.\nTealTiger v1.2 is a deterministic governance engine for AI agents. It evaluates every agent action against policy — in parallel, at runtime, with no LLM in the decision path.\nThe key design constraint: same input + same policy = same decision, every time. No probabilistic scoring. No model inference. Pattern matching, severity ranking, and boolean logic.\nThis makes every governance decision auditable, reproducible, and testable.\nv1.2 introduces a module system. Instead of a monolithic policy evaluator, governance is decomposed into independent modules — each owning a single dimension (secrets, memory, reliability, registry).\nAll modules run in parallel via Promise.allSettled:\nRequest arrives\n    ↓\n┌─────────────┬──────────────┬───────────────┬─────────────┐\n│ TealSecrets │ TealRegistry │ TealReliability│ TealMemory │\n│ (secrets)   │ (allowlist)  │ (circuit brk)  │ (scope)    │\n└──────┬──────┴──────┬───────┴───────┬────────┴──────┬──────┘\n       └─────────────┼───────────────┘               │\n                     ↓                               │\n              Merge: most restrictive wins ←─────────┘\n                     ↓\n              TEEC validation\n                     ↓\n              Decision returned\n\nThe merge strategy is simple: most restrictive action wins. If TealSecrets returns DENY and TealRegistry retu",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "TealTiger v1.2: 7个治理模块、Docker Sidecar和诚实基准测试结果",
+        "summary": "TealTiger v1.2是一个确定性的治理引擎，在运行时根据策略评估AI代理的行动，无需LLM推理，确保每个决策都可审计和可复现。新的模块化架构将治理分解为独立的子系统——机密、注册表、可靠性和内存——它们并行运行并使用最严格的策略进行合并。这很重要，因为AI代理正在从回答问题转变为执行行动，需要超越内容过滤的治理。"
+      }
+    }
+  },
+  {
+    "title": "Why Most VoIP Call Center Solutions Break at 100 Agents (And What Actually Scales)",
+    "slug": "voip-call-center-solutions-scale",
+    "url": "https://dev.to/jackmorris10/why-most-voip-call-center-solutions-break-at-100-agents-and-what-actually-scales-1eob",
+    "source": "DEV Community",
+    "date": "2026-05-05T12:16:26.000Z",
+    "summary": "VoIP call center architectures that work for 30 agents fail between 100-200 agents due to monolithic design, a scaling wall that production teams discover too late. The solution requires separating SIP signaling (Kamailio) from media (FreeSWITCH clusters), partitioning real-time state into Redis with historical data in cold storage, and proper multi-tenancy patterns depending on deployment model. This matters because the architectural decisions made at small scale actively harm performance and operational stability at scale.",
+    "content": "Working on call center infrastructure for the last few years has taught me something most vendor pitches won't tell you. The architecture decisions that work fine for 30 agents fall apart somewhere between 100 and 200 agents. And nobody warns you about it until you're already there.\nThe 100-Agent Wall\nArchitecture Decisions That Actually Matter\n1. Signaling and Media Separation\nFor under 50 agents, monolithic Asterisk works fine. Past that, you need separation:\nCarrier --> Kamailio (SIP signaling) --> FreeSWITCH cluster (media)\n\n\nThis separation lets each component scale independently. Kamailio handles thousands of registrations on a single node. FreeSWITCH handles a few hundred concurrent media sessions per node. You scale the bottleneck, not the entire stack.\n2. Database Architecture for Real-Time State\nHere's where most VoIP call center solutions secretly fall apart. Real-time agent state, queue position, call routing decisions - all of this lives in some kind of state store. The default in most platforms is \"throw it in MySQL\" or \"use whatever the platform provides.\"\nThat works fine until it doesn't. Production-grade setups separate concerns:\nHot data (real-time state) → Redis or Memcached for sub-millisecond reads\n\n\nWarm data (active call records) → MySQL or PostgreSQL with read replicas\n\n\nCold data (historical CDRs, recordings) → Object storage (S3) + analytical database (BigQuery, Redshift, ClickHouse) for reporting\n\n\n\nWhen your reports start timing out at 200 agents, this is almost always why.\n3. Multi-Tenant Architecture (If You're a Service Provider)\nThree patterns I've seen:\nPattern A - Shared everything: One database, tenant_id columns everywhere. Cheapest to build, most fragile in production. One bad tenant query takes everyone down. Not recommended for compliance-heavy industries.\nPattern B - Shared infrastructure, isolated data: Separate databases per tenant, shared application infrastructure. Good middle ground. Tenant data is isolated, but you can s",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么大多数VoIP呼叫中心解决方案在100个代理处受限（以及什么真正可扩展）",
+        "summary": "适用于30个代理的VoIP呼叫中心架构在100-200个代理之间失败，原因是单块设计，这是生产团队太晚才发现的扩展瓶颈。解决方案需要将SIP信令（Kamailio）与媒体（FreeSWITCH集群）分离，将实时状态分区到Redis，将历史数据存储在冷存储中，并根据部署模型采用适当的多租户模式。这很重要，因为在小规模上做出的架构决策会积极损害大规模的性能和运维稳定性。"
+      }
+    }
+  },
+  {
+    "title": "Build an AI Agent with MCP and TypeScript in 2026",
+    "slug": "build-ai-agent-mcp-typescript",
+    "url": "https://dev.to/jangwook_kim_e31e7291ad98/build-an-ai-agent-with-mcp-and-typescript-in-2026-1geg",
+    "source": "DEV Community",
+    "date": "2026-05-05T12:15:47.000Z",
+    "summary": "This guide covers building a TypeScript agent that connects to Model Context Protocol servers, discovers available tools at runtime, and routes Claude tool_use requests through the MCP client API. With MCP reaching 97 million monthly SDK downloads in 2026, this represents the practical pattern for building tool-using agents beyond just implementing MCP servers. The step-by-step implementation uses Node.js 20+ with confirmed dependency versions as of May 2026.",
+    "content": "The Model Context Protocol crossed 97 million monthly SDK downloads in 2026. Most tutorials cover the server side — registering tools and exposing them via MCP. This guide covers the other half: building an agent that connects to those servers, discovers available tools at runtime, and routes Claude's tool_use requests through the MCP client API.\nYou will end up with a TypeScript program that:\nSpawns an MCP server process (stdio transport)\nCalls listTools() to discover available tools\nSends a user prompt to Claude with those tools attached\nDetects Claude's tool_use response blocks\nRoutes each tool call through callTool() on the MCP client\nReturns tool results back to Claude for a final response\nNode.js 20 or later\nAn Anthropic API key (ANTHROPIC_API_KEY in your environment)\nAny existing MCP server (this guide uses a minimal example server, but the pattern works with any)\nmkdir mcp-agent && cd mcp-agent\nnpm init -y\n\nUpdate package.json to use ES modules:\n{\n  \"type\": \"module\",\n  \"scripts\": {\n    \"build\": \"tsc\",\n    \"start\": \"node dist/agent.js\"\n  }\n}\n\nInstall dependencies:\nnpm install @modelcontextprotocol/sdk @anthropic-ai/sdk\nnpm install -D typescript @types/node\n\nVersions confirmed from npm registry on 2026-05-05:\n@modelcontextprotocol/sdk: 1.29.0\n\n\n@anthropic-ai/sdk: 0.93.0\n\n\n\nCreate tsconfig.json:\n{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"module\": \"ESNext\",\n    \"moduleResolution\": \"bundler\",\n    \"outDir\": \"dist\",\n    \"strict\": true,\n    \"esModuleInterop\": true\n  },\n  \"include\": [\"src\"]\n}\n\nThe TypeScript SDK separates server and client into distinct entry points:\n// Server-side (what tool providers import)\nimport { McpServer } from \"@modelcontextprotocol/sdk/server/mcp.js\";\n\n// Client-side (what agents import)\nimport { Client } from \"@modelcontextprotocol/sdk/client/index.js\";\nimport { StdioClientTransport } from \"@modelcontextprotocol/sdk/client/stdio.js\";\n\nThe client-side transport connects to a server by spawning it as a subprocess over stdio. This",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "2026年使用MCP和TypeScript构建AI代理",
+        "summary": "本指南涵盖构建一个TypeScript代理，该代理连接到Model Context Protocol服务器，在运行时发现可用工具，并通过MCP客户端API路由Claude tool_use请求。由于MCP在2026年达到9700万月度SDK下载，这代表了构建工具使用代理的实践模式，超越了仅仅实现MCP服务器。分步实现使用Node.js 20+，并确认了截至2026年5月的依赖版本。"
+      }
+    }
+  },
+  {
+    "title": "npm Package Security — How to Find and Fix Vulnerable Dependencies in Your Node.js Application",
+    "slug": "npm-package-security-vulnerable-dependencies",
+    "url": "https://dev.to/vulert_official/npm-package-security-how-to-find-and-fix-vulnerable-dependencies-in-your-nodejs-application-5bj7",
+    "source": "DEV Community",
+    "date": "2026-05-05T12:15:46.000Z",
+    "summary": "The npm registry has over 2 million packages, making supply chain security critical because vulnerabilities can enter through transitive dependencies in package-lock.json that developers never imported directly. This guide covers auditing dependencies, understanding CVE risks across abandoned and compromised packages, and implementing security checks in CI/CD pipelines. Most Node.js teams don't realize their actual dependency tree extends far beyond what appears in package.json.",
+    "content": "npm package security is one of the hardest parts of modern Node.js security because the npm ecosystem is massive. The npm registry has more than 2 million packages, making it the largest software registry in the world. That scale helps developers build quickly, but it also creates security risk: abandoned packages, vulnerable transitive dependencies, typosquatting, malicious releases, and supply chain attacks can enter an application through a single install command.\nMost Node.js teams do not ship only the packages listed in package.json. The real dependency tree lives in package-lock.json, where direct and transitive packages are pinned. That file can include hundreds or thousands of packages. If one nested dependency has a known CVE, your app may still be affected even if your developers never imported that package directly.\nThis npm package security guide is written for Node.js developers and engineering leads who need a practical way to find vulnerable packages, fix risky dependencies, and monitor new CVEs after deployment.\nThis guide explains how to audit npm dependencies, where npm audit helps, where it falls short, which historical npm packages deserve extra attention, how to scan package-lock.json, how to fix vulnerable packages safely, and how to add npm security checks to GitHub Actions.\nThe npm ecosystem is fast, open, and highly interconnected. That creates three major risk categories: known vulnerabilities, malicious supply chain activity, and dependency maintenance problems. A package can be vulnerable because of a coding flaw, malicious because a maintainer account was compromised, or risky because it is abandoned and no longer receives fixes.\nThe challenge with npm package security is that risk rarely comes only from the packages your team installs directly. Vulnerabilities can enter through transitive dependencies, abandoned packages, compromised maintainer accounts, or malicious packages hidden deep in the dependency tree.\nKnown CVEs: Packages such",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "npm 包安全 — 如何在 Node.js 应用程序中查找和修复易受攻击的依赖项",
+        "summary": "npm 注册表拥有超过 200 万个包，使供应链安全至关重要，因为漏洞可以通过开发者从未直接导入的 package-lock.json 中的传递依赖项进入。本指南涵盖审计依赖项、了解已放弃和受损包中的 CVE 风险，以及在 CI/CD 管道中实施安全检查。大多数 Node.js 团队没有意识到他们的实际依赖树远远超过 package.json 中出现的内容。"
+      }
+    }
+  },
+  {
+    "title": "ISP proxies, AI crawlers, and the slow death of datacenter IPs: 2026 in numbers",
+    "slug": "isp-proxies-ai-crawlers-datacenter-ips-2026",
+    "url": "https://dev.to/ciokan/isp-proxies-ai-crawlers-and-the-slow-death-of-datacenter-ips-2026-in-numbers-203f",
+    "source": "DEV Community",
+    "date": "2026-05-05T12:15:39.000Z",
+    "summary": "Bot traffic exceeded human traffic for the first time in 2024 at 51% of all web traffic, with malicious bots reaching 37%, while only 2.8% of websites are fully protected against bots in 2025. IPv4 prices have collapsed to under $21/IP and AI-driven traffic grew 187% year-over-year, while conventional IP reputation feeds failed on 78% of residential-IP sessions in a 4-billion-session study. For any service touching the public web at scale, the security and infrastructure approaches from 2022 are now obsolete.",
+    "content": "TL;DR\n\n\nBots passed humans on the open web. IP reputation feeds stopped working for residential traffic. IPv4 prices collapsed. AI crawlers became a measurable tax on public sites. And Europe finally started writing big GDPR checks while only fining 1.3% of complaints. If you ship anything that touches the public web at scale, the IP infrastructure you set up in 2022 is doing more harm than good in 2026.\nThe headline numbers:\n51% of all web traffic in 2024 was automated. Bots beat humans for the first time in a decade. (Imperva 2025 Bad Bot Report)\n37% was bad bots specifically, up from 32% in 2023. Sixth straight yearly increase.\n2.8% of websites tested in 2025 were fully protected against bots, down from 8.4% the year before. (DataDome 2025 Global Bot Security Report)\n78% of residential-IP sessions in a 4-billion-session study evaded conventional IP reputation feeds. (GreyNoise / IPInfo, April 2026)\n<$21/IP for large-block IPv4 transfers in May 2025. Roughly a 10-year low. (IPv4.Global)\n+187% YoY growth in AI-driven traffic in 2025. (HUMAN Security)\n62% → 90% of investment firms using alternative data, in two years. (Lowenstein Sandler)\n€1.15B in GDPR fines from EU DPAs in 2025; only 1.3% of complaints actually result in a fine. (EDPB; noyb)\nIf you've shipped a scraper in the last two years you already feel this. The data behind the gut feeling: 51% of web traffic in 2024 was automated, per Imperva. Bad bots specifically were 37%, up from 32%. That 5-point jump is the largest single-year increase in Imperva's twelve-year time series.\nThe defense side moved the wrong way. DataDome tested over 16,900 sites across 22 industries in 2025 and found only 2.8% were fully protected, down from 8.4% in 2024. 61% of domains failed to detect a single test bot.\nThat's not a story about bot mitigation getting worse. It's a story about generative AI lowering the cost of writing request-level automation. People who couldn't afford a developer can now prompt one.\nThe target surface",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "ISP 代理、AI 爬虫和数据中心 IP 的缓慢衰亡：2026 年的数据",
+        "summary": "机器人流量在 2024 年首次超过人类流量，占所有网络流量的 51%，其中恶意机器人占 37%，而在 2025 年仅 2.8% 的网站完全受到机器人保护。IPv4 价格暴跌至每个 IP 不足 21 美元，AI 驱动的流量同比增长 187%，而在一项 40 亿会话研究中，传统 IP 信誉源在 78% 的住宅 IP 会话上失效。对于任何大规模接触公共网络的服务，2022 年的安全和基础设施方法现已过时。"
+      }
+    }
+  },
+  {
+    "title": "Mistral Large 3: The 675B Open-Weight MoE Model Developer Guide",
+    "slug": "mistral-large-3-675b-moe-model",
+    "url": "https://dev.to/jangwook_kim_e31e7291ad98/mistral-large-3-the-675b-open-weight-moe-model-developer-guide-250a",
+    "source": "DEV Community",
+    "date": "2026-05-05T12:15:34.000Z",
+    "summary": "Mistral Large 3 is a 675 billion parameter sparse Mixture-of-Experts open-weight model released under Apache 2.0 license with only 41 billion active parameters per forward pass, making it computationally efficient for enterprise deployment. Unlike GPT-4o or Llama 4, it can be self-hosted, fine-tuned, and redistributed freely without usage restrictions, making it significant for organizations requiring on-premises or air-gapped deployment. The 256k token context window and verified benchmarks from official sources provide practical implementation guidance.",
+    "content": "Mistral Large 3 launched in December 2025 as Mistral's flagship open-weight model. Six months later it remains the largest model Mistral has publicly released under a permissive license. This guide covers the architecture, benchmarks, pricing, and practical considerations for developers deciding whether to use it in 2026.\nMistral Large 3 (model ID mistral-large-2512, the 2512 indicating December 2025) is a sparse Mixture-of-Experts (MoE) model with 675 billion total parameters and 41 billion active parameters per forward pass. Mistral trained it from scratch on 3,000 NVIDIA H200 GPUs.\nThe MoE architecture is the key efficiency decision. Instead of activating all 675B parameters for every token, the model routes each token through a subset of \"expert\" subnetworks. With 41B active parameters, Mistral Large 3 runs at roughly the same computational cost as a 41B dense model while accessing the capacity of a 675B one.\nFor self-hosting, that matters significantly: memory footprint and inference compute are determined by the active parameter count, not the total.\nMistral Large 3 is released under Apache 2.0. This means:\nFree commercial use\nCan be fine-tuned and redistributed\nNo usage restrictions beyond standard Apache terms\nModel weights downloadable from HuggingFace: mistralai/Mistral-Large-3-675B-Instruct-2512\n\n\n\nThe license is what distinguishes Mistral Large 3 from comparable models. GPT-4o and Claude Opus 4 are API-only. Llama 4 405B carries a Meta community license with usage restrictions above 700M monthly users. Mistral Large 3 has no such conditions.\nFor enterprise deployment teams that need to run models on-premises, in air-gapped environments, or with full weight access for fine-tuning, this is the practical differentiator.\nVerified from official Mistral documentation and HuggingFace model card.\n\n\n\nSpecification\nValue\n\n\n\n\nTotal parameters\n675B\n\n\nActive parameters\n41B\n\n\nArchitecture\nSparse MoE\n\n\nContext window\n256,000 tokens\n\n\nLicense\nApache 2.0\n\n\nModel ID (Mist",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Mistral Large 3：675B 开放权重 MoE 模型开发者指南",
+        "summary": "Mistral Large 3 是一个 675 亿参数的稀疏混合专家开放权重模型，以 Apache 2.0 许可证发布，每次前向传递仅需 41 亿个活跃参数，使其对企业部署具有计算效率。与 GPT-4o 或 Llama 4 不同，它可以自托管、微调和自由重新分发，无使用限制，对于需要本地部署或气隙部署的组织来说意义重大。256k 代币上下文窗口和来自官方来源的验证基准提供了实用的实现指导。"
+      }
+    }
+  },
+  {
+    "title": "Why Most Crypto Bots Get Sandwiched (And How to Prevent It)",
+    "slug": "crypto-bots-sandwich-attacks-prevention",
+    "url": "https://dev.to/apollo_ag/why-most-crypto-bots-get-sandwiched-and-how-to-prevent-it-363d",
+    "source": "DEV Community",
+    "date": "2026-05-05T12:15:03.000Z",
+    "summary": "Sandwich attacks are MEV exploits where attackers detect pending transactions in the mempool and place trades before and after yours to profit from price movement, typically costing traders 5-30% slippage per transaction. The transparency of blockchain transactions and high-speed execution on chains like Solana enable these attacks, which extract billions of dollars annually in cumulative losses. Protection strategies including Jito Bundles and private transaction pools can substantially mitigate exploitation.",
+    "content": "Why Most Crypto Bots Get Sandwiched (And How to Prevent It)\n\n\nIf you’ve ever tried deploying a crypto trading bot, chances are you’ve encountered the dreaded sandwich attack. It’s one of the most frustrating experiences for traders and developers alike. I’ve lost count of how many times my bots got caught in these attacks, but over time, I’ve learned how to mitigate them effectively. In this article, I’ll explain what sandwich attacks are, why they happen, and how tools like Jito Bundles can protect your bots from being exploited.\nA sandwich attack is a type of Maximal Extractable Value (MEV) exploit where malicious actors manipulate the order of transactions to profit at your expense. Here’s how it works:\nFront-running: The attacker detects your trade in the mempool (the pool of pending transactions) and submits a buy order before yours.\nYour Trade: Your transaction executes, driving up the price of the asset.\nBack-running: The attacker immediately sells the asset at the higher price, profiting from the price movement they created.\nThe result? You end up paying more for the asset while the attacker pockets the difference. It’s like being sandwiched between their buy and sell orders.\nSandwich attacks thrive because blockchains are transparent. Transactions sit in the mempool before being included in a block, allowing attackers to inspect and manipulate them. On Ethereum, for example, bots use sophisticated algorithms to scan the mempool for profitable opportunities. In DeFi ecosystems like Solana, the high-speed nature of transactions exacerbates the problem—attackers can quickly identify and exploit vulnerable trades.\nOn Ethereum, MEV bots extract billions of dollars annually from traders.\nA single sandwich attack can increase slippage by 5-30%, depending on the liquidity of the asset.\nFor a $10,000 trade, this could mean losing $500-$3,000 to attackers.\nI’ve spent months experimenting with different strategies to protect my bots. Here’s what I’ve learned:\nPrivate",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么大多数加密机器人会被夹击(以及如何防止)",
+        "summary": "夹击是MEV漏洞利用,攻击者检测内存池中的待处理交易,并在您的交易前后进行交易以从价格变动中获利,通常导致交易者每笔交易的滑点损失为5-30%。区块链交易的透明性和Solana等链上的高速执行使这些攻击成为可能,每年累计造成数十亿美元的损失。包括Jito Bundles和私有交易池在内的保护策略可以大幅减轻这种利用。"
+      }
+    }
+  },
+  {
+    "title": "Creating Initial Requirements for an Accessible Navigation Component",
+    "slug": "accessible-navigation-component-requirements",
+    "url": "https://dev.to/shaynaproductions/creating-initial-requirements-for-an-accessible-navigation-component-3gdg",
+    "source": "DEV Community",
+    "date": "2026-05-05T12:15:00.000Z",
+    "summary": "Building an accessible React navigation component from scratch requires comprehensive requirements spanning HTML structure, keyboard navigation, ARIA roles, and list exposure handling, rather than relying on incomplete third-party libraries. Requirements must be detailed enough to contract expectations between assignees, developers, and testers, because most developers and testers lack sufficient accessibility knowledge to retrofit it later. This requirements-first approach prevents accessibility from becoming an afterthought.",
+    "content": "Prologue \nA while ago, I decided to develop a fully accessible main navigation component in React after a fruitless search through third-party component libraries, npm packages and even GitHub repositories. \nA complex component needs requirements around all aspects of the component, and this article begins the process of defining those requirements.\nNote: This article is one of a series demonstrating building a React navigation component from scratch while considering accessibility through the process. This article addresses requirements gathering and architectural decisions to be considered before code is written.\nThis article is fairly long, and so a set of content links is provided.\nIntroduction\nWishlist\nAPG\nDeque Accessibility Checklist\nRequirements Discussion\nHTML Structure\nHandling List Exposure\nNext Steps\nThis article is the second in a series in which I walk through the steps I've taken to create an accessible navigation component with React. In my previous article, I covered the basic requirements for evaluating third-party components while seeking an accessible navigation component.\nWhen I didn't find any component that met even the minimal requirements, I decided to build my own, which means gathering even more requirements.\nWhether you call them acceptance criteria or requirements, it means the same thing—instructions detailing what is required for a ticket to be considered complete. Acceptance criteria are a contract between those who assign the tickets, those who code and those who test.\nI've seen very few tickets over the course of my career that offer detailed user stories. Many lack adequate acceptance criteria as well. And that might be well and good if developers and testers were fully conversant with accessibility and the requirements for any specific component.\nThat isn't our reality, and depending on an LLM to add in accessibility basically sets you up for failure. Detailed requirements require detailed knowledge. If your business analysts lack",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为无障碍导航组件制定初始需求",
+        "summary": "从头开始构建无障碍的React导航组件需要全面的需求,涵盖HTML结构、键盘导航、ARIA角色和列表暴露处理,而不是依赖不完整的第三方库。需求必须足够详细,以便在代理人、开发人员和测试人员之间达成期望共识,因为大多数开发人员和测试人员缺乏足够的无障碍知识来事后进行改进。这种需求优先的方法可以防止无障碍成为事后考虑。"
+      }
+    }
+  },
+  {
+    "title": "I built a free dashboard for managing parallel Claude Code sessions (macOS, open-source)",
+    "slug": "claude-code-sessions-dashboard",
+    "url": "https://dev.to/mani_kolbe_510e0016d2a32e/i-built-a-free-dashboard-for-managing-parallel-claude-code-sessions-macos-open-source-2ai8",
+    "source": "DEV Community",
+    "date": "2026-05-05T12:13:11.000Z",
+    "summary": "This open-source macOS dashboard solves the workflow problem of managing multiple concurrent Claude Code sessions by eliminating the need to cmd-tab between terminal windows to track which session needs attention. The tool is available on GitHub and represents a practical utility for developers running multiple AI coding sessions in parallel. It demonstrates a real workflow pain point that power users face when scaling their use of AI development tools.",
+    "content": "After running multiple Claude Code sessions daily for a few months, I got tired of cmd-tabbing between terminal windows trying to remember which session needed my attention.\nWhat it does:\n\nGitHub: https://github.com/muxara/muxara\nHappy to answer questions or take feature requests.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个用于管理并行Claude Code会话的免费仪表板(macOS,开源)",
+        "summary": "这个开源macOS仪表板通过消除在终端窗口之间使用cmd-tab来跟踪哪个会话需要关注的需要,解决了管理多个并发Claude Code会话的工作流问题。该工具可在GitHub上获得,是运行多个AI编码会话的开发人员的实用工具。它展示了功能用户在扩展其AI开发工具使用时所面临的真实工作流痛点。"
+      }
+    }
+  },
+  {
+    "title": "Lessons from building OSS alone with AI and applying AI to brownfield development in organizations",
+    "slug": "lessons-ai-oss-brownfield-development",
+    "url": "https://dev.to/synthaicode_commander/lessons-from-building-oss-alone-with-ai-and-applying-ai-to-brownfield-development-in-organizations-5hm1",
+    "source": "DEV Community",
+    "date": "2026-05-05T12:12:26.000Z",
+    "summary": "AI excels as a generative tool for drafts and connecting information in both solo OSS development and enterprise brownfield contexts, but it cannot replace organizational structure—it works best as a nervous system connecting to rules, workflows, and controls rather than as the backbone itself. Applied across design documents, test specifications, and release procedures, AI transformed artifacts but could not become the source of organizational accountability. This challenges the broader narrative that AI will replace human organizational structure.",
+    "content": "I have used AI in two very different contexts.\nFirst, I used AI to build an OSS project largely by myself.\nSecond, I applied AI to brownfield development inside an organization.\nIn the second case, I did not use AI only for code generation.\nI used AI across a much wider part of the development process:\nsource code\ndesign documents\nimplementation plans\ntest specifications\ntest cases\nrelease procedures\nAt first glance, this may sound as if AI can take over the entire development process.\nBut that was not the lesson I learned.\nThe more I used AI across these activities, the clearer the boundary became.\nAI was very effective at generating drafts, connecting scattered information, translating context, and preparing artifacts for the next step.\nHowever, AI could not be treated as the source of organizational responsibility.\nWhen AI generated a design, the design still had to be checked against existing rules and constraints.\nWhen AI created a test specification, the coverage still had to be judged against the real change intent and risk.\nWhen AI prepared a release procedure, the procedure still had to fit the organization’s approval process, operational constraints, and rollback policy.\nIn other words, AI could help produce and transform work artifacts, but the structure that makes those artifacts valid had to remain outside AI.\nThat structure is the organizational backbone.\nIt is made of:\nrules\nworkflows\napprovals\nsystems\ncontrols\nThrough this experience, I arrived at a simple conclusion:\nAI should not become the backbone of an organization.\nAI works best as the nervous system that connects information to that backbone.\n\nFigure 1. AI should not replace the deterministic backbone of the organization. It should act as the nervous system that connects external states, human interpretation, deterministic operations, and external communication.\nMany discussions about AI in organizations focus on workforce redesign.\nThey ask questions such as:\nHow many people can one AI-augmen",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "从独自使用AI构建开源软件和在组织中应用AI进行棕地开发中汲取的教训",
+        "summary": "AI作为生成工具在独立OSS开发和企业棕地环境中都表现出色,可用于草稿和信息连接,但它无法替代组织结构——它最适合作为连接规则、工作流和控制的神经系统,而不是作为主干。当应用于设计文档、测试规范和发布程序时,AI改进了工件,但无法成为组织问责制的来源。这挑战了AI将替代人类组织结构的更广泛叙述。"
+      }
+    }
+  },
+  {
+    "title": "How we achieved 970 RPS on AI agent discovery — a complete benchmark report",
+    "slug": "mycelium-ai-agent-discovery-benchmark",
+    "url": "https://dev.to/udaysaai/just-published-the-first-open-benchmark-for-ai-agent-networking-1n1c",
+    "source": "DEV Community",
+    "date": "2026-05-05T12:11:58.000Z",
+    "summary": "Mycelium is a networking protocol enabling AI agents to discover, communicate, and collaborate with each other through natural language queries, solving the fundamental isolation problem where thousands of independent agents cannot interact. The benchmark demonstrates 970 requests per second on agent discovery using 1,000 agents and 1,000 queries with cache architecture as the key optimization. Agent interoperability represents a critical unsolved infrastructure challenge in multi-agent AI systems.",
+    "content": "What is Mycelium? (2 para)\nThe problem we're solving (2 para)\nDiscovery benchmark\n\n\nDataset (1k agents, 1k queries)\nResults table\nKeyword vs Semantic graph (ASCII)\nLoad benchmark\n\n\nCache architecture\nResults table\nWhat changed (before/after cache)\nHow to reproduce\n\n\npip install\ncode snippet\nWhat's next (roadmap)\nGitHub link\n->\n / \n        mycelium\n      \n    \n🍄 Mycelium Agents\nWatch 3 AI agents collaborate live — no glue code, no orchestration\n▶ See Live Demo • Try it now\n\n\n\nBitcoin price → INR conversion → Hindi translation.\n3 agents. 3 live APIs. 1.1 seconds. Zero orchestration code.\nThe Problem\nAI agents are everywhere. But they're all isolated.\nYour Coding Agent ──── cannot talk to ──── Research Agent\nYour Email Agent  ──── cannot find   ──── Translation Agent\nYour Data Agent   ──── cannot hire   ──── Visualization Agent\n\n\nThere are thousands of AI agents being built. None of them can discover, communicate with, or collaborate with each other.\nIt's like having millions of phones with no telephone network.\nThe Solution\nMycelium is the networking protocol that connects AI agents.\nYour Agent ←→ [MYCELIUM NETWORK] ←→ Any Agent, Anywhere\n\n\nAny agent can:\n🔍 Discover other agents by natural language\n📨 Communicate using a standard protocol\n🤝 Collaborate in multi-agent…\nView on GitHub",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我们如何在AI代理发现上实现970 RPS——完整的基准测试报告",
+        "summary": "Mycelium是一种网络协议,使AI代理能够通过自然语言查询相互发现、通信和协作,解决了数千个独立代理无法交互的根本隔离问题。该基准测试展示了使用1,000个代理和1,000个查询的代理发现中实现970请求/秒的性能,缓存架构是关键优化。代理互操作性代表了多代理AI系统中一个关键的未解决基础设施挑战。"
+      }
+    }
+  },
+  {
+    "title": "Magento 2 Product JSON-LD Schema for AI Search — Complete Guide (2026)",
+    "slug": "magento-2-product-json-ld-schema-ai-search",
+    "url": "https://dev.to/angeo/magento-2-product-json-ld-schema-for-ai-search-complete-guide-2026-2b41",
+    "source": "DEV Community",
+    "date": "2026-05-05T12:11:41.000Z",
+    "summary": "AI search systems like ChatGPT, Gemini, and Perplexity rely on structured JSON-LD schema rather than traditional SEO ranking to extract and display products, making complete Product schema with availability data critical for eligibility. Magento 2 outputs microdata by default which is insufficient for AI search eligibility, and popular themes like Hyvä lack product schema entirely, preventing products from appearing in AI-powered shopping results. Missing or incomplete schema directly blocks product visibility in emerging AI search channels.",
+    "content": "Even if your Magento store ranks well in Google, it may still not appear in AI-generated product results (ChatGPT, Gemini, Perplexity).\nA common reason is missing or incomplete Product schema.\nAI systems rely on structured data to extract pricing and availability. When that data is missing or inconsistent, products may not be eligible for inclusion. This guide covers what is typically missing, why, and how to fix it.\nTL;DR:\nMagento 2 outputs microdata by default; JSON-LD is generally more reliable and easier for parsers to consume\nMissing offers.availability is a common issue that breaks product eligibility for AI-powered shopping results\nSchema injected via GTM is often not visible to non-JavaScript crawlers\nHyvä Theme does not include product schema out of the box\nBy \"AI search\" we refer to systems like ChatGPT browsing (via OAI-SearchBot), Google AI Overviews, Gemini, and Perplexity that extract structured data from pages to generate answers and product listings.\nUnlike traditional search engines that primarily rank links, these systems rely more heavily on structured data like JSON-LD to understand product details — price, availability, ratings — rather than inferring them from HTML layout.\n\n\n\nSetup\nChatGPT Shopping\nGemini\nPerplexity\n\n\n\n\nNo schema\n❌ Not eligible / rarely shown\n❌ Not eligible\n❌ Rarely cited\n\n\nMicrodata only (Luma default)\n⚠️ Partially parsed\n⚠️ Inconsistent\n⚠️ Inconsistent\n\n\nJSON-LD, missing offers.availability\n\n⚠️ Often fails eligibility check\n⚠️ May appear\n⚠️ May appear\n\n\nFull JSON-LD + availability + rating\n✅ Eligible for Shopping results\n✅ Product results\n✅ Cited with price\n\n\n\nDefault Luma theme outputs microdata — the older itemscope/itemprop HTML format:\n<!-- Default Magento Luma — often insufficient for AI search -->\n<div itemscope itemtype=\"http://schema.org/Product\">\n  <span itemprop=\"name\">Product Name</span>\n  <div itemprop=\"offers\" itemscope itemtype=\"http://schema.org/Offer\">\n    <span itemprop=\"price\">49.99</span>\n    <!-- offers.av",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Magento 2产品JSON-LD模式用于AI搜索——完整指南(2026)",
+        "summary": "ChatGPT、Gemini和Perplexity等AI搜索系统依赖于结构化的JSON-LD模式而不是传统的SEO排名来提取和显示产品,因此完整的产品模式和可用性数据对于符合资格至关重要。Magento 2默认输出微数据,这对AI搜索的资格来说是不充分的,而Hyvä等流行主题完全缺乏产品模式,阻止产品出现在AI驱动的购物结果中。缺失或不完整的模式直接阻止产品在新兴AI搜索渠道中的可见性。"
+      }
+    }
+  },
+  {
+    "title": "Google Chrome silently installs a 4 GB AI model on your device without consent",
+    "slug": "google-chrome-ai-model-silent-install",
+    "url": "https://www.thatprivacyguy.com/blog/chrome-silent-nano-install/",
+    "source": "Hacker News",
+    "date": "2026-05-05T07:34:55.000Z",
+    "summary": "Google Chrome is automatically installing a 4 GB AI model on user devices without explicit user consent, raising significant concerns about device autonomy and transparency in AI deployment. This silent installation represents a shift in browser behavior regarding local model deployment without clear user visibility or control. The action highlights broader questions about informed consent and user agency when technology vendors deploy machine learning models to end devices.",
+    "content": "Article URL: https://www.thatprivacyguy.com/blog/chrome-silent-nano-install/\nComments URL: https://news.ycombinator.com/item?id=48019219\nPoints: 393\n# Comments: 395",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Google Chrome 在未经用户同意的情况下静默安装 4GB AI 模型",
+        "summary": "Google Chrome 在用户不知情的情况下自动在用户设备上安装一个 4GB 的 AI 模型，引发了对设备自主权和 AI 部署透明度的重大关切。这种静默安装代表了浏览器在本地模型部署方面的行为转变，用户缺乏明确的可见性和控制。这一行为突显了在技术供应商向终端用户设备部署机器学习模型时，有关知情同意和用户代理权的更广泛问题。"
+      }
+    }
+  },
+  {
     "title": "From REST to Event-Driven Architecture: How Backend Development Is Changing",
     "slug": "rest-event-driven-architecture-backend",
     "url": "https://dev.to/eva_clari_289d85ecc68da48/from-rest-to-event-driven-architecture-how-backend-development-is-changing-3fpf",
@@ -188,6 +396,22 @@
       "zh": {
         "title": "切片配置文件：如何设置以获得完美结果",
         "summary": "3D打印的程序化切片配置文件管理工具通过针对硬件规范的自动验证和基于1200多个基准打印的优化，将故障率降低72%。该工具支持PrusaSlicer、Cura和OrcaSlicer格式，将手动调整时间从12小时减少到45分钟。"
+      }
+    }
+  },
+  {
+    "title": "Train Your Own LLM from Scratch",
+    "slug": "train-own-llm-from-scratch",
+    "url": "https://github.com/angelos-p/llm-from-scratch",
+    "source": "Hacker News",
+    "date": "2026-05-05T04:09:17.000Z",
+    "summary": "This GitHub repository provides educational resources and implementation guidance for training large language models from scratch, enabling developers to understand LLM internals rather than only using pre-trained models. With 296 points on Hacker News, the project resonated with the developer community interested in foundational AI knowledge. The practical implementation approach demystifies the process of building language models at a fundamental level.",
+    "content": "Article URL: https://github.com/angelos-p/llm-from-scratch\nComments URL: https://news.ycombinator.com/item?id=48017948\nPoints: 296\n# Comments: 32",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "从零开始训练你自己的大型语言模型",
+        "summary": "这个 GitHub 仓库提供了从零开始训练大型语言模型的教育资源和实现指导，使开发者能够理解 LLM 的内部工作原理，而不仅仅是使用预训练模型。该项目在黑客新闻上获得了 296 分，引起了对基础 AI 知识感兴趣的开发者社区的共鸣。这种实用的实现方法揭开了从基础层面构建语言模型的神秘面纱。"
       }
     }
   },
