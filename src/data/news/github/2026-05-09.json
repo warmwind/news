@@ -1,5 +1,197 @@
 [
   {
+    "title": "O que é ACID?",
+    "slug": "acid-database-transactions",
+    "url": "https://dev.to/ewertoncodes/o-que-e-acid-3e23",
+    "source": "DEV Community",
+    "date": "2026-05-09T12:12:59.000Z",
+    "summary": "The article explains ACID (Atomicity, Consistency, Isolation, Durability), a set of database transaction properties that ensure reliability. Using a ticket purchase scenario, it illustrates how atomicity ensures transactions either complete fully or not at all, while consistency guarantees the database never enters an invalid state, preventing operations that violate defined rules.",
+    "content": "O que é ACID?\n\n\n\nImagine um sistema de compra de ingressos, onde você precisa comprar um ingresso para um show. Você clica em \"Comprar\", o sistema verifica se tem ingressos disponíveis, reserva um para você, debita o valor do seu cartão de crédito e gera o ingresso. Agora imagine que, no meio desse processo, o sistema falha. O que acontece com o seu ingresso? E com o seu dinheiro?\nPara garantir que isso não aconteça, os bancos de dados relacionais implementam o ACID, que é um conjunto de propriedades que garantem que as transações sejam processadas de forma confiável.\nNa Atomicidade uma transação ou é executada por completo ou não é executada. Não existe meio termo. No nosso exemplo, se o sistema falhar no meio do processo, o dinheiro não será debitado do cartão e o ingresso não será gerado. A transação será revertida por completo.\nO exemplo clássico é uma transferência entre duas contas, onde o dinheiro sai de uma conta e entra na outra.\nActiveRecord::Base.transaction do\n  david.withdrawal(100)\n  maria.deposit(100)\nend\n\nEsse exemplo só levará dinheiro de David e dará para Maria se nem withdrawal nem deposit levantarem uma exceção. As exceções forçarão um ROLLBACK que retorna o banco de dados ao estado anterior ao início da transação.\nMas, se nem withdrawal nem deposit levantarem uma exceção, então a transação será concluída com sucesso. Ou seja, o dinheiro sairá da conta de David e entrará na conta de Maria.\nA Consistência garante que a transação leve o banco de dados de um estado \nNo exemplo dos ingressos, isso significa que não é possível comprar um ingresso com uma quantidade negativa ou com dados obrigatórios em branco. O banco rejeita qualquer operação que violaria suas regras.\nticket = Ticket.last\nticket.update(id:nil)\n# =>\n# PG::NotNullViolation: ERROR:  null value in column \"id\" of relation \"tickets\" \n# violates not-null constraint (ActiveRecord::NotNullViolation)\n# DETAIL:  Failing row contains (null, 2026-04-29 06:01:26.693314, 173335, \n# 2026-05-06 19:20",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "什么是ACID?",
+        "summary": "本文解释了ACID(原子性、一致性、隔离性、持久性)，这是一组确保数据库事务可靠性的属性。通过票务购买场景说明原子性如何确保事务要么完全完成，要么完全不完成，而一致性保证数据库永不进入无效状态，防止违反定义规则的操作。"
+      }
+    }
+  },
+  {
+    "title": "\"Just shipped a free AI Image Compressor. No login. No nonsense. Drop your image, compress, done.\r\nBuilt by me — Rakib Bae 🔥\r\nLink ai-image-compressor-beige.vercel.app",
+    "slug": "free-ai-image-compressor",
+    "url": "https://dev.to/rakibbaee/just-shipped-a-free-ai-image-compressor-no-login-no-nonsense-drop-your-image-compress-done-49d5",
+    "source": "DEV Community",
+    "date": "2026-05-09T12:10:44.000Z",
+    "summary": "A developer built a free AI-powered image compressor with minimal friction—no login required, upload and compress functionality only. The tool is live and ready to use without authentication or complex setup.",
+    "content": "",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "刚上线一个免费的AI图像压缩工具。无需登录。简单易用。拖放图像，压缩，完成。由我开发——Rakib Bae 🔥",
+        "summary": "一位开发者构建了一个免费的AI驱动图像压缩工具，使用流程简洁无阻碍——无需登录，仅具上传和压缩功能。该工具已上线，无需身份验证或复杂设置即可直接使用。"
+      }
+    }
+  },
+  {
+    "title": "How I Slashed Our LLM API Token Costs by 90% — From 1M to 100K Daily",
+    "slug": "llm-api-costs-context-caching",
+    "url": "https://dev.to/_eb7f2a654e97a60ae9f96e/how-i-slashed-our-llm-api-token-costs-by-90-from-1m-to-100k-daily-nbp",
+    "source": "DEV Community",
+    "date": "2026-05-09T12:08:47.000Z",
+    "summary": "A customer-service chatbot faced a 4x monthly bill increase due to storing entire conversation histories in every API request; implementing context caching cut daily token consumption from 1 million to 100K (90% reduction) and latency from 3.2s to 0.4s. The technique deduplicates semantic model inputs by caching previously processed contexts.",
+    "content": "Last week, finance dropped a screenshot into the group chat: this month’s LLM API bill was ¥5,368, up 4x month-over-month. “Do you tech people not feel anything if you don’t spend money?” That moment I suddenly understood every algorithm team that’s ever had their budget slashed.\nWe run an intelligent customer-service system with three or four large clients. Daily active users aren’t huge, but conversations are extremely long. Some users chat with the bot for hundreds of turns, and every request has to stuff the entire message history into the context. Every single token the model generates forces it to re-read that mountain of chat logs. Tokens flow like water.\nI knew right away we had to implement caching. Not Redis caching, not a CDN — but context caching. The idea is to de-duplicate model inputs at the semantic level: if a full context has already been processed once, don’t blindly re-compute it the second time. After we shipped this, daily token consumption dropped from ~1 million to ~100k, cutting costs by 90%. Median API latency fell from 3.2s to 0.4s. This post walks through the full approach, the code, and the two landmines that almost blew us up.\nFirst, some background. We use the Chat Completions API. Each turn of a conversation constructs a very long messages list and sends it to the model. Suppose a user’s conversation has already gone 30 rounds. The current request looks like this:\nmessages = [\n    {\"role\": \"system\", \"content\": \"你是客服，请友好回答...\"},\n    {\"role\": \"user\", \"content\": \"你好\"},\n    {\"role\": \"assistant\", \"content\": \"您好，请问有什么可以帮您的？\"},\n    {\"role\": \"user\", \"content\": \"我的订单没收到\"},\n    {\"role\": \"assistant\", \"content\": \"请提供订单号...\"},\n    ...\n    {\"role\": \"user\", \"content\": \"还是没收到，已经三天了\"}\n]\n\nEvery new request has 90% of the content identical to the previous round, yet the model still processes all those tokens from scratch, and billing counts every one of them as input tokens. The typical “cache responses in Redis” trick doesn’t help here, because the mes",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何将LLM API令牌成本削减90% — 从每天100万降至10万",
+        "summary": "一个客户服务聊天机器人因在每次API请求中存储完整对话历史而面临月账单增加4倍的问题。实现上下文缓存后，每日令牌消耗从100万降至10万(削减90%)，延迟从3.2秒降至0.4秒。该技术通过缓存已处理的上下文来消除语义模型输入的重复。"
+      }
+    }
+  },
+  {
+    "title": "Avoiding The GC in D: Stack, Buffers & Arenas",
+    "slug": "d-language-gc-memory-management",
+    "url": "https://dev.to/kapendev/avoiding-the-gc-in-d-stack-buffers-arenas-21o8",
+    "source": "DEV Community",
+    "date": "2026-05-09T12:07:08.000Z",
+    "summary": "The article clarifies that @nogc and -betterC in D are compiler-enforced garbage collection restrictions, not true manual memory management, and explores stack allocation strategies using fixed-size buffers. It demonstrates techniques for managing memory without relying on the GC through examples of stack-allocated string data structures.",
+    "content": "It's common to see new D users talking about @nogc and -betterC when discussing Manual Memory Management (MMM).\nThis might sound strange given their names, but neither @nogc nor -betterC is actually MMM.\n@nogc function could allocate or it could not.\nThe TL;DR is that both of those features are compiler-enforced GC restrictions with:\n@nogc: also being part of the type system.\n-betterC: also removing the D runtime.\nIn this post, I will skip over -betterC since removing the D runtime is a topic of its own.\nLet's start with the stack.\nvoid main() {\n    alias StringData = char[64][4]; // The type.\n    StringData stringData = void;   // The instance.\n}\n\nIn the code above, the program can store 4 strings containing up to 64 characters each.\n= void part tells the compiler to not default initialize the string data because it will be initialized later as needed.\nFor example:\nimport std.stdio;\n\nvoid main() {\n    alias StringData = char[64][4];\n    StringData stringData = void;\n\n    auto text = stringData[0][0 .. 3]; // Create a string.\n    text[] = \"Hi!\";                    // Initialize the string.\n    writeln(text);                     // Use the string.\n}\n\nThe variable text points to the 3 first bytes of stringData and they are used to print Hi! with writeln.\nimport std.stdio;\n\nvoid main() {\n    alias StringData = char[64][4];\n    StringData stringData = void;\n\n    auto level = 68;\n    auto name = stringData[0][0 .. 8];\n    name[0 .. 6] = \"level_\";\n    name[6] = cast(char) ('0' + (level / 10) % 10);\n    name[7] = cast(char) ('0' + level % 10);\n\n    writeln(name); // Output: level_68\n}\n\nThat's nice.\nimport std.stdio;\n\nvoid main() {\n    auto level = 68;\n    auto name = level.toLevelName();\n    writeln(name);\n}\n\nconst(char)[] toLevelName(int level) {\n    alias StringData = char[64][4];\n    StringData stringData = void;\n\n    auto name = stringData[0][0 .. 8];\n    name[0 .. 6] = \"level_\";\n    name[6] = cast(char) ('0' + (level / 10) % 10);\n    name[7] = cast(char) ('0' + level",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在 D 语言中避免垃圾回收：栈、缓冲区和竞技场",
+        "summary": "文章阐明了 D 语言中的 @nogc 和 -betterC 是编译器强制的垃圾回收限制，而非真正的手动内存管理，并探讨了使用固定大小缓冲区的栈分配策略。它通过栈分配字符串数据结构的示例展示了不依赖垃圾回收来管理内存的技术。"
+      }
+    }
+  },
+  {
+    "title": "I stopped using headless Chrome as the default scraper",
+    "slug": "headless-chrome-web-scraping-rethink",
+    "url": "https://dev.to/0xmassi/i-stopped-using-headless-chrome-as-the-default-scraper-mm",
+    "source": "DEV Community",
+    "date": "2026-05-09T12:06:58.000Z",
+    "summary": "A web-scraping API deliberately avoids using headless Chrome as the default tool, treating it as an escalation path for complex sites rather than the baseline. Browser automation carries high operational costs that don't justify use for mostly static HTML, which can be extracted more efficiently through standard HTTP requests.",
+    "content": "Headless Chrome is useful.\nIt is also overused.\nFor years, the default answer to “this page is hard to scrape” has been some version of:\nUse Puppeteer.\nUse Playwright.\nAdd stealth.\nWait for the page.\nExtract the DOM.\n\nThat works often enough that it became muscle memory. But using a browser as the first step for every page is expensive, slow, operationally annoying, and frequently unnecessary.\nI’m building webclaw, a web extraction API, CLI, and MCP server for AI agents. One of the biggest architecture decisions was this:\nDo not make the browser the default path.\n\nThe browser is an escalation path. Not the baseline.\nThe web changed.\nStatic HTML became React, Next.js, SPAs, hydration payloads, infinite scroll, client-side routing, consent banners, and heavily instrumented frontend apps.\nSo scrapers adapted.\nInstead of fetching HTML and parsing it, developers started launching a real browser:\nURL -> Puppeteer/Playwright -> Chrome -> rendered DOM -> extraction\n\nThat made sense. A browser gives you:\nJavaScript execution\na real DOM\nnavigation behavior\ncookies and sessions\nscreenshots\ninteraction support\nFor some pages, you need that.\nThe mistake is treating those pages as the default case.\nHeadless Chrome has a cost profile that looks fine in demos and painful in production.\nLaunching a browser is not free.\nEven if you reuse instances, you still pay for process management, page creation, memory, timeouts, crashes, and cleanup.\nFor a one-off scrape, maybe that’s fine.\nFor agents, RAG ingestion, batch scraping, or crawl jobs, it adds up fast.\nChrome is heavy.\nIf your scraper needs to handle a list of URLs, you eventually hit practical limits:\nhow many pages can run at once?\nhow many browser contexts can stay alive?\nhow many failures are caused by your scraper, not the target site?\nhow much infra are you burning just to read mostly static documents?\nThat matters when the output you wanted was just clean markdown.\nBrowser stacks are fragile in boring ways.\nYou deal with:\nmis",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我停止使用 headless Chrome 作为默认爬虫工具",
+        "summary": "一个网页爬虫 API 刻意避免将 headless Chrome 用作默认工具，而是将其作为复杂网站的升级方案而非基线。浏览器自动化带来高昂的运营成本，对于主要是静态 HTML 的网站并不值得使用，可以通过标准 HTTP 请求更高效地提取这些内容。"
+      }
+    }
+  },
+  {
+    "title": "PostHog Custom Events: How I Tracked a $59 Payment Funnel from Page View to Stripe Checkout",
+    "slug": "posthog-payment-funnel-tracking",
+    "url": "https://dev.to/diven_rastdus_c5af27d68f3/posthog-custom-events-how-i-tracked-a-59-payment-funnel-from-page-view-to-stripe-checkout-3g5p",
+    "source": "DEV Community",
+    "date": "2026-05-09T12:06:16.000Z",
+    "summary": "Using PostHog's custom events, a developer tracked a payment funnel for a $59 lifetime deal across five key moments: page view, scroll, demo click, CTA engagement, and checkout start. This approach identifies precisely where users drop off rather than relying on raw traffic numbers alone.",
+    "content": "You built the landing page, wired up Stripe, launched. And then... silence. Zero purchases. Was the page broken? Did anyone even see the price? Did they click anything?\nWithout custom events, PostHog tells you \"12 people visited /lifetime.\" With them, it tells you \"12 visited, 8 scrolled to the CTA, 3 clicked 'See the demo,' 1 started checkout, 0 completed purchase.\" Now you know the leak is between checkout-start and payment -- not the page itself.\nHere's how I set this up for a real $59 lifetime deal, running Next.js 16 on Vercel.\nBefore writing any code, I mapped the funnel on paper. Every SaaS purchase page has the same shape:\nPage load -> Scroll past fold -> Engage with content -> Click CTA -> Start checkout -> Complete purchase\n\nEach transition is a place users leak out. Each one becomes a PostHog event:\n\n\n\nEvent name\nFires when\nWhat it tells you\n\n\n\n\nltd_page_viewed\nComponent mounts\nSomeone actually loaded the page (not just clicked a link that errored)\n\n\nltd_demo_clicked\nUser clicks \"See the demo\"\nThey wanted proof before paying\n\n\nltd_notify_clicked\nUser submits the email form\nInterested but not ready to pay -- warm lead\n\n\nltd_cta_scrolled\nUser scrolls the CTA into viewport\nThey saw the price and the button\n\n\ncheckout_started\nUser clicks \"Buy lifetime access\"\nPayment intent exists\n\n\n\nI deliberately kept this to five events. More than that and you drown in noise. Fewer and you can't find the leak.\nPostHog's React SDK needs to initialize client-side. In the App Router, that means a client component wrapped in Suspense:\n// src/components/PostHogProvider.tsx\n'use client';\n\nimport posthog from 'posthog-js';\nimport { PostHogProvider as PHProvider } from 'posthog-js/react';\nimport { useEffect } from 'react';\n\nexport default function PostHogProvider({\n  children,\n}: {\n  children: React.ReactNode;\n}) {\n  useEffect(() => {\n    posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {\n      api_host: 'https://us.i.posthog.com',\n      capture_pageview: true,\n      capture_pag",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "PostHog 自定义事件：我如何追踪从页面浏览到 Stripe 结账的 $59 付款漏斗",
+        "summary": "使用 PostHog 的自定义事件，一位开发者在五个关键时刻追踪了一个 $59 终身优惠的付款漏斗：页面浏览、滚动、演示点击、CTA 参与和结账开始。这种方法能精确识别用户流失的位置，而不是仅依赖原始流量数据。"
+      }
+    }
+  },
+  {
+    "title": "Hello World! 👋 I built a 3D Interactive Portfolio Website",
+    "slug": "3d-interactive-portfolio-website",
+    "url": "https://dev.to/saurabh_chandravanshi/hello-world-i-built-a-3d-interactive-portfolio-website-5do",
+    "source": "DEV Community",
+    "date": "2026-05-09T12:06:15.000Z",
+    "summary": "A frontend developer built a personal portfolio emphasizing 3D UI, glassmorphism, and responsive design using HTML, CSS, and vanilla JavaScript. The portfolio is available for review and feedback from the developer community.",
+    "content": "Hi DEV Community! I am Saurabh Chandravanshi, a Frontend Developer and UI/UX Designer.\nI recently built my personal portfolio website focusing on 3D UI, Glassmorphism, and responsive web design using HTML, CSS, and vanilla JavaScript.\nI would love for you to check it out and share your feedback! 🚀\nhttps://saurabhchandravanshi.in/\nLooking forward to connecting with amazing developers here!",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你好世界！👋 我构建了一个3D交互式作品集网站",
+        "summary": "一位前端开发者构建了一个个人作品集，强调3D用户界面、玻璃态设计和使用HTML、CSS与原生JavaScript实现的响应式布局。该作品集可供开发者社区评审和提供反馈。"
+      }
+    }
+  },
+  {
+    "title": "API Contract Testing: Why Safe Changes Still Break Clients",
+    "slug": "api-contract-testing-breaking-changes",
+    "url": "https://dev.to/taras_h_7a24f2b356a6e/api-contract-testing-why-safe-changes-still-break-clients-4ack",
+    "source": "DEV Community",
+    "date": "2026-05-09T12:00:00.000Z",
+    "summary": "API changes that appear safe internally (removing unused fields, tightening validation) can silently break clients who depend on those fields or behaviors, a gap that testing inside the service doesn't catch. Contract testing focuses on the boundary between services and clients, making hidden assumptions visible before release.",
+    "content": "APIs often break clients in ways that don’t show up in tests.\nA change looks safe inside the service:\nremove an unused field\n\ntighten validation\n\nadjust an error response\n\n\n\nEverything still works locally. Tests pass. Deployment succeeds.\nThen a mobile app crashes.\n\nA partner integration fails.\n\nAn older frontend silently breaks.\nNothing is “wrong” in the service - but the contract changed.\nConsider a response:\n{\n  \"id\": \"ord_123\",\n  \"status\": \"paid\",\n  \"customer\": {\n    \"id\": \"cus_456\",\n    \"email\": \"ada@example.com\"\n  }\n}\n\nRemoving customer.email looks like cleanup.\nBut for a client, that field might:\npower a receipt screen\n\nfeed an export pipeline\n\nbe required in a generated SDK\n\n\n\nFrom the server’s perspective: harmless\n\nFrom the client’s perspective: breaking change  \nMost tests focus on correctness inside the service:\nbusiness logic\n\ndatabase state\n\nrequest handling\n\n\n\nThey don’t protect what clients depend on.\nThat gap is where breakage happens.\nContract testing focuses on the boundary between services and clients.\nIt answers:\n“Did we change what clients rely on?”\nTypical breaking changes:\nremoving or renaming fields\n\nchanging types\n\nadding required inputs\n\nchanging error formats\n\n\n\nNon-breaking (usually):\nadding optional fields\n\n\n\n\n\n\n\n  \n  \n  Why Schema Alone Isn’t Enough\n\n\nSchema diffs (like OpenAPI) catch structure.\nBut real systems depend on behavior:\nerror codes\n\npagination shape\n\nidempotency responses\n\n\n\nThose require examples, not just schemas.\nMost API breakages aren’t failures of code - they’re failures of assumptions at the boundary.\nContract testing makes those assumptions visible before release.\nSmall internal changes can quietly break external systems.\nContract testing turns that from a surprise into a decision.\n👉 Full deep dive: https://codenotes.tech/blog/api-contract-testing-prevent-breaking-clients-before-release",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "API合约测试：为什么看似安全的更改仍会破坏客户端",
+        "summary": "在内部看起来安全的API更改（删除未使用的字段、加强验证）会悄悄地破坏依赖这些字段或行为的客户端，这是服务内部测试无法捕捉的漏洞。合约测试专注于服务和客户端之间的边界，在发布前揭示隐藏的假设。"
+      }
+    }
+  },
+  {
+    "title": "How I built a browser watermark library that survives DevTools",
+    "slug": "browser-watermark-library-devtools",
+    "url": "https://dev.to/matrix2526/how-i-built-a-browser-watermark-library-that-survives-devtools-56ec",
+    "source": "DEV Community",
+    "date": "2026-05-09T11:56:32.000Z",
+    "summary": "A watermark library protects screenshots from leaking by embedding user identifiers in text that persists even when users attempt deletion or CSS overrides; the key defense is server-side logging of every bypass attempt, not just browser-side prevention. The 6KB library combines DOM self-healing, mutation observation, and optional DevTools detection.",
+    "content": "Identifying the leaker after a screenshot escapes, when the obvious tricks no longer work.\nLast year, I watched a customer of ours forward a screenshot of an internal dashboard to a vendor. The screenshot showed financial figures that should have stayed inside the company. Nobody could prove who took it.\nIf every pixel of that screen had carried that user's email or ID in faint diagonal text, we would have known the answer in five seconds.\nThat is the whole idea behind a watermark. It does not prevent leaks. It makes leaks attributable.\n\nThe simplest version is a <div> you put on top of the page:\n<div class=\"watermark\">alice@acme.dev</div>\n\nThe trouble: anyone who knows F12 opens DevTools and deletes the <div> in two clicks. Or overrides its CSS. Or screenshots the page before your watermark script runs.\nThe naive watermark catches honest users. It does nothing against the people who actually want to leak.\nA library that:\nRenders the user's identifier (email, user id, whatever) tiled across the page.\nRe-creates itself if someone removes it from the DOM.\nResists CSS overrides that try to hide it.\nOptionally redirects users who open DevTools to a \"you do not have access to this\" page.\nLogs every attempt to my server. Even if every browser-side defense gets bypassed, I want a record of who tried what, when.\nThat last one is the part most teams forget, and it is the most important.\nwatermark-shield is a small library on top of watermark-js-plus, which handles the actual canvas rendering very nicely. On top of it I added:\nA self-healing overlay that comes back if removed.\nA MutationObserver that catches CSS injection attempts on the watermark.\nA DevTools-detection layer that fires a callback before it redirects.\nAn audit hook so the server can log attempts.\nFramework-agnostic core in plain JavaScript, with bindings for Angular, React, and Vue 3.\nThe whole thing is roughly 6 KB gzipped, with another 6 KB lazy chunk if you turn on the DevTools guard.\nnpm install watermark-",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何构建了一个能够在DevTools中存活的浏览器水印库",
+        "summary": "这个水印库通过在文本中嵌入用户标识符来保护屏幕截图免于泄露，即使用户尝试删除或通过CSS覆盖也能保持；关键的防御不是浏览器端防止，而是对每次绕过尝试的服务器端日志记录。该6KB库结合了DOM自修复、变动监控和可选的DevTools检测。"
+      }
+    }
+  },
+  {
+    "title": "Solana Transactions Cost Money Even When They Fail",
+    "slug": "solana-transactions-cost-failures",
+    "url": "https://dev.to/prasiddhnaik/solana-transactions-cost-money-even-when-they-fail-2md6",
+    "source": "DEV Community",
+    "date": "2026-05-09T11:50:55.000Z",
+    "summary": "Failed Solana transactions incur fees (0.000005 SOL per failed on-chain attempt) unlike Web2 systems, requiring different error-handling approaches; developers must simulate transactions before sending and validate balances client-side, as Solana's in-transaction validation differs fundamentally from pre-transaction checks.",
+    "content": "Here's what I learned in 3 weeks: failed transactions on Solana cost real SOL.\nAs a backend dev, I'm used to failed requests being free. A 500 error? Retry it. It's no big deal.\nSolana is different. When you send a transaction, three things can happen:\nCLI catches it → Free (local balance check)\nSimulation catches it → Free (RPC preflight check)\nOn-chain fails → Costs 0.000005 SOL\n\n\n\n\n  \n  \n  Watching It Happen\n\n\nI created a broke wallet (0 SOL) and tried to transfer:\nsolana transfer --from /tmp/broke-wallet.json $RECIPIENT 1\n# Error: insufficient funds (caught locally, free)\n\nThen I used a funded wallet but tried to send more than my balance:\n// With skipPreflight = true (dangerous)\nawait rpc.sendTransaction(tx, { skipPreflight: true });\n\nResult:\nSignature: 5NWqdwSCmc3vz2PAwMmBQppL6uogPB7qkRWzUnCFtA9...\nStatus: Error processing Instruction 0: custom program error: 0x1\nFee: ◎0.000005\nBalance: 8.39795 -> 8.397945 SOL\n\nThe transaction failed. The fee was still charged.\nIn Web2, validation happens before the operation:\nif (account.balance >= amount) {\n  await db.transfer(account, recipient, amount);\n}\n\nIn Solana, validation happens inside the transaction. The blockchain doesn't check first—it tries to execute and fails if conditions aren't met. The attempt itself is a processed transaction.\nAlways simulate before sending:\n// Default: skipPreflight = false (simulates first)\nawait rpc.sendTransaction(tx, { skipPreflight: false });\n\nAnd check balances client-side:\nconst balance = await rpc.getBalance(sender).send();\nif (balance.value < amount + fee) {\n  throw new Error(\"Insufficient funds\");\n}\n\nOn Solana, there's no \"try it and see.\" Every attempt that reaches the network costs money. Design your error handling accordingly.\nDay 19 of 100 Days of Solana. Full code: [https://github.com/prasiddhnaik/solana-100-days]\nTags: #solana #web3 #blockchain #backend",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Solana交易失败仍需付费",
+        "summary": "Solana失败的交易会产生费用（每次失败的链上尝试需支付0.000005 SOL），这与Web2系统不同，需要采用不同的错误处理方法。开发者必须在发送前模拟交易并在客户端验证余额，因为Solana的交易内验证与交易前检查本质上不同。"
+      }
+    }
+  },
+  {
+    "title": "System Architecture is a Bit About Paranoia",
+    "slug": "system-architecture-paranoia",
+    "url": "https://dev.to/merbayerp/system-architecture-is-a-bit-about-paranoia-299l",
+    "source": "DEV Community",
+    "date": "2026-05-09T11:50:07.000Z",
+    "summary": "Based on 20 years of experience managing systems prone to crashes and degradation, the author argues that defensive system architecture requires anticipating worst-case scenarios and designing safeguards accordingly. Managing multiple containerized services exposed how cascading failures occur when one component misbehaves.",
+    "content": "Recently, a series of OOM-killed errors in the AI generation pipeline running on my own VPS took me back to the old days. I once again saw how a sleep 360 command could wreak havoc on a system and the cost of a simple mistake. This situation made me realize that system architecture is, in fact, a bit about \"paranoya.\"\nFor me, this state of \"paranoia\" is like a way of life built on anticipating worst-case scenarios, accepting that anything can go wrong, and taking precautions accordingly. While it might sound a bit negative, my 20 years of experience in the field have repeatedly proven why this approach is indispensable.\nThis \"paranoid\" mindset isn't an empty delusion; it's a result of bitter experiences I've lived through and learned from. Over the years, I've seen many systems crash unexpectedly, slow down, or become completely inaccessible. These incidents formed the foundation of my architectural approach.\nI remember once, at a major Turkish e-commerce site, the database server completely locked up in the middle of a critical campaign. I'll never forget the helplessness and panic of that moment. I've experienced similar, though smaller-scale, crises on my own VPS; for example, my disk filling up to 100% on April 28th. Such events taught me how crucial it is to ask, \"what if?\"\nI manage over 13 Docker containers on my own server. Sometimes, when even one starts behaving unexpectedly, I see a domino effect, with others also getting swapped out. These scenarios show how each part of the system interacts with one another and how the weakest link can affect the entire system.\n⚠️ VPS Overload and OOM\nOne of the most classic scenarios I've experienced on my own VPS is out-of-memory (OOM). Sometimes I've encountered situations like kcompactd using 92% CPU, or sshd being unable to accept new connections. This always reminds me how critical it is to monitor resources and know the limits.\nOnce, I noticed that Docker's build cache had reached 33 GB, and unused images were tak",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "系统架构在某种程度上是关于防范意识",
+        "summary": "基于20年管理容易崩溃和降级系统的经验，作者认为防御性系统架构需要预见最坏情况并相应设计防护措施。管理多个容器化服务的经验表明，当一个组件出现故障时如何发生级联失败。"
+      }
+    }
+  },
+  {
+    "title": "Crossref API Comparison: Speed, Cost, and Data Quality",
+    "slug": "crossref-api-comparison",
+    "url": "https://dev.to/donnyautomation/crossref-api-comparison-speed-cost-and-data-quality-1c35",
+    "source": "DEV Community",
+    "date": "2026-05-09T11:49:56.000Z",
+    "summary": "A comparative analysis of Crossref-wrapper APIs across latency, cost, and response quality reveals that while the free REST API is generous, wrapped alternatives offer faster latency, normalized responses, and rate limiting. Selection depends on bulk lookup scale, free-tier adequacy, and whether single-call richness serves the use case better than multi-call composition.",
+    "content": "TL;DR\n\n\nIf you're choosing between academic search APIs that wrap Crossref data, three things matter: response latency (does it scale to bulk lookups?), monthly cost (is the free tier real?), and data shape (one call or three?). I ran benchmarks across the available wrappers — here's what the numbers say.\nThe free Crossref REST API at api.crossref.org is generous and well-documented. So why pay for a wrapper?\nThree reasons most teams end up with one:\nPolite-Pool latency. Crossref dedicates faster lanes for clients with a contact User-Agent. A wrapper that always uses one gets sub-second responses where direct calls without proper attribution get 2–5 seconds.\nResponse shaping. Crossref's raw response has given/family author splits, three different date fields, and the citation count buried under is-referenced-by-count. Most teams write their own normalizer; a wrapper does it once for everyone.\nAuthentication & billing. A RapidAPI-hosted wrapper gives you per-key rate limiting, usage analytics, and a billing relationship — useful when an internal team or product feature needs an SLA story.\nSo the real question isn't whether to use a wrapper, it's which one.\nI compared the available Crossref-wrapper APIs on three axes:\n\n\n\nAxis\nWhy it matters\n\n\n\n\nSpeed\nBulk lookups (1000+ DOIs) compound a 2x latency difference into hours.\n\n\nCost\nA \"free\" tier with 10 requests/day is functionally useless.\n\n\nQuality\nSingle-call rich response vs. multi-call composition.\n\n\n\nI'm going to keep this comparison vendor-agnostic — there are several academic-search APIs on the major API marketplaces, and they all draw from the same Crossref upstream. What separates them is how they wrap it.\nMethod: 20 sample queries (mix of DOI-direct lookups, free-text title searches, author searches), 5 cold starts and 15 warm calls, p50 latency.\n\n\n\nAPI tier\np50 latency\nNotes\n\n\n\n\nBest wrapper\n~700 ms\nPolite Pool + response shaping enabled\n\n\nDirect api.crossref.org (no UA contact)\n1.5–2.5 s\nVariable; non-Polite-P",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Crossref API对比：速度、成本和数据质量",
+        "summary": "对Crossref包装API在延迟、成本和响应质量上的比较分析显示，虽然免费REST API很慷慨，但包装的替代方案提供更快的延迟、规范化的响应和速率限制。选择取决于批量查询规模、免费层的充分性，以及单次调用的丰富性是否比多次调用的组合更能满足用例需求。"
+      }
+    }
+  },
+  {
     "title": "59. XGBoost: The Algorithm That Wins Competitions",
     "slug": "xgboost-algorithm-wins-competitions",
     "url": "https://dev.to/yakhilesh/59-xgboost-the-algorithm-that-wins-competitions-njd",
@@ -188,6 +380,22 @@
       "zh": {
         "title": "花了我 90 分钟的 Nitro Enclave 陷阱：vsock 和一个欺骗性的端口",
         "summary": "AWS Nitro Enclave vsock 连接从父实例看起来可能成功，但实际上会无声地失败，不会抛出异常。该错误表现为连接存在但不是活动的；随后的消息失败，并在日志中隐藏了令人困惑的错误。正确处理 vsock 框架和连接生命周期可防止在处理敏感数据的硬件隔离环境中出现无声故障。"
+      }
+    }
+  },
+  {
+    "title": "A recent experience with ChatGPT 5.5 Pro",
+    "slug": "chatgpt-5-5-pro-experience",
+    "url": "https://gowers.wordpress.com/2026/05/08/a-recent-experience-with-chatgpt-5-5-pro/",
+    "source": "Hacker News",
+    "date": "2026-05-09T02:41:42.000Z",
+    "summary": "A discussion thread about experiences using ChatGPT 5.5 Pro generated significant engagement on Hacker News. The full context is documented in the linked Twitter thread and subsequent comments.",
+    "content": "https://twitter.com/wtgowers/status/2052830948685676605\nhttps://xcancel.com/wtgowers/status/2052830948685676605\nComments URL: https://news.ycombinator.com/item?id=48071262\nPoints: 353\n# Comments: 195",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "最近使用ChatGPT 5.5 Pro的体验",
+        "summary": "关于使用ChatGPT 5.5 Pro的经历的讨论在黑客新闻上引起了广泛关注。完整背景信息记录在相关的Twitter帖子和后续评论中。"
       }
     }
   },
