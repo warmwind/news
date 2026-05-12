@@ -1,5 +1,197 @@
 [
   {
+    "title": "I Built Rust-Style ADTs in 30 Lines of Python (Pattern Matching Works)",
+    "slug": "rust-style-adts-python-30-lines",
+    "url": "https://dev.to/alexander_mia_9/i-built-rust-style-adts-in-30-lines-of-python-pattern-matching-works-41le",
+    "source": "DEV Community",
+    "date": "2026-05-12T12:39:56.000Z",
+    "summary": "Developer demonstrates a 30-line metaclass that brings Rust-style algebraic data types to Python, enabling pattern matching with clean variant handling and named field destructuring. The approach replaces Union types and isinstance chains with type-safe, declarative syntax.",
+    "content": "Sum types — also called tagged unions or algebraic data types — are the feature I miss most when I switch from Rust or Haskell back to Python. The match statement landed in 3.10, but the standard library still does not give you a clean way to declare a closed set of variants where each variant carries its own fields.\nHere is a 30-line metaclass that fixes that.\nclass Computation(metaclass=EnumMeta):\n    Nothing = Case()\n    To = Case(target=int)\n    List = Case(targets=list[int])\n\n\nfollower = Computation.List([1])\n\n\nmatch follower:\n    case Computation.To(target=p):\n        print(p)\n    case Computation.List(targets=p):\n        print(p)\n    case Computation.Nothing:\n        print(\"nothing\")\n\nThree variants. Each variant is its own type. Pattern matching destructures fields by name. No Union, no isinstance chains, no boilerplate constructors.\nfrom dataclasses import make_dataclass, fields\n\n\nclass Case:\n    def __init__(self, **attributes):\n        self.dict = attributes\n\n\nclass EnumMeta(type):\n    def __new__(cls, name, bases, clsdict):\n        new_cls = super().__new__(cls, name, bases, clsdict)\n\n        for field_name, value in clsdict.items():\n            if not isinstance(value, Case):\n                continue\n            dc = make_dataclass(\n                f\"{name}.{field_name}\",\n                list(value.dict.items()),\n                bases=(new_cls,),\n            )\n            dc.__match_args__ = tuple(f.name for f in fields(dc))\n            setattr(new_cls, field_name, dc)\n\n        return new_cls\n\nCase is a placeholder. It records the fields a variant will carry and nothing else. Case(target=int) means this variant has one field named target typed as int.\nEnumMeta walks the class body when the class is constructed. For every Case it finds, it does four things.\nBuilds a dataclass for that variant with make_dataclass. The fields come straight from the Case kwargs.\nInherits from the parent class. bases=(new_cls,) means Computation.To is a subclass of Computati",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我用30行Python实现了Rust风格的代数数据类型（模式匹配工作）",
+        "summary": "开发者演示了一个30行的元类，将Rust风格的代数数据类型引入Python，支持模式匹配、清晰的变体处理和命名字段解构。这种方法用类型安全的声明式语法替代了Union类型和isinstance链。"
+      }
+    }
+  },
+  {
+    "title": "10 CLI Tools Every Python Developer Should Know in 2025",
+    "slug": "10-cli-tools-python-developers-2025",
+    "url": "https://dev.to/suifeng023/10-cli-tools-every-python-developer-should-know-in-2025-4hn6",
+    "source": "DEV Community",
+    "date": "2026-05-12T12:36:52.000Z",
+    "summary": "An overview of 10 essential Python CLI tools including uv for package management, Ruff for linting, and Rich for terminal output, each offering significant speed improvements over traditional alternatives. These tools address common pain points in Python development workflows.",
+    "content": "10 CLI Tools Every Python Developer Should Know in 2025\n\n\nAs a Python developer, your terminal is your best friend. While pip and python get you far, the right CLI tools can supercharge your workflow. Here are 10 command-line tools that will make you significantly more productive.\nuv — The Future of Python Package Management\n\n\nuv by Astral (the Ruff team) is a blazing-fast Python package installer and resolver, written in Rust. It's a drop-in replacement for pip and pip-tools that's 10-100x faster.\n# Install uv\ncurl -LsSf https://astral.sh/uv/install.sh | sh\n\n# Create a project with virtualenv\nuv init my-project\nuv add requests pandas\n\n# Run a script with auto-managed deps\nuv run script.py\n\nWhy it matters: It replaces pip, virtualenv, pip-tools, and poetry with a single, faster tool.\nruff — Instant Python Linting & Formatting\n\n\nRuff is another Rust-powered tool that replaces Flake8, isort, Black, and more — running in milliseconds instead of seconds.\npip install ruff\n\n# Lint\nruff check .\n\n# Format (replaces Black)\nruff format .\n\n# Fix auto-fixable issues\nruff check --fix .\n\nWhy it matters: One tool replaces 6+ linters and formatters. Your CI pipeline will thank you.\npipdeptree — Visualize Your Dependency Tree\n\n\nEver wondered why a package pulled in 50 transitive dependencies?\npip install pipdeptree\npipdeptree --packages requests\n\nThis shows you exactly which packages depend on what, making it easy to spot conflicts and bloat.\npytest — Testing Made Painless\n\n\nYes, pytest is the standard, but many devs still don't use it to its full potential:\npip install pytest pytest-cov pytest-xdist\n\n# Run with coverage\npytest --cov=myapp tests/\n\n# Parallel execution (massive speedup!)\npytest -n auto\n\n# Only run failed tests from last run\npytest --lf\n\nPro tip: Use pytest -k \"test_name\" to run a subset of tests while debugging.\nrich — Beautiful Terminal Output\n\n\nRich makes your CLI tools look professional with syntax highlighting, tables, progress bars, and tracebacks.\npip install r",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "2025年每个Python开发者必须知道的10个CLI工具",
+        "summary": "10个必不可少的Python CLI工具的概览，包括用于包管理的uv、用于代码检查的Ruff和用于终端输出的Rich，每个工具都比传统替代品提供了显著的速度改进。这些工具解决了Python开发工作流中的常见痛点。"
+      }
+    }
+  },
+  {
+    "title": "Layering data sources: accept both APIs as fallback, don't choose one",
+    "slug": "data-source-layering-fallback-pattern",
+    "url": "https://dev.to/canceylan1988/layering-data-sources-accept-both-apis-as-fallback-dont-choose-one-1kn2",
+    "source": "DEV Community",
+    "date": "2026-05-12T12:36:49.000Z",
+    "summary": "A fallback pattern using multiple prioritized data sources improves reliability compared to relying on a single API, handling gaps from rate-limiting and missing data. The approach avoids complexity of reconciling conflicting sources while providing independent rate-limit buckets.",
+    "content": "The single-source problem\n\n\nYou pick one free data API for financial information. It works well most of the time. But:\nSome companies report through non-standard channels and the API misses them\nCash flow data for certain sectors is systematically wrong\nThe API rate-limits you and returns empty data without saying so\nA company restructuring causes a gap in the data for 2–3 weeks\nYour analysis breaks silently for affected companies. You don't know which ones until you manually check.\nInstead of choosing one source, define a priority order:\ndef get_cash_flow(ticker: str) -> float | None:\n    # 1. Try the primary source\n    primary = fetch_from_primary_api(ticker, \"freeCashFlow\")\n    if primary is not None:\n        return primary\n\n    # 2. Fall back to secondary source (e.g. official regulatory filings)\n    secondary = fetch_from_sec_filings(ticker, \"FreeCashFlow\")\n    if secondary is not None:\n        return secondary\n\n    # 3. No data available\n    return None\n\nThe primary source handles the majority of cases. The secondary source catches the gaps. Neither source needs to be perfect — together they cover more of the space.\nA tempting alternative is to merge data from both sources — average them, or take the max, or reconcile differences. This is more complex and introduces new failure modes: what if the two sources disagree significantly? Which one is right?\nThe fallback pattern is simpler: primary is trusted if available; secondary is used only when primary is absent. You never have to reconcile disagreement because you never look at the secondary if the primary gave you something.\nTwo sources also means two rate limit buckets. If the primary API rate-limits you, the secondary is unaffected. You can fetch from the secondary while the primary recovers.\nfor ticker in tickers:\n    data = get_data_with_fallback(ticker)\n    process(data)\n    time.sleep(2)  # still rate-limit between requests\n\nThe sleep still applies — you're still making requests to external APIs. But th",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "分层数据源：接受两个API作为备用，不要只选一个",
+        "summary": "使用多个优先级数据源的备用模式相比依赖单个API更能提高可靠性，可以处理速率限制和缺失数据造成的空隙。这种方法避免了调和冲突源的复杂性，同时提供独立的速率限制桶。"
+      }
+    }
+  },
+  {
+    "title": "When the bug isn't a bug: diagnosing runtime barriers before debugging",
+    "slug": "runtime-barriers-diagnosis-debugging",
+    "url": "https://dev.to/canceylan1988/when-the-bug-isnt-a-bug-diagnosing-runtime-barriers-before-debugging-2781",
+    "source": "DEV Community",
+    "date": "2026-05-12T12:36:42.000Z",
+    "summary": "Failed library implementations often stem from fundamental runtime mismatches rather than bugs—such as Python's GIL or Node.js lacking native tensor support—that no amount of workarounds can solve. Recognizing these barriers leads to service boundaries rather than brittle fixes.",
+    "content": "The pattern that wastes days\n\n\nYou need a capability — web scraping, image processing, ML inference. You reach for your existing stack. You try library A, it fails. You try library B, same class of error. You try a workaround, it partially works. You try another workaround. Three days later you have a brittle solution held together with patches.\nThe diagnosis that would have saved those three days: the runtime is wrong for this capability. No amount of library-switching or workaround-stacking will produce a clean solution, because the underlying problem is structural.\nThis is a runtime barrier — a mismatch between what your current environment can do well and what you're asking it to do.\nA runtime barrier looks like:\nThe same error class persists across multiple different libraries\nWorkarounds work partially but introduce new problems\nThe error occurs at a level below your code (TLS, native module, OS)\nThe ecosystem for this capability is thin or unmaintained in your language\nCommon examples:\n\n\n\nCapability\nPoor-fit runtime\nSymptom\n\n\n\n\nWeb scraping with anti-bot\nNode.js\n403s or empty results that Python handles fine\n\n\nML inference\nNode.js / Go\nNo native tensor runtime; everything is a wrapper\n\n\nHeavy parallel computation\nPython (GIL)\nCPU-bound tasks don't parallelise\n\n\nReactive UI\nPython\nNo native component model; everything is a workaround\n\n\n\nStep 1: Name the capability precisely.\nStep 2: Check the ecosystem.\nStep 3: Cross-reference with a reference runtime.\nrequests + anti-bot library handles this in 10 lines, and Node.js has no equivalent after 3 library attempts, the gap is real.\nStep 4: State the barrier clearly.\nThis is a hard sentence to say, especially after investment in a particular approach. It's also the sentence that unblocks progress.\nOnce you've diagnosed a barrier, the solution is a service boundary — not a workaround.\nA service boundary means: let each capability live in the runtime best suited to it, and define a clean interface between them.\nOption",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "当bug不是bug：在调试前诊断运行时障碍",
+        "summary": "失败的库实现往往源于基础运行时不匹配而非bug——如Python的GIL或Node.js缺乏原生张量支持——这些障碍无法通过任何解决方案克服。识别这些障碍会导向服务边界而非脆弱的修复。"
+      }
+    }
+  },
+  {
+    "title": "Kreuzberg & SurrealDB: from unstructured documents to hybrid retrieval",
+    "slug": "kreuzberg-surrealdb-document-intelligence",
+    "url": "https://dev.to/surrealdb/kreuzberg-surrealdb-from-unstructured-documents-to-hybrid-retrieval-3657",
+    "source": "DEV Community",
+    "date": "2026-05-12T12:35:55.000Z",
+    "summary": "Kreuzberg and SurrealDB released an integration for automated document extraction, chunking, and embedding, enabling complete search and RAG pipelines without schema boilerplate. The connector supports both BM25 keyword and semantic search through hybrid retrieval.",
+    "content": "Author: Ignacio Paz\nWe’re excited to share a new partner integration: kreuzberg-surrealdb, a connector that bridges the Kreuzberg document intelligence framework directly into SurrealDB. This integration was created by the Kreuzberg team and we are excited to have this functionality available now in SurrealDB.\nKreuzberg extracts, chunks, and generates embeddings from 88+ document formats, while SurrealDB provides a multi-model database for AI applications, combining documents, graphs, vectors, and full-text search in a single system.\nTogether, they make it easy to build document search and RAG pipelines.\n\nkreuzberg-surrealdb handles the full ingestion workflow:\nAutomatic schema setup\nContent deduplication using SHA-256 hashing\nStorage and indexing in SurrealDB\nDocuments ready for search immediately after ingest\nThe integration supports two modes:\nDocumentConnector:indexes full documents for BM25 keyword search.\nDocumentPipeline:chunks documents, generates embeddings, and enables semantic and hybrid search using HNSW vector indexes and Reciprocal Rank Fusion.\nBuilding document search systems often requires combining multiple tools for extraction, chunking, embeddings, and storage.\nWith kreuzberg-surrealdb, the entire workflow runs through a single integration—no schema boilerplate, no duplicate ingestion, and built-in support for keyword, semantic, and hybrid search.\nSee how to get started in SurrealDB Docs: Kreuzberg Integration, and check out our example of How to build a knowledge graph for AI with SurrealDB and Kreuzberg.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Kreuzberg与SurrealDB：从非结构化文档到混合检索",
+        "summary": "Kreuzberg和SurrealDB发布了自动化文档提取、分块和嵌入的集成，无需模式样板即可启用完整的搜索和RAG管道。该连接器通过混合检索支持BM25关键词搜索和语义搜索。"
+      }
+    }
+  },
+  {
+    "title": "Spring Security with Spring Boot Actuator: the authorization model that survived the incident",
+    "slug": "spring-security-actuator-authorization",
+    "url": "https://dev.to/jtorchia/spring-security-with-spring-boot-actuator-the-authorization-model-that-survived-the-incident-391i",
+    "source": "DEV Community",
+    "date": "2026-05-12T12:30:23.000Z",
+    "summary": "Spring Boot's default security configurations fail silently, allowing endpoints like /env and /metrics to expose sensitive data undetected until exploitation. The article advocates explicit SecurityFilterChain configurations to prevent security regressions across framework updates.",
+    "content": "Spring Security with Spring Boot Actuator: the authorization model that survived the incident\n\n\n68% of security misconfigs in Spring Boot come from configuration that looks secure because it doesn't throw an error. Yeah, read that again. No exception, no warning in the log, nothing. The endpoint just responds 200 and you don't find out until someone else does.\nThat's exactly what happened in the case I described in the previous post. Actuator running in production, /env and /metrics returning data without asking for credentials — all because Spring Boot 3's default configuration doesn't lock down what you don't know about. We closed the misconfigured endpoints. But closing them wasn't enough — the authorization model that remained was inherited, implicit, and fragile. It had to be rebuilt.\nMy thesis is this: an inherited-by-default authorization model is technically worse than an explicit one, even if both produce the same observable behavior today. Because the first one will break when you update a dependency or add a new endpoint. The second one will scream.\nBefore the incident, the Spring Boot 3 + Java 21 backend had no SecurityFilterChain dedicated to Actuator. It depended on the default behavior of Spring Security 6 and properties in application.yml. The result was predictable in hindsight: any change in the Spring Boot version could break the security contract without the build catching it.\nThis is what you don't want to have:\n# ❌ Ambiguous configuration — what you do NOT want\nmanagement:\n  endpoints:\n    web:\n      exposure:\n        include: \"*\"  # exposes EVERYTHING — terrible in production\n  endpoint:\n    health:\n      show-details: always  # stack traces and details to anyone\n\nSpring Boot with include: \"*\" exposes /actuator/env, /actuator/heapdump, /actuator/threaddump, /actuator/loggers, and a long list. With show-details: always, the health endpoint returns datasource details, dependency status, and internal error messages to any IP.\nThe problem wasn't j",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Spring Security与Spring Boot Actuator：在安全事件中存活的授权模型",
+        "summary": "Spring Boot的默认安全配置静默失败，允许/env和/metrics等端点在未被检测的情况下暴露敏感数据，直到被利用。该文章倡导采用显式的SecurityFilterChain配置以防止框架更新中的安全回归。"
+      }
+    }
+  },
+  {
+    "title": "Spring Security con Spring Boot Actuator: así quedó el modelo de autorización después del incidente",
+    "slug": "spring-security-boot-configuracion",
+    "url": "https://dev.to/jtorchia/spring-security-con-spring-boot-actuator-asi-quedo-el-modelo-de-autorizacion-despues-del-incidente-1hmo",
+    "source": "DEV Community",
+    "date": "2026-05-12T12:30:18.000Z",
+    "summary": "Spanish-language discussion of Spring Boot default security configurations that fail silently, leaving endpoints exposing sensitive data undetected. Emphasizes explicit SecurityFilterChain configurations over inherited defaults to prevent security regressions during updates.",
+    "content": "Spring Security con Spring Boot Actuator: así quedó el modelo de autorización después del incidente\n\n\nEl 68% de los misconfigs de seguridad en Spring Boot vienen de configuración que parece segura porque no tira error. Sí, leíste bien. No hay excepción, no hay warning en el log, no hay nada. El endpoint simplemente responde 200 y vos no te enterás hasta que alguien más lo encuentra.\nEso es exactamente lo que pasó en el caso que describí en el post anterior. Actuator corriendo en producción, /env y /metrics devolviendo datos sin pedir credenciales, todo porque la configuración por default de Spring Boot 3 no cierra lo que no conocés. Cerramos los endpoints mal configurados. Pero cerrarlos no fue suficiente — el modelo de autorización que quedó era heredado, implícito y frágil. Había que rehacerlo.\nMi tesis es esta: un modelo de autorización heredado por default es técnicamente peor que uno explícito, incluso si los dos producen el mismo comportamiento observable hoy. Porque el primero va a romperse cuando actualices una dependencia o agregues un endpoint nuevo. El segundo va a gritar.\nAntes del incidente, el backend de Spring Boot 3 con Java 21 no tenía ningún SecurityFilterChain dedicado a Actuator. Dependía del comportamiento default de Spring Security 6 y de las propiedades en application.yml. El resultado era predecible en retrospectiva: cualquier cambio en la versión de Spring Boot podía romper el contrato de seguridad sin que el build lo detectara.\nEsto es lo que no tenías que tener:\n# ❌ Configuración ambigua — lo que NO querés\nmanagement:\n  endpoints:\n    web:\n      exposure:\n        include: \"*\"  # expone TODO — terrible en producción\n  endpoint:\n    health:\n      show-details: always  # stacktraces y detalles a cualquiera\n\nSpring Boot con include: \"*\" expone /actuator/env, /actuator/heapdump, /actuator/threaddump, /actuator/loggers y una lista larga. Con show-details: always, el health endpoint devuelve detalles del datasource, estado de dependencias y mensa",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Spring Security和Spring Boot Actuator：事件后授权模型的变化",
+        "summary": "关于Spring Boot默认安全配置的讨论，这些配置默认失败，导致端点泄露敏感数据而未被发现。强调显式SecurityFilterChain配置优于继承的默认值，以防止更新期间的安全回归。"
+      }
+    }
+  },
+  {
+    "title": "Top 11 Identity Orchestration Tools and Platforms for 2026",
+    "slug": "identity-orchestration-tools-2026",
+    "url": "https://dev.to/gitguardian/top-11-identity-orchestration-tools-and-platforms-for-2026-46e",
+    "source": "DEV Community",
+    "date": "2026-05-12T12:23:46.000Z",
+    "summary": "Identity orchestration platforms unify fragmented IAM systems across multiple cloud providers and identity sources, automating lifecycle management and governance. These tools address the growing complexity of managing both human and non-human identities at scale.",
+    "content": "TL;DR: Identity orchestration unifies fragmented IAM environments by connecting identity providers, directories, access policies, and governance workflows into a single, automated control plane. The top identity orchestration tools in 2026 fall into several categories: identity orchestration engines, IAM platforms with orchestration capabilities, identity governance and lifecycle platforms, and secrets security and NHI exposure prevention. Most enterprises need an orchestration layer to unify identity flows and a secrets security layer to ensure credentials and non-human identities (NHIs) aren't compromised.\nFor context, the average enterprise manages identities across 5 to 10+ identity providers, directories, and access management systems.\nThe result? Fragmented access policies, inconsistent lifecycle management, identity blind spots, and a sprawling attack surface. This is especially true for non-human identities (NHIs) that slip through the cracks of traditional IAM.\nThis is why identity orchestration — the practice of connecting, coordinating, and automating identity management across multiple systems through a unified control plane — is so important. Rather than ripping and replacing your existing identity stack, identity orchestration software sits above it, enforcing consistent policies, automating lifecycle workflows, and centralizing visibility across all connected systems.\n\nMulti-cloud and hybrid identity sprawl. Organizations running workloads across AWS, Azure, GCP, and on-premises end up with disconnected identity silos.\nLegacy-to-modern IAM migration complexity. Many companies run critical applications on legacy systems that depend on LDAP or on-premises Active Directory.\nSaaS and third-party integration explosion. Every SaaS tool comes with its own identity requirements.\nNon-human identity proliferation. API keys, service accounts, OAuth tokens, and certificates now outnumber human identities in most enterprise environments.\nZero-trust architecture re",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "2026年顶级11个身份编排工具和平台",
+        "summary": "身份编排平台统一跨多个云提供商和身份源的分散IAM系统，自动化生命周期管理和治理。这些工具解决了大规模管理人类和非人类身份不断增长的复杂性。"
+      }
+    }
+  },
+  {
+    "title": "I built my own programming language at 19 — Akro (runs in the browser, no install)",
+    "slug": "akro-browser-programming-language",
+    "url": "https://dev.to/ankitkhileryy/i-built-my-own-programming-language-at-19-akro-runs-in-the-browser-no-install-1ge6",
+    "source": "DEV Community",
+    "date": "2026-05-12T12:22:20.000Z",
+    "summary": "A 19-year-old created Akro, a minimal programming language running entirely in the browser with pattern matching and functional programming features. The no-install playground demonstrates how web-based tools can lower barriers to language experimentation.",
+    "content": "Who am I?\n\n\nI'm Ankit Bishnoi, 19 years old from India.\nSkills: JavaScript, TypeScript, React, HTML/CSS, Python, MongoDB, SQL, Ethical Hacking, Social Media.\nGitHub: @ankitkhileryy\nAkro — a minimal programming language that runs entirely in the browser.\nThe name comes from my initials \"AK\". Personal name, universal language.\nNo install needed → try it now: akro-lang.dev/playground\n\nakro\nfn main {\n  name := \"World\"\n  say \"Hello, {name}!\"\n\n  nums := [1, 2, 3, 4, 5]\n  total := reduce(nums, fn(a, b) { return a + b }, 0)\n  say \"Sum = {total}\"\n\n  grade := match 87 {\n    case 90..100 { \"A\" }\n    case 80..89  { \"B\" }\n    case _       { \"C or below\" }\n  }\n  say \"Grade: {grade}\"\n}",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我在19岁时创建了自己的编程语言——Akro（在浏览器中运行，无需安装）",
+        "summary": "一名19岁的开发者创建了Akro，一种在浏览器中完全运行的极简编程语言，具有模式匹配和函数式编程特性。无需安装的游乐场展示了基于网络的工具如何能够降低语言实验的门槛。"
+      }
+    }
+  },
+  {
+    "title": "Auditing 1,000 French SMB sites: the top technical tier captures 4.2x the sector median in organic traffic",
+    "slug": "french-sme-technical-seo-audit",
+    "url": "https://dev.to/jchristophe_c_a97ec1e82/auditing-1000-french-smb-sites-the-top-technical-tier-captures-42x-the-sector-median-in-organic-1hae",
+    "source": "DEV Community",
+    "date": "2026-05-12T12:21:50.000Z",
+    "summary": "Analysis of 1,000 French SMB websites shows technically top-tier sites passing Core Web Vitals capture 4.2 times the sector median organic traffic, with gains compounding over time. Underserved sectors like legal and construction represent significant opportunities for early technical adoption.",
+    "content": "Over several months, we audited 1,000 French SMB sites using a unified protocol — same criteria, same tools, same thresholds. The goal: identify what actually separates sites capturing organic traffic from sites that stagnate. The results are sharper than we expected.\nTechnically top-tier sites — those that pass Core Web Vitals, carry valid structured data, and use a coherent semantic architecture — capture on average 4.2x the sector-median organic traffic. Not 20% more. Not double. Over four times.\nThis gap does not close with isolated content pushes or ad campaigns. It widens month over month because technical signals compound. Sites starting late watch competitors consolidate.\nAverage SEO score for French SMBs sits at 43/100. That is low. The majority of sites have meaningful gaps, and clearing 60/100 is enough to stand out in most sectors.\n\n\nAverage mobile Lighthouse score: 42/100. Only 18% clear Google's \"Good\" threshold. Core Web Vitals have been a ranking signal since 2021, yet most French SMB sites continue to ignore them. For a competitor willing to invest, this is a structural opportunity.\n\n\nOver 65% of agency-built sites shipped with structural SEO errors. Duplicate title tags, missing structured data, flat architecture, uncompressed images. Signals that a large portion of the agency market sells design and dev without integrating acquisition.\n\n\n\n\n  \n  \n  Laggard sectors are the biggest opportunities\n\n\nSector disparities are pronounced. Legal sits in the bottom three with law firm averages near 28/100. Construction/trades barely reaches 29/100 despite huge local search volumes. Healthcare professions also trail.\nThese lags are not anomalies — they are opportunities. Operators in these sectors who invest seriously in SEO can reach page one in months because organic competition is thinner. ROI is mechanically faster than in saturated sectors.\nAnalyzing sites scoring above 65/100, five patterns appear consistently:\nSemantic silo architecture — not an adminis",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "审计1,000个法国中小企业网站：技术顶级网站的有机流量是行业中位数的4.2倍",
+        "summary": "对1,000个法国中小企业网站的分析表明，通过Core Web Vitals的技术顶级网站获得的有机流量是行业中位数的4.2倍，收益随时间推移而复合增长。法律和建筑等服务不足的行业为早期技术采用提供了重大机遇。"
+      }
+    }
+  },
+  {
+    "title": "How to Auto-Unlock LUKS2 Encrypted Disks at Boot with Clevis and Tang",
+    "slug": "luks2-auto-unlock-clevis-tang",
+    "url": "https://dev.to/fatihsennik/how-to-auto-unlock-luks2-encrypted-disks-at-boot-with-clevis-and-tang-3b31",
+    "source": "DEV Community",
+    "date": "2026-05-12T12:21:45.000Z",
+    "summary": "Clevis and Tang enable automatic LUKS2 disk unlocking at boot via secure key exchange, eliminating manual passphrase entry on headless servers while maintaining security. The system allows fallback to manual entry if the Tang server becomes unreachable.",
+    "content": "The Problem\n\n\nFull disk encryption is great — until you reboot a headless server at 3am and realize you need to type a passphrase with no keyboard attached. Every reboot now requires manual passphrase entry. That's... not great when your server is a headless VM sitting in a datacenter rack in another city.\nEnter Clevis and Tang. Together they let your server auto-unlock its LUKS2 volume at boot — but only when it can reach your Tang server on the network. No Tang server reachable? No unlock. It's elegant and your data is safe even if someone walks off with the physical server.\nDuring boot, Clevis contacts Tang and initiates a JOSE/JWK key exchange. What makes this secure is what doesn't happen — your LUKS passphrase is never transmitted, Tang gains zero knowledge of the disk key, and the derived secret exists only in RAM long enough to unlock the volume. The wire traffic reveals nothing useful to an attacker and the Tang server never sees your LUKS passphrase; it just participates in the math.\n\nLet's say that Tang server is unreachable, then Clevis gets no response, the key exchange fails, and the disk stays locked. You can still fall back to a manual passphrase, which is a separate LUKS keyslot you keep as a backup.\nKeep a backup passphrase keyslot! Clevis adds its own keyslot but doesn't touch your existing passphrase. Keep it. Store it in your password manager. If Tang ever goes down permanently you'll need it. LUKS supports multiple keyslots for exactly this reason.\nTang runs as a simple systemd socket service. It's lightweight — It functions solely as a key exchange endpoint, requiring no database and no configuration files other than the key material it generates automatically. it automatically generates its key material in /var/db/tang/. That's it. No config needed.\napt-get update\n\napt install tang jose\n\n# Enable and start\nsystemctl enable --now tangd.socket\n\n# Change its port to any. Example: 9102\nnano /lib/systemd/system/tangd.socket\n\nsystemctl daemon-reloa",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何使用Clevis和Tang在启动时自动解锁LUKS2加密磁盘",
+        "summary": "Clevis和Tang通过安全密钥交换在启动时启用自动LUKS2磁盘解锁，消除了无头服务器上的手动密码输入，同时保持安全性。如果Tang服务器变得不可达，该系统允许回退到手动输入。"
+      }
+    }
+  },
+  {
+    "title": "What now? explaining the TanStack Supply Chain Attack",
+    "slug": "tanstack-npm-supply-chain-attack",
+    "url": "https://dev.to/pvgomes/what-now-explaining-the-tanstack-supply-chain-attack-1cfh",
+    "source": "DEV Community",
+    "date": "2026-05-12T12:20:30.000Z",
+    "summary": "On May 11, a sophisticated npm supply chain attack compromised 42 TanStack packages through GitHub Actions cache poisoning and OIDC token theft, distributing 84 malicious versions without stealing credentials. The attack exploited workflow misconfigurations to inject malware into trusted CI contexts.",
+    "content": "If you install any tanstack package you might be affected. That it, on May 11, 2026, one of the most sophisticated npm supply chain attacks ever seen hit the JavaScript ecosystem, and it's still spreading.\n\nThis is my attempt to explain it simply, because the technical details are buried in postmortems and most developers I know haven't fully digested what this means for them.\nThe attackers compromised 42 TanStack packages, publishing 84 malicious versions in a 6-minute window. TanStack is widely used, Query, Router, Start, so the blast radius was insane.\nBut here's what makes this different from a typical \"someone hacked a maintainer's account\" story: no passwords were stolen. The attackers never needed them.\nThe attacker opened a pull request to TanStack's GitHub repo. Looks innocent. But they exploited three things in sequence:\n1. A dangerous GitHub Actions trigger\nThe workflow used pull_request_target instead of pull_request. The difference sounds minor but it's huge. pull_request_target runs in the context of the base repository, meaning it has access to secrets and can write to the Actions cache — even from a forked PR.\n2. Cache poisoning\nThe malicious PR code ran during CI and wrote a poisoned 1.1 GB cache entry keyed to match what the release workflow would look up on the next push to main. Then the attacker quietly reverted the PR to a no-op and closed it. The cache stayed poisoned.\n3. OIDC token theft\nWhen a legitimate maintainer merged an unrelated PR days later, the release workflow started, restored the poisoned cache, and the malware ran inside the trusted CI context. It then minted a short-lived OIDC token (the kind used for \"Trusted Publishing\" on npm) and published the malicious versions directly — all while the legitimate workflow showed a failure status.\nNo npm credentials. No compromised passwords. Just a poisoned cache waiting for the right moment.\nOnce installed via npm install, it:\nHarvests AWS credentials, GitHub tokens, npm tokens, SSH keys,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "现在怎么办？解释TanStack供应链攻击",
+        "summary": "5月11日，一场精密的npm供应链攻击通过GitHub Actions缓存中毒和OIDC令牌盗窃攻击了42个TanStack软件包，分发了84个恶意版本而没有窃取凭证。该攻击利用工作流配置错误将恶意软件注入可信CI环境。"
+      }
+    }
+  },
+  {
     "title": "GPT-5.5 Pro เทียบกับ Instant: คุ้มค่าไหมเมื่อราคาต่าง 6 เท่า",
     "slug": "gpt-55-pro-vs-instant-pricing-guide",
     "url": "https://dev.to/thanawat_wonchai/gpt-55-pro-ethiiybkab-instant-khumkhaaaihmemuueraakhaataang-6-ethaa-1h7l",
@@ -192,6 +384,22 @@
     }
   },
   {
+    "title": "Screenshots of Old Desktop OSes",
+    "slug": "screenshots-historical-desktop-operating-systems",
+    "url": "http://www.typewritten.org/Media/",
+    "source": "Hacker News",
+    "date": "2026-05-12T05:11:24.000Z",
+    "summary": "A curated collection of historical screenshots documenting the visual design and interface evolution of classic desktop operating systems. The archive preserves computing history through UI design patterns and aesthetic choices spanning decades of OS development.",
+    "content": "Article URL: http://www.typewritten.org/Media/\nComments URL: https://news.ycombinator.com/item?id=48104428\nPoints: 290\n# Comments: 121",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "历史桌面操作系统的截图",
+        "summary": "这是一个精心策划的历史截图集合，记录了经典桌面操作系统的视觉设计和界面演变。该档案通过跨越数十年操作系统发展的用户界面设计模式和审美选择来保存计算历史。"
+      }
+    }
+  },
+  {
     "title": "Legacy Protocol Integration for Secure Distributed AI.",
     "slug": "legacy-protocol-integration-distributed-ai",
     "url": "https://dev.to/artem_a/legacy-protocol-integration-for-secure-distributed-ai-5cp2",
@@ -252,6 +460,22 @@
       "zh": {
         "title": "我如何使用 Claude 进行代码审查 — 在错误到达生产环境之前捕获它们",
         "summary": "一个软件团队通过使用 Claude 系统化代码审查，在五个层次（风格、逻辑错误、安全、性能和架构）上将错误逃逸率从 23% 降低到 3%。Claude 自动化了表面级别的检查，使人类审查员能够专注于设计决策。"
+      }
+    }
+  },
+  {
+    "title": "They Live (1988) inspired Adblocker",
+    "slug": "they-live-inspired-adblocker",
+    "url": "https://github.com/davmlaw/they_live_adblocker",
+    "source": "Hacker News",
+    "date": "2026-05-12T00:37:54.000Z",
+    "summary": "An adblocker project inspired by the 1988 film \"They Live\" aims to reveal and filter hidden advertising messages, applying the film's concept of concealed messages to modern web advertising. The tool demonstrates creative uses of popular culture as design metaphor.",
+    "content": "Article URL: https://github.com/davmlaw/they_live_adblocker\nComments URL: https://news.ycombinator.com/item?id=48102700\nPoints: 326\n# Comments: 103",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "受《They Live》(1988)启发的广告拦截器",
+        "summary": "一个受1988年电影《They Live》启发的广告拦截项目旨在揭示和过滤隐藏的广告信息，将电影中隐藏信息的概念应用于现代网络广告。该工具展示了流行文化作为设计隐喻的创意应用。"
       }
     }
   },
