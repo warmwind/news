@@ -1,0 +1,194 @@
+[
+  {
+    "title": "How I auto-enrich a brand database with AI on cache miss (Lovable + Claude API)",
+    "slug": "how-i-auto-enrich-a-brand-database-with-ai-on-cache-miss-lovable-claude-api",
+    "url": "https://dev.to/tokidigital/how-i-auto-enrich-a-brand-database-with-ai-on-cache-miss-lovable-claude-api-1kfd",
+    "source": "DEV Community",
+    "date": "2026-05-16T00:44:22.000Z",
+    "summary": "Most database designs have two ugly options:\nManually seed thousands of rows (impossible for niche data like Japanese wholesale suppliers)\nForce users to enter everything (terrible UX, dead-on-arrival",
+    "content": "Most database designs have two ugly options:\nManually seed thousands of rows (impossible for niche data like Japanese wholesale suppliers)\nForce users to enter everything (terrible UX, dead-on-arrival)\nLast week I shipped a third option in 30 minutes with Lovable: let the database grow itself.\nEvery search that misses the cache triggers Claude API to generate a real, structured entry — and saves it. The next user gets an instant hit.\nHere's the exact pattern.\nasync function search(query) {\n  if (await db.has(query)) return db.get(query);\n  const entry = await aiGenerate(query);\n  await db.save(entry);\n  return entry;\n}\n\nThat's the whole thing. The magic is in what happens to the database over time.\nSeed-only DBs require domain expertise upfront. For my Japan Brand Finder, that meant cold-calling Tsubame-Sanjo metalworkers — months of effort before launching.\nUser-fed DBs have chicken-and-egg. Empty DB → no value → no users → no entries.\nCache-miss enrichment sidesteps both:\nLaunch with 20 seed entries (1 hour)\nAI fills the long tail as users search\nEvery miss makes the DB better for the next user\nCost grows linearly with usage (predictable)\nThe hard part isn't the pattern. It's getting AI to produce structured, useful entries instead of generic Wikipedia summaries.\nWhat worked for me (Japan Brand Finder context):\nYou are filling a database row for a Japanese manufacturer.\nThe user searched: \"[QUERY]\"\n\nGenerate a JSON object:\n- name_en: English brand name\n- name_jp: Japanese name (kanji or kana)\n- category: from this list [...]\n- hq_location: city, prefecture\n- english_support: \"good\" | \"limited\" | \"none\"\n- business_culture_notes: 1-2 sentences\n\nIf the brand doesn't exist, return null. Don't invent.\n\nTwo key tricks:\nJSON schema forces structure (no rambling output)\n\"Return null if doesn't exist\" gives AI permission to refuse\nThe second one cut hallucination by ~80% in my testing.\nPer search: ~$0.005 with Claude Sonnet\nPer 1,000 searches: ~$5\nDB grows: ~700 unique ent",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何在缓存未命中时使用AI自动充实品牌数据库(Lovable + Claude API)",
+        "summary": "大多数数据库设计有两个糟糕的选项：手动填充数千行(对于日本批发供应商等专业数据来说是不可能的)、强制用户输入所有内容(糟糕的用户体验,注定失败)"
+      }
+    }
+  },
+  {
+    "title": "Converting LangChain Messages to OpenAI and Amazon Bedrock Converse Formats",
+    "slug": "converting-langchain-messages-to-openai-and-amazon-bedrock-converse-formats",
+    "url": "https://dev.to/moyarich/converting-langchain-messages-to-openai-and-amazon-bedrock-converse-formats-5445",
+    "source": "DEV Community",
+    "date": "2026-05-16T00:42:19.000Z",
+    "summary": "When building AI applications with LangChain, your chat history usually lives as a list of LangChain message objects like SystemMessage, HumanMessage, AIMessage, and ToolMessage.\nThat format is conven",
+    "content": "When building AI applications with LangChain, your chat history usually lives as a list of LangChain message objects like SystemMessage, HumanMessage, AIMessage, and ToolMessage.\nThat format is convenient inside LangChain, but you may eventually need to save the conversation history, inspect it, or send it to different providers such as OpenAI-compatible APIs or Amazon Bedrock Converse.\nOut Langchain conversation history will be:\nConverted to OpenAI chat-completions format.\nConverted to Amazon Bedrock Converse format.\nSaved to chat_history_v1.json.\nLoaded back into LangChain message objects.\nConverted again after loading to prove the round trip works.\nUsed with an optional Bedrock toolConfig and client.converse() call.\npip install -U langchain-core langchain-aws boto3\n\nimport json\nfrom pathlib import Path\n\nfrom langchain_core.messages import (\n    AIMessage,\n    HumanMessage,\n    SystemMessage,\n    ToolCall,\n    ToolMessage,\n    convert_to_openai_messages,\n    messages_from_dict,\n    messages_to_dict,\n)\nfrom langchain_aws.chat_models.bedrock_converse import _messages_to_bedrock\n\nThis example includes regular messages and a simple tool-calling exchange.\nLangChain uses:\nToolCall for the assistant/model asking to call a tool\nToolMessage for the application returning the tool result\n\n\n\n\nfile_path = Path(\"chat_history_v1.json\")\n\nweather_tool_call: ToolCall = {\n    \"name\": \"get_weather\",\n    \"args\": {\n        \"city\": \"Chicago\",\n        \"unit\": \"fahrenheit\",\n    },\n    \"id\": \"tool_call_001\",\n}\n\nupdated_messages = [\n    SystemMessage(content=\"You are a helpful assistant.\"),\n    HumanMessage(content=\"What is RAG?\"),\n    AIMessage(content=\"RAG means retrieval-augmented generation.\"),\n    HumanMessage(content=\"Explain it in simple terms.\"),\n\n    # The user asks a question that needs a tool.\n    HumanMessage(content=\"What is the weather in Chicago?\"),\n\n    # The assistant decides to call a tool.\n    AIMessage(\n        content=\"\",\n        tool_calls=[weather_tool_call],\n    ),",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "将LangChain消息转换为OpenAI和Amazon Bedrock Converse格式",
+        "summary": "在使用LangChain构建AI应用时,你的聊天历史通常以LangChain消息对象列表的形式存储,如SystemMessage、HumanMessage、AIMessage和ToolMessage。该格式很便"
+      }
+    }
+  },
+  {
+    "title": "Part 7: Testing with Confidence: Mocking and Recap",
+    "slug": "part-7-testing-with-confidence-mocking-and-recap",
+    "url": "https://dev.to/matzefriedrich/part-7-testing-with-confidence-mocking-and-recap-49eg",
+    "source": "DEV Community",
+    "date": "2026-05-16T00:42:11.000Z",
+    "summary": "The Role of Mocks in Unit Testing\n\n\nIn the previous parts of this series, we focused on building and validating complex dependency graphs for production environments. However, a robust architecture is",
+    "content": "The Role of Mocks in Unit Testing\n\n\nIn the previous parts of this series, we focused on building and validating complex dependency graphs for production environments. However, a robust architecture is only half the battle; ensuring that individual components behave correctly in isolation is equally critical.\nUnit testing in Go often relies on Mock Objects. Mocks allow you to replace real service implementations with controlled placeholders that simulate specific behaviors, return predetermined values, or record how they were called. This isolation is essential for testing edge cases—like network failures or database errors—without setting up expensive infrastructure.\nIn this final part of our series, we explore how the Parsley CLI simplifies mock generation and how you can use these mocks to write highly expressive tests.\nManually writing mock implementations for every interface in your project is tedious and error-prone. Parsley addresses this by providing a dedicated generate mocks command.\nTo enable mock generation, add a //go:generate directive to your interface definition.\npackage features\n\n//go:generate parsley-cli generate mocks\n\ntype DataService interface {\n    FetchData(id string) (string, error)\n}\n\nWhen you run go generate ./..., the Parsley CLI scans for the directive and generates a mock.g.go file. This file contains a mock struct (e.g., dataServiceMock) that implements your interface and provides hooks for behavior configuration.\nThe generated mocks are designed to be used as drop-in replacements in your test suites. They use a \"function-override\" pattern that keeps your tests clean and readable.\nSuppose we want to test a service that depends on our DataService. We can use the generated NewDataServiceMock() to simulate a successful data fetch.\nfunc TestService_Process(t *testing.T) {\n    // 1. Arrange: Initialize the mock and define its behavior\n    mock := NewDataServiceMock()\n    mock.FetchDataFunc = func(id string) (string, error) {\n        return \"m",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第7部分:充满信心地测试:模拟和回顾",
+        "summary": "单元测试中的模拟作用。在本系列的前几部分中,我们专注于为生产环境构建和验证复杂的依赖图。然而,强大的架构是"
+      }
+    }
+  },
+  {
+    "title": "Part 6: Ensuring Reliability - Validation and Proxies with Parsley",
+    "slug": "part-6-ensuring-reliability-validation-and-proxies-with-parsley",
+    "url": "https://dev.to/matzefriedrich/part-6-ensuring-reliability-validation-and-proxies-with-parsley-32fo",
+    "source": "DEV Community",
+    "date": "2026-05-16T00:35:03.000Z",
+    "summary": "The Challenge of Complexity\n\n\nAs your dependency graph grows, so does the risk of subtle configuration errors. A missing registration or a circular dependency might remain hidden during development, o",
+    "content": "The Challenge of Complexity\n\n\nAs your dependency graph grows, so does the risk of subtle configuration errors. A missing registration or a circular dependency might remain hidden during development, only to manifest as a runtime failure in production. Furthermore, as you add cross-cutting concerns like logging, metrics, or auditing, your core business logic often becomes cluttered with boilerplate code that has nothing to do with the actual domain.\nIn our previous article, Part 5: Mastering Dependency Resolution in Go with Parsley, we explored advanced ways to resolve services. In this sixth part, we shift our focus to Reliability and Maintainability. We will learn how to use Parsley's Validator to catch configuration issues before your application starts and how to use Generated Proxies to cleanly separate cross-cutting concerns from your business logic.\nThe Parsley Validator is a specialized service designed to inspect your ServiceRegistry and identify structural flaws in your dependency graph. It specifically targets two common pitfalls: Missing Dependencies and Circular Dependencies.\nA missing dependency occurs when a service's constructor requires another service that hasn't been registered. Without validation, Parsley will attempt to resolve the dependency at runtime and fail, potentially causing a panic if not handled gracefully.\nA circular dependency happens when two or more services depend on each other (e.g., A needs B, and B needs A). This creates an infinite loop during resolution, leading to a stack overflow. While Parsley's resolver has runtime checks for this, the Validator provides much better error messaging and allows you to catch the loop during startup or even in a unit test.\nThe best practice is to run the validator immediately after completing your service registrations in main.go.\nfunc main() {\n    registry := registration.NewServiceRegistry()\n\n    // ... Register your services and modules ...\n    registry.RegisterModule(userModule)\n    regist",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第6部分：确保可靠性 - 使用Parsley进行验证和代理",
+        "summary": "复杂性的挑战。随着您的依赖关系图增长，微妙的配置错误的风险也随之增加。缺少的注册或循环依赖可能在开发过程中保持隐藏状态。"
+      }
+    }
+  },
+  {
+    "title": "Spraay just introduced new endpoints for Solana Agents.",
+    "slug": "spraay-just-introduced-new-endpoints-for-solana-agents",
+    "url": "https://dev.to/mr_hamlin/spraay-just-introduced-new-endpoints-for-solana-agents-45fp",
+    "source": "DEV Community",
+    "date": "2026-05-16T00:34:34.000Z",
+    "summary": "If you've built a Solana DeFi agent recently, you know the shape of the work.\nYou write a quote function. It calls Jupiter directly because that's where the liquidity is. Then you need wallet holdings",
+    "content": "If you've built a Solana DeFi agent recently, you know the shape of the work.\nYou write a quote function. It calls Jupiter directly because that's where the liquidity is. Then you need wallet holdings, so you sign up for Helius and stick a key in .env. Then you need price feeds, so you wire up Pyth Hermes. Three providers, three rate limits, three sets of error semantics, three keys to rotate. Your agent does six interesting things and you're managing eight pieces of infrastructure.\nI've been building Spraay — an x402 gateway — for several months, and as of today it speaks Solana DeFi natively. Six new endpoints, one gateway, payable per call in USDC. If you're somewhere in the middle of writing the agent I just described, this might save you a weekend.\nGET  /api/v1/solana/jupiter/quote         $0.005\nPOST /api/v1/solana/jupiter/swap-tx       $0.01\nGET  /api/v1/solana/helius/assets-by-owner $0.003\nGET  /api/v1/solana/helius/asset          $0.002\nGET  /api/v1/solana/pyth/price            $0.005\nGET  /api/v1/solana/pyth/prices           $0.008\n\nAll six are pure proxies to the real upstream — Jupiter v6, Helius DAS, Pyth Hermes. No synthetic data, no mock responses. Spraay does payment, validation, error normalization, and Bazaar discovery. Your agent does everything else.\nNo accounts. No signup, no email confirmation, no dashboard. Your agent's wallet is its identity.\nNo API keys. Payment is the auth. You pay $0.005, you get the response.\nNo bridging. Pay in either Solana USDC (SPL) or Base USDC (ERC-20). Spraay accepts both on every endpoint. Useful when your agent already has USDC on Base from doing other things.\nNo upstream rate-limit babysitting. Spraay holds the paid tier with Helius and Jupiter. You see clean 402s on success, 429 with retryAfter if upstream rate-limits us.\nNo custody risk on swaps. Jupiter swap-tx returns an unsigned VersionedTransaction. Your wallet signs and submits. The gateway never touches keys.\nThe integration that took me three days to do",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Spraay刚刚为Solana代理引入了新的端点",
+        "summary": "如果您最近构建过Solana DeFi代理，您就知道这项工作的形状。您编写报价函数。它直接调用Jupiter，因为那是流动性所在的地方。然后您需要钱包持有。"
+      }
+    }
+  },
+  {
+    "title": "What Is Preact and Why Does a 3KB Version of React Exist",
+    "slug": "what-is-preact-and-why-does-a-3kb-version-of-react-exist",
+    "url": "https://dev.to/helloashish99/what-is-preact-and-why-does-a-3kb-version-of-react-exist-2pk1",
+    "source": "DEV Community",
+    "date": "2026-05-16T00:30:00.000Z",
+    "summary": "Related: JavaScript Bundle Analysis: Tree Shaking and Code Splitting Explained covers why the size difference between React and Preact matters and how bundle size translates to parse time on real hard",
+    "content": "Related: JavaScript Bundle Analysis: Tree Shaking and Code Splitting Explained covers why the size difference between React and Preact matters and how bundle size translates to parse time on real hardware.\nReact is approximately 45KB minified and gzipped (react + react-dom combined). Preact is approximately 3KB. Both let you write JSX components with hooks. Both produce the same UI. The question \"why does Preact exist\" has a specific technical answer, not a vague one about bundle size. React ships features that most applications never use, and those features are not cheap. Preact ships without them. The 42KB difference is exactly those features.\nWhat this covers: What is actually inside React's 45KB that Preact does not include, what the API compatibility story looks like, which applications benefit most from the switch, and the one major React feature that Preact does not support at all.\n\nReact is split into two packages: react (core API, ~7KB) and react-dom (renderer for the browser, ~38KB). The react-dom package is where most of the size lives, and it contains several systems that Preact either removes entirely or significantly simplifies.\nSynthetic event system. React does not attach event listeners directly to DOM elements. It attaches a single event listener to the root of the document and uses event delegation to handle all events across the component tree. When an event fires, React's synthetic event system normalizes it into a cross-browser compatible event object before passing it to your handler.\nThis system exists because in 2013 when React was created, browser event handling was inconsistent enough that normalization was necessary. Today, modern browsers are far more consistent, but the synthetic event system remains because removing it would be a breaking change.\nPreact attaches event listeners directly to DOM elements using addEventListener. It calls native browser events. No normalization layer. No delegation. Most applications running on modern brow",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "什么是Preact，为什么存在3KB版本的React",
+        "summary": "相关内容：JavaScript Bundle Analysis中的Tree Shaking和Code Splitting解释了为什么React和Preact之间的大小差异很重要，以及捆绑包大小如何转换为实际硬件上的解析时间。"
+      }
+    }
+  },
+  {
+    "title": "Building a Multi-Container Flask, PostgreSQL, and NGINX Stack Using Docker Compose — Including Every Failure Encountered.",
+    "slug": "building-a-multi-container-flask-postgresql-and-nginx-stack-using-docker-compose",
+    "url": "https://dev.to/gravox/building-a-multi-container-flask-postgresql-and-nginx-stack-using-docker-compose-including-3c77",
+    "source": "DEV Community",
+    "date": "2026-05-16T00:28:37.000Z",
+    "summary": "A production-style application deployment rarely succeeds on the first attempt.\nThis project implemented a containerized multi-service architecture using Docker Compose, integrating Flask as the appli",
+    "content": "A production-style application deployment rarely succeeds on the first attempt.\nThis project implemented a containerized multi-service architecture using Docker Compose, integrating Flask as the application layer, PostgreSQL as the persistence layer, Gunicorn as the WSGI runtime, and NGINX as the reverse proxy ingress service.\nThe intended architecture was:\nClient → NGINX → Flask → PostgreSQL\nThe objective extended beyond simply getting containers running.\nThe implementation focused on:\nMulti-container orchestration\nReverse proxy traffic routing\nInter-service communication\nStateful persistence with Docker volumes\nEnvironment variable injection\nRuntime debugging and remediation\nContainer observability and diagnostics\nSeveral deployment failures occurred during implementation, each requiring troubleshooting and root cause analysis.\nIssues encountered included:\nDocker Compose manifest discovery failure due to incorrect directory placement.\n\n\nDocker image build failures caused by malformed Dockerfile syntax.\n\n\nGunicorn runtime crashes resulting from incorrect CMD formatting.\n\n\nNGINX ingress failure caused by invalid directive syntax (\"listens\" instead of \"listen\").\n\n\nFlask runtime exceptions caused by Python syntax, indentation, and environment variable errors.\n\n\n\nEach failure required log inspection, iterative debugging, configuration correction, rebuild execution, and container redeployment.\nValidation was performed using:\ndocker compose logs -f\nFinal deployment confirmed successful end-to-end communication between NGINX, Flask, and PostgreSQL.\nThis article documents the complete deployment lifecycle, architecture decisions, failure analysis, remediation strategy, and operational lessons learned while building the stack.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用 Docker Compose 构建多容器 Flask、PostgreSQL 和 NGINX 堆栈——包括遇到的每一个失败",
+        "summary": "生产式应用部署很少能一次成功。该项目使用 Docker Compose 实现了一个容器化的多服务架构，集成了 Flask 作为应用"
+      }
+    }
+  },
+  {
+    "title": "Part 5: Mastering Dependency Resolution in Go with Parsley",
+    "slug": "part-5-mastering-dependency-resolution-in-go-with-parsley",
+    "url": "https://dev.to/matzefriedrich/part-5-mastering-dependency-resolution-in-go-with-parsley-9e4",
+    "source": "DEV Community",
+    "date": "2026-05-16T00:27:58.000Z",
+    "summary": "Navigating Complex Dependency Graphs\n\n\nAs applications evolve, so does the complexity of their dependency graphs. A simple \"register and resolve\" pattern is often sufficient for small projects, but pr",
+    "content": "Navigating Complex Dependency Graphs\n\n\nAs applications evolve, so does the complexity of their dependency graphs. A simple \"register and resolve\" pattern is often sufficient for small projects, but production-grade systems frequently encounter scenarios that require more granular control over the resolution process.\nYou might have a service that is expensive to initialize and only needed in rare edge cases. You might need to aggregate results from multiple implementations of the same interface. Or perhaps you need to override a specific dependency at runtime for a specialized task.\nIn this fifth part of our series, we dive into Advanced Dependency Resolution Techniques. Building on our knowledge of Part 4: Advanced Registration Patterns in Go with Parsley, we will explore how Parsley handles lazy loading, service lists, and manual dependency provision.\nIn a standard DI container, resolving a service usually triggers the activation of its entire dependency tree. For resource-intensive services—such as those establishing multiple network connections or performing heavy disk I/O—this can lead to unnecessary overhead if the service isn't actually used during a specific execution path.\nParsley solves this with Lazy Proxies.\nA lazy proxy acts as a lightweight placeholder. When you resolve a lazy service, Parsley returns a features.Lazy[T] instance instead of the actual service. The real service is only activated when you explicitly call its Value(ctx) method.\n// Register a service with a lazy proxy\nfeatures.RegisterLazy[Greeter](registry, NewGreeter, types.LifetimeTransient)\n\n// Resolve the proxy\nlazy, _ := resolving.ResolveRequiredService[features.Lazy[Greeter]](ctx, resolver)\n\n// The actual NewGreeter constructor is only called here:\ngreeter := lazy.Value(ctx)\ngreeter.SayHello(\"John\")\n\nOnce activated, the proxy caches the instance. Subsequent calls to Value() return the same object, ensuring consistent behavior while optimizing resource usage.\nIn modular architectures,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第 5 部分：使用 Parsley 掌握 Go 中的依赖解析",
+        "summary": "导航复杂的依赖图。随着应用程序的演变，其依赖图的复杂性也随之增加。简单的\"注册和解析\"模式对于小型项目通常是足够的，但"
+      }
+    }
+  },
+  {
+    "title": "Why we run two scoring tracks (LLM + Mediapipe) for our AI face-rating tool",
+    "slug": "why-we-run-two-scoring-tracks-llm-mediapipe-for-our-ai-face-rating-tool",
+    "url": "https://dev.to/xspring1982/why-we-run-two-scoring-tracks-llm-mediapipe-for-our-ai-face-rating-tool-4j0n",
+    "source": "DEV Community",
+    "date": "2026-05-16T00:27:51.000Z",
+    "summary": "A user tested our face-rating tool five times in a row with the same photo. They got scores of 6.2, 7.5, 6.8, 7.1, 5.9. That's a ±0.8 spread on supposedly the same input.\nThat email was the death of s",
+    "content": "A user tested our face-rating tool five times in a row with the same photo. They got scores of 6.2, 7.5, 6.8, 7.1, 5.9. That's a ±0.8 spread on supposedly the same input.\nThat email was the death of single-LLM scoring for us.\nThis is a short post about the architecture decision we ended up making — running two parallel scoring tracks and taking the geometric one as an anchor against LLM hallucination.\nSubjective face scoring with an LLM is fundamentally non-deterministic. Each call re-samples the latent space. For a deterministic-feeling task like \"rate this face 1-10,\" that variance is a UX killer. Users expect their face to have ONE score, not a probability distribution.\nCommon fixes that didn't work for us:\nLower temperature: helped at temperature=0, but the model still varied across calls because internal vector representations differ slightly.\nSelf-consistency (5 calls + majority): 5x the API cost for a 30% variance reduction. Not enough.\nFew-shot anchoring with calibration faces: helped on average score but not on individual variance.\nWhat worked: stop using LLMs for the parts where geometry is decidable.\nWe added a parallel geometric track using Mediapipe Face Mesh:\nCanthal tilt (corner-of-eye angle): measurable to ±2 degrees from face landmarks.\nJaw angle (mandibular angle from chin to ear): consistent across calls.\nSymmetry (Hausdorff distance between left/right halves): pure arithmetic.\nThese three measures map to a 0-10 sub-score that's deterministic for a given input image. It doesn't capture taste, but it captures geometry.\nThe LLM track stays — but now it's responsible for the aesthetic-judgment layer: skin quality assessment, hairstyle compatibility, facial harmony perception. Things that genuinely require pattern recognition over training data, not measurement.\nWe don't average the two. We compose:\nfinal_score = 0.6 * geometric_score + 0.4 * llm_aesthetic_score\n\nif abs(geometric - llm) > 2.0:\n    flag_for_review(f\"disagreement: G={geometric}, L={llm}",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么我们为 AI 人脸评分工具运行两个评分轨道（LLM + Mediapipe）",
+        "summary": "一位用户用同一张照片连续测试了五次我们的人脸评分工具。他们获得的分数分别是 6.2、7.5、6.8、7.1、5.9。在相同输入的情况下，这是 ±0.8 的偏差"
+      }
+    }
+  },
+  {
+    "title": "Bounty Watcher: An Autonomous AI Agent That Finds Paid Gigs While You Sleep",
+    "slug": "bounty-watcher-an-autonomous-ai-agent-that-finds-paid-gigs-while-you-sleep",
+    "url": "https://dev.to/athenaios/bounty-watcher-an-autonomous-ai-agent-that-finds-paid-gigs-while-you-sleep-38l7",
+    "source": "DEV Community",
+    "date": "2026-05-16T00:26:25.000Z",
+    "summary": "Two shell scripts. A cron scheduler. Hermes Agent as the delivery layer. Zero cloud costs. Freelance opportunities delivered to your Telegram every few hours.\nBounty Watcher is an autonomous agent pip",
+    "content": "Two shell scripts. A cron scheduler. Hermes Agent as the delivery layer. Zero cloud costs. Freelance opportunities delivered to your Telegram every few hours.\nBounty Watcher is an autonomous agent pipeline running on Hermes Agent that scans freelance bounty platforms 24/7, filters out noise, deduplicates, and delivers only relevant opportunities — straight to Telegram.\nIt covers two platforms:\nSuperteam Earn — crypto/solana bounties with cash rewards\nGitHub Issues — open source bounties across the ecosystem\nThe agent has been running in production for weeks on an Android phone via Termux. It costs nothing to operate beyond the LLM tokens used for occasional reasoning tasks — which, in this architecture, is close to zero.\nBuild With Hermes Agent — Hermes Agent is the orchestrator: it schedules, monitors, delivers, and provides the agentic intelligence for filtering and prioritization.\n+---------------------------------------------+\n|               Hermes Agent                   |\n|                                              |\n|  +----------+  +----------+  +-----------+  |\n|  |  Cronjob |  |  Cronjob |  |  Memory   |  |\n|  |  (6h)    |  |  (3h)    |  | (dedup)   |  |\n|  +----+-----+  +----+-----+  +-----------+  |\n|       |             |                        |\n|  +----v-----+  +----v-----+                 |\n|  |Superteam |  |  GitHub   |                 |\n|  | Script   |  |  Script   |                 |\n|  +----+-----+  +----+-----+                 |\n|       |             |                        |\n|       +------+------+                        |\n|              v                               |\n|       +-------------+                        |\n|       |  Delivery   |                        |\n|       |  (Telegram) |                        |\n|       +-------------+                        |\n+---------------------------------------------+\n\nHermes Agent plays three roles:\nScheduler — The cronjob tool runs shell scripts on a fixed cadence (every 6h, every 3h). The sched",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "赏金观察者：在您睡眠时寻找付费工作的自主AI代理",
+        "summary": "两个shell脚本。一个cron调度程序。Hermes Agent作为交付层。零云成本。每隔几小时通过Telegram发送自由职业机会。"
+      }
+    }
+  },
+  {
+    "title": "Running Hermes Agent on Android: A Production AI Agent in Your Pocket",
+    "slug": "running-hermes-agent-on-android-a-production-ai-agent-in-your-pocket",
+    "url": "https://dev.to/athenaios/running-hermes-agent-on-android-a-production-ai-agent-in-your-pocket-18nb",
+    "source": "DEV Community",
+    "date": "2026-05-16T00:25:30.000Z",
+    "summary": "No server. No cloud bill. Just a phone, Termux, and an AI agent that ships code.\nWhen I first heard about Hermes Agent, the open-source agentic framework from Nous Research, I did what any reasonable ",
+    "content": "No server. No cloud bill. Just a phone, Termux, and an AI agent that ships code.\nWhen I first heard about Hermes Agent, the open-source agentic framework from Nous Research, I did what any reasonable developer would do: I tried installing it on my laptop. It worked. Then I asked myself — what if I could run it on my phone, always on, always ready?\nTurns out you can. And it's surprisingly practical.\nTermux gives you a functional Linux environment on Android. With it, you get bash, Python, Node.js, git — everything you need. Installing Hermes Agent is a one-liner:\npkg install python git\npip install hermes-agent\nhermes setup\n\nThe setup wizard walks you through picking a provider (I use DeepSeek), configuring tools, and connecting messaging platforms. Within 10 minutes, I had a fully operational AI agent running on a Samsung phone.\nThree reasons:\nAlways-on. Your phone is already on 24/7. No separate device, no VPS, no cloud bill.\nMessaging-native. Hermes Agent connects to Telegram natively — you interact with it like a contact. Wake up, check your messages, ask your agent what happened overnight.\nCapable. Despite running on ARM64 with limited RAM, Hermes performs real agentic work: multi-step reasoning, tool orchestration, file manipulation, git operations, web search, and cron scheduling.\nHere's what's running right now, autonomously:\nPortfolio deployment — edits HTML/CSS, commits to git, pushes to GitHub Pages, all triggered by a Telegram message\nBounty watching — two cron jobs scan Superteam Earn and GitHub for freelance bounties every 3-6 hours, filter by relevance, and deliver results straight to chat\nCode generation & file ops — writes scripts, patches files, searches codebases, executes Python — all from my pocket\nThe agent doesn't just respond to commands. It plans: when I say \"update the portfolio footer with my name and remove contact links,\" it navigates the repo, finds the right file, makes targeted patches, commits, and deploys — in one pass.\n\n\n\nTool\nWhat i",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在Android上运行Hermes Agent：您口袋里的生产级AI代理",
+        "summary": "无服务器。无云账单。只需一部手机、Termux和一个能交付代码的AI代理。"
+      }
+    }
+  },
+  {
+    "title": "One AI code review pass isn't enough. Here's the loop that actually catches bugs.",
+    "slug": "one-ai-code-review-pass-isn-t-enough-here-s-the-loop-that-actually-catches-bugs",
+    "url": "https://dev.to/layzerzero105/one-ai-code-review-pass-isnt-enough-heres-the-loop-that-actually-catches-bugs-394f",
+    "source": "DEV Community",
+    "date": "2026-05-16T00:23:23.000Z",
+    "summary": "You ran the AI reviewer. It said \"LGTM.\" You shipped. Then production caught fire.\n\n\nThis is happening more and more this year. Teams adopt Claude, Copilot, or Cursor for code review, get a clean resp",
+    "content": "You ran the AI reviewer. It said \"LGTM.\" You shipped. Then production caught fire.\n\n\nThis is happening more and more this year. Teams adopt Claude, Copilot, or Cursor for code review, get a clean response on the first pass, and merge with confidence they haven't earned.\nHere's the part nobody is telling you: one pass of AI review is statistically worse than a tired human's first pass. Not because the model is dumb, but because of how reviewing works.\nThe good news is the fix is small. It just isn't \"use a better model.\"\nWhen an AI reviews a diff, it does roughly what a human does on the first read: scan for obvious smells. Wrong indentation. Unused vars. A missing await. The cheap stuff.\nThe expensive stuff — the bugs that cost you real money — lives somewhere else:\nCross-file invariants. A change in auth.ts quietly breaks an assumption in billing.ts.\nRace conditions. Two requests can now hit the same row at the same time.\nSilent regressions. A refactor preserves behavior in 99% of cases and corrupts data in the 1%.\nSecurity holes that look like features. An ID is now passed in the URL because \"the frontend needed it.\"\nA single review pass treats the diff like a closed system. It cannot see what it cannot see. And the model, like a junior dev, gets one shot — then says \"LGTM\" because that is the polite default when nothing obvious is wrong.\nThat is the trap.\nThink of it the way a senior engineer reviews: not one read, but five passes with different glasses on.\nThe AI version of that is just five prompts in a loop, each looking at the same diff with a different question:\nPass 1: \"What does this PR actually change? Summarize behavior.\"\nPass 2: \"What invariants in the rest of the codebase could this break?\"\nPass 3: \"What inputs would make this crash, hang, or corrupt data?\"\nPass 4: \"What does this leak? Auth, PII, secrets, internal IDs, error stacks.\"\nPass 5: \"If this ships and is wrong, how do we find out? Are the logs/tests enough?\"\n\nEach pass is a fresh context wind",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "一次AI代码审查是不够的。这是真正捕获错误的循环。",
+        "summary": "您运行了AI审查器。它说\"LGTM\"。您部署了。然后生产环境着火了。"
+      }
+    }
+  }
+]
