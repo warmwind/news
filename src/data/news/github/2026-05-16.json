@@ -1,5 +1,197 @@
 [
   {
+    "title": "DDP Is Not Always Faster",
+    "slug": "ddp-is-not-always-faster",
+    "url": "https://dev.to/thokozani_buthelezi_2cd41/ddp-is-not-always-faster-23mh",
+    "source": "DEV Community",
+    "date": "2026-05-16T12:11:57.000Z",
+    "summary": "Researchers demonstrate that PyTorch's DistributedDataParallel can slow training on small models due to communication overhead exceeding compute gains. Using a 4M parameter model on two T4 GPUs was 21% slower than single GPU due to 42.6% communication overhead. This matters because distributed training only provides speedup when computation time dominates synchronization costs.",
+    "content": "That is the result of this experiment, and it is the most important thing to understand about distributed training before you reach for it.\nI ran my nanoGPT implementation, a 4M parameter character-level transformer across two T4 GPUs on Kaggle using PyTorch's DistributedDataParallel. The single GPU baseline ran at 22ms per step. The DDP run across two GPUs ran at 26ms per step. Adding a second GPU made training slower.\nDDP splits each batch across GPUs, each GPU sees a different subset of the data via DistributedSampler. Each GPU runs its own forward and backward pass independently. After backward, DDP runs an all-reduce operation that synchronizes gradients across all GPUs before the optimizer step. Every process ends up with identical gradients and takes an identical optimizer step.\nThe key line in the code is one wrapping call:\nmodel = DDP(model, device_ids=[rank])\n\nEverything else, the model definition, the optimizer, the training loop stays the same. DDP handles the gradient synchronization automatically via hooks registered on each parameter.\n\n\n\nMetric\nValue\n\n\n\n\nSingle GPU step time\n22.03ms\n\n\nDDP step time (2 GPUs)\n26.36ms\n\n\nCompute time per step\n15.12ms\n\n\nCommunication time per step\n11.24ms\n\n\nCommunication overhead\n42.6%\n\n\nScaling efficiency\n41.8%\n\n\n\nScaling efficiency measures how close you got to ideal linear speedup. At 100% efficiency, two GPUs would halve your step time to 11ms. At 41.8%, the DDP run is actually slower than single GPU.\n42.6% of every DDP step was gradient communication, not compute. The all-reduce has to move every gradient across the PCIe bus connecting the two T4s, and at 4M parameters that communication cost dominates.\nThis is a compute-to-communication ratio problem. DDP only pays off when the model is large enough that compute time swamps communication time. At 4M parameters on T4s without NVLink, the ratio is inverted, you spend more time talking between GPUs than doing actual work.\nThe same experiment on a 1B parameter model woul",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "DDP 并不总是更快",
+        "summary": "研究人员证明 PyTorch 的 DistributedDataParallel 在小模型上可能因通信开销超过计算收益而减缓训练。在两个 T4 GPU 上使用 400 万参数模型比单 GPU 慢 21%，原因是通信开销达 42.6%。这很重要，因为分布式训练只有在计算时间主导同步成本时才能提供加速。"
+      }
+    }
+  },
+  {
+    "title": "Memory and Context Windows: Best Practices for AI Tools",
+    "slug": "memory-and-context-windows-best-practices-ai-tools",
+    "url": "https://dev.to/liatmoss/memory-and-context-windows-best-practices-for-ai-tools-18ng",
+    "source": "DEV Community",
+    "date": "2026-05-16T12:07:41.000Z",
+    "summary": "The article identifies hidden token costs in AI tools from keeping context windows open longer than needed and documents persisting across unrelated tasks. It recommends starting new chat sessions for separate work and summarizing current sessions to reduce costs and improve performance. This matters for developers using AI tools who want to optimize both token spending and response efficiency.",
+    "content": "As new tools and features come out, AI tools get more complex giving us more capabilities and ways of working. What also comes along with these updates and changes, is a higher rate of tokens exchanged in both prompts and responses.\nFrom the beginning, we've been told that the more detailed a prompt the more accurate our response from the server is likely to be. With added skills like Grill-Me or Superpowers we are able to refine ideas and create more purposeful prompts but there's also the added cost.\nWhat a lot of people don't realise, is that prompts and responses are only one way that token usage is eaten. What I've seen from a lot of people recently, are context windows that stay open for longer than required, details being pulled from memory long after caching has expired and multiple chats happening within the same context or chat window. \nWhile this may seem like a time saver, and it is, there's a hidden memory cost hiding in every prompt sent in that window. You might think it's a good idea because \"the AI remembers\" but it reality, the AI is just regurgitating previous information that it's already retrieved.\nNew chat, new session: This is really important because you don't want to change or adapt what is currently already in your session memory. If you have a question or a new piece of work to do, mostly unrelated to your existing chat, start a new session in the CLI or open a new chat window in the IDE.\nThis is important for two main reasons; it keeps your sessions clean and easy to find later and it sets a new agent with a new set of memories to recall making the response faster and more cost effective.\nSummarise your current session: Summarising your current session and opening a new session to start over means that your agent will be able to retrieve detail from memory faster. It also opens up the context window allowing newer information to be set in memory and easily retrievable\nOne way I do this is by having my coding agent create a summary documen",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "内存与上下文窗口：AI 工具最佳实践",
+        "summary": "本文指出 AI 工具中因保持上下文窗口打开时间过长和文档在不相关任务间持久化而产生的隐藏令牌成本。文章建议为独立工作启动新的聊天会话，并总结当前会话以降低成本和提高性能。这对希望优化令牌支出和响应效率的 AI 工具开发者很重要。"
+      }
+    }
+  },
+  {
+    "title": "Real-World AI Agent Deployments: Lessons from 50+ Production Systems in 2026",
+    "slug": "real-world-ai-agent-deployments-lessons-50-production-systems",
+    "url": "https://dev.to/elysiumquill/real-world-ai-agent-deployments-lessons-from-50-production-systems-in-2026-28hk",
+    "source": "DEV Community",
+    "date": "2026-05-16T12:06:48.000Z",
+    "summary": "Analysis of 50+ production AI agent deployments reveals that successful systems require guardrails, clear escalation paths, and predictable response formats rather than unlimited tool access. The article emphasizes monitoring task completion and user satisfaction over token metrics, with code examples showing retry logic and graceful degradation. This matters for teams building production-ready AI systems that need to balance capability with safety.",
+    "content": "After deploying 50+ agentic workflows across enterprises this year, here are the patterns that actually work.\nThe AI agent landscape in 2026 is flooded with promises, but what actually works when you need to ship production systems?\nAgents fail when given infinite freedom. The most successful implementations create:\nGuardrails for tool access\nClear escalation paths\nPredictable response formats\nUnlike traditional services, agents will encounter unknown obstacles. Build:\nRetry logic for external APIs\nGraceful degradation paths\nHuman-in-the-loop checkpoints\nWatch these instead of just token usage:\nTask completion rate vs. human intervention\nTool call success/failure ratios\nUser satisfaction with outcomes\nclass ProductionAgent:\n    def __init__(self):\n        self.max_retries = 3\n        self.tools = self._authorized_tools()\n\n    def execute(self, task):\n        plan = self.plan(task)\n        results = []\n        for step in plan:\n            try:\n                result = self._execute_step(step)\n                results.append(result)\n            except MaxRetriesError:\n                return self._escalate(task, results)\n        return results\n\nThe agents that ship are the ones that respect both user needs and system constraints.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "现实 AI 代理部署：50+ 个 2026 年生产系统的经验教训",
+        "summary": "对 50 多个生产 AI 代理部署的分析表明，成功的系统需要护栏、明确的上报路径和可预测的响应格式，而不是无限的工具访问权限。文章强调监控任务完成和用户满意度优于令牌指标，并提供显示重试逻辑和优雅降级的代码示例。这对于需要平衡能力与安全的生产级 AI 系统构建团队很重要。"
+      }
+    }
+  },
+  {
+    "title": "How I used Claude Code and git worktrees to ship 2 features and fix 3 bugs in one day",
+    "slug": "how-i-used-claude-code-git-worktrees-ship-2-features-fix-3-bugs",
+    "url": "https://dev.to/shubhajit_chatterjee/how-i-used-claude-code-and-git-worktrees-to-ship-2-features-and-fix-3-bugs-in-one-day-325n",
+    "source": "DEV Community",
+    "date": "2026-05-16T12:05:19.000Z",
+    "summary": "A developer used Claude Code with git worktrees to parallelize work on multiple features and bugs simultaneously, completing 5 tasks in one day versus the estimated 3-4 days with sequential approaches. The technique leverages AI agents within isolated git branches to work on independent tasks in parallel. This matters for teams managing tight deadlines and multiple concurrent work items.",
+    "content": "I want to share an interesting workflow I experimented with recently while working with Claude Code and git worktrees.\nI had a lot on my plate with deadlines approaching. I had to fix 3 bugs and complete 2 feature implementations.\nAnd it was not just implementation work. I had to write new unit tests, update existing test cases, manually verify everything, and make sure fixing one thing was not breaking another.\nInitially it did not feel like too much. But once I properly analysed everything that needed to be done, I realised the approaching deadline could easily turn this into a mess if I handled it poorly.\nI wanted to experiment that day.\nNormally I would have started with one task, completed it, raised a PR, and then moved on to the next one.\nIf I got PR comments, I would stash or commit my current work, switch back to the other branch, fix the comments, and iterate on that again. Then I would come back to my original task and continue implementing.\nThis process itself is not necessarily bad. Always moving fast is not the solution.\nThe real problem was that these were new implementations. And in my experience, implementing something new usually requires significantly more thinking, exploration, and iteration. If I spiralled on one task, it could easily consume a huge amount of time while everything else remained blocked behind it.\nThis would have easily taken me 3-4 days.\nI paused for a while that day and went through multiple possible approaches in my head.\nI cannot work on all of them in parallel myself. That is just a fact.\nBut AI can. But the problem was how do I actually make this practical?\nShould I run multiple Claude Code sessions and ask each one to handle a different task\n\n\nThen I thought, what if I ask Claude Code to not make edits and only work in memory?\n\n\nWhat if I clone the repository multiple times and run separate Claude Code sessions in each copy?\n\n\n\nAt that point I decided to simply ask Claude Code itself how to solve this problem.\nThat was the",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何用 Claude Code 和 git worktrees 在一天内交付 2 个功能并修复 3 个 bug",
+        "summary": "一位开发者使用 Claude Code 和 git worktrees 并行处理多个功能和 bug，在一天内完成 5 个任务，而按顺序方法需要 3-4 天。该技术利用隔离 git 分支内的 AI 代理来并行处理独立任务。这对管理紧张截期和多个并发工作项的团队很重要。"
+      }
+    }
+  },
+  {
+    "title": "ESP32-E22 is Here — Espressif First Wi-Fi 6E Chip and What It Means for Makers",
+    "slug": "esp32-e22-espressif-first-wifi-6e-chip-means-makers",
+    "url": "https://dev.to/bittobuild/esp32-e22-is-here-espressif-first-wi-fi-6e-chip-and-what-it-means-for-makers-dgn",
+    "source": "DEV Community",
+    "date": "2026-05-16T12:04:54.000Z",
+    "summary": "Espressif announced the ESP32-E22, its first Wi-Fi 6E connectivity chip featuring tri-band support, up to 2.1 Gbps throughput, and Bluetooth 5.4 in a compact form factor. The chip targets high-throughput IoT, edge AI, and applications requiring simultaneous multi-camera feeds or mesh networking. This matters for makers and IoT developers seeking industrial-grade wireless connectivity.",
+    "content": "Dev.to Article (English) — ESP32-E22 Wi-Fi 6E\n\n\n\n\n\n\n  \n  \n  ESP32-E22 is Here — Espressif's First Wi-Fi 6E Chip and What It Means for Makers\n\n\nEspressif just announced the ESP32-E22, their first Wi-Fi 6E connectivity co-processor, and it's a significant step forward for the maker ecosystem. In this article, we'll break down what this chip brings to the table and why it matters for your next IoT project.\n\n\n\nFeature\nDetails\n\n\n\n\nWi-Fi\nTri-band Wi-Fi 6E (2.4 GHz, 5 GHz, 6 GHz)\n\n\nBluetooth\nDual-mode Bluetooth 5.4 (Classic + LE)\n\n\nArchitecture\nRISC-V processor\n\n\nThroughput\nUp to 2.1 Gbps\n\n\n\n1. Wi-Fi 6E Tri-band\nSignificantly higher speeds than legacy Wi-Fi 5/Wi-Fi 6\nBackward compatibility with 2.4 GHz and 5 GHz devices\nMuch less interference from older household devices\n2. Bluetooth 5.4\n3. RISC-V Architecture\n4. Networking Stack Offload\n\n\n\nModel\nWi-Fi\nBluetooth\nBest For\n\n\n\n\nESP32 (classic)\nWi-Fi 4\n4.2 / BLE\nGeneral projects\n\n\nESP32-C6\nWi-Fi 6\nBLE 5.3 + 802.15.4\nSmart home / Zigbee\n\n\nESP32-H4\n—\nBLE 5.4 + Zigbee/Thread/Matter\nTiny battery nodes\n\n\nESP32-E22\nWi-Fi 6E tri-band\nBT 5.4 (Classic + LE)\nHigh-throughput IoT / Edge AI\n\n\n\nUse the ESP32-E22 as the high-bandwidth backbone for a mesh network, aggregating data from multiple sensors without network bottlenecks.\nPull video feeds from several cameras simultaneously over Wi-Fi 6E with minimal lag — perfect for home security or robot vision projects.\nEdge AI applications need high throughput to send data to inference engines or cloud services. The E22's 2.1 Gbps capability makes this viable.\nThe ESP32-E22 marks a significant positioning move by Espressif toward the edge AI + IoT era. The tri-band Wi-Fi 6E support delivers up to 2.1 Gbps throughput, while the RISC-V architecture opens new doors for community-driven innovation.\nFor makers, this chip is one to watch for any project requiring high-speed wireless connectivity in 2026 and beyond.\n\n\n\n\n\n  \n  \n  ESP32 #WiFi6E #IoT #Maker #Espressif #Arduino #RaspberryPi #Tech #SmartHom",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "ESP32-E22 发布——Espressif 首款 Wi-Fi 6E 芯片及其对制造者的意义",
+        "summary": "Espressif 宣布推出 ESP32-E22，这是其首款 Wi-Fi 6E 连接芯片，具有三频段支持、最高 2.1 Gbps 吞吐量和蓝牙 5.4，采用紧凑的外形尺寸。该芯片面向高吞吐量物联网、边缘 AI 以及需要同时多摄像头馈送或网状网络的应用。这对寻求工业级无线连接的制造者和物联网开发者很重要。"
+      }
+    }
+  },
+  {
+    "title": "Claudelab: a manually-gated alternative to Anthropic's agent 'Dreaming'",
+    "slug": "claudelab-manually-gated-alternative-anthropic-agent-dreaming",
+    "url": "https://dev.to/_barw_bc0ab3c2937660/claudelab-a-manually-gated-alternative-to-anthropics-agent-dreaming-59l2",
+    "source": "DEV Community",
+    "date": "2026-05-16T12:04:28.000Z",
+    "summary": "The article introduces claudelab, a governance pattern for AI-driven projects that caps memory inflation, maintains a REJECTED archive of dead ideas, and runs health checks to prevent stale references. It compares claudelab's explicit, local-file approach to Anthropic's Dreaming feature. This matters for teams managing large AI-assisted codebases who need lightweight governance without external dependencies.",
+    "content": "A disclaimer before anything else: this is not a framework, and not a\nproblem, not a shared scale. If \"a few\nIf you run long-lived projects through Claude Code, you've probably noticed its\nMEMORY.md index plus topic files) is genuinely useful — and\nAfter a few months of daily use across several projects, I kept hitting the same\nAudit inflation. You start logging decisions (\"tried X, didn't work\"),\n\n\nProject pollution. A throwaway meta-experiment — \"let me check if this MCP\n\n\nRule drift. You write a governance rule on Monday. On Tuesday you bypass it\n\n\n\nI built a small workbench pattern to fight all three. It's called claudelab,\nAudit inflation cap — an explicit per-session limit on new memory files.\nHit it, and only justified exceptions (a real incident, an external audit) let\nyou add more. It forces you to stop documenting and go build.\nREJECTED archive — every killed idea is logged with a reason and a\nreversal trigger. You don't get to re-litigate a dead idea without new evidence.\nClosed-loop self-audit — a health-check script finds broken cross-references,\norphan files, and stale entries. The system stays consistent without a human\nscanning it.\nTrack-separated governance — real projects, meta-experiments, and research\neach live under different rules. Strict where it matters, loose where it doesn't.\nHere's the part that made me write this up.\nWhile building claudelab, I didn't know Anthropic had just shipped Dreaming —\nbetween-session\nWhen I found out, my first reaction was \"well, that's the same problem.\" And it\n\n\n\n\nAnthropic Dreaming\nclaudelab\n\n\n\n\nMemory consolidation\nautomatic, between sessions\nmanual, explicitly gated\n\n\nWhere it runs\nmanaged / hosted\nyour local files, your repo\n\n\nRecurring-mistake surfacing\nlearned, implicit\n\nREJECTED.md — explicit reason + reversal trigger\n\n\nStops over-documentation\nnot a stated goal\naudit inflation cap is the core constraint\n\n\nAuditable\nyes (plain-text playbooks)\nyes (plain-text, in your git)\n\n\n\nTo be clear about the timelin",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Claudelab：Anthropic \"Dreaming\" 代理的手动门控替代方案",
+        "summary": "该文章介绍了 claudelab，一个 AI 驱动项目的治理模式，可限制内存膨胀、维护已拒绝想法的存档，并运行健康检查以防止过时引用。它比较了 claudelab 的显式本地文件方法与 Anthropic 的 Dreaming 功能。这对管理大型 AI 辅助代码库且需要轻量级治理而无需外部依赖的团队很重要。"
+      }
+    }
+  },
+  {
+    "title": "Cybersecurity Foundations: Building a Cohesive Strategy from Interlocking Principles",
+    "slug": "cybersecurity-foundations-building-cohesive-strategy-interlocking",
+    "url": "https://dev.to/ilgar_hasanof_5b5cb747bea/cybersecurity-foundations-building-a-cohesive-strategy-from-interlocking-principles-4gj7",
+    "source": "DEV Community",
+    "date": "2026-05-16T12:04:15.000Z",
+    "summary": "The article demonstrates how five cybersecurity principles—Defense in Depth, Least Privilege, Separation of Duties, Secure by Design, and Security Through Obscurity—interlock to form resilient systems. Using a cloud-based financial API as a case study, it shows security is an integrated ecosystem rather than independent checklist items. This matters for architects building systems where security principles reinforce each other.",
+    "content": "Over the course of this series, we have dismantled and analyzed the vital pillars of cybersecurity architecture. We started by layering our environment through Defense in Depth, restricted user permissions using the Principle of Least Privilege, broke down concentrated administrative power with Separation of Duties, shifted left by architecting systems to be Secure by Design, and evaluated the tactical use of Security Through Obscurity.\nHowever, in the real world, these principles do not exist in a vacuum. Cybersecurity is not a checklist of isolated tools; it is a living, breathing ecosystem. To truly fortify a technology-driven enterprise, these five concepts must interlock, forming a unified, resilient corporate framework. In this final capstone piece, we will explore the synergy between these principles and map out how to synthesize them into a single, cohesive security strategy.\nThe Symphony of Security: How the Principles Interlock\nTo understand how these concepts work together, let us look at them through a single real-world security challenge: Protecting a Cloud-Based Financial Transaction API.\nSecure by Design is the blueprint. Before any infrastructure is provisioned, the engineering team threat-models the API, ensuring that inputs are validated, encryption is mandated, and microservices are decoupled.\n\nSeparation of Duties governs the build pipeline. The developer who writes the API code cannot independently push it to production. A peer engineer must review it, and automated security scanning tools must approve the deployment.\n\nThe Principle of Least Privilege restricts operational movement. Once the API is live, the container running it is stripped of root access. It has permission to read specific database tables, but it cannot execute system commands or access unrelated human resource servers.\n\nSecurity Through Obscurity acts as tactical friction. The API endpoints are obscured behind non-standard, randomized paths, and server version banners are comp",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "网络安全基础:从相互联系的原则构建一致的战略",
+        "summary": "该文章展示了五个网络安全原则——纵深防御、最小权限、职责分离、安全设计和通过隐晦实现安全——如何相互联系形成弹性系统。通过以基于云的金融API为案例研究,它展示了安全是一个整合的生态系统,而不是独立的检查清单项。这对构建安全原则相互加强的系统的架构师很重要。"
+      }
+    }
+  },
+  {
+    "title": "Developers and DevOps engineers frequently copy-paste cron expressions from docs or colleagues without a quick way to verify ...",
+    "slug": "developers-devops-copy-paste-cron-expressions-verify",
+    "url": "https://dev.to/mumicrotools/developers-and-devops-engineers-frequently-copy-paste-cron-expressions-from-docs-or-colleagues-19i1",
+    "source": "DEV Community",
+    "date": "2026-05-16T12:04:03.000Z",
+    "summary": "The article introduces cron-human, a zero-dependency Node.js CLI tool that translates cron expressions into plain English and shows the next 5 scheduled run times. It solves the friction of verifying cron syntax without leaving the terminal or opening web tools. This matters for DevOps engineers and developers managing scheduled tasks who need quick verification.",
+    "content": "The problem\n\n\nDevelopers and DevOps engineers frequently copy-paste cron expressions from docs or colleagues without a quick way to verify what they actually do — you have to either memorize the 5-field format or open a third-party web tool.\nIf you've hit this before, you know how it goes — you open a cron decoder website, paste in the expression, and squint at the output. Or you open a man page.\ncron-human\n\n\nTranslate a cron expression into plain English and print the next 5 scheduled run times\nIt's zero-dependency Node.js, so you can run it immediately without installing anything:\nnpx cron-human \"0 3 * * 1-5\"\n\nOutput:\n$ npx cron-human \"0 3 * * 1-5\"\n\nExpression:  0 3 * * 1-5\nMeaning:     at 03:00, Monday through Friday\nTimezone:    UTC\n\nNext 5 runs:\n  1  2026-05-18 Mon  03:00 UTC  (in ~17h)\n  2  2026-05-19 Tue  03:00 UTC  (in ~1d 17h)\n  3  2026-05-20 Wed  03:00 UTC  (in ~2d 17h)\n  4  2026-05-21 Thu  03:00 UTC  (in ~3d 17h)\n  5  2026-05-22 Fri  03:00 UTC  (in ~4d 17h)\n\nPure Node.js cron parser: splits the expression into 5 fields (minute, hour, day-of-month, month, day-of-week), evaluates each field including ranges, lists, and steps, then walks forward from the current UTC time to find the next 5 matching timestamps. No network calls, no dependencies.\nFound repeated questions on r/devops and r/sysadmin asking 'what does this cron mean?' and 'when will this next run?'. Existing solutions are either web tools requiring a browser round-trip with no pipe/stdin support, or npm libraries like cronstrue that require installation and provide no next-run dates. A zero-dep CLI that runs instantly with npx fills this gap cleanly for the terminal workflow.\nnpx cron-human --help\n\nPart of µ micro — one new developer CLI tool, shipped every day. All tools are zero-dependency Node.js and run instantly with npx.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "开发人员和DevOps工程师经常从文档或同事处复制粘贴cron表达式,却没有快速验证的方法",
+        "summary": "该文章介绍了cron-human,一个零依赖的Node.js CLI工具,可将cron表达式翻译成简洁英文并显示接下来5次计划运行时间。它解决了在不离开终端或打开网络工具的情况下验证cron语法的摩擦。这对管理计划任务并需要快速验证的DevOps工程师和开发人员很重要。"
+      }
+    }
+  },
+  {
+    "title": "Code Churn Doubled While We Were Celebrating AI Speed Gains",
+    "slug": "code-churn-doubled-celebrating-ai-speed-gains",
+    "url": "https://dev.to/code-board/code-churn-doubled-while-we-were-celebrating-ai-speed-gains-2d0f",
+    "source": "DEV Community",
+    "date": "2026-05-16T12:03:23.000Z",
+    "summary": "Analysis of 211 million lines of code shows code churn doubled to 7.1% as AI generates 41% of new code, while delivery stability declined 7.2%, revealing that reviewing and validating code—not writing it—is the real bottleneck. Research shows 28.3% of AI PRs merge instantly but ones requiring iteration demand disproportionate reviewer attention. This matters because teams need better triage mechanisms to handle increased AI output safely.",
+    "content": "The number that should worry you\n\n\nAI now generates roughly 41% of all code in professional workflows. Code churn — lines reverted or substantially rewritten within two weeks of being merged — has doubled from 3.3% to 7.1%, according to GitClear's analysis of over 211 million lines of code.\nMeanwhile, Google's 2024 DORA report found that delivery stability decreased 7.2% year over year. More code ships. More of it breaks.\nThese aren't contradictory trends. They're the same trend.\nWriting code was never the bottleneck in professional software development. Understanding it, reviewing it, and making good decisions about whether it should ship — that's where time actually goes.\nAI made the fast part faster. But DORA metrics alone can't tell you whether throughput gains are real or just inflated volume. As multiple 2026 analyses have pointed out, traditional metrics like PRs merged and deployment frequency get inflated by AI output without necessarily indicating more value delivered.\nHigh-performing teams review PRs within 4 hours. When AI-assisted workflows double or triple PR volume, maintaining that review cadence becomes structurally impossible unless something changes about how you triage, prioritize, and process code reviews.\nResearch from the MSR 2026 conference on agent-authored PRs found a stark pattern: 28.3% of AI-generated PRs merge almost instantly (low-friction automation), but once a PR enters the iterative review loop, it often demands disproportionate reviewer attention. Simply gating the riskiest 20% of PRs can capture 69% of total review effort.\nThat's an actionable insight. But most teams can't act on it because they don't have visibility into PR risk across repositories. They're still switching between tabs, manually checking CI status, and guessing which PRs need attention first.\nThe answer isn't slowing down AI adoption. It's building better signal around what ships.\nTrack code churn alongside velocity. If both are rising, your net productivity gai",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "代码变动翻倍,而我们在庆祝AI速度收益",
+        "summary": "对2.11亿行代码的分析显示,当AI生成41%的新代码时,代码变动翻倍至7.1%,而交付稳定性下降7.2%,表明审查和验证代码(而不是编写代码)是真正的瓶颈。研究表明28.3%的AI PR立即合并,但需要迭代的PR需要不成比例的审查人员关注。这很重要,因为团队需要更好的分类机制来安全处理增加的AI输出。"
+      }
+    }
+  },
+  {
+    "title": "I got tired of re-explaining my projects to Claude — so I built context-window",
+    "slug": "i-got-tired-re-explaining-projects-claude-built-context-window",
+    "url": "https://dev.to/prodevel/i-got-tired-of-re-explaining-my-projects-to-claude-so-i-built-context-window-1fd",
+    "source": "DEV Community",
+    "date": "2026-05-16T11:59:15.000Z",
+    "summary": "The article introduces context-window, an open-source tool that centralizes reusable project context (coding conventions, business rules, API quirks) instead of re-typing it in every session. Developers write context once with metadata and attach it via a manifest file that LLM clients can read at startup. This matters for developers working across multiple projects who want to amortize context setup.",
+    "content": "Every time I opened up a new Claude conversation, I find myself re-telling it the same things. Who I am. What stack this project uses and more importantly, for business context, I find myself resharing the same business rules. The two odd conventions we picked up six months ago. That one third-party API quirk that bit us last quarter.\nIt's not Claude's fault. It can't remember things across sessions — that's how the model works. But it means I'm doing the same warm-up exercise every single time. Multiply that by however many projects I touch in a week and it adds up to hours of wasted effort.\nSo I built a small tool to fix it for myself, and I've open-sourced it: context-window.\nWhat if your context was a first-class entity, not something you re-type into a chat?\nYou write a context once — your coding conventions, your business background, notes on a tricky API. It lives in a local library with a name, a description, a category, tags, a priority, and a token count.\nYou attach it to as many projects as you like. The same \"Rust Conventions\" context can be referenced by every Rust repo on your machine.\nEach project owns a tiny manifest file — just metadata, not the full bodies — that any LLM client can read at session start.\nThe LLM decides which contexts are relevant, asks for the bodies it actually needs, and gets to work already up to speed.\nThat's the whole shape of it. Two entities (Context and Project), one manifest, one MCP server, no cloud.\nCreate a context once:\ncontext new \\\n  -n \"Rust Conventions\" \\\n  -d \"How we write Rust in this codebase\" \\\n  --content-file ./RUST_STYLE.md \\\n  --category conventions \\\n  --tags rust,backend \\\n  --priority important\n\nThen, from any project on your machine:\ncd /path/to/your/project\ncontext project init -n my-project\ncontext project attach <context-id>\n\nThat writes a .context/manifest.json in the project root. It looks like this:\n{\n  \"project_name\": \"my-project\",\n  \"mcp_server\": { \"transport\": \"stdio\", \"command\": \"context-mcp\"",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我厌倦了向Claude重复解释项目——所以我构建了context-window",
+        "summary": "这篇文章介绍了context-window，一个开源工具，它将可复用的项目上下文（编码规范、业务规则、API特性）集中管理，无需在每次会话中重新输入。开发者只需编写一次上下文并添加元数据，然后通过清单文件附加，LLM客户端可在启动时读取。这对于跨多个项目工作且希望减少上下文设置开销的开发者很重要。"
+      }
+    }
+  },
+  {
+    "title": "The Hardest Part of Modern C++ Isn't the Language.",
+    "slug": "hardest-part-modern-cpp-isnt-language",
+    "url": "https://dev.to/whetlan/the-hardest-part-of-modern-c-isnt-the-language-3d6j",
+    "source": "DEV Community",
+    "date": "2026-05-16T11:57:14.000Z",
+    "summary": "The article explores why C programmers struggle adopting modern C++ features like RAII and smart pointers, which conflict with manual memory ownership mental models. The author shares personal growth through RAII and template metaprogramming, illustrated with a trading platform project that achieved significant memory efficiency gains. This matters for systems programmers learning modern C++.",
+    "content": "I've been a C programmer for most of my career. The kind who can feel what the CPU is doing. Move a register here, touch a block of memory there, shave off a microsecond. When you think at that level for long enough, you start to resent anything that calls itself \"modern.\"\nNot because you can't learn it. Because it feels wrong. Too many layers between you and the metal.\nFor years, my C++ was really just C with classes. I found out later that most people who put \"C++ engineer\" on their resume are doing exactly the same thing. That's where you plateau, and it's a comfortable plateau. You ship code. It works. Nobody complains.\nAnd a lot of people never leave that plateau. I'm not talking about junior developers. I'm talking about engineers with decades of C experience who never made the jump. The mental model of C is: I own every byte, I control every allocation, I decide when memory lives and dies. Accepting that a destructor will clean up for you, that you should stop calling delete, that std::unique_ptr knows better than you do when to free memory... that goes against everything a C programmer was trained to believe. Plenty of good engineers looked at that and said no thanks.\nI almost did too. But then std::vector clicked. Then RAII clicked. Then I ran into compare_exchange_strong and compare_exchange_weak and spent a full day understanding when to use which one. Then C++17 arrived with SFINAE and template metaprogramming.\nI questioned my life choices.\nBut I kept going, because the payoff was real.\nMy first serious Modern C++ project was a bridge layer between a trading platform and a strategy execution service. About 50,000 lines, took six months to write by hand. I picked C++ for speed and RAII, and the results justified the pain: on Windows 10, the process started at 22MB of memory, dropped to 11MB after running for a week. On Windows 11, 36MB at start, 12MB after a week. It was pulling tick data for every instrument at full frequency, the entire time.\nThat was t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "现代C++最难的部分不是语言",
+        "summary": "这篇文章探讨了为什么C程序员在采用现代C++特性（如RAII和智能指针）时面临困难，因为这些特性与手动内存管理的思维模式相冲突。作者分享了通过RAII和模板元编程实现的个人成长，并用一个交易平台项目举例说明，该项目获得了显著的内存效率提升。这对学习现代C++的系统程序员很重要。"
+      }
+    }
+  },
+  {
+    "title": "I Built a Julius AI Alternative in Next.js — Here's What I Learned",
+    "slug": "i-built-julius-ai-alternative-nextjs-heres-what-i-learned",
+    "url": "https://dev.to/muhammad-naveed/i-built-a-julius-ai-alternative-in-nextjs-heres-what-i-learned-2o05",
+    "source": "DEV Community",
+    "date": "2026-05-16T11:54:48.000Z",
+    "summary": "The article chronicles building WhyAnalyst, an AI-powered data analysis SaaS using Next.js, Firebase, and Google Gemini Flash. Key lessons include switching from GPT-4 to Gemini for cost efficiency and optimizing token usage by sending only metadata instead of raw data to the AI. This matters for solo founders building AI SaaS applications seeking practical cost management strategies.",
+    "content": "Tags: nextjs ai buildinpublic startup\nSix weeks ago I started building WhyAnalyst — an AI-powered data analysis tool where you upload a CSV or Excel file and ask questions in plain English. Think Julius AI, but free to start.\nThis post is about what actually happened when I built it: the technical decisions, the mistakes, the costs, and the things nobody tells you when you're building an AI SaaS as a solo developer.\nBefore I get into the lessons, here's what I built it with:\nFrontend:  Next.js 14 (App Router)\nAuth:      Firebase Authentication\nDatabase:  Firestore\nAI:        Google Gemini Flash (switched from GPT-4 — more on this)\nHosting:   Vercel (frontend) + Render (backend API)\nPayments:  LemonSqueezy (coming soon)\n\nTotal monthly cost at zero users: ~$0. At 100 active free users: still roughly $0. The free tiers on all of these are genuinely generous.\nThis is the thing that almost killed the project before it started.\nMy first implementation was naive: user uploads CSV → I send the entire file to the AI → AI answers the question. For a 500-row CSV with 10 columns, that's easily 5,000–10,000 tokens per query. At GPT-4 pricing, that adds up terrifyingly fast.\n// ❌ What I started with — extremely expensive\nconst response = await openai.chat.completions.create({\n  model: \"gpt-4\",\n  messages: [{\n    role: \"user\",\n    content: `Here is my data: ${JSON.stringify(entireCSV)}\\n\\nQuestion: ${userQuestion}`\n  }]\n})\n\nThe fix was to stop sending raw data to the AI entirely. Instead, I send metadata about the data and let the AI generate analysis code, which runs locally:\n// ✅ What I do now — much cheaper\nconst dataContext = {\n  columns: csvData.columns,           // column names only\n  sample: csvData.rows.slice(0, 5),   // first 5 rows only\n  rowCount: csvData.rows.length,      // total row count\n  dtypes: inferColumnTypes(csvData),  // inferred data types\n}\n\nconst response = await gemini.generateContent(`\n  You are a data analyst. Given this dataset context:\n  ${JSON.strin",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我用Next.js开发了Julius AI竞品——分享我学到的经验",
+        "summary": "这篇文章讲述了使用Next.js、Firebase和Google Gemini Flash开发WhyAnalyst（一个AI驱动的数据分析SaaS）的经历。关键经验包括从GPT-4切换到Gemini以降低成本，以及通过仅发送元数据而非原始数据给AI模型来优化Token使用。这对于寻求实用成本管理策略的独立创业者开发AI SaaS应用很重要。"
+      }
+    }
+  },
+  {
     "title": "Beginner's Guide to Docker: From Zero to Hero",
     "slug": "beginners-guide-to-docker-from-zero-to-hero",
     "url": "https://dev.to/myogeshchavan97/beginners-guide-to-docker-from-zero-to-hero-4977",
