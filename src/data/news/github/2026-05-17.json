@@ -1,5 +1,213 @@
 [
   {
+    "title": "Add PoW-skip + Lightning payments to any MCP server in 10 lines",
+    "slug": "add-pow-skip-lightning-payments-mcp-server",
+    "url": "https://dev.to/zekebuilds/add-pow-skip-lightning-payments-to-any-mcp-server-in-10-lines-1nac",
+    "source": "DEV Community",
+    "date": "2026-05-17T18:25:40.000Z",
+    "summary": "Adds payment gates to MCP servers using Proof-of-Work or Lightning payments without complex auth systems. Developers can charge per API call (21 sats) with a choice between free CPU-intensive PoW challenges or instant Lightning invoices.",
+    "content": "You built an MCP server. Now agents are hammering your premium tools for free and you've got no lever to pull.\nThe boring fix is \"add auth\" — OAuth tokens, API keys, a whole user management system. But that's overkill for a tool that should just cost 21 sats per call.\nHere's the short fix.\nTwo packages:\nnpm install @powforge/captcha-paymcp-provider @powforge/paymcp-l402-provider paymcp\n\npaymcp — decorator framework that wraps MCP tools with payment gates\n@powforge/captcha-paymcp-provider — PoW-skip tier: agent solves SHA-256, no invoice needed\n@powforge/paymcp-l402-provider — Lightning tier: agent pays a BOLT11 invoice via LNBits\nconst { PayMCP } = require('paymcp');\nconst { CaptchaPowProvider } = require('@powforge/captcha-paymcp-provider');\nconst { LnbitsPaymentProvider } = require('@powforge/paymcp-l402-provider');\n\nPayMCP(mcp, {\n  providers: [\n    new CaptchaPowProvider({ captchaUrl: 'https://captcha.powforge.dev' }),\n    new LnbitsPaymentProvider({\n      lnbitsUrl: process.env.LNBITS_URL,\n      lnbitsApiKey: process.env.LNBITS_KEY,\n      satsAmount: 21,\n    }),\n  ],\n});\n\nDrop that right after you construct your McpServer. Tag any tool with { _meta: { price: 1 } } and it's now gated.\nPoW path (free, ~5-10s of CPU):\ncreatePayment fetches a SHA-256 challenge from the captcha server.\nIt mines the nonce server-side — no round-trip to the client needed.\nReturns a pow:// URI encoding all params a PoW-capable MCP client SDK needs.\ngetPaymentStatus submits the nonce to /api/verify and returns 'paid' on confirm.\nLightning path (21 sats):\ncreatePayment mints a BOLT11 invoice via LNBits.\nReturns the invoice in the payment URL.\ngetPaymentStatus polls until the invoice is settled.\npaymcp tries the PoW provider first. If the calling agent doesn't support pow:// URIs, it falls through to the Lightning invoice. The agent picks whichever it can satisfy.\nSome agents are compute-rich, sats-poor — they'd rather burn CPU cycles than need a wallet. Others are running in headless pipe",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "用10行代码为任何MCP服务器添加PoW跳过和闪电网络支付",
+        "summary": "使用工作量证明或闪电网络支付为MCP服务器添加支付网关，无需复杂的身份验证系统。开发者可以按API调用次数收费（21聪），可以选择免费但CPU密集的PoW挑战或即时闪电网络发票。"
+      }
+    }
+  },
+  {
+    "title": "Debugging Multi-Agent Systems in TypeScript: From Flat Logs to Execution Trees",
+    "slug": "debugging-multi-agent-systems-typescript-execution-trees",
+    "url": "https://dev.to/chintanonweb/debugging-multi-agent-systems-in-typescript-from-flat-logs-to-execution-trees-1foo",
+    "source": "DEV Community",
+    "date": "2026-05-17T18:25:38.000Z",
+    "summary": "Explores debugging challenges in multi-agent systems where flat logs obscure causality between concurrent agent actions. Author demonstrates how coordination failures emerge only during parallel execution, requiring execution-tree tracing instead.",
+    "content": "AI agents are easy to demo when they follow a clean path: receive a task, call a tool, produce an answer, and finish successfully.\nThey become much harder to reason about when multiple agents run together.\nIn a real system, agents may plan, call tools, retry failures, make decisions from stale state, run in parallel, or touch the same resource from different paths. When something breaks, flat logs usually tell us what happened, but they rarely show why it happened.\nThat is the debugging gap I wanted to explore.\nSo I built a small TypeScript-based multi-agent incident-response simulator. The goal was simple: simulate a production incident where multiple agents diagnose and remediate infrastructure problems. The system had a diagnostic agent, database agent, network agent, scaling agent, and coordinator agent.\nOn paper, the design looked reasonable.\nThe DiagnosticAgent analyzed the incoming incident. The DatabaseAgent handled database-related issues. The NetworkAgent managed load balancer or routing problems. The ScalingAgent handled capacity decisions. The CoordinatorAgent orchestrated everything and was responsible for avoiding conflicting actions.\nThe architecture looked clean until the agents started working at the same time.\nThe Problem With Flat Logs\n\n\nIn the first version, the simulator emitted logs like this:\n\\[2:47:23\\] DiagnosticAgent: High DB latency detected  \n\\[2:47:24\\] DatabaseAgent: Initiating replica scale-up  \n\\[2:47:25\\] DiagnosticAgent: Connection pool exhaustion detected  \n\\[2:47:26\\] DatabaseAgent: Taking node-3 offline for maintenance  \n\\[2:47:27\\] ScalingAgent: Database performance degraded, scaling up  \n\\[2:47:28\\] NetworkAgent: Detected backend failures, restarting load balancer  \n\\[2:47:29\\] CoordinatorAgent: Conflict detected  \n\\[2:47:32\\] ERROR: Cluster quorum lost\n\nThese logs were useful, but only up to a point.\nThey showed that the database agent scaled replicas. They showed that another agent also tried to scale. They showed that a node",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在TypeScript中调试多代理系统：从平面日志到执行树",
+        "summary": "探讨多代理系统中的调试挑战，其中平面日志隐藏了并发代理操作之间的因果关系。作者演示了协调失败如何仅在并行执行期间出现，需要使用执行树追踪代替。"
+      }
+    }
+  },
+  {
+    "title": "Operational Hardening — Guardrails, Secrets Rotation & SLO — FSx ONTAP S3AP Phase 12",
+    "slug": "operational-hardening-fsx-ontap-s3ap-phase-12",
+    "url": "https://dev.to/aws-builders/operational-hardening-guardrails-secrets-rotation-slo-fsx-ontap-s3ap-phase-12-1k4o",
+    "source": "DEV Community",
+    "date": "2026-05-17T18:21:39.000Z",
+    "summary": "Phase 12 hardens an event-driven pipeline with production guardrails: capacity forecasting, automated secrets rotation, SLO observability, and zero-event-loss replay validation. Delivers operator-ready infrastructure on FSx ONTAP.",
+    "content": "TL;DR\n\n\nPhase 12 hardens the Phase 11 event-driven pipeline for production: capacity guardrails, automated secrets rotation, SLO observability, and Persistent Store replay validated with zero event loss in tested scenarios.\nPhase 12 is not about adding another UC. It is about turning the Phase 11 event-driven pipeline into an operator-ready system: safe automation, credential rotation, forecast-based capacity operations, lineage, SLOs, and validated replay behavior.\nThis is Phase 12 of the FSx for ONTAP S3AP serverless pattern library. Building on Phase 10 and Phase 11, Phase 12 delivers:\nCapacity Guardrails: DRY_RUN/ENFORCE/BREAK_GLASS modes with DynamoDB tracking and CloudWatch EMF metrics\nSecrets Rotation: 4-step ONTAP fsxadmin auto-rotation via VPC Lambda on 90-day interval\nSynthetic Monitoring: CloudWatch Synthetics Canary with S3AP + ONTAP health checks (VPC constraints discovered)\nCapacity Forecasting: Linear regression (stdlib only) with DaysUntilFull metric on daily EventBridge schedule\nData Lineage Tracking: DynamoDB table with GSI for processing history and opt-in integration\nProtobuf TCP Framing: AUTO_DETECT/LENGTH_PREFIXED/FRAMELESS adaptive reader\nSLO Definition: 4 SLO targets with CloudWatch Dashboard and alarm-based violation detection\nFPolicy Pipeline E2E: NFS file creation → FPolicy → SQS delivery confirmed\nPersistent Store Replay: Fargate stop → file creation → restart → zero event loss in tested 5-event and 20-event scenarios\nProperty-Based Testing: 16 Hypothesis properties, 53 tests, 3 bugs discovered\nS3 Access Point Deep Dive: Multi-layer authorization, IAM ARN format, VPC network constraints\nKey metrics: 59 files, 14,895 lines added · 116 unit tests + 53 property tests · 7 CloudFormation stacks deployed · 3 bugs found via property testing · Zero event loss in 5-event replay + 20-event burst tests · Secrets rotation: all 4 steps successful.\nRepository: github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns\nFSx ONTAP supports au",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "运维强化——护栏、密钥轮换与SLO——FSx ONTAP S3AP 第12阶段",
+        "summary": "第12阶段通过生产护栏加强事件驱动管道：容量预测、自动密钥轮换、SLO可观测性和零事件丢失重放验证。在FSx ONTAP上交付运维就绪的基础设施。"
+      }
+    }
+  },
+  {
+    "title": "All Agent Harnesses: The Live Comparison",
+    "slug": "all-agent-harnesses-live-comparison",
+    "url": "https://dev.to/htekdev/all-agent-harnesses-the-live-comparison-1km5",
+    "source": "DEV Community",
+    "date": "2026-05-17T18:21:35.000Z",
+    "summary": "Compares 12+ agent harnesses (platforms controlling agent execution) distinct from frameworks and SDKs. Author argues the runtime container and governance model matter more than model choice for production systems at scale.",
+    "content": "{/* LAST_UPDATED: 2026-07-03T12:00:00Z */}\n🔴 LIVING ARTICLE — This page is continuously maintained and updated as platforms ship new features. Bookmark it. Come back often.\nLast updated: July 3, 2026\nThere are over a dozen platforms claiming to be the best way to build, run, and manage AI agents. Some are IDEs, some are cloud services, some are open-source libraries, and some are full autonomous coding environments. The terminology is a mess. Marketing pages all say \"agent framework\" but the products underneath are fundamentally different things.\nI've been building multi-agent systems in production — 50+ agents running autonomously on cron schedules, managing everything from content pipelines to household logistics. That experience taught me something the comparison posts miss: the harness matters more than the model. The right control plane turns a chatbot into a production system. The wrong one turns your codebase into a liability.\nThis is my attempt to give you the definitive bird's-eye view. Every major agent harness, every feature set, head-to-head — with honest pros and cons for each. No ranking where my favorite conveniently wins. Just the facts, organized so you can make the right call for your situation.\nBefore comparing anything, we need to define what we're actually comparing. The industry uses \"agent framework,\" \"agent SDK,\" and \"agent harness\" interchangeably — but they're different things. Anthropic's engineering team nailed the distinction: the harness is the runtime container that wraps around an agent's execution.\n{/* TAXONOMY_TABLE_START */}\n\n\n\nCategory\nWhat It Does\nWho Controls the Loop\nExamples\n\n\n\n\nAgent Harness\nRuntime container — lifecycle, governance, tool access, policy enforcement\nThe platform\nGitHub Copilot, Bedrock Agents, Vertex AI Agent Builder\n\n\nAgent Framework\nProgrammable building blocks for composing agents in code\nThe developer\nLangChain/LangGraph, CrewAI, AutoGen, Semantic Kernel\n\n\nAgent SDK\nThin client library binding your code t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "所有代理框架：实时比较",
+        "summary": "比较12多个代理框架（控制代理执行的平台），区别于框架和SDK。作者认为运行时容器和治理模式对大规模生产系统比模型选择更重要。"
+      }
+    }
+  },
+  {
+    "title": "Why your .NET 8 API needs a cache layer — and how to build it right with Redis/Valkey and tag invalidation",
+    "slug": "dotnet-8-api-cache-layer-redis-valkey-tag-invalidation",
+    "url": "https://dev.to/fenixkit/why-your-net-8-api-needs-a-cache-layer-and-how-to-build-it-right-with-redisvalkey-and-tag-53am",
+    "source": "DEV Community",
+    "date": "2026-05-17T18:18:44.000Z",
+    "summary": "Explains cache-aside pattern for .NET 8 APIs using Redis/Valkey with tag-based invalidation to reduce database load. Addresses implementation complexity, invalidation strategy, and graceful degradation when cache fails.",
+    "content": "Caching is one of those things that sounds optional until your database starts getting hammered at scale, your response times creep up, and you realise you've been querying the same data hundreds of times per minute. This article covers why a cache layer matters, how to implement cache-aside properly with tag-based invalidation in .NET 8, how to handle Redis outages gracefully, and why Valkey is worth knowing about.\nThe short answer: your database doesn't need to answer the same question twice.\nA typical read-heavy API hits the database for the same product list, the same user profile, the same category results — on every request. Each one is a network round trip, a query execution, and serialisation overhead. At low traffic it's fine. At scale it isn't.\nA cache layer puts the answer in Redis the first time, and returns it directly on every subsequent request — milliseconds, no database involved.\nThe reasons people avoid it:\n\"It adds complexity\" — only if you build it badly\n\"Cache invalidation is hard\" — it is, but it doesn't have to be unpredictable\n\"Redis going down takes my API down\" — only if you don't handle it properly\nAll three are solvable.\nCache-aside is the simplest correct approach:\nOn read — check Redis first. Hit → return. Miss → query the database, populate Redis, return.\nOn write — invalidate the relevant cache entries, then write to the database.\n\n\n\n\nGET /api/products/abc123\n\n  1. Check Redis  ──▶  HIT  ──▶  return cached JSON ✓\n               └──▶  MISS ──▶  query database\n                              └──▶  populate Redis ──▶  return ✓\n\nPUT /api/products/abc123\n\n  → invalidate cache entries for this product\n  → write to database\n\nSimple in theory. The problem is step 2 — which cache entries do you invalidate?\nIf you cache by key only (product:abc123), that's easy — delete that key on update. But most APIs cache more than that:\nPaged lists — product:paged:p1:s20\n\nCursor pages — product:cursor:start:20:fwd\n\nFiltered results — product:category:Gaming",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么你的.NET 8 API需要缓存层——以及如何用Redis/Valkey和标签失效正确构建它",
+        "summary": "解释.NET 8 API的缓存旁路模式，使用Redis/Valkey和基于标签的失效来减少数据库负载。涉及实现复杂性、失效策略和缓存失败时的优雅降级。"
+      }
+    }
+  },
+  {
+    "title": "Automate your Hugo CV deployment with GitHub Actions",
+    "slug": "automate-hugo-cv-deployment-github-actions",
+    "url": "https://dev.to/ulrich/automate-your-hugo-cv-deployment-with-github-actions-16co",
+    "source": "DEV Community",
+    "date": "2026-05-17T18:18:07.000Z",
+    "summary": "Automates Hugo static site builds and GitHub Pages deployment using GitHub Actions workflow, eliminating manual hugo builds and git commits. Separates source branch from generated output branch.",
+    "content": "In this article we will see how to automate the build and deployment of a Hugo-based CV site hosted on GitHub Pages. No more running Hugo by hand, just git push and you're done.\nThe purpose of this article is not to introduce Hugo or GitHub Pages from scratch, but instead to explain how to wire them together with GitHub Actions to get a clean, automated deployment pipeline for a developer CV site.\n💡 My CV site is live at reservoircode.net so feel free to use it as a reference !\n👍 You can take a look to the project by following this link github.com/ulrich/ulrich.github.io\nMy CV is a static site generated with Hugo and hosted on GitHub Pages. The theme is hugo-devresume-theme added as a git submodule. The whole content is controlled by a single config.toml file for the experiences, skills, languages, everything...\nBefore setting up the automation, my workflow was manual:\nhugo\ngit add .\ngit commit -m \"Bla bla bla\"\ngit push origin master\n\nNot great. Let's fix that 😃\nThe key idea is to separate sources from the generated output:\n\n\n\nBranch\nRole\n\n\n\n\nsrc\nHugo sources contains config.toml, theme submodule, static assets...\n\n\nmaster\nGenerated HTML served by GitHub Pages\n\n\n\nWorking on src, pushing triggers the build, master gets updated automatically.\nCreate the file .github/workflows/deploy.yml on your src branch:\nname: Deploy Hugo site\n\non:\n  push:\n    branches:\n      - src\n\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          submodules: true\n\n      - name: Setup Hugo\n        uses: peaceiris/actions-hugo@v3\n        with:\n          hugo-version: '0.81.0'\n          extended: true\n\n      - name: Build\n        run: hugo --source src\n\n      - name: Deploy\n        uses: peaceiris/actions-gh-pages@v4\n        with:\n          github_token: ${{ secrets.GITHUB_TOKEN }}\n          publish_dir: ./src/public\n          publish_branch: master\n          cname: reservoircode.net\n\nA few things worth noting here:\nsubmodules: true. Th",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用GitHub Actions自动部署你的Hugo CV",
+        "summary": "使用GitHub Actions工作流自动化Hugo静态网站构建和GitHub Pages部署，消除手动hugo构建和git提交。将源分支与生成的输出分支分开。"
+      }
+    }
+  },
+  {
+    "title": "Designing Reliable Permission Models with Lean 4",
+    "slug": "designing-reliable-permission-models-lean-4",
+    "url": "https://dev.to/shrsv/designing-reliable-permission-models-with-lean-4-33lc",
+    "source": "DEV Community",
+    "date": "2026-05-17T18:15:22.000Z",
+    "summary": "Uses Lean 4 (theorem prover and programming language) to mathematically enforce permission system invariants, making invalid security states mechanically impossible rather than merely tested or reviewed.",
+    "content": "Hello, I'm Shrijith Venkatramana. I'm building git-lrc, an AI code reviewer that runs on every commit. Star Us to help devs discover the project. Do give it a try and share your feedback for improving the product.\nMost authorization systems begin simple.\nThen reality happens.\nOver time:\nmore roles get added,\nexceptions accumulate,\nworkflows become stateful,\npermissions become inherited,\nAI assistants start generating handlers and refactors,\nand eventually nobody is fully certain what combinations are actually possible anymore.\nThis is where many discussions around “AI-generated code safety” become unsatisfying.\nPeople often talk about:\nbetter prompts,\nmore tests,\nstronger reviews,\nstatic analysis,\nor safer languages.\nThose help.\nBut there is another direction worth exploring:\nWhat if some critical invariants were not merely tested, but mathematically enforced?\nNot:\n“the code probably works,”\nor “the tests passed,”\nbut:\n“certain invalid states are mechanically impossible.”\nThat is the interesting promise behind Lean.\nAnd permission systems are one of the best places to start because:\nhumans understand them intuitively,\nthey are security-critical,\nand they become surprisingly difficult to reason about once complexity grows.\nThis tutorial walks through:\ninstalling Lean 4,\nunderstanding the core mathematical ideas,\nbuilding a permission model,\nproving security invariants,\nintentionally breaking them,\nand seeing how Lean prevents unsafe changes.\nThe goal is not academic theorem proving.\nThe goal is:\ndesigning systems where important security assumptions become hard to accidentally violate.\nLean 4 is unusual because it is simultaneously:\na programming language,\na compiler,\nand a theorem prover.\nInstall it using elan.\ncurl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh\n\n\nVerify installation:\nlean --version\nlake --version\n\n\nInstall:\n“Lean 4”\nfrom the VSCode marketplace.\nThis gives:\nlive proof checking,\ninline errors,\ntheorem goals,\nand inter",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "用Lean 4设计可靠的权限模型",
+        "summary": "使用Lean 4（定理证明器和编程语言）来数学上强制权限系统不变量，使无效的安全状态在机制上不可能实现，而不仅仅是测试或审查。"
+      }
+    }
+  },
+  {
+    "title": "I Built an AI Pair Programmer for VS Code Because Copilot Felt Too Expensive for Many Developers",
+    "slug": "ai-pair-programmer-vs-code-devmind-affordable",
+    "url": "https://dev.to/theaakashsingh/i-built-an-ai-pair-programmer-for-vs-code-because-copilot-felt-too-expensive-for-many-developers-8b0",
+    "source": "DEV Community",
+    "date": "2026-05-17T18:14:40.000Z",
+    "summary": "DevMind is an affordable VS Code extension for AI pair programming with inline completions, code explanation, and refactoring—positioning itself as a lower-cost alternative to GitHub Copilot with faster onboarding.",
+    "content": "I Built an AI Pair Programmer for VS Code Because Copilot Felt Too Expensive for Many Developers\n\n\nLike many developers, I started using AI coding assistants daily.\nThey genuinely improve productivity:\nautocomplete\ndebugging\nrefactoring\nexplaining complex code\ngenerating boilerplate\nBut I kept running into the same problems:\n❌ Expensive subscriptions\nSo I decided to build something simpler.\nDevMind is an AI pair programmer built specifically for VS Code.\nThe goal was simple:\nLow-latency inline completions directly inside VS Code.\nAsk questions without leaving your coding flow.\nSelect code and instantly:\nexplain it\nfix bugs\nrefactor functions\nNo passwords.\nOne thing I noticed:\nSo I wanted DevMind to be:\naccessible\ndeveloper-friendly\neasy to start\nThat’s why pricing starts at:\n₹199/month for Solo\nFree tier included forever\nBuilt using:\nVS Code Extension API\nAI model integrations\nCustom backend APIs\nReal-time autocomplete pipeline\n✅ Autocomplete\nLanguages supported:\nTypeScript\nJavaScript\nPython\nGo\nJava\nRust\nC++\nand more.\n---\n# What’s Next\nCurrently working on:\nbetter context awareness\nfaster completions\nteam collaboration\nsmarter refactors\nproject memory\nStill early.\nWould genuinely love feedback from developers here:\nonboarding\nUI/UX\nautocomplete quality\npricing\nfeature ideas\nTry DevMind here:\nhttps://devmind.singhjitech.com\nBuilt by SinghJiTech from India 🇮🇳",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我为VS Code构建了一个AI编程伙伴，因为Copilot对很多开发者来说太贵了",
+        "summary": "DevMind是一个价格便宜的VS Code扩展，用于AI配对编程，具有内联补全、代码解释和重构功能——定位为GitHub Copilot的低成本替代方案，入门速度更快。"
+      }
+    }
+  },
+  {
+    "title": "How Autonomous AI Agents Are Reshaping Developer Workflows in 2026",
+    "slug": "autonomous-ai-agents-reshaping-developer-workflows-2026",
+    "url": "https://dev.to/smartpicksai/how-autonomous-ai-agents-are-reshaping-developer-workflows-in-2026-4ho6",
+    "source": "DEV Community",
+    "date": "2026-05-17T18:12:52.000Z",
+    "summary": "Explains three load-bearing components of production agents: planning architectures (ReAct, tree-of-thought), multi-level memory systems, and tool calling. Emphasizes matching implementation complexity to actual enterprise needs.",
+    "content": "Most developers spent 2023 and 2024 experimenting with AI-assisted code completion and chat interfaces. Those tools were useful—but they were also passive. You typed a prompt. The model responded. You did the rest.\nStandard generative AI operates on a simple exchange: input goes in, output comes out. A chatbot summarizes a Slack thread. A code model suggests a function. The interaction is stateless and bounded. You stay in the loop for every decision.\nIf you're planning to build or integrate agentic workflows, you need to understand the components that make them work. These aren't optional abstractions—they're the load-bearing structure of any production-grade agent.\nAn agent needs to decompose a goal into ordered steps. Modern agents often use patterns like ReAct (Reason + Act), where the model alternates between reasoning about the next step and actually executing it. More complex systems use multi-step planners or tree-of-thought approaches to handle tasks with branching logic. The key insight from Microsoft's agent architecture guidance is that you should match complexity to need—not every workflow requires multi-agent orchestration, and simpler single-agent-with-tools patterns are often the right default for enterprise use cases.\nAgents need to track what they've already done. This happens at multiple levels: short-term working memory held in the context window, intermediate scratchpads for multi-step reasoning, and longer-term storage via vector databases or structured retrieval. Getting memory architecture wrong is one of the fastest ways to produce agents that loop, hallucinate resolved states, or lose track of task scope.\nAgents act on the world through tools functions the model can invoke to read files, query databases, call APIs, run shell commands, search the web, or interact with third-party services. Tool calling is what gives agents their teeth. A model that can only produce text is a language model. A model that can call git blame, kubectl get pods,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "自主AI代理如何重塑2026年开发者工作流",
+        "summary": "解释生产级代理的三个核心组件：规划架构（ReAct、思维树）、多层记忆系统和工具调用。强调将实现复杂性与实际企业需求相匹配。"
+      }
+    }
+  },
+  {
+    "title": "I make an app to help you make money while traveling",
+    "slug": "app-make-money-traveling-jastip-daigou",
+    "url": "https://dev.to/fikuri/i-make-an-app-to-help-you-make-money-while-traveling-293d",
+    "source": "DEV Community",
+    "date": "2026-05-17T18:07:57.000Z",
+    "summary": "App enables Indonesian and Chinese travelers to monetize trips via Jastip/Daigou (buying items on behalf of others). Handles currency exchange, deposit management, and order tracking for this informal commerce pattern.",
+    "content": "This is a series of content I created for the Build with MeDo Hackathon at MeDo.\nIn Indonesia, Jastip (concierge service) is very common. China has a similar culture called Daigou (buying on behalf). \nThe key similarity between Daigou and Jastip is one simple thing: \"Access\". \nHow Jastip works is basically someone from a different location with \"access\" to certain products offers them to others on social media. If people want to buy, the seller does not need to own the inventory or stock. They just need to be there at the store and ready to purchase. This Jastip service includes a service fee and sometimes delivery service. There are many kinds of products being sold, from snacks to luxury goods you cannot easily find in Indonesia. \nPeople in Indonesia take this to another level by making it a full side quest while travelling. They plan a trip for fun, and to help finance the travelling, they do a Jastip side quest with many products, often from cross-country travel. \nThen I found that China already has a similar culture with Daigou, but it is more focused on luxury items that are often hard to find in China or have some kind of rarity or reputation from the origin country (or so from what I read on the internet). \nThe interesting thing about China and Indonesia's Jastip/Daigou culture is how they operate. In China, Daigou mostly operates on WeChat livestreaming, and the storefront is built inside WeChat using mini programs.\n\nSo to help my fellow Indonesians make money while travelling, I made an app to manage this kind of thing using medo.dev.\nTo motivate you to read further, let me put a motivational image for you.\n\nYes, the money. With this app, you can not only plan for travel, but also make some money with Jastip.\nHow, you may ask?\n\n\n\nWhen creating a campaign, you set the starting date and end date of your Jastip. \nDon't worry, this app handles the currency exchange automatically for you, and there is deposit payment for your buyer. They can use that deposit to",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我开发了一款应用程序，帮助您在旅行时赚钱",
+        "summary": "该应用程序使印度尼西亚和中国旅行者能够通过Jastip/代购（代为购买商品）将旅行变现。处理货币兑换、保证金管理和订单跟踪，支持这种非正式商业模式。"
+      }
+    }
+  },
+  {
+    "title": "Build Autonomous AI Workflows With Claude Desktop",
+    "slug": "build-autonomous-ai-workflows-claude-desktop",
+    "url": "https://dev.to/forgeflows/build-autonomous-ai-workflows-with-claude-desktop-37l9",
+    "source": "DEV Community",
+    "date": "2026-05-17T18:05:56.000Z",
+    "summary": "Nine-step framework for building recurring autonomous workflows in Claude Desktop using scheduled execution, MCP tool connections, and persistent context. Closes the gap between chatbot and self-running infrastructure.",
+    "content": "The Problem Is Not Your Prompts\n\n\nIn 2026, according to McKinsey's State of AI 2024 report, 72% of organizations now use AI in at least one business function, up from 50% in prior years. Most of them are doing it wrong. They open a chat window, type a prompt, read the response, copy it somewhere, and repeat the next morning. That is not infrastructure. That is a slightly faster version of doing the work yourself.\nThe actual problem is not prompt quality. It is that most people treat a reasoning model as a vending machine: insert query, receive answer, walk away. Claude's desktop application, as of mid-2026, supports scheduled task execution and direct tool connections that change this entirely. The question is how to wire it up so the machine runs without you standing next to it.\nThis article is the nine-step framework we use. No aspirational framing. Just the architecture, the constraint patterns that actually hold, and the places where this approach breaks down.\nThink of Claude's desktop app as a local orchestration layer. It can hold a persistent context, fire on a schedule, call external tools via MCP (Model Context Protocol) connections, and write its results to a destination you define. That is the full loop. The gap between \"chatbot\" and \"infrastructure\" is closing that loop so no human has to sit in the middle of it.\nThe nine steps break into three phases. The first phase is definition: you decide what recurring decision or document the pipeline will handle, write a system prompt that encodes the rules, and define the exact format the LLM must return. The second phase is connection: you attach the tools the reasoning engine needs (a calendar API, a CRM read endpoint, a Slack webhook, a local file path) and verify each connection fires correctly in isolation before chaining them. The third phase is scheduling and validation: you set the recurrence, add a constraint block to the prompt, and build a lightweight check that confirms the response matches the expec",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用Claude Desktop构建自主AI工作流",
+        "summary": "使用计划执行、MCP工具连接和持久上下文在Claude Desktop中构建循环自主工作流的九步框架。弥合聊天机器人和自运行基础设施之间的差距。"
+      }
+    }
+  },
+  {
+    "title": "Building EcoGraph AI: Why GraphRAG Beats Vector Search (My TigerGraph Hackathon Journey)",
+    "slug": "ecograph-ai-graphrag-ewaste-compliance",
+    "url": "https://dev.to/amrithesh_dev/building-ecograph-ai-why-graphrag-beats-vector-search-my-tigergraph-hackathon-journey-51e0",
+    "source": "DEV Community",
+    "date": "2026-05-17T18:00:51.000Z",
+    "summary": "EcoGraph AI uses TigerGraph knowledge graphs to answer e-waste compliance questions more accurately than vector search or LLMs by modeling legal documents as graphs of entities and strict relational constraints.",
+    "content": "EcoGraph AI: Why I Built a Knowledge Graph to Solve E-Waste Compliance\n\n\nIf you manufacture electronics, figuring out e-waste compliance is a nightmare.\nYou're forced to dig through hundreds of pages of dense legal text — the EU WEEE Directive, India's CPCB E-Waste Rules, RoHS exemptions, and more — just to answer questions like:\nIs lead allowed in this component?\nDoes this product category have special treatment requirements?\nWhat are my EPR obligations in India?\nStandard AI solutions fell short quickly.\n1. Plain LLMs — They hallucinate legal facts with confidence.\n2. Vector RAG — It can find paragraphs mentioning \"lead\" and \"capacitors,\" but completely loses the strict relational logic, temporal conditions, and cross-references that actually matter in law.\nLegal documents aren't just text. They're graphs — full of entities and precise relationships.\nSo I built EcoGraph AI.\nEcoGraph AI is a multi-hop GraphRAG system designed specifically for environmental compliance and e-waste regulations. To prove it worked, I built a dark-mode React dashboard (Tailwind + Framer Motion) that runs a live side-by-side comparison:\n\n\n\nPipeline\nApproach\n\n\n\n\nPipeline 1\nLLM-only (baseline)\n\n\nPipeline 2\nVector RAG (industry standard)\n\n\nPipeline 3\nTigerGraph GraphRAG (the winner)\n\n\n\nI used TigerGraph Cloud as the core of the system. Here's how the architecture came together.\nI modeled a legal ontology with:\nVertices: Material, Component, ProductCategory, Jurisdiction, ActionNode, Clause\n\n\nEdges: RESTRICTED_IN, EXEMPT_FOR, MUST_BE_REMOVED_FROM, BELONGS_TO, CONDITIONAL_ON\n\n\nRich edge properties: threshold, effective_from, effective_to, source_reference\n\n\n\n\n  \n  \n  2. Intelligent Ingestion Pipeline\n\n\nI built an async Python pipeline using Instructor + Groq (Llama-3-70B) to extract clean, structured triplets from PDFs. Pydantic models enforced strict output format throughout.\nAfter extraction and deduplication, data was pushed directly into TigerGraph via its REST API.\nWhen a user asks \"Is le",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建EcoGraph AI：为什么GraphRAG优于向量搜索（我的TigerGraph黑客松之旅）",
+        "summary": "EcoGraph AI使用TigerGraph知识图谱来回答电子废物合规问题，通过将法律文件建模为实体图和严格的关系约束，比向量搜索或大型语言模型更准确。"
+      }
+    }
+  },
+  {
+    "title": "Security researcher says Microsoft built a Bitlocker backdoor, releases exploit",
+    "slug": "microsoft-bitlocker-backdoor-exploit-released",
+    "url": "https://www.techspot.com/news/112410-security-researcher-microsoft-secretly-built-backdoor-bitlocker-releases.html",
+    "source": "Hacker News",
+    "date": "2026-05-17T13:42:30.000Z",
+    "summary": "Security researcher publicly claims Microsoft built a Bitlocker backdoor and releases an exploit, raising critical questions about the integrity of the encryption tool and Microsoft's security practices.",
+    "content": "Article URL: https://www.techspot.com/news/112410-security-researcher-microsoft-secretly-built-backdoor-bitlocker-releases.html\nComments URL: https://news.ycombinator.com/item?id=48168856\nPoints: 375\n# Comments: 157",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "安全研究人员声称微软在Bitlocker中留下后门，发布漏洞利用程序",
+        "summary": "安全研究人员公开声称微软在Bitlocker中留下了后门并发布了漏洞利用程序，这引发了对加密工具完整性和微软安全实践的严重质疑。"
+      }
+    }
+  },
+  {
     "title": "Building an AI Chat Starter Kit for CMP: ~20 Lines from Empty Screen to ChatGPT-Quality Streaming",
     "slug": "building-ai-chat-starter-kit-cmp",
     "url": "https://dev.to/nadeemiqbal/building-an-ai-chat-starter-kit-for-cmp-20-lines-from-empty-screen-to-chatgpt-quality-streaming-3he8",
@@ -28,6 +236,22 @@
       "zh": {
         "title": "构建\"酷船长\"",
         "summary": "一个用 Google Gemini 构建的多智能体 AI 系统充当虚拟 IPL 板球队长，使用专门的智能体根据实时天气、球场条件和对阵数据来辩论战术决策。该系统在 3 小时的黑客马拉松中开发，展示了对抗性多智能体架构如何处理复杂、依赖于上下文的领域，而通用 LLM 响应在这些领域中不足。"
+      }
+    }
+  },
+  {
+    "title": "I don't think AI will make your processes go faster",
+    "slug": "ai-wont-make-processes-faster",
+    "url": "https://frederickvanbrabant.com/blog/2026-05-15-i-dont-think-ai-will-make-your-processes-go-faster/",
+    "source": "Hacker News",
+    "date": "2026-05-17T12:13:45.000Z",
+    "summary": "Challenges the assumption that AI adoption automatically accelerates business processes, arguing for more deliberate implementation strategies that account for hidden costs and organizational readiness.",
+    "content": "Article URL: https://frederickvanbrabant.com/blog/2026-05-15-i-dont-think-ai-will-make-your-processes-go-faster/\nComments URL: https://news.ycombinator.com/item?id=48168221\nPoints: 333\n# Comments: 260",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我认为AI不会让您的流程变得更快",
+        "summary": "质疑AI采用会自动加速业务流程的假设，主张采用更谨慎的实施策略来考虑隐性成本和组织准备情况。"
       }
     }
   },
@@ -76,6 +300,22 @@
       "zh": {
         "title": "揭秘浏览器渲染周期：useLayoutEffect、requestAnimationFrame和布局颤抖",
         "summary": "通过掌握浏览器关键渲染路径来优化React动画的指南——16.6毫秒的帧预算用于JavaScript执行、样式计算、布局、绘制和合成阶段。该文章解释了useLayoutEffect和requestAnimationFrame如何与浏览器渲染交互，以及不当的DOM访问如何导致布局颤抖从而降低性能。"
+      }
+    }
+  },
+  {
+    "title": "Apple Silicon costs more than OpenRouter",
+    "slug": "apple-silicon-costs-more-openrouter",
+    "url": "https://www.williamangel.net/blog/2026/05/17/offline-llm-energy-use.html",
+    "source": "Hacker News",
+    "date": "2026-05-17T12:09:23.000Z",
+    "summary": "Cost analysis showing local Apple Silicon inference exceeds cloud inference pricing (OpenRouter) when factoring hardware acquisition and electricity costs, favoring cloud services for economic efficiency.",
+    "content": "Article URL: https://www.williamangel.net/blog/2026/05/17/offline-llm-energy-use.html\nComments URL: https://news.ycombinator.com/item?id=48168198\nPoints: 215\n# Comments: 181",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Apple硅成本高于OpenRouter",
+        "summary": "成本分析显示，当计入硬件购置和电力成本时，本地Apple Silicon推理成本超过云推理定价（OpenRouter），有利于云服务的经济效益。"
       }
     }
   },
