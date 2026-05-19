@@ -1,5 +1,213 @@
 [
   {
+    "title": "Healthy Pods, Broken Transactions: What Kubernetes Doesn’t Catch in Banking Systems",
+    "slug": "kubernetes-banking-transaction-failure",
+    "url": "https://dev.to/jhabindra_pandey_a2894306/healthy-pods-broken-transactions-what-kubernetes-doesnt-catch-in-banking-systems-39ep",
+    "source": "DEV Community",
+    "date": "2026-05-19T07:12:40.000Z",
+    "summary": "Kubernetes-based systems can appear healthy while silently failing due to thread exhaustion and queue buildup. This banking case study shows how standard readiness probes miss thread pool saturation and demonstrates code-level solutions using Spring Boot health indicators.",
+    "content": "A production scenario walkthrough with Spring Boot, Resilience4j, and Kafka\nYour pods are running. Your readiness probes are green. Your HPA hasn’t moved. And your payment authorizations are silently failing.\nThis is not a hypothetical. It’s the failure class that cloud-native financial systems encounter repeatedly — and the one that standard Kubernetes observability is structurally unable to catch.\nLet’s walk through exactly how this happens and what the engineering response looks like in code.\nThe Scenario\nStandard card authorization pipeline:\nAPI Gateway → Payment Service → Kafka → Fraud Service → Ledger Service → Notification Service\nThe Fraud Service slows from 50ms to 4 seconds. Nothing crashes. Everything looks healthy. But over the next 40 minutes:\n• Kafka consumer lag on the fraud topic grows to 50,000+ messages\n• Payment Service thread pool exhausts\n• HikariCP connections on the Ledger Service saturate\n• Card authorizations fail system-wide\n• ACH settlement files are incomplete\n\nHere’s why, and here’s the code that prevents it.\nProblem 1: Your Readiness Probe Doesn’t Know Your Threads Are Exhausted\nThe default Spring Boot readiness probe checks /actuator/health. That endpoint checks database connectivity and disk space — not whether your service can actually process work.\nAdd a custom health indicator that reflects real processing capacity:\n@Component\nprivate final ThreadPoolTaskExecutor executor;\n\npublic ThreadPoolHealthIndicator(ThreadPoolTaskExecutor executor) {\n    this.executor = executor;\n}\n\n@Override\npublic Health health() {\n    int active = executor.getActiveCount();\n    int max = executor.getMaxPoolSize();\n    double utilization = (double) active / max;\n\n    if (utilization > 0.90) {\n        return Health.down()\n            .withDetail(\"activeThreads\", active)\n            .withDetail(\"maxThreads\", max)\n            .withDetail(\"utilization\", utilization)\n            .withDetail(\"reason\", \"Thread pool near exhaustion\")\n            .build();\n    }",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "健康的Pod，失败的交易：Kubernetes在银行系统中未能捕获的问题",
+        "summary": "基于Kubernetes的系统可能看起来很健康，但由于线程耗尽和队列堆积而无声地失败。这个银行案例研究展示了标准就绪探针如何错过线程池饱和，并演示了使用Spring Boot健康指标的代码级解决方案。"
+      }
+    }
+  },
+  {
+    "title": "DEVOPS_ECR",
+    "slug": "aws-ecr-github-actions-deployment",
+    "url": "https://dev.to/cool_x/devopsecr-107i",
+    "source": "DEV Community",
+    "date": "2026-05-19T07:03:38.000Z",
+    "summary": "ECR is AWS's private Docker registry offering better AWS service integration than Docker Hub. This guide covers ECR setup, repository structure, and IAM configuration needed to integrate with GitHub Actions for CI/CD pipelines.",
+    "content": "Deploying with AWS ECR + GitHub Actions\nWhat is ECR?\nECR (Elastic Container Registry) is AWS's private Docker image registry — think of it as a private Docker Hub that lives inside AWS. Instead of pushing your images to Docker Hub, you push them to ECR.\nWhy ECR over Docker Hub?\nThe Big Picture\nHere is how all the pieces connect together:\nGitHub (your code)\nECR Repositories\nHow many repos do you need?\nYou only create ECR repos for YOUR custom images. Public official images (MariaDB, Adminer) come directly from Docker Hub — no ECR needed for them.\nService Image Source    ECR Repo Needed?\nECR Repository URL Structure\n123456789012.dkr.ecr.ap-south-1.amazonaws.com/myapp-frontend\n123456789012     = your AWS account ID\nHow to Create ECR Repos\nSettings that matter:\nCreate two repos named:\nIAM — Users and Roles\nIAM User vs IAM Role\nIAM User    IAM Role\nWhat it is  Permanent identity with fixed keys  Temporary identity, auto-assumed\nHas permanent keys? Yes No\nWho uses it External things (GitHub Actions)    AWS services (EC2 → ECR)\nCredentials Access Key + Secret Key Temporary token (auto-rotated)\nIAM User — for GitHub Actions\nSteps to create:\n AWS Console → IAM → Users → Create User\n Name it: github-actions-ecr\n Attach policy: AmazonEC2ContainerRegistryFullAccess\n Security Credentials tab → Create Access Key → choose CLI\n IMPORTANT: Copy both keys immediately — secret shown only once\nIAM Role — for EC2\nSteps to create:\n AWS Console → IAM → Roles → Create Role\n Trusted entity type: AWS Service → EC2\n Attach policy: AmazonEC2ContainerRegistryReadOnly\n Name it: ec2-ecr-readonly\nEC2 → Instances → your instance → Actions → Security → Modify IAM Role → attach it\nVerify it worked by SSHing into EC2 and running:\nGitHub Secrets\nGo to: GitHub repo → Settings → Secrets and Variables → Actions → New Repository Secret\nSecret Name Value\nFor EC2_SSH_KEY — open your .pem file, copy everything including the -----BEGIN RSA PRIVATE KEY----- header and -----END RSA PRIVATE KEY----- footer, paste",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "DEVOPS_ECR",
+        "summary": "ECR是AWS的私有Docker注册表，提供比Docker Hub更好的AWS服务集成。本指南涵盖ECR设置、存储库结构以及与GitHub Actions集成进行CI/CD管道所需的IAM配置。"
+      }
+    }
+  },
+  {
+    "title": "Why Neleto Exists",
+    "slug": "neleto-rust-cms-ai-native",
+    "url": "https://dev.to/neletomartin/why-neleto-exists-131e",
+    "source": "DEV Community",
+    "date": "2026-05-19T07:00:00.000Z",
+    "summary": "Neleto is a Rust-built headless CMS addressing limitations in traditional and modern platforms—slow performance, poor developer experience, and disconnection from AI workflows. The platform prioritizes speed, client simplicity, and native AI integration.",
+    "content": "every time. And yet, the tools we rely on to manage websites often feel like they’re stuck in the previous decade.\nThat tension is exactly why Neleto exists.\nAs a digitalization partner working with mid-sized companies, we saw the same patterns again and again. Traditional CMS platforms were slow, bloated, and increasingly painful to maintain. Page speed suffered, security required constant vigilance, and every new feature seemed to demand another plugin. Clients loved the end result of a custom site but hated the editing experience — or worse, they accidentally broke things.\nHeadless and “modern” alternatives solved some problems but created others. They were powerful for developers, yet they often pushed complexity onto clients or required expensive frontend frameworks and ongoing specialist work. Pricing frequently scaled with seats or traffic in ways that punished growing businesses. And data residency? For European companies, that was rarely a first-class concern.\nThen AI changed everything.\nTools like Cursor, Claude, and Windsurf started letting developers move dramatically faster. But the content layer — the actual website content that real businesses live and die by — remained disconnected from these new workflows. AI could help write code or generate text, but it couldn’t safely and natively update the live site without fragile custom integrations.\nWe didn’t want to keep patching around these limitations. We wanted to remove them.\nNeleto was born from a simple conviction: the best CMS should feel invisible to clients and empowering to developers — while being ready for the AI-native future that’s already here.\nThat conviction led to several non-negotiable decisions:\nPerformance as a foundation, not a feature. We built the backend in Rust. The result is websites that are dramatically faster than traditional PHP or Node.js solutions — often 10-50× quicker in real-world scenarios. Faster sites rank better, convert better, and cost less to run. For agencies and",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Neleto为什么存在",
+        "summary": "Neleto是一个用Rust构建的无头CMS，解决传统和现代平台的局限性——性能缓慢、开发者体验差和与AI工作流的脱节。该平台优先考虑速度、客户端简洁性和原生AI集成。"
+      }
+    }
+  },
+  {
+    "title": "Cortex Search vs Hybrid SQLite RAG — A Cost and Latency Teardown",
+    "slug": "cortex-search-vs-sqlite-rag-comparison",
+    "url": "https://dev.to/soytuber/cortex-search-vs-hybrid-sqlite-rag-a-cost-and-latency-teardown-3b69",
+    "source": "DEV Community",
+    "date": "2026-05-19T06:54:50.000Z",
+    "summary": "Snowflake's Cortex Search provides a fully-managed RAG pipeline in a single SQL statement, while SQLite with FTS5 and sqlite-vec offers hybrid search on a laptop with zero costs. The tradeoff: managed simplicity and scale versus complete control and free operation.",
+    "content": "There are two competent ways to build a retrieval system in 2026, and they sit at opposite ends of the build-versus-buy spectrum.\nOn one end, Snowflake's Cortex Search wraps the entire RAG pipeline — chunking, embedding, indexing, incremental sync — into a single SQL statement. On the other, a 200-line Python script using SQLite's FTS5 module and the sqlite-vec extension can deliver hybrid keyword-plus-semantic retrieval on a laptop, with no servers and no monthly bill.\nThe marketing case for Cortex is well-rehearsed. The marketing case for SQLite is almost nonexistent because nobody is paid to make it. This post is the teardown — what each one charges for, where the latency actually lives, and the decision criteria for picking one over the other.\nFor the broader strategic context on why Snowflake's RAG offering exists at all, see the hub piece Why Snowflake's Bet on Streamlit Just Works. This article is the head-to-head.\nThe headline pitch is that you create a search service in one statement:\nCREATE OR REPLACE CORTEX SEARCH SERVICE my_rag_service\n  ON search_text_column\n  ATTRIBUTES product_category\n  WAREHOUSE = my_warehouse\n  TARGET_LAG = '1 hour'\n  AS SELECT * FROM my_table;\n\nThat is genuinely the entire pipeline. But \"no pipeline\" does not mean \"no cost.\" Cortex Search bills along several axes that are worth understanding before you commit:\nIndexing compute. When you create the service, Snowflake reads the source table, chunks the text, generates embeddings, and builds the index. That work runs on the warehouse you specified. For a corpus of a few hundred thousand documents, this is a one-time charge in the single-digit-credits range. For tens of millions of documents, it is meaningfully more.\nRefresh compute, driven by TARGET_LAG. This is the parameter most people underestimate. TARGET_LAG = '1 hour' means Snowflake will wake the warehouse at least once an hour to check for new or changed rows and update the index. Set it to '1 minute' and you are paying for s",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Cortex Search 与混合 SQLite RAG — 成本和延迟对比分析",
+        "summary": "Snowflake 的 Cortex Search 通过单个 SQL 语句提供完全托管的 RAG 管道，而 SQLite 配合 FTS5 和 sqlite-vec 在笔记本电脑上提供混合搜索且成本为零。权衡在于：托管的简洁性和可扩展性与完全控制和免费运营之间的选择。"
+      }
+    }
+  },
+  {
+    "title": "Inside Streamlit's Re-Run Model — Why Hot Reload Feels Instant",
+    "slug": "streamlit-rerun-model-hot-reload-instant",
+    "url": "https://dev.to/soytuber/inside-streamlits-re-run-model-why-hot-reload-feels-instant-4dco",
+    "source": "DEV Community",
+    "date": "2026-05-19T06:54:17.000Z",
+    "summary": "Streamlit achieves instant hot-reload by re-running the entire Python script on every change, avoiding server-restart overhead that plagues traditional frameworks. This trades efficiency for development speed—the re-run is fast enough to notice changes before your hand leaves the keyboard.",
+    "content": "The first time you save a Streamlit file in your editor and watch the browser update before your hand leaves the keyboard, you assume it is some clever diffing magic. It is not. The mechanism underneath is closer to a confession than an algorithm: Streamlit just re-runs your entire Python script, top to bottom, every time anything changes.\nOnce you understand that, the whole framework stops feeling magical and starts feeling honest. This post is about why that decision was the right one, what makes it fast, and the small handful of concepts you actually need to internalize to use it well.\nIf you want the strategic context for why this matters — Snowflake's acquisition, Cortex Search, the Community Cloud economics — that's in the companion piece Why Snowflake's Bet on Streamlit Just Works. This article is the engineering deep-dive.\nIn a normal Python web stack — FastAPI plus uvicorn, Flask plus gunicorn, Django plus anything — the server process is long-running. It holds the routes, the app state, the database connection pool, the imported modules. When you change a file, the dev server has to:\nDetect the file change.\nTear down the existing process (or at least invalidate its module cache).\nRe-import everything from scratch.\nRebind routes and middleware.\nOpen new sockets and resume accepting connections.\nThe fastest dev servers in this style — uvicorn with --reload, Flask's debugger, Django's runserver — manage this in a few seconds on a small app and noticeably longer on a real one. You save a file, you tab over to the browser, you refresh, you wait. The loop is one or two seconds, which sounds fine on paper but turns \"tweak the padding\" into a five-minute task.\nThe cost is structural. As long as there is a server process to restart, restart time has a floor.\nStreamlit's mental model removes the server-process-as-stateful-thing entirely. The server is still there — it accepts HTTP, it serves WebSocket frames — but your app code is not living inside it across request",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Streamlit 重新运行模型内部解析 — 为什么热重载感觉是即时的",
+        "summary": "Streamlit 通过在每次更改时重新运行整个 Python 脚本来实现即时热重载，避免了困扰传统框架的服务器重启开销。这种设计在效率和开发速度之间进行权衡——重新运行速度足够快，你还没放下手就能看到更改。"
+      }
+    }
+  },
+  {
+    "title": "Why Snowflake's Bet on Streamlit Just Works — And Where Solo Builders Still Win",
+    "slug": "snowflake-streamlit-acquisition-strategy",
+    "url": "https://dev.to/soytuber/why-snowflakes-bet-on-streamlit-just-works-and-where-solo-builders-still-win-4fm0",
+    "source": "DEV Community",
+    "date": "2026-05-19T06:53:44.000Z",
+    "summary": "Snowflake's $800M acquisition of Streamlit was strategic: solving the last-mile problem of getting data warehouse customers to production without frontend teams. Giving Streamlit away free is cheap marketing—every Python developer using it becomes a potential Snowflake buyer.",
+    "content": "Last night I finished a Streamlit app at 3 AM. It is an electronic whiteboard for a factory floor — monthly schedule, dispatch board, safety announcements, partner-company tallies, attendance heatmap, handwritten notes with PDF support, all on one screen. I thought I was done at 11 PM. The last four hours were the usual: that final 0.5% of padding, alignment, and \"why is this one cell two pixels off\" that consumes half the project.\nSomewhere around 2 AM I started thinking about why Streamlit lets me move this fast, and the answer pulled me into a longer thread about Snowflake's strategy, the economics of free developer tools, and where solo builders like me still have an edge over the enterprise stack.\nHere's the take.\nIn 2022, Snowflake bought Streamlit for around $800 million. At the time, plenty of people called it strange. Snowflake is a data warehouse company. Streamlit is a Python UI library. What's the connection?\nThe connection is that Snowflake had a problem most B2B data platforms have: once a customer's data lives inside your warehouse, the most expensive friction is the last mile — building the application that actually surfaces that data to a human. You can charge them for storage, for compute, for query credits, but if every customer has to spin up a separate frontend team to ship a dashboard or a search interface, your platform becomes a tax instead of a product.\nBuying Streamlit solved that elegantly. Now the pitch is: keep your data in Snowflake, write a Python script, and you have an internal app. No frontend hire. No deployment pipeline. No infrastructure team. The \"last mile\" becomes a function call.\nGiving Streamlit away for free, including the open-source library and Streamlit Community Cloud, is not a charity move. It is the cheapest enterprise marketing channel ever invented. Every Python developer who builds a side project on Streamlit becomes a potential advocate inside a company that is evaluating Snowflake. The cost to Snowflake is real b",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么 Snowflake 对 Streamlit 的投资奏效 — 以及个人开发者仍能赢的地方",
+        "summary": "Snowflake 斥资 8 亿美元收购 Streamlit 是战略性的：解决了将数据仓库客户推向生产环境而无需前端团队的最后一公里问题。免费提供 Streamlit 是廉价的营销——每个使用它的 Python 开发者都成为潜在的 Snowflake 买家。"
+      }
+    }
+  },
+  {
+    "title": "Instruction systems capability ladder: harness leveling",
+    "slug": "instruction-systems-capability-ladder",
+    "url": "https://dev.to/cleverhoods/instruction-systems-capability-ladder-harness-leveling-58o3",
+    "source": "DEV Community",
+    "date": "2026-05-19T06:53:07.000Z",
+    "summary": "This maturity model for instruction systems runs from system prompts through self-improving skills, with key transitions where enforcement mechanisms replace soft guidance. It explains why sub-agents matter, how scoping works, and what gates and hooks actually accomplish.",
+    "content": "submission for the Hermes Agent Challenge\nA few months ago I drew a maturity ladder for CLAUDE.md files — does the file exist, are constraints explicit, do skills load on demand. Useful for self-locating, and the ladder generalizes past Claude — CLAUDE.md, AGENTS.md, .cursorrules, Copilot instructions all live on the same rungs.\nAfter a lot (lot lot lot) more time spent with these setups, the ladder is built on a different, broader axis than I first drew it on: the channel each rung runs on.\n\n\n\nLevel\nName\nWhat's added\nChannel\n\n\n\n\nL0\nSystem\nSystem prompt only\nattention\n\n\nL1\nPrimer\nOne instruction file (CLAUDE.md, AGENTS.md, .cursorrules)\nattention\n\n\nL2\nComposite\nMultiple files — user defaults, project overrides\nattention\n\n\nL3\nScoped\nPath-scoped rules (.claude/rules/*.md)\nattention\n\n\nL4\nDelegated\nSkills — procedures invoked on demand\nattention\n\n\nL5\nAbstracted\nSub-agents — child contexts called by the parent\nattention (interface)\n\n\nL6\nGoverned\nHooks, MCP gates, deny-permissions\nenforcement\n\n\nL7\nAdaptive\nSelf-improving skills written by the agent\nself-writing\n\n\n\nTwo cuts split the ladder: one between L5 and L6 (soft to hard), one between L6 and L7 (read to write). I'll use attention and soft channel interchangeably from here, and the same for enforcement / hard channel.\nL0 (System) is the cold start: the model with whatever the vendor injected, nothing else.\nL1 (Primer) is your single root file — the entry every model sees first.\nL2 (Composite) is the moment you split user-level config from project-level: ~/.claude/CLAUDE.md vs ./CLAUDE.md, or your global Cursor settings vs a project .cursorrules.\nL3 (Scoped) introduces path scoping — the rule about Python tests only loads when the agent touches tests/*.py.\nL4 (Delegated) is skills, which let you ship procedures the agent can pull on demand instead of dumping every workflow into the root file.\nL5 (Abstracted) is sub-agents — child processes with their own context, called by the parent for a focused subtask. The child's",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "指令系统能力阶梯：利用分级",
+        "summary": "这个指令系统的成熟度模型从系统提示词演进到自我改进的技能，在关键转折点强制机制取代了软指导。它解释了为什么子代理很重要、作用域如何工作，以及门控和钩子实际上做了什么。"
+      }
+    }
+  },
+  {
+    "title": "Armorer v0.1.19: building the local ops layer for AI agents",
+    "slug": "armorer-local-ops-control-plane-agents",
+    "url": "https://dev.to/armorer_labs/testarmorer-v0119-building-the-local-ops-layer-for-ai-agents-57cf",
+    "source": "DEV Community",
+    "date": "2026-05-19T06:52:44.000Z",
+    "summary": "Armorer is a local control plane for AI agents handling installation, configuration, job supervision, and failure recovery that other frameworks ignore. It targets developers already running local agent workflows and prioritizes visibility over silent magic.",
+    "content": "Armorer v0.1.19\n\n\nWe have been building Armorer as an experimental local control plane for AI agents.\nGetting one agent demo working is usually not the hard part. The harder part is everything right after that: provider configuration drift, Docker or Colima state, partial installs, failed runs, and figuring out what actually changed between attempts.\nSo Armorer is not another agent framework. It is our attempt at a local ops layer for agents: install them, configure them, run them, supervise jobs, and recover when setup or runtime goes sideways.\nsupervised setup flows instead of silent magic\nlive workstream visibility during install and runtime\nclearer local state around jobs, providers, and failures\nlocal management for NanoClaw and OpenClaw style workflows\nRepo: https://github.com/ArmorerLabs/Armorer\nIt is still experimental, so we care a lot more about honest feedback from people already running local or self-hosted agent workflows than about pretending the product is finished.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Armorer v0.1.19：为AI代理构建本地运维层",
+        "summary": "Armorer是AI代理的本地控制平面，处理其他框架忽视的安装、配置、任务监督和故障恢复。它针对已经运行本地代理工作流的开发者，并优先考虑可见性而不是无声的魔法。"
+      }
+    }
+  },
+  {
+    "title": "I built ChatMandu - a WhatsApp-focused web app from Nepal",
+    "slug": "chatmandu-communication-web-app-nepal",
+    "url": "https://dev.to/dev000/i-built-chatmandu-a-whatsapp-focused-web-app-from-nepal-i65",
+    "source": "DEV Community",
+    "date": "2026-05-19T06:52:15.000Z",
+    "summary": "ChatMandu is a lightweight web platform for communication workflows emphasizing clean UX and performance. The Nepal-based developer with 2+ years backend experience is seeking user feedback and partnership opportunities.",
+    "content": "Hi everyone\nI’m a software developer from Nepal with 2+ years of experience in Laravel and Node.js.\nRecently, I built a web app called ChatMandu.\nChatMandu is a lightweight web platform built around improving how users interact with chat and communication workflows. The goal was to keep it simple, fast, and practical - not overloaded with unnecessary features.\nI built this project while experimenting with real-world product development, focusing on:\nclean UX\nperformance\nsolving communication-related use cases in a simple way\nThis is still an early version, and I’m actively improving it based on real user feedback.\nIf you try ChatMandu, I’d really appreciate honest feedback on:\nWhat feels confusing\nWhat feels useful\nWhat should be improved or removed\nWould you actually use this\nhttps://chatmandu.tech\nThanks for checking it out\n\nAny feedback, even critical, is very welcome.\nIf anyone is interested in partnership, you can reach me at:\ndev20581114@gmail.com",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了ChatMandu - 来自尼泊尔专注WhatsApp的网络应用",
+        "summary": "ChatMandu是一个轻量级的通信工作流网络平台，强调简洁的用户界面和性能。这位来自尼泊尔、拥有2年以上后端经验的开发者正在寻求用户反馈和合作机会。"
+      }
+    }
+  },
+  {
+    "title": "GitHub Copilot CLI as a PR-triage co-pilot: how I keep up with 40+ upstream orgs",
+    "slug": "github-copilot-cli-pr-triage-workflow",
+    "url": "https://dev.to/mukundakatta/github-copilot-cli-as-a-pr-triage-co-pilot-how-i-keep-up-with-40-upstream-orgs-525f",
+    "source": "DEV Community",
+    "date": "2026-05-19T06:51:23.000Z",
+    "summary": "GitHub Copilot CLI accelerates open-source contributions across dozens of repositories by answering what a repo does and where files live without grepping. A structured four-prompt workflow handles 80% of PR triage in unfamiliar codebases.",
+    "content": "Drafted for the GitHub Copilot Challenge (opens May 21). Will add the official devchallenge tag once the challenge announcement is live.\nFor the last 18 months I have been running a small one-person open-source program: meaningful PRs across Anthropic, OpenAI, Google, Microsoft, NVIDIA, AWS repos, plus 20-something smaller projects in the MCP and LLM tooling space. The math gets bad fast. You cannot keep 40 repos warm in your head; the cost of context-switching is what kills throughput, not the typing.\nGitHub Copilot CLI is the one tool that has actually moved that number for me. Not for writing code: I write most of the code by hand. For navigating code I have never seen before in repos I have just cloned. Below is the workflow that survived two iterations and the prompts I keep coming back to.\nWhen a triage candidate comes in (an issue I tagged earlier, a thread I bookmarked, a TODO I left in a fork), I run roughly this sequence:\n# 1. Fast skim: what is this repo, where is the meat?\ngh copilot suggest \"explain the architecture of this repo from the top-level dirs\"\n\n# 2. Locate the file the issue is about, without grepping for an hour\ngh copilot suggest \"where is the streaming response handler in this repo?\"\n\n# 3. Once the file is in front of me, ask copilot to make sense of the\n# function I am staring at, not in general but specifically\ngh copilot explain \"this function\" -- src/streaming/handler.py:412-510\n\n# 4. Stage a small, surgical patch and have copilot sanity-check it\ngh copilot suggest \"review this diff for correctness and side effects\"\n\nThree prompts and a diff review is what 80% of my PRs look like in practice. The remaining 20% are the ones where Copilot is wrong (or I am) and I have to slow down. Those are the PRs that ship the most value.\nMapping a repo I have never read. I ask \"what does this repo do\" and get a 6-line summary that is correct often enough to be load-bearing. Saves the 20 minutes of skimming I used to do.\nPointing at the right file by d",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "GitHub Copilot CLI 作为 PR 分类辅助：我如何跟进 40+ 个上游组织",
+        "summary": "GitHub Copilot CLI 通过回答仓库的功能和文件位置来加速数十个仓库的开源贡献，无需使用 grep。一个结构化的四提示工作流处理陌生代码库中 80% 的 PR 分类。"
+      }
+    }
+  },
+  {
+    "title": "gemma4-safe-agent: a tool-using research agent on Gemma 4 e2b",
+    "slug": "gemma4-safe-agent-local-research-tool",
+    "url": "https://dev.to/mukundakatta/gemma4-safe-agent-a-tool-using-research-agent-on-gemma-4-e2b-hhm",
+    "source": "DEV Community",
+    "date": "2026-05-19T06:50:55.000Z",
+    "summary": "Gemma 4 e2b runs as a local tool-using research agent in 200 lines of Node, reading Wikipedia to answer questions with sources—no API keys, rate limits, or network required. It demonstrates that capable, reliable agents are possible at the 2B-parameter edge level.",
+    "content": "Submission for the Gemma 4 DEV Challenge, Build track. Companion to my Write-track post on the five libs behind it.\nA tool-using research agent that runs locally on Gemma 4 e2b via Ollama, in around 200 lines of Node.\nYou give it a question. It picks between two tools, reads a Wikipedia page, then returns a structured JSON answer with sources. No API key. No rate limit. Two GB of RAM and an Ollama instance is the whole stack.\nollama pull gemma4:e2b\ngit clone https://github.com/MukundaKatta/gemma4-safe-agent\ncd gemma4-safe-agent && npm install\nnpm run demo -- \"What is RLHF?\"\n\n{\n  \"final\": \"RLHF is a technique that uses human preferences as a reward signal to fine-tune language models.\",\n  \"sources\": [\"https://en.wikipedia.org/wiki/Reinforcement_learning_from_human_feedback\"],\n  \"steps\": 2\n}\n\nRepo: github.com/MukundaKatta/gemma4-safe-agent\nGemma 4 ships in four sizes: e2b and e4b for edge and mobile, a 26B Mixture-of-Experts model, and a 31B dense model for servers. I picked e2b on purpose.\nReasons:\nRuns anywhere. Two GB of RAM, no network, no key. The agent works on a CI runner, a Raspberry Pi, an old MacBook. The bigger sizes do not.\nHardest reliability case. A 2B-class model makes more parse mistakes and more arg mistakes than a 26B. If the scaffolding holds at the 2B level, the bigger ones are a drop-in via GEMMA_MODEL=gemma4:e4b.\nReal product surface. Cheap, fast, local agents are where on-device AI is going. e2b is the right target for the kind of agent you'd actually ship in a desktop app, a mobile shell, or a browser extension.\nThe same agent runs against any of the four Gemma 4 variants with one env var change.\nThe whole agent is a small loop:\nfor (let step = 0; step < MAX_STEPS; step++) {\n  const fitted = fit(messages, { maxTokens: 4096, preserveSystem: true, preserveLastN: 2 });\n  const raw = await ollamaChat(fitted.messages);\n  const action = parseAction(raw);\n\n  if (action.kind === 'tool') {\n    const result = await TOOLS[action.tool].fn(action.args);",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "gemma4-safe-agent：Gemma 4 e2b 上的工具使用研究代理",
+        "summary": "Gemma 4 e2b 作为本地工具使用研究代理运行，用 200 行 Node 代码读取维基百科回答问题并提供来源——无需 API 密钥、速率限制或网络。它证明了在 2B 参数边缘级别可能存在能力强大、可靠的代理。"
+      }
+    }
+  },
+  {
+    "title": "I Built a 3D Solar System in 300 Lines of React (No Game Engine)",
+    "slug": "react-3d-solar-system-three-fiber",
+    "url": "https://dev.to/dev48v/i-built-a-3d-solar-system-in-300-lines-of-react-no-game-engine-52b2",
+    "source": "DEV Community",
+    "date": "2026-05-19T06:50:30.000Z",
+    "summary": "Building interactive 3D graphics is now accessible to React developers through React Three Fiber, which maps scene graphs to component trees. This example shows a 300-line orbiting solar system demonstrating both conceptual simplicity and performance considerations.",
+    "content": "Pull up a browser. Drag your mouse. Watch eight planets orbit the Sun, axes tilted, Saturn's rings catching the light.\nThat's not a game engine. That's not Unity. That's 300 lines of React.\nIf your mental model of \"3D programming\" is \"scary C++ matrices and a 600-page OpenGL textbook,\" you're a decade out of date. WebGL has shipped in every browser since 2014. Three.js wraps the boring math. React Three Fiber lets you write the scene as components, the same way you write HTML. The whole pipeline is <mesh>, <sphereGeometry>, <meshStandardMaterial> — three tags, you've made a planet.\nToday I'll show you the whole thing.\nEvery 3D scene — every Pixar movie, every video game, every product configurator — is the same shape: a tree of objects, where each node has a position, a rotation, a scale, and zero or more children. That's it. The Sun is the root. Earth is a child positioned 9 units to the right. The Moon is a child of Earth, positioned 1 unit further right. Rotate Earth and the Moon comes along for the ride, because it's a child.\nIn Three.js you build this tree imperatively:\nconst sun = new THREE.Mesh(geom, mat);\nconst earth = new THREE.Mesh(geom2, mat2);\nearth.position.x = 9;\nsun.add(earth);\nscene.add(sun);\n\nIn React Three Fiber, the tree IS your component tree:\n<mesh>           {/* sun */}\n  <sphereGeometry />\n  <meshBasicMaterial color=\"yellow\" />\n  <mesh position={[9, 0, 0]}>    {/* earth, child of sun */}\n    <sphereGeometry args={[0.5]} />\n    <meshStandardMaterial color=\"blue\" />\n  </mesh>\n</mesh>\n\nThat's the whole conceptual leap. Once you see \"the React tree is the Three.js scene graph,\" the rest is naming things.\nNaïve orbit code looks like this:\nuseFrame((_, dt) => {\n  angle += speed * dt;\n  earth.position.x = Math.cos(angle) * 9;\n  earth.position.z = Math.sin(angle) * 9;\n});\n\nThat works, but you're doing two trig calls per planet per frame in JavaScript. 60 fps × 8 planets = 960 sin/cos per second in slow JS.\nThere's a better way. Put the planet inside a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我用 300 行 React 代码构建了 3D 太阳系（无需游戏引擎）",
+        "summary": "通过 React Three Fiber，React 开发人员现在可以构建交互式 3D 图形，它将场景图映射到组件树。这个例子展示了一个 300 行的轨道太阳系，演示了概念的简单性和性能考虑。"
+      }
+    }
+  },
+  {
+    "title": "The last six months in LLMs in five minutes",
+    "slug": "last-six-months-llms-summary-2026",
+    "url": "https://simonwillison.net/2026/May/19/5-minute-llms/",
+    "source": "Hacker News",
+    "date": "2026-05-19T01:30:42.000Z",
+    "summary": "A concise overview of major LLM developments from the past six months, covering key advances and shifts in the language model landscape.",
+    "content": "Article URL: https://simonwillison.net/2026/May/19/5-minute-llms/\nComments URL: https://news.ycombinator.com/item?id=48188183\nPoints: 252\n# Comments: 137",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "过去六个月大语言模型发展概览",
+        "summary": "对过去六个月大语言模型关键进展的简洁概述，涵盖语言模型领域的重要突破和趋势转变。"
+      }
+    }
+  },
+  {
     "title": "Hidden Audio Attacks on Voice AI: How Transcription Pipelines Get Hijacked",
     "slug": "hidden-audio-attacks-voice-ai",
     "url": "https://dev.to/coridev/hidden-audio-attacks-on-voice-ai-how-transcription-pipelines-get-hijacked-32nj",
