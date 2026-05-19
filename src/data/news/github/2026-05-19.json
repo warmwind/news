@@ -1,5 +1,229 @@
 [
   {
+    "title": "I built a build tool in Go — and now I'm slowly rewriting pieces in Rust (fz 1.9.0 release)",
+    "slug": "fz-1-9-0-build-tool-cross-compilation",
+    "url": "https://dev.to/alexvoste/i-built-a-build-tool-in-go-and-now-im-slowly-rewriting-pieces-in-rust-fz-190-release-4n57",
+    "source": "DEV Community",
+    "date": "2026-05-19T18:31:36.000Z",
+    "summary": "fz 1.9.0, a build tool for C/ASM projects, adds cross-compilation support for ARM and RISC-V, plus compile_commands.json generation for IDE integration without manual configuration. The release improves test coverage dramatically and cleans up technical debt; the author is separately experimenting with rewriting the caching layer in Rust for potential performance gains.",
+    "content": "So I've been solo-building fz — a fast, opinionated build tool for C/ASM projects written in Go. No Makefile hell, no CMake nightmares. Just a single binary that figures out your toolchain and gets out of the way.\nToday I shipped 1.9.0 (and a quick 1.9.2 patch). Here's what changed — and why I started poking at Rust.\n-target <triple>\n\n\n\n\n\nfz -target arm-linux-gnueabihf\nfz -target riscv64-linux-gnu\nfz -target x86_64-w64-mingw32\n\nfz now auto-selects the right compiler, assembler, and linker for the target triple. ARM, RISC-V, x86_64, i386 — all supported out of the box.\n-type static / -lib\n\n\n\n\n\nfz -type static -lib mylib\n\nBuilds .a archives from object files via ar. Previously you had to wire this up yourself. Now it's a one-liner.\ncompile_commands.json\n\n\n\n\n\nfz -compile-commands\n\nGenerates compile_commands.json for clangd and any other LSP client. Finally get autocomplete and go-to-definition in your editor without configuring anything manually.\nfz -shell now handles both single files and full directories\nFixed a long-standing bug where hello.asm and hello.s would produce conflicting object file names\nLinker test coverage: 17% → 60% 🎉\nSquashed dozens of golangci-lint warnings\nCleaned up every errcheck, govet, and ineffassign warning across the codebase:\nProper error handling for json.Encode, os.Rename, os.Chmod, storeCache\n\nError checks in tests: os.Chdir, os.MkdirAll, os.Create, buf.ReadFrom\n\nFixed an empty branch in builder_test.go and a wrong printf format\nUpdated go.mod / go.sum\n\n\n\nNothing glamorous, but the kind of hygiene that prevents weird bugs six months from now.\nrustcache\n\n\n\n⚠️ This lives in a separate branch and is not part of the release. Yet.\nI've been curious about Rust FFI for a while, so I decided to try moving the caching layer — file hashing and copying — into a Rust static library.\nHere's what I've built so far in rustcache/:\n// SHA256 of a file, returned as a hex string over FFI\n#[no_mangle]\npub extern \"C\" fn rust_hash_file(path: *const c_char) -",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我用 Go 构建了一个构建工具——现在我正在逐步用 Rust 重写部分代码(fz 1.9.0 发布)",
+        "summary": "fz 1.9.0 是一个 C/ASM 项目的构建工具，增加了对 ARM 和 RISC-V 的交叉编译支持，以及 compile_commands.json 生成功能，无需手动配置即可集成到 IDE。此版本大幅提高了测试覆盖率并清理了技术债务；作者还在分别尝试用 Rust 重写缓存层以获得潜在的性能改进。"
+      }
+    }
+  },
+  {
+    "title": "A Scaling Lesson Building Production-Grade Agentic AI Systems",
+    "slug": "agentic-ai-scaling-tool-limits-reliability",
+    "url": "https://dev.to/amitkayal/a-scaling-lesson-building-production-grade-agentic-ai-systems-4kgp",
+    "source": "DEV Community",
+    "date": "2026-05-19T18:30:50.000Z",
+    "summary": "Enterprise AI agents demonstrate declining reliability beyond 4-5 tools as decision space expands, contradicting assumptions that more capabilities increase autonomy. The finding shifts industry focus toward smaller, specialized agents instead of monolithic systems with 18+ integrated tools.",
+    "content": "A Scaling Lesson Building Production-Grade Agentic AI Systems\n\n\nOne of the early observations we had while designing enterprise AI agents was this:\nGiving an agent more tools does not necessarily make it smarter.\nIn theory, it sounded correct.\nIf an agent had access to customer systems, payment systems, inventory, shipping, reporting, ticketing, email, scheduling, analytics, and internal knowledge bases — it should become more powerful and autonomous.\nBut what we observed in real implementations was very different.\nThe more tools we added, the more unstable the system became.\nNot because the model was weak.\nNot because the tools were poorly built.\nBut because the agent’s decision space became too large.\nFor every user request, the agent had to evaluate all available tools, compare descriptions, infer intent, decide sequencing, and determine the best execution path.\nNow imagine doing this with 18 tools:\nCustomer lookup\nOrder search\nRefund processing\nInventory checking\nShipping tracking\nEmail sending\nTicket creation\nKnowledge base search\nSentiment analysis\nLanguage translation\nCalendar scheduling\nReport generation\nData export\nUser authentication\nPayment processing\nDiscount application\nFeedback collection\nEscalation routing\nInitially, everything looked manageable.\nBut as workflows became more dynamic, we started observing:\nwrong tool selection,\nunnecessary tool chaining,\nhigher latency,\nincreased token usage,\ninconsistent execution paths,\nand occasional hallucinated actions.\nThe problem was not intelligence.\nThe problem was cognitive overload inside the orchestration layer.\nOver time, one pattern became very clear:\nAgents perform significantly better when their responsibility boundaries are smaller.\nIn our experience, once an agent moves beyond roughly 4–5 actively usable tools, reliability starts dropping rapidly. Similar enterprise orchestration patterns are now recommending smaller, specialized agents instead of monolithic “super agents.”\nThat observation changed ho",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建生产级代理 AI 系统的扩展教训",
+        "summary": "企业 AI 代理在工具数量超过 4-5 个时可靠性下降，决策空间扩大，与更多功能会增加自主性的假设相矛盾。这一发现促使业界将焦点从拥有 18+ 个集成工具的单体系统转向更小的专门化代理。"
+      }
+    }
+  },
+  {
+    "title": "Breaking Logging's Flywheel of Compromises",
+    "slug": "bronto-logging-platform-cost-complexity",
+    "url": "https://dev.to/bronto_io/breaking-loggings-flywheel-of-compromises-5gmb",
+    "source": "DEV Community",
+    "date": "2026-05-19T18:26:09.000Z",
+    "summary": "Bronto, a new logging platform, tackles logging's cost-complexity tradeoff with subsecond search, petabyte-scale retention, and cents-per-GB pricing on AWS infrastructure. As AI systems increasingly depend on comprehensive logs for LLM training and observability, traditional logging solutions are becoming architectural bottlenecks.",
+    "content": "Authored by Mike Neville-O'Neill\nLet's face it — logging is broken. Not just a little broken, but fundamentally misaligned with the needs of modern engineering teams. At a recent AWS Summit talk in London, Benoit Gaudin (our Head of Infrastructure) and I shared Bronto's vision for fixing this mess once and for all.\n\nIf you're running any significant infrastructure today, you're probably stuck in what we call the \"3C flywheel of compromises\":\nCost — Logging at scale has become ridiculously expensive\nCoverage — So you cut corners, dropping those infra logs and long-tail workflows\nComplexity — And end up with a Frankenstein's monster of 5–8 different systems duct-taped together\nThis isn't just inefficient — it's actively harmful. Engineers end up building parallel solutions just to get basic visibility because the main tool is too limited, too slow, or too expensive.\nLogs aren't just a compliance checkbox anymore. They're your operational ground truth in the AI era.\nThey feed your LLMs. They power your agents. They're your audit trail, your RAG source, your behavioral training set. And one log message from an LLM-based system might contain 50–100 nested events in a single payload.\nTry scaling that with a solution built before the separation of compute and storage was even a thing.\nBronto was built to tackle this head-on with three non-negotiable capabilities:\nSubsecond search on all logs — whether they're two seconds or two years old\nPetabyte-scale retention — no infrastructure for you to manage\nCompletely different pricing — think cents per GB, not dollars\nThe platform is built natively on AWS (S3, Lambda, DynamoDB), but engineered so you don't have to deal with pipelines, pre-processing, or glue code.\n\nThe ingestion layer accepts data from standard sources — OpenTelemetry Collector, FluentD, FluentBit — through HTTP endpoints, with AWS EC2 load balancers doing the heavy lifting. Data is buffered through Kafka (AWS MSK), but then things diverge from the standard playb",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "突破日志平台的成本-复杂性困局",
+        "summary": "Bronto 是一个新的日志平台，通过亚秒级搜索、PB 级数据保留和基于 AWS 基础设施的每 GB 美分级定价来解决日志的成本-复杂性权衡。随着 AI 系统越来越依赖全面日志进行大语言模型训练和可观测性，传统日志解决方案正在成为架构瓶颈。"
+      }
+    }
+  },
+  {
+    "title": "The AI Failure Mode That Costs Professionals the Most (And How to Detect It)",
+    "slug": "ai-plausible-neighbor-substitution-failure-mode",
+    "url": "https://dev.to/sarah_beaumontmercier_97/the-ai-failure-mode-that-costs-professionals-the-most-and-how-to-detect-it-1jfl",
+    "source": "DEV Community",
+    "date": "2026-05-19T18:23:59.000Z",
+    "summary": "The most costly AI failure mode is \"plausible-neighbor substitution,\" where AI provides statistically similar but incorrect answers that survive casual review better than obvious hallucinations. A cross-examination technique that prompts AI to distinguish its output from probable errors detects these failures approximately 70% of the time.",
+    "content": "Knowledge workers spend an average of 4.3 hours per week fact-checking AI outputs. Most of that time is wasted on the wrong failure mode.\nMost people worry about AI hallucinations,that is, when AI fabricates false information. But that's not the most dangerous failure mode.\nThe real risk lies in what I call plausible-neighbor substitution: the AI provides an answer that is statistically close to the correct one but ultimately incorrect. Instead of inventing entirely new content, it offers:\nThe dosage for a related medication\n\n\nThe regulatory threshold from last year\n\n\nA clause from an adjacent jurisdiction\n\n\nCode that works on test cases but fails at scale\n\n\n\nWhy is this more problematic than hallucinations? Because it often passes casual inspection. A hallucinated citation collapses immediately once checked. In contrast, a plausible neighbor appears legitimate and survives superficial review, it's crafted to look exactly like what the correct answer should be.\nThe solution is simple: ask a targeted question ->\nThis prompts the AI to distinguish its response from its most probable error. It succeeds roughly 70% of the time; in the remaining 30%, manual verification is necessary.\nI've documented this technique along with four other failure modes in a comprehensive protocol covering 25 distinct failure types across law, medicine, coding, and strategy.\nThe Cross-Examination Method",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "成本最高的AI失败模式（及其检测方法）",
+        "summary": "最昂贵的AI失败模式是\"似是而非的邻近替代\"，AI提供的答案在统计上相似但不正确，比明显的幻觉更容易通过随意审查。一种交叉检查技术通过提示AI将其输出与可能的错误区分开来，可以在大约70%的时间内检测到这些失败。"
+      }
+    }
+  },
+  {
+    "title": "ASN Lookup for Security Engineers: From Concept to Code",
+    "slug": "asn-lookup-security-engineers-threat-attribution",
+    "url": "https://dev.to/abdullah_afzal/asn-lookup-for-security-engineers-from-concept-to-code-26fn",
+    "source": "DEV Community",
+    "date": "2026-05-19T18:21:25.000Z",
+    "summary": "An ASN lookup identifies the Autonomous System Number and operator behind an IP address, enabling security engineers to attribute threats to ISPs, cloud providers, or bulletproof hosting rather than individual devices. Tutorials provide practical ASN query implementations in curl, Python, and JavaScript for security investigations.",
+    "content": "An ASN lookup is the fastest way to find out who actually operates the network behind an IP address. Every publicly routable IP on the internet belongs to an autonomous system, and that autonomous system number (ASN) identifies the network operator, what infrastructure they run, and who they peer with. For security engineers, this is a first-order pivot point: when an IP shows up in your logs tied to credential stuffing or port scanning, the ASN tells you whether you're looking at a residential ISP, a cloud hosting provider, or a known bulletproof hosting operation.\nThis tutorial covers what ASNs are, how they fit into internet routing, and then gets to the practical part: querying ASN data programmatically with curl, Python, and JavaScript so you can fold it into your investigation workflow or SIEM pipeline.\nAn ASN (Autonomous System Number) uniquely identifies a network that participates in internet routing via BGP.\nAs of 2025, roughly 120,000 ASNs had been allocated globally, while the number actively visible in BGP routing tables varied by dataset and vantage point.\nASNs classify into three types: stub (one upstream), multi-homed (multiple upstreams), and transit (carries traffic for others).\nSecurity engineers use ASN data for threat attribution, network-level blocking, infrastructure mapping, and log enrichment.\nProgrammatic ASN lookups return the network operator, organization type (ISP, hosting, business, education), route prefixes, and peering relationships.\nThis tutorial includes working code for ASN lookups in curl, Python, and JavaScript using ipgeolocation.io's ASN API.\nIn short: IP addresses identify devices, ASNs identify the networks those devices belong to. Knowing the network behind an IP is often more actionable than knowing the IP itself.\nAn autonomous system (AS) is a collection of IP address ranges, called prefixes, that operate under a single routing policy managed by one organization. An ISP like Comcast, a cloud provider like AWS, and a CDN",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "安全工程师的ASN查询：从概念到代码",
+        "summary": "ASN查询可识别IP地址背后的自治系统号和运营商，使安全工程师能够将威胁归属于ISP、云提供商或防弹主机，而不是单个设备。教程提供了curl、Python和JavaScript中的实用ASN查询实现，用于安全调查。"
+      }
+    }
+  },
+  {
+    "title": "Building an Insider Threat Detection System That Remembers Behavior Instead of Just Logging It",
+    "slug": "insider-threat-detection-behavioral-baseline-system",
+    "url": "https://dev.to/shashank_alagawadi_f720c7/building-an-insider-threat-detection-system-that-remembers-behavior-instead-of-just-logging-it-1d2k",
+    "source": "DEV Community",
+    "date": "2026-05-19T18:20:40.000Z",
+    "summary": "InsiderShield is an insider threat system that tracks evolving employee behavioral baselines rather than triggering on isolated events, reducing false positives while detecting genuine threats. The platform monitors signals like login patterns, device changes, and file access behavior to identify risky deviations from historical norms.",
+    "content": "Most security dashboards are very good at storing events and surprisingly bad at understanding them.\nThat was the problem I kept running into while building InsiderShield. Existing monitoring systems could tell me that an employee downloaded files at 2:13 AM from an unfamiliar device. What they could not reliably tell me was whether that behavior actually mattered.\nThat distinction sounds small until you try to build a system that reduces false positives without ignoring real insider threats.\nI ended up building InsiderShield around a simple idea: behavioral memory matters more than isolated events.\nInstead of treating every activity log as a disconnected incident, I wanted a system that continuously learns employee baselines over time, stores evolving contextual memory, and makes decisions using historical behavioral patterns instead of static rules.\nThat design decision pushed me toward combining persistent memory concepts from Hindsight persistent agent memory, contextual behavioral intelligence, and runtime orchestration patterns inspired by cascadeflow runtime orchestration.\nThe result became a full-stack insider threat monitoring platform that continuously tracks trust evolution, behavioral deviations, and adaptive security responses in real time.\nAt a high level, InsiderShield monitors employee activity and builds a continuously evolving behavioral profile for every user.\nThe system tracks signals like:\nLogin hour patterns\nTrusted devices\nDownload frequency\nFile access behavior\nSession duration\nLocation changes\nHistorical trust score evolution\nThose signals are compared against a behavioral baseline stored per employee. Every new activity updates the employee’s contextual history.\nThe stack itself is fairly straightforward:\n\n\n\nLayer\nTechnology\n\n\n\n\nFrontend\nNext.js\n\n\nBackend APIs\nNext.js API Routes\n\n\nDatabase\nMongoDB Atlas\n\n\nStyling\nTailwind CSS\n\n\nVisualization\nRecharts\n\n\nBehavioral Persistence\nHindsight-inspired memory model\n\n\nWorkflow Orchestration\ncascadefl",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建记忆行为而非仅仅记录日志的内部威胁检测系统",
+        "summary": "InsiderShield是一个内部威胁系统，跟踪不断演变的员工行为基线，而不是对孤立事件进行触发，从而减少误报同时检测真正的威胁。该平台监控登录模式、设备更改和文件访问行为等信号，以识别与历史规范的危险偏差。"
+      }
+    }
+  },
+  {
+    "title": "The standard advice on handling bias in tech is wrong",
+    "slug": "handling-bias-tech-advice-wrong-alternatives",
+    "url": "https://dev.to/sattensil888/the-standard-advice-on-handling-bias-in-tech-is-wrong-359l",
+    "source": "DEV Community",
+    "date": "2026-05-19T18:19:19.000Z",
+    "summary": "A Senior Developer Educator challenges conventional wisdom that direct confrontation, allyship networks, and HR escalation effectively combat workplace bias, citing personal costs and minimal behavior change. The piece outlines alternative strategies based on years of experience across technical and education roles.",
+    "content": "Every woman who has worked in tech long enough has gotten the same three pieces of advice. Confront the behavior in the moment. Build an allyship network. Escalate to HR if it crosses a line.\nI have tried all three. The first one cost me a working relationship I needed. The second one created a debt I never asked for. The third one put my name on a list and changed nothing about the person who did the thing.\nThis post is about what I do instead.\nTo be clear about scope: I am a Senior Developer Educator who has worked across data science, AI/ML, and developer education at multiple companies. My experience covers technical IC work and content-focused roles. If you are a manager of a 200-person org, the calculus may be different. If you are early career and still building a reputation, parts of this will not apply yet.\nHere is what I have learned.\nThe advice goes like this. Someone interrupts you, takes credit for your work, or makes a comment that lands wrong. You name it on the spot. \"I was still speaking.\" \"That was my idea from the sync last Tuesday.\" Direct, calm, professional.\nThe intent is good. The math does not work.\nConfrontation in the moment costs you the room. Whatever you were trying to accomplish in that meeting is now derailed. You become the person who made the meeting awkward. The other party almost never says \"you are right, I apologize.\" They explain, they soften, they reframe. The meeting moves on. You have spent your credibility to teach a lesson nobody asked to learn.\nWorse, it lodges in the calibration discussion. Six months later, when someone is evaluating you for a stretch project, the data point that surfaces is \"she can be difficult in meetings.\" Not the original behavior. Your response to it.\nI am not saying never push back. I am saying the price is real and it falls on you, not on the person who caused the problem. Spend that currency on the things that matter. The interruption in a five-person room where the work product is at stake is w",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "处理科技行业偏见的标准建议是错误的",
+        "summary": "一位资深开发者教育工作者质疑常见的做法，认为直接对抗、建立盟友网络和向人力资源部门反映等方法无法有效对抗职场偏见，因为这些做法代价高但行为改变有限。本文基于在技术和教育领域多年的实践经验，提出了替代策略。"
+      }
+    }
+  },
+  {
+    "title": "One month after launching my Tailwind Chrome extension, I got my first payment",
+    "slug": "tailwind-chrome-extension-ui-conversion-one-month",
+    "url": "https://dev.to/artur_akopian_1a4a424b38d/one-month-after-launching-my-tailwind-chrome-extension-i-got-my-first-payment-5d4h",
+    "source": "DEV Community",
+    "date": "2026-05-19T18:18:10.000Z",
+    "summary": "A developer built a Tailwind Chrome extension in one month using 95% AI-generated code and extensive automated testing, enabling instant conversion of any website UI into plain Tailwind HTML. The tool solves a critical UI refactoring bottleneck in frontend development by allowing rapid code generation from design screenshots.",
+    "content": "I'm a full-stack developer with 10+ years of experience. I use Angular on the frontend. I faced an issue that I experience in my everyday routine, even when I have powerful tools like Codex.\nRefactoring old UI to a new frontend was painful for me. I can vibe-code complex business logic, but I can't pull markup pixel-perfect into a new codebase in seconds. Put screenshots to the Codex and have 80% confidence output + time for editing it - this is the bottleneck for me.\nI built a Chrome extension that converts any interface into plain Tailwind HTML. It began as my personal tool, which I use to pull plain Tailwind into a new codebase. Then it turned out that it's not that simple: the web has a lot of markup cases, pseudo-elements, complex gradients, SVGs, authored styling priorities, etc.\nIt turned out that I built something big, and I wanted to share my pain and solution with you. Also, the inspiration that today it's possible to build tool in one month. Eventually, people will solve their pain as you solve yours.\nFew insights about my extension:\n95% code wrote AI\n700+ commits created\n40~ commits daily\n400+ regression tests\nDeveloped in 1 month\nAutomated self-learning\nAutomated regression testing\nAutomated parallelism for scheduled testing/learning\nKeeps improving every day\nFirst buy from guy I don't know, but feel thankful for him very much!\nWhat the purpose:\nRefactor legacy UI without changing it appearance\nPull any good UI element from any website, or even whole website\nUse this as the entry point for your AI - agents are understanding Tailwind better than screenshots\nConvert any AI output with inline styles, dirty code to plain Tailwind\nCustomer wants like in that WOW website - got it, pull and paste to your project\nNow I can pull whole Github page and convert it to Tailwind html in seconds, which is not Tailwind based and obfuscated.\nAlso, I made a few simple tools that help convert existing code to Tailwind. They're support preview, fullscreen, really complex so",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "发布Tailwind Chrome扩展一个月后，我获得了第一笔报酬",
+        "summary": "一位开发者利用95%的AI生成代码和大量的自动化测试，在一个月内开发了一个Tailwind Chrome扩展，能够将任何网站UI即时转换为纯Tailwind HTML。该工具通过允许从设计截图快速生成代码，解决了前端开发中UI重构的关键瓶颈。"
+      }
+    }
+  },
+  {
+    "title": "The End of Blind Signing: Deep Diving into ERC-7730, ERC-8213, and Clear Signing",
+    "slug": "ethereum-clear-signing-erc-7730-blind-signing",
+    "url": "https://dev.to/aniket_misra_e47d1564ab7b/the-end-of-blind-signing-deep-diving-into-erc-7730-erc-8213-and-clear-signing-2af0",
+    "source": "DEV Community",
+    "date": "2026-05-19T18:16:51.000Z",
+    "summary": "ERC-7730 and Clear Signing standards from the Ethereum Foundation eliminate blind signing by providing machine-readable metadata that translates contract function calls into human-readable text. The solution prevents users from unknowingly signing malicious transactions without requiring changes to existing contracts.",
+    "content": "For years, the status quo of interacting with Ethereum protocols has been a security nightmare masquerading as a routine task. You open a frontend, click \"Swap\" or \"Stake,\" and your hardware wallet prompts you to sign a blob of unreadable hexadecimal data. \nYou are blind signing. You are trusting that the frontend hasn't been compromised, that the RPC URL hasn't been poisoned, and that a malicious actor hasn't swapped out the destination address or function arguments. When the Lazarus Group drained $1.4 billion from Bybit, they didn't break cryptography; they exploited this exact UI gap. They tricked users into blind signing data that did something entirely different from what was shown on the screen.\nThe Ethereum Foundation, alongside an industry working group (including Ledger, Cyfrin, MetaMask, and Trezor), launched Clear Signing—a unified security standard designed to enforce the principle of \"What You See Is What You Sign\" (WYSIWYS). \nThis deep dive breaks down the technical layer of this release: ERC-7730, ERC-8213, and how they work together to eliminate blind signing without forcing on-chain breaking changes.\nOriginally proposed by Ledger and now under the stewardship of the Ethereum Foundation’s Trillion Dollar Security Initiative, ERC-7730 establishes a standardized, machine-readable JSON format that describes exactly what a smart contract’s function calls and EIP-712 typed messages mean in plain text.\nBecause this metadata lives entirely off-chain, it requires zero changes to existing smart contracts.\nWallets and hardware devices cannot natively store the ABIs and translation logic for millions of deployed contracts. ERC-7730 solves this by creating a highly structured schema that maps raw calldata bytes to human-readable display formats.\nAn ERC-7730 file is broken down into three core blocks:\nContext: Binds the descriptor to specific contract deployments across multiple EVM chain IDs.\nMetadata: Contains high-level project data (e.g., protocol name, offic",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "盲签的终结：深入探讨ERC-7730、ERC-8213和清晰签名",
+        "summary": "来自以太坊基金会的ERC-7730和清晰签名标准通过提供将合约函数调用转换为人类可读文本的机器可读元数据，消除了盲签问题。该解决方案可防止用户无意中签署恶意交易，且无需对现有合约进行任何修改。"
+      }
+    }
+  },
+  {
+    "title": "Your Tools Don't Learn You. This One Does.",
+    "slug": "hermes-agent-persistent-memory-user-learning",
+    "url": "https://dev.to/hemapriya_kanagala/your-tools-dont-learn-you-this-one-does-3ak2",
+    "source": "DEV Community",
+    "date": "2026-05-19T18:13:56.000Z",
+    "summary": "Hermes Agent solves the problem of stateless AI tools by implementing persistent memory that learns and remembers user patterns, preferences, and project context across sessions. The shift enables tools to adapt to individual working styles rather than resetting to default behavior each session.",
+    "content": "This is a submission for the Hermes Agent Challenge\nTL;DR\nEstimated read time: ~8 minutes\nWait, Think About This First\nThe Goldfish Problem\nOkay, What is Hermes Agent?\nThe Learning Loop, Without Making It Complicated\nIs It Just Hermes Agent Doing This?\nOh, and the Skills Are Shareable Too\nWhat This Changes Day to Day\nGetting It Running\nThe Bigger Thing Underneath All Of This\nReferences\n🤝 Stay in Touch\nWait, Think About This First\nOkay so I want to ask you something before we get into anything.\nHow long have you been using your code editor?\nA year? Three? More?\nNow here is the actual question.\nIs your editor any better at working with you specifically after all that time?\nDoes it know how you structure projects? Does it know which patterns you reach for at 11pm when you are tired and just want something to work? Does it know anything at all about you as a person?\nNo.\nIt is exactly the same editor it was on day one. You learned it. It did not learn you back.\nAnd the thing is, we have just accepted this. For as long as software has existed, this is how the relationship works. The tool stays the same. You do all the adapting. You learn the shortcuts. You write the snippets. You configure everything. You are the one who changes.\nThe software never does.\nI want to talk about why that might be changing, and why Hermes Agent is one of the more interesting things I have come across in a while.\nBefore getting into what Hermes Agent is, I want to describe a thing that happens with almost every AI agent right now.\nYou open it. You start working. You have a productive session where things all come together and the agent figures out your context and you feel like you are finally getting somewhere.\nSession ends.\nYou come back the next day.\nThe agent has absolutely no idea who you are.\n\n\n\nYou explain your project again. Your preferences again. The decision you made last week that the agent helped you reach. All of it, again.\nThis is what people in the AI field call being \"stateles",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的工具不了解你。这个可以。",
+        "summary": "Hermes Agent通过实现持久化记忆来解决无状态AI工具的问题，该记忆可以跨会话学习和记住用户的模式、偏好和项目上下文。这种转变使工具能够适应个人的工作风格，而不是在每个会话中重置为默认行为。"
+      }
+    }
+  },
+  {
+    "title": "Building an AI-Powered Finance Tracker with GoLang, Telegram Bot & Claude",
+    "slug": "ai-finance-tracker-golang-telegram-bot-claude",
+    "url": "https://dev.to/aididalam/building-an-ai-powered-finance-tracker-with-golang-telegram-bot-claude-3an2",
+    "source": "DEV Community",
+    "date": "2026-05-19T18:11:45.000Z",
+    "summary": "A developer built an AI-powered personal finance tracker in Go with Telegram integration that logs expenses from natural language input or receipt uploads, with Claude extracting purchase details automatically. The project demonstrates practical Go development for solving real personal productivity problems while practicing the language.",
+    "content": "I wanted to practice Go regularly by building real projects, so I decided to solve a problem I personally face: expense tracking.\nFor the last few months, my money management has been messy. I tried different finance apps, but most of them required too much manual input.\nSo I built a personal finance tracker with AI chat and Telegram bot support.\nNow I can simply write:\nhad lunch 500 taka\nThe LLM extracts the amount, category, description, and other details, then logs the expense for me.\nI can also upload a receipt, and the app can read it and extract purchase details automatically.\nThis is still an early-stage project. I will keep working on it in my free time to add more features, improve stability, and reduce bugs.\nGitHub repo:\nhttps://github.com/aididalam/LLM-Finance-Tracker",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用GoLang、Telegram机器人和Claude构建AI驱动的财务跟踪器",
+        "summary": "一位开发者用Go语言构建了一个具有Telegram集成的AI驱动的个人财务跟踪器，可以从自然语言输入或收据上传中记录支出，Claude自动提取购买详情。该项目展示了使用Go进行实际开发以解决真实个人生产力问题的同时练习该语言。"
+      }
+    }
+  },
+  {
+    "title": "Meet QueryDen: The Modern Database Client Built for Developers",
+    "slug": "queryden-database-client-modern-lightweight",
+    "url": "https://dev.to/kix007/fast-database-management-tool-in-rust-4a7p",
+    "source": "DEV Community",
+    "date": "2026-05-19T18:11:42.000Z",
+    "summary": "QueryDen is a lightweight native database client designed for modern developer workflows, emphasizing speed and intuitive UI over bloated Java-based alternatives common in the industry. The tool features smart query editing, schema exploration, and support for both local and remote connections.",
+    "content": "As developers, we spend a massive chunk of our day staring at database clients. But let's be honest—many existing tools feel either incredibly bloated, painfully slow, or stuck in the early 2000s UI-wise. \nThat’s exactly why we built QueryDen. \nWe wanted a database IDE that is fast, beautiful, and stays out of your way so you can focus on writing queries, analyzing data, and building things.\nQueryDen is a lightweight, high-performance desktop database client engineered by the team at OpenIdle. It’s designed from the ground up for modern developer workflows, giving you a smooth, distraction-free environment to manage your data.\n  ⚡ Blazing Fast Performance: No more waiting for heavy Java-based wrappers to boot up. QueryDen feels native, lightweight, and incredibly responsive.\n  🎨 Intuitive, Modern UI: A beautifully designed dark/light interface designed to reduce visual clutter and cognitive overload.\n  🛠️ Robust Query Editor: Featuring smart auto-completion, syntax highlighting, and an easy format tool that takes the headache out of writing complex SQL.\n  📂 Effortless Schema Exploration: Quickly navigate tables, views, and relationships without losing your place in your workspace.\n  🔒 Secure & Private: Connect safely to your local and remote databases. Your credentials and data stay where they belong—with you.\nWe believe that developer tools shouldn't just be functional—they should be a joy to use. QueryDen is our take on what a modern, hassle-free database manager should feel like. \nWe’re actively improving it and would love to get your feedback! \nQueryDen is currently available for download across platforms. Give it a spin and let us know what you think!\n  Download / Website: queryden.openidle.com\n\n  Give us feedback: Drop a comment right here on dev.to or open an issue over on our GitHub discussions!",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "认识QueryDen：为开发者构建的现代数据库客户端",
+        "summary": "QueryDen是一个轻量级的原生数据库客户端，专为现代开发者工作流设计，强调速度和直观的用户界面，而不是业界常见的笨重的基于Java的替代品。该工具具有智能查询编辑、模式探索以及对本地和远程连接的支持。"
+      }
+    }
+  },
+  {
+    "title": "I’ve joined Anthropic",
+    "slug": "developer-joined-anthropic",
+    "url": "https://twitter.com/karpathy/status/2056753169888334312",
+    "source": "Hacker News",
+    "date": "2026-05-19T15:07:45.000Z",
+    "summary": "A developer announced joining Anthropic, the AI research company. The announcement generated significant discussion in the technology community about leadership mobility in frontier AI.",
+    "content": "https://xcancel.com/karpathy/status/2056753169888334312\nComments URL: https://news.ycombinator.com/item?id=48194352\nPoints: 659\n# Comments: 255",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我加入了Anthropic",
+        "summary": "一位开发者宣布加入AI研究公司Anthropic。这一公告在科技社区引发了关于前沿AI领域领导力流动的重大讨论。"
+      }
+    }
+  },
+  {
+    "title": "OpenBSD 7.9",
+    "slug": "openbsd-7-9-release",
+    "url": "https://www.openbsd.org/79.html",
+    "source": "Hacker News",
+    "date": "2026-05-19T13:11:51.000Z",
+    "summary": "OpenBSD 7.9 was released with security enhancements and system improvements for the open-source operating system. The release reflects ongoing development and hardening in the BSD community.",
+    "content": "Article URL: https://www.openbsd.org/79.html\nComments URL: https://news.ycombinator.com/item?id=48192882\nPoints: 264\n# Comments: 174",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "OpenBSD 7.9",
+        "summary": "OpenBSD 7.9发布，为开源操作系统带来了安全增强和系统改进。该版本反映了BSD社区的持续开发和加固工作。"
+      }
+    }
+  },
+  {
     "title": "What I'm Learning Building Startup Graveyard.",
     "slug": "startup-graveyard-learning-from-failure",
     "url": "https://dev.to/hightech89/what-im-learning-building-startup-graveyard-232h",
@@ -188,6 +412,22 @@
       "zh": {
         "title": "2026年修复LCP、INP和CLS：完整的Core Web Vitals优化指南（含实战基准数据）",
         "summary": "本综合指南通过实战结果解决LCP、INP和CLS优化：一个Laravel/Vue仪表板的LCP从4.1秒改进到1.9秒，报告的演示预订量增加了22%。它涵盖了快速获胜，包括图像优化、宽度/高度属性、缓存头和CDN使用，同时解释为什么Core Web Vitals对SEO、跳出率和转换率很重要。该文章将性能定位为业务指标，而不仅仅是开发者关切。"
+      }
+    }
+  },
+  {
+    "title": "Apple unveils new accessibility features",
+    "slug": "apple-accessibility-features-apple-intelligence",
+    "url": "https://www.apple.com/newsroom/2026/05/apple-unveils-new-accessibility-features-and-updates-with-apple-intelligence/",
+    "source": "Hacker News",
+    "date": "2026-05-19T12:04:18.000Z",
+    "summary": "Apple announced new accessibility features integrated with Apple Intelligence across its devices and platforms. The features aim to improve usability and access for users with various disabilities.",
+    "content": "Article URL: https://www.apple.com/newsroom/2026/05/apple-unveils-new-accessibility-features-and-updates-with-apple-intelligence/\nComments URL: https://news.ycombinator.com/item?id=48192224\nPoints: 399\n# Comments: 219",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Apple推出新的无障碍功能",
+        "summary": "Apple宣布推出与Apple Intelligence集成的新无障碍功能，跨越其所有设备和平台。这些功能旨在为残障用户改进可用性和访问。"
       }
     }
   },
