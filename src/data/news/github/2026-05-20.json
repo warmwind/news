@@ -1,5 +1,213 @@
 [
   {
+    "title": "I Built an OTP System with Redis… Then Realized TTL Wasn’t Enough 😭",
+    "slug": "otp-system-redis-ttl-brute-force",
+    "url": "https://dev.to/devalujeniya/i-built-an-otp-system-with-redis-then-realized-ttl-wasnt-enough-4jla",
+    "source": "DEV Community",
+    "date": "2026-05-20T07:16:59.000Z",
+    "summary": "A developer built an OTP authentication system using Redis but discovered TTL alone was insufficient against brute force attacks, requiring rate limiting and attempt tracking. Naively updating Redis keys reset the expiration timer, extending the authentication window beyond the intended window. The solution transformed Redis from a simple cache into a lightweight state engine managing verification, failed attempts, and temporary blocking.",
+    "content": "I thought this would be a simple backend task.\nGenerate OTP → Store in Redis → Add expiration → Verify user.\nDone.\nMy first implementation looked like this:\nawait redis.set(\n  otpKey(phone),\n  otp,\n  \"EX\",\n  60\n);\n\nOTP expires after 60 seconds.\nLooks perfect.\nUntil I asked myself:\nWhat actually stops someone from guessing forever?\nNothing 😭\nSomeone could still keep trying:\n123456\n111111\n999999\n000000\n654321\n222222\n\nThe OTP expires.\nBrute force attempts do not.\nThat was the moment I realized:\nTTL solves expiration.\n\n\n\n\n  \n  \n  Version 1: Store Only OTP\n\n\nInitially Redis stored only:\n\"123456\"\n\nSimple.\nBut there was no information about:\nFailed attempts\nBlocking state\nVerification behavior\nSecurity tracking\nSo I changed the design.\nInstead of storing only the OTP:\n{\n  \"otp\": \"123456\",\n  \"attempts\": 0,\n  \"maxAttempts\": 3,\n  \"blockedUntil\": null\n}\n\nRedis stopped feeling like cache.\nIt started acting like a lightweight state engine.\nWrong OTP?\nIncrease attempts:\notpData.attempts++;\n\nAfter 3 failures:\notpData.blockedUntil =\nDate.now() + 60000;\n\nUsers are blocked for 60 seconds.\nProblem solved.\nOr at least…\nThat’s what I thought 😭\nWhen verification failed I updated Redis:\nawait redis.set(\n   otpKey(phone),\n   JSON.stringify(\n      otpData\n   ),\n   \"EX\",\n   60\n);\n\nLooks harmless.\nBut there was a hidden problem.\nImagine this:\nOTP created\nTTL = 60 sec\nUser fails at second 55\nRedis updates state\nTTL becomes 60 again\nThe OTP suddenly lives longer.\nI accidentally extended authentication lifetime after every failed attempt.\nNot ideal.\nBefore updating Redis:\nconst ttl =\nawait redis.ttl(\n   otpKey(phone)\n);\n\nReuse remaining TTL:\nawait redis.set(\n   otpKey(phone),\n   JSON.stringify(\n      otpData\n   ),\n   \"EX\",\n   ttl\n);\n\nNow:\nOTP created → 60 sec\nUser fails at second 55\nRemaining TTL = 5\nRedis update keeps TTL = 5\nExpiration stays correct ✅\nI started with:\nRedis = Cache\n\nI finished with:\nRedis = State Engine\n\nTTL → Expiration\nAttempts → Security\nBlocking → Authentication logic\nRed",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我用Redis构建了OTP系统……然后意识到TTL还不够 😭",
+        "summary": "一位开发者用Redis构建了OTP身份验证系统，但发现仅依靠TTL不足以抵御暴力破解攻击，需要速率限制和尝试跟踪。天真地更新Redis键会重置过期定时器，将身份验证窗口延长超过预期的时间范围。该解决方案将Redis从简单的缓存转变为轻量级状态引擎，管理验证、失败的尝试和临时阻止。"
+      }
+    }
+  },
+  {
+    "title": "AI Is Quietly Changing the Rules of Theme Development",
+    "slug": "ai-changing-theme-development",
+    "url": "https://dev.to/sabah_001/ai-is-quietly-changing-the-rules-of-theme-development-561b",
+    "source": "DEV Community",
+    "date": "2026-05-20T07:15:55.000Z",
+    "summary": "AI assistants are reshaping theme development by enabling faster modifications through automated workflows, but hardcoded designs and deeply nested structures become brittle after multiple AI-driven iterations. Building themes with parameterized components and abstracted styling decisions makes systems easier for both human developers and AI tools to evolve. Future marketplace value may depend less on design appeal and more on system adaptability.",
+    "content": "For years, themes were designed around human workflows.\nDevelopers downloaded templates, opened the codebase, customized layouts, changed styles, and manually adjusted everything.\nThat workflow still works.\nBut AI assistants are quietly changing expectations.\nDevelopers now increasingly use AI coding tools, prompt-based UI generation, and automated workflows to modify products faster.\nAnd that changes the goal a bit.\nMaybe the future isn’t just building beautiful themes.\nMaybe it’s building themes that are easier to adapt and evolve.\nAI can scaffold components surprisingly well.\nBut once code becomes:\ndeeply nested\nhardcoded\noverly abstracted\nfull of hidden logic\nthings get weird quickly.\nThe first generation usually looks impressive.\nThe second and third modifications? That’s often where things start breaking.\nexport const PricingCard = () => {\n  return (\n    <div className=\"bg-[#111] p-6 rounded-3xl border border-zinc-900\">\n      <h3 className=\"text-xl font-bold text-white\">Enterprise</h3>\n      <div className=\"text-3xl bg-gradient-to-r from-violet-400 to-fuchsia-600\">\n        $99/mo\n      </div>\n    </div>\n  );\n};\n\nNothing is technically wrong here.\nBut if AI repeatedly modifies colors, layouts, or behavior, hardcoded decisions can become fragile.\nexport const PricingCard = ({ title, price, theme }) => {\n  return (\n    <div className={theme.container}>\n      <h3 className={theme.heading}>{title}</h3>\n      <div className={theme.price}>{price}</div>\n    </div>\n  );\n};\n\nThis isn’t about replacing developers.\nIt’s about building systems that are easier to adapt.\nFor humans.\nAnd increasingly... for AI-assisted workflows too.\nFor years, marketplace value was:\n\"Look at this theme.\"\nBut maybe future value becomes:\n\"Look how easily this system can evolve.\"\nThat feels like a very different direction.\nAre you changing how you structure components because AI tools became part of your workflow?\nAnd do traditional theme marketplaces eventually adapt to this shift?",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI正在悄悄改变主题开发的规则",
+        "summary": "AI助手通过自动化工作流程加速主题开发，但硬编码设计和深层嵌套结构在经过多次AI驱动的迭代后变得脆弱。使用参数化组件和抽象样式决策构建主题能使系统更容易被人类开发者和AI工具所改进。未来市场价值可能取决于系统的适应性而不是设计吸引力。"
+      }
+    }
+  },
+  {
+    "title": "I Thought Fine-Tuning LLMs Needed Expensive GPUs. I Was Wrong.",
+    "slug": "fine-tuning-llms-consumer-hardware-qlora",
+    "url": "https://dev.to/vivek_t_05fe5587ebaf850d3/i-thought-fine-tuning-llms-needed-expensive-gpus-i-was-wrong-2p06",
+    "source": "DEV Community",
+    "date": "2026-05-20T07:14:56.000Z",
+    "summary": "A developer successfully fine-tuned a 1.1B parameter language model using QLoRA and 4-bit quantization on consumer hardware, proving expensive GPUs aren't necessary for LLM adaptation. By leveraging LoRA adapters to train only 0.2% of model parameters, the approach dramatically reduces memory requirements. Modern open-source tooling makes production-grade LLM fine-tuning accessible to solo developers.",
+    "content": "Yesterday I fine-tuned a 1.1B parameter language model using QLoRA on consumer hardware.\nAnd honestly?\nThe hardest part wasn’t training.\nI started with a simple goal:\nNF4 quantization\nThis was the stack:\nI trained only ~0.2% of the model.\nThat’s the magic of LoRA.\nInstead of retraining the full model, you train tiny adapter matrices on top of frozen weights.\nThe Funniest Bug\nWhy?\nBecause the inference prompt format didn’t match the training chat template.\nThe real stuff starts when you understand:\nquantization\nThat’s when you stop being an API consumer and start understanding the actual systems underneath.\nWhat I Built 🚀\n✅ Fine-tuned TinyLlama-1.1B using QLoRA\nOpen Source AI Is Wild\nHuge respect to:\nThe tooling available for solo developers right now is insane.\nLinks\n🤗 Hugging Face Repo\n💻 GitHub Repo\n / \n        agent-forge\n      \n    \n\n\n\n  Production-Oriented QLoRA Fine-Tuning & LLMOps Pipeline\n\n\n\n\n\n\n\n\n\n🚀 Overview\nAgent-Forge is a production-oriented GenAI engineering project that implements the complete lifecycle of modern LLM adaptation and deployment — from raw dataset to containerized inference server.\n🎯 Goal: Deeply understand and implement end-to-end LLM fine-tuning & deployment infrastructure.\n\n\n\n\n🧠 ML Engineering\nQLoRA Fine-Tuning\n4-bit NF4 Quantization\nPEFT / LoRA Adapters\nSupervised Fine-Tuning (SFT)\nConversational Dataset Engineering\n⚙️ LLMOps & Infra\nFastAPI Inference Serving\nRedis Caching Architecture\nQdrant RAG Integration\nDocker Containerization\nDeployment-Ready Pipelines\n\n\n\n🏗️ Architecture\n  HuggingFace Dataset\n          │\n          ▼\n  Conversational Formatting\n          │\n          ▼\n  Tokenizer (TinyLlama)\n          │\n          ▼\n  4-bit NF4 Quantization  ◄──── BitsAndBytes\n          │\n          ▼\n  QLoRA + PEFT Adapter Injection\n          │\n          ▼\n  SFT Training  (SFTTrainer / TRL)\n          │\n          ▼\n  Inference Evaluation (Before vs After)\n          │\n          ▼\n  LoRA Adapter Saving\n          │\n          ▼\n  FastAPI Inference",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我以为微调LLM需要昂贵的GPU。我错了。",
+        "summary": "一位开发者使用QLoRA和4位量化在消费级硬件上成功微调了11亿参数的语言模型，证明微调LLM不必依赖昂贵的GPU。通过利用LoRA适配器仅训练模型参数的0.2%，该方法大幅降低了内存需求。现代开源工具使生产级LLM微调对独立开发者也变得可行。"
+      }
+    }
+  },
+  {
+    "title": "GitHub-Synced Portfolio vs. Static Site vs. Notion: Which One Actually Gets Maintained?",
+    "slug": "github-synced-portfolio-vs-static-notion",
+    "url": "https://dev.to/zansuken/github-synced-portfolio-vs-static-site-vs-notion-which-one-actually-gets-maintained-1cec",
+    "source": "DEV Community",
+    "date": "2026-05-20T07:14:00.000Z",
+    "summary": "Most developer portfolios fail not from poor design but from maintenance burden, whether built as static sites, Notion pages, or GitHub-synced systems. Static sites offer maximum control but require manual updates for each job change, while Notion provides seamless editing but feels generic and limits custom displays. Success depends on choosing an approach that matches actual update frequency.",
+    "content": "Most developers don't have a portfolio problem. They have a maintenance problem.\nYou build something, deploy it, feel good for a week. Six months later it still says you work at a company you left in January. The tech stack section lists libraries you haven't touched since a tutorial.\nI've been thinking about this a lot while building getfolio.dev, and I wanted to write the comparison I wish I'd found when I was evaluating options myself. Not a sales pitch. An honest look at three real approaches developers use, what each one costs you in practice, and where each falls apart.\nWhat you get: Full creative control. You own every pixel. You can show off your frontend skills in the portfolio itself, which is a legitimate flex for frontend roles.\nWhat it costs you: Every update is a manual commit. New job? Edit the JSON or markdown, push, wait for the build. New project you're proud of? Same loop. Want to add your latest blog post? You're either building an RSS integration or copy-pasting.\nWhere it breaks down: The update friction scales linearly with your career activity. Junior devs shipping projects every week will fall behind fast. Senior devs who change roles or stacks will let it rot because editing a side project feels low-priority compared to actual work.\nRealistic maintenance cost: 15-30 minutes per update, assuming you remember to do it. Most people don't.\nWhat you get: Fast setup, no code required, easy to update text and images. Notion portfolios in particular have gotten popular because the editing experience is so smooth.\nWhat it costs you: You're limited to their layout primitives. No GitHub graph, no live repo data, no language breakdowns unless you screenshot them manually and paste them in. Custom domains range from possible (Carrd) to hacky (Notion with Super or Fruition).\nWhere it breaks down: It doesn't feel like a developer portfolio. It feels like a doc with links. There's no programmatic connection to your actual work. A recruiter scanning it sees",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "GitHub 同步投资组合 vs. 静态网站 vs. Notion：哪一个真正能保持更新？",
+        "summary": "大多数开发者作品集的失败不是源于设计不佳，而是来自维护负担，无论是构建为静态网站、Notion 页面还是 GitHub 同步系统。静态网站提供最大的控制权，但需要为每次工作变更进行手动更新，而 Notion 提供无缝编辑但显得通用且限制自定义显示。成功取决于选择与实际更新频率相匹配的方法。"
+      }
+    }
+  },
+  {
+    "title": "I think this is the best place to introduce yourself to a lot of other DEV members.",
+    "slug": "dev-welcome-thread-introduce-yourself",
+    "url": "https://dev.to/shaheryaramin/i-think-this-is-the-best-place-to-introduce-yourself-to-a-lot-of-other-dev-members-12cm",
+    "source": "DEV Community",
+    "date": "2026-05-20T07:12:10.000Z",
+    "summary": "DEV's welcome thread invites new members to introduce themselves and connect with the community. The post serves as a gathering place for onboarding and fostering engagement among developers. With 269 reactions, it demonstrates the platform's active community-building culture.",
+    "content": "Welcome Thread - v375\n\n\n  \nSloan the DEV Moderator\n                    \n                  \n\n                \n for The DEV Team\n            \n          \nApr 29\n        \n#welcome\n        \n269 reactions\n            \n comments\n            \n        \n        \n          \n            1 min read",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我认为这是向许多其他 DEV 成员介绍自己的最佳地方",
+        "summary": "DEV 的欢迎帖子邀请新成员介绍自己并与社区连接。该帖子作为入职和培养开发者参与度的聚集地。凭借 269 个反应，它展示了该平台积极的社区建设文化。"
+      }
+    }
+  },
+  {
+    "title": "WEEK 4 #100DaysOfSolana: LAMPORTS IN SOLANA",
+    "slug": "solana-lamports-account-anatomy",
+    "url": "https://dev.to/peter_okoh_/week-4-100daysofsolana-lamports-in-solana-2mb1",
+    "source": "DEV Community",
+    "date": "2026-05-20T07:07:19.000Z",
+    "summary": "Solana accounts contain fundamental fields—lamports (rent-paying balance), owner (mutation authority), data (custom storage), and executable (program vs. data)—that define how on-chain systems function. Understanding these core concepts shifts perspective from viewing Solana as \"magic transactions\" to recognizing it as a structured system where every account has a specific role. This architectural understanding is crucial for building on Solana.",
+    "content": "When I first started digging into Solana accounts, those fields,lamports, owner, data, executable,looked like low-level noise.\nBut they’re actually the real “anatomy” of everything on-chain.\nlamports is simply the balance of an account. Not abstract value, actual rent-paying power that keeps the account alive on the network.\nowner tells you \"who controls the rules.\" It’s not about possession, it’s about which program has the authority to read, write, and mutate that account’s state.\ndata is where the real story lives. It’s the storage layer—custom bytes that programs interpret however they were designed to. Same field, different meaning depending on the program behind it.\nAnd then there’s executable. This one flips the perspective: is this account just data, or is it a program that can actually run instructions?\nOnce these clicked for me, Solana stopped feeling like “magic transactions” and started looking like a structured system where every account has a job.\nAnd honestly, that shift changes everything.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第 4 周 #100DaysOfSolana：Solana 中的 LAMPORTS",
+        "summary": "Solana 账户包含基本字段——lamports（支付租金的余额）、owner（变更权限）、data（自定义存储）和 executable（程序 vs. 数据）——这些字段定义了链上系统的运作方式。理解这些核心概念改变了视角，从将 Solana 视为\"魔法交易\"转变为将其识别为一个结构化系统，其中每个账户都有特定的角色。这种架构理解对于在 Solana 上构建至关重要。"
+      }
+    }
+  },
+  {
+    "title": "I Built a Local Gemma 4 Content Radar for Private Editorial Decisions",
+    "slug": "gemma-4-local-content-radar-editorial",
+    "url": "https://dev.to/k_x_3bdabdd8981a983626896/i-built-a-local-gemma-4-content-radar-for-private-editorial-decisions-1hp8",
+    "source": "DEV Community",
+    "date": "2026-05-20T07:07:04.000Z",
+    "summary": "Local Gemma 4 Content Radar is a privacy-first editorial intelligence tool that runs on local infrastructure via Ollama to analyze content signals and recommend publishing decisions. The tool processes batch input of draft ideas and trend notes, returning structured analysis including top topics, reader hooks, risk assessment, and action items. It addresses creator concerns about data privacy while providing AI-assisted decision support.",
+    "content": "This is a submission for the Gemma 4 Challenge: Build with Gemma 4.\n\nI built Local Gemma 4 Content Radar, a small but practical editorial intelligence tool that runs Gemma 4 locally and turns a messy batch of content signals into a structured publishing decision report.\nThe problem I wanted to solve is simple: creators and technical media operators do not need one more random idea generator. They need a way to compare signals, choose the strongest angle, explain why it matters now, and flag risks before something gets published.\nThe tool takes a JSON file of candidate signals like trend notes, draft ideas, source snippets, audience hooks, or risk observations. It sends the full batch to a local Gemma 4 model through Ollama and returns:\nthe strongest topic to pursue\nwhy that topic matters now\na reader-facing hook\nranked alternative candidates\nevidence notes\nrisk notes\npractical next actions\nThe project is designed around privacy. The default endpoint is http://127.0.0.1:11434/api/generate, so the editorial notes stay on the local machine unless the user chooses otherwise.\nRepository:\nhttps://github.com/kax168/gemma4-local-content-radar\nRun it locally:\npython3 scripts/content_radar.py examples/signals.json \\\n  --out examples/radar-output.json \\\n  --markdown examples/radar-output.md\n\nExample output from Gemma 4 selected this top topic:\nDevelopers are testing local multimodal models for private document review\nGemma 4 explained that this is timely because teams increasingly want to process proprietary PDFs, screenshots, internal docs, and research notes without sending sensitive data to cloud APIs. It also produced a hook, risk notes, ranked alternatives, and follow-up actions.\nThat is the core user experience: local Gemma 4 acts as a private editorial reasoning layer, not just a text generator.\nThe implementation is intentionally small and inspectable.\n.\n+-- examples/\n|   +-- signals.json\n|   +-- radar-output.json\n|   +-- radar-output.md\n+-- scripts/\n|   +-- content_ra",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个本地Gemma 4内容雷达系统用于隐私编辑决策",
+        "summary": "本地Gemma 4内容雷达是一个隐私优先的编辑智能工具，通过Ollama在本地基础设施上运行，用于分析内容信号并推荐发布决策。该工具处理草稿想法和趋势笔记的批量输入，返回结构化分析，包括热门主题、读者吸引力、风险评估和行动项。它解决了创作者对数据隐私的担忧，同时提供AI辅助决策支持。"
+      }
+    }
+  },
+  {
+    "title": "Inside Hoovik: Building a Real-Time Multimodal Emotion AI Pipeline",
+    "slug": "hoovik-real-time-emotion-ai-pipeline",
+    "url": "https://dev.to/anupam_kumar/inside-hoovik-building-a-real-time-multimodal-emotion-ai-pipeline-5267",
+    "source": "DEV Community",
+    "date": "2026-05-20T07:05:38.000Z",
+    "summary": "Hoovik's video conferencing platform implements a production-grade real-time emotion inference engine using PyTorch and MediaPipe that operates under strict latency constraints despite unstable network conditions. The system isolates ML workloads into dedicated executor pools, separating lightweight WebSocket signaling from compute-intensive emotion recognition. This architecture maintains responsive signaling while allowing emotion inference services to scale independently.",
+    "content": "👉GitHub    🌐Live Demo\nWhen I started building Hoovik — a distributed video conferencing platform — I expected WebRTC signaling and transcription pipelines to be the hardest problems.\nThey weren’t.\nThe real engineering challenge was building a production-ready real-time multimodal emotion inference engine capable of processing live video meetings under strict latency constraints.\nUnlike offline ML systems, live meeting environments are unstable by default:\nmicrophones get muted\nwebcams disappear\npacket loss spikes randomly\nlighting changes constantly\nCPU pressure builds under burst traffic\nAnd unlike research notebooks, production systems need to survive all of it without freezing the application loop.\nThis article breaks down how I designed Hoovik’s emotion recognition backend using:\nFastAPI\nPyTorch\nMediaPipe\nXGBoost\nIsolation Forests\nSocket.IO\nAzure compute nodes\nThe production configuration currently operates with:\nseq_len = 10\naudio_dim = 1024\nface_dim = 326\nd_model = 256\nnhead = 8\n3 encoder layers \nTo separate lightweight websocket orchestration from heavy ML workloads, Hoovik runs on a distributed multi-cloud topology.\nHandles:\nReact frontend\nExpress backend\nSocket.IO signaling\nroom state coordination\nHandles:\nemotion inference\nWhisper transcription\nfeature extraction\nmodel execution\nThis separation keeps signaling latency stable while allowing compute services to scale independently.\n\nThe emotion_service runs as an asynchronous FastAPI + Socket.IO server.\nA naive implementation quickly breaks under load because:\nJPEG decoding is CPU-heavy\nMediaPipe blocks aggressively\ntransformer forward passes stall the event loop\nconcurrent feature extraction creates backpressure\nInstead of running everything inside one async path, I isolated the workload into dedicated executor pools.\n                 +---------------------------------------+\n                 |        Per-Participant Sockets        |\n                 +---------------------------------------+",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "深入Hoovik: 构建实时多模态情感AI管道",
+        "summary": "Hoovik的视频会议平台使用PyTorch和MediaPipe实现了一个生产级的实时情感推理引擎，能够在不稳定的网络条件下在严格的延迟约束下运行。该系统将ML工作负载隔离到专用执行器池中，将轻量级WebSocket信令与计算密集的情感识别分离。这种架构在保持响应式信令的同时，允许情感推理服务独立扩展。"
+      }
+    }
+  },
+  {
+    "title": "I Built a Local Registry for My CLI Tools",
+    "slug": "local-cli-tools-registry-tool-manage",
+    "url": "https://dev.to/alucard_is_me/i-built-a-local-registry-for-my-cli-tools-17p4",
+    "source": "DEV Community",
+    "date": "2026-05-20T07:05:36.000Z",
+    "summary": "tool-manage is a SQLite-backed CLI registry that catalogs local commands with metadata and workflow context, addressing the problem of remembering what accumulated tools do. Unlike package managers that only show what's installed, it tracks why each tool matters in a developer's workflow, supporting commands from npm, pnpm, shell scripts, and AI-generated tools. It serves as a memory layer for commands already on the machine.",
+    "content": "I Built a Local Registry for My CLI Tools\n\n\nOver time, my development machine became full of small commands.\nSome were global npm packages.\n\nSome were pnpm tools.\n\nSome were shell scripts.\n\nSome were internal tools.\n\nSome were small automation commands created for AI-assisted coding workflows.\nThe problem was not installation.\nThe problem was memory.\nI kept asking myself:\nWhat does this command do?\nWhere is the repository?\nWho maintains it?\nHow do I use it?\nIs it still active?\nWhy did I add it?\nSo I built a small CLI tool called tool-manage.\nGitHub:\nhttps://github.com/AlucPro/tool-manage\nnpm:\nhttps://www.npmjs.com/package/@alucpro/tool-manage\ntool-manage gives local commands a sqlite-backed registry.\nIt can:\nregister a command from PATH\n\nsave metadata\nstore help output\nimport JSON specs\ngenerate starter JSON templates\nupdate records\nsoft-delete old commands\ntm --add pnpm\ntm --show pnpm\ntm --update pnpm\n\ntm --generate sync-notes\ntm --add ./sync-notes.json\n\ntm --remove old-script\n\nWhy not just use npm global list?\nBecause I do not only want to know what is installed.\nI want to know what each command means in my workflow.\nPackage managers are good at installing things.\nWhy JSON specs?\nSome tools do not expose good package metadata.\nSome are just shell scripts.\nSome are internal commands.\nFor those cases, tool-manage can generate a starter JSON file:\ntm --generate sync-notes\n\nThen I can complete the description and import it later.\nAI-assisted workflow\nOne use case I care about is AI-assisted coding.\nWhen an AI assistant creates or explains a script, I can ask it to generate a tool-manage JSON spec for that command.\nThen I can import it:\ntm --add ./generated-command.json\n\nThis makes small tools easier to remember and reuse.\nWhat this tool is not\nIt is not a package manager.\nIt is not a version manager.\nIt does not replace npm, pnpm, nvm, volta, or mise.\nIt is just a memory layer for the commands already living on your machine.\nFeedback welcome\nI am still refining the wo",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我为我的CLI工具构建了一个本地注册表",
+        "summary": "tool-manage是一个由SQLite支持的CLI注册表，用元数据和工作流上下文对本地命令进行分类，解决了记住累积工具用途的问题。与仅显示已安装内容的包管理器不同，它跟踪每个工具在开发人员工作流中的重要性，支持来自npm、pnpm、shell脚本和AI生成工具的命令。它充当机器上已有命令的内存层。"
+      }
+    }
+  },
+  {
+    "title": "Stop Writing YAML: Deploy a Production Observability Stack in 1 Command 🚀",
+    "slug": "infrapulse-observability-stack-one-command",
+    "url": "https://dev.to/yash_ambaskar_c13cc5c5f10/stop-writing-yaml-deploy-a-production-observability-stack-in-1-command-55kf",
+    "source": "DEV Community",
+    "date": "2026-05-20T07:04:28.000Z",
+    "summary": "InfraPulse simplifies observability stack deployment by embedding Prometheus, Grafana, Loki, and Alertmanager configuration into a single Go binary, eliminating hundreds of lines of manual YAML configuration. The tool provides zero-configuration setup with self-healing capabilities that automatically clear Docker artifacts when disk usage approaches critical levels. It includes drift detection and multi-server support through automated remote agent script generation.",
+    "content": "Setting up Prometheus, Grafana, Loki, and Alertmanager usually involves hundreds of lines of YAML and manual wiring. InfraPulse fixes this by embedding the entire configuration into a single Go binary.\nKey Highlights:\n📦 Zero-Config: One binary, one command (infrapulse start).\n🛠️ Self-Healing: Built-in automated remediation. If your disk hits 90%, it clears Docker artifacts before you even wake up.\n🔍 Drift Detection: Verify your infrastructure integrity with infrapulse check.\n📡 Multi-Server Ready: Generate remote agent scripts in seconds.\nYou can find the project at: https://github.com/ambaskaryash/infrapulse\n#DevOps #Monitoring #Golang #OpenSource #Prometheus #Grafana",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "停止编写YAML：用1条命令部署生产可观测性堆栈 🚀",
+        "summary": "InfraPulse通过将Prometheus、Grafana、Loki和Alertmanager配置嵌入到单个Go二进制文件中来简化可观测性堆栈部署，消除了数百行手动YAML配置。该工具提供零配置设置和自我修复功能，在磁盘使用接近临界水平时自动清理Docker工件。它包括通过自动化远程代理脚本生成的漂移检测和多服务器支持。"
+      }
+    }
+  },
+  {
+    "title": "Automating Away SRE Toil Tasks",
+    "slug": "sre-toil-automation-kubernetes",
+    "url": "https://dev.to/vprachi360/automating-away-sre-toil-tasks-12n7",
+    "source": "DEV Community",
+    "date": "2026-05-20T07:04:09.000Z",
+    "summary": "SRE toil—repetitive manual tasks like restarting failed services or provisioning customers—drains engineering productivity by diverting attention from innovation. Automation through Kubernetes and scripting can reduce these burdens; for example, automatic restart policies prevent manual service recovery. The goal is for SREs to spend at least 50% of time building tools and automating tasks rather than performing manual operations.",
+    "content": "Reducing SRE Toil with Automation\n\n\n\n  \n  \n  The Problem\n\n\nToil, a concept introduced by Google SREs, refers to the repetitive, manual tasks that consume a significant amount of time for Site Reliability Engineers. Examples of toil include restarting a failed service by hand every time it crashes, manually running SQL queries to provision new customers, or spending hours troubleshooting issues that could be automated. Toil is the enemy of engineering productivity, as it diverts attention away from feature development and system improvement. High toil means less time for innovation, leading to stagnation in system reliability and resilience.\nTo understand how to reduce toil, let's consider a common scenario where a team spends a considerable amount of time manually monitoring and restarting failed services. This process can be automated using tools like Kubernetes and scripting languages such as Bash or Python.\nFor instance, in a Kubernetes environment, you can automate the deployment and scaling of an application using YAML configuration files. Here's an example snippet that demonstrates how to define a deployment with automatic restart policies:\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: example-deployment\nspec:\n  replicas: 3\n  selector:\n    matchLabels:\n      app: example-app\n  template:\n    metadata:\n      labels:\n        app: example-app\n    spec:\n      containers:\n      - name: example-container\n        image: example-image\n        restartPolicy: Always\n\nIn this example, the restartPolicy is set to Always, ensuring that the container is automatically restarted if it fails. This simple automation can significantly reduce toil associated with manual restarts.\nTo reduce toil, SREs aim to spend at least 50% of their time writing code, building tools, and automating tasks. Here are concrete steps to achieve this:\nIdentify Toil: Regularly review team activities to identify tasks that are repetitive, manual, and consume a significant amount of time.\nAutoma",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "自动化消除SRE日常工作任务",
+        "summary": "SRE日常工作——重复的手动任务，如重启失败的服务或供应客户——通过转移对创新的关注来消耗工程生产力。通过Kubernetes和脚本的自动化可以减轻这些负担；例如自动重启策略可以防止手动服务恢复。目标是让SRE将至少50%的时间用于构建工具和自动化任务，而不是执行手动操作。"
+      }
+    }
+  },
+  {
+    "title": "How YouTube Stores Thumbnail Images: CDN Structure, Resolutions, and the MaxRes Fallback",
+    "slug": "youtube-thumbnail-cdn-maxres-fallback",
+    "url": "https://dev.to/shaheryaramin/how-youtube-stores-thumbnail-images-cdn-structure-resolutions-and-the-maxres-fallback-2amp",
+    "source": "DEV Community",
+    "date": "2026-05-20T07:03:21.000Z",
+    "summary": "YouTube stores thumbnails in a CDN with multiple resolution options including maxresdefault (1920×1080), sddefault (640×480), and lower resolutions, but maxresdefault is not always available for all videos. Developers need to implement fallback logic to check resolution availability in order when building thumbnail retrieval systems. The article provides practical code examples and covers edge cases including YouTube Shorts and various URL formats.",
+    "content": "If you've ever tried to grab a YouTube thumbnail directly from the CDN and hit a 404 on maxresdefault.jpg, you're not alone. Here's how YouTube's thumbnail storage actually works.\n**\n**\nhttps://i.ytimg.com/vi/[VIDEO_ID]/[FILENAME].jpg\nmaxresdefault.jpg — 1920×1080 \n\n\nsddefault.jpg — 640×480\nAvailable on most videos.\n\n\nhqdefault.jpg — 480×360\n\n\nmqdefault.jpg — 320×180\n\n\ndefault.jpg — 120×90\n\n\n\n  \n  \n  Why MaxRes Isn't Always There\n\n\n\nmaxresdefault.jpg\n## How to Handle This in Code\njavascriptconst resolutions = [\n  'maxresdefault',\n  'hqdefault',\n  'mqdefault',\n  'sddefault',\n  'default'\n];\n\nasync function getThumbnail(videoId) {\n  for (const res of resolutions) {\n    const url = `https://i.ytimg.com/vi/${videoId}/${res}.jpg`;\n    const response = await fetch(url, { method: 'HEAD' });\n    if (response.ok) return url;\n  }\n  return null;\n}\n\n\n**\n**\nhttps://i.ytimg.com/vi/[VIDEO_ID]/oar2.jpg\n**\n**\nYouTube URLs come in several formats. You need to handle all of them:\nhttps://www.youtube.com/watch?v=VIDEO_ID\nhttps://youtu.be/VIDEO_ID\nhttps://youtube.com/shorts/VIDEO_ID\nhttps://m.youtube.com/watch?v=VIDEO_ID\nhttps://www.youtube.com/embed/VIDEO_ID\nhttps://www.youtube.com/watch?v=VIDEO_ID&t=30s\nA regex that covers all of these:\njavascriptfunction extractVideoId(url) {\n  const regex = /(?:youtube\\.com\\/(?:watch\\?v=|shorts\\/|embed\\/)|youtu\\.be\\/)([a-zA-Z0-9_-]{11})/;\n  const match = url.match(regex);\n  return match ? match[1] : null;\n}\n\n**\n**\nThis is the same logic powering Picknar, a free YouTube thumbnail downloader that handles all of the above URL parsing, resolution fallback, Shorts detection, and format conversion without requiring login or a browser extension.\nIf you're building something similar, the main edge cases to cover are: pre-2015 videos with no MaxRes, auto-generated thumbnails, Shorts vertical format, and timestamp URLs (the \n&t=30s\n suffix breaks naive regex patterns).",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "YouTube如何存储缩略图：CDN结构、分辨率和MaxRes回退",
+        "summary": "YouTube在CDN中存储缩略图，提供多种分辨率选项，包括maxresdefault（1920×1080）、sddefault（640×480）和更低的分辨率，但maxresdefault并非对所有视频都可用。开发者在构建缩略图检索系统时需要实现回退逻辑以按顺序检查分辨率的可用性。本文提供了实用的代码示例并涵盖了边界情况，包括YouTube Shorts和各种URL格式。"
+      }
+    }
+  },
+  {
+    "title": "Railway Blocked by Google Cloud",
+    "slug": "railway-blocked-google-cloud",
+    "url": "https://status.railway.com/?date=20260519",
+    "source": "Hacker News",
+    "date": "2026-05-20T00:23:54.000Z",
+    "summary": "Railway, a cloud deployment platform, experienced service disruptions caused by blocking from Google Cloud infrastructure. The incident on May 19, 2026, generated significant discussion within the tech community. This situation highlights the infrastructure dependencies that modern deployment platforms have on cloud providers.",
+    "content": "Article URL: https://status.railway.com/?date=20260519\nComments URL: https://news.ycombinator.com/item?id=48201484\nPoints: 414\n# Comments: 196",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Railway 被 Google Cloud 阻止",
+        "summary": "Railway 是一个云部署平台，因被 Google Cloud 基础设施阻止而经历服务中断。2026 年 5 月 19 日的事件在科技社区引发了重大讨论。这种情况突出了现代部署平台对云提供商的基础设施依赖。"
+      }
+    }
+  },
+  {
     "title": "We're hiring a DevOps Content Engineer – Remote LATAM",
     "slug": "hiring-devops-content-engineer-latam",
     "url": "https://dev.to/paula_herreracan/were-hiring-a-devops-content-engineer-remote-latam-581f",
@@ -156,6 +364,22 @@
       "zh": {
         "title": "我构建了一个GPU价格追踪器，因为云GPU定价就像被诅咒的机票搜索引擎",
         "summary": "gpu.fund将来自12个提供商的云GPU定价（146个有效价格）汇总到一个简单的比较界面中，解决了分散的租赁条款和特定地区可用性带来的摩擦。该平台强调，最优的GPU选择取决于工作负载适配性和比较摩擦程度，就像取决于每小时费率一样。"
+      }
+    }
+  },
+  {
+    "title": "GitHub is investigating unauthorized access to their internal repositories",
+    "slug": "github-unauthorized-access-repositories",
+    "url": "https://twitter.com/github/status/2056884788179726685",
+    "source": "Hacker News",
+    "date": "2026-05-20T00:01:18.000Z",
+    "summary": "GitHub investigated unauthorized access to its internal repositories, prompting security review and potentially affecting developer trust in the platform. The incident raised concerns about the integrity of GitHub's systems and data security. The disclosure generated substantial developer community discussion with 353 upvotes on Hacker News.",
+    "content": "Article URL: https://twitter.com/github/status/2056884788179726685\nComments URL: https://news.ycombinator.com/item?id=48201316\nPoints: 353\n# Comments: 113",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "GitHub 正在调查其内部存储库的未授权访问",
+        "summary": "GitHub 调查了其内部存储库的未授权访问，引发了安全审查并可能影响开发者对该平台的信任。该事件引起了对 GitHub 系统完整性和数据安全的担忧。该披露在 Hacker News 上引发了大量开发者社区讨论，获得了 353 次点赞。"
       }
     }
   },
