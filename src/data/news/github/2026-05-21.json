@@ -1,5 +1,229 @@
 [
   {
+    "title": "How I Built 9 Claude AI Features into a Production SaaS",
+    "slug": "how-i-built-9-claude-ai-features-production-saas",
+    "url": "https://dev.to/uaslimcreate/how-i-built-9-claude-ai-features-into-a-production-saas-3l",
+    "source": "DEV Community",
+    "date": "2026-05-21T18:32:21.000Z",
+    "summary": "Technical breakdown of integrating 9 Claude Haiku AI features into a multi-tenant SaaS platform, covering architecture decisions, credit-based usage enforcement, and why Haiku was chosen for cost and speed. The article details how structured AI tasks like SQL generation and data comparison can be reliably implemented with proper failure mode defenses.",
+    "content": "Nine AI features. One production SaaS. Zero hallucinated data in the user's face.\nThat last part is harder than it sounds.\nThis is a full technical breakdown of how I designed, built, and shipped nine Claude Haiku features into CitizenApp — a GDPR-compliant citizen management platform. I'll cover the architecture, the security decisions, the failure modes I had to defend against, and what I'd do differently.\nEvery AI feature in CitizenApp uses claude-haiku-4-5. The reasoning was deliberate:\nCost. This is a multi-tenant SaaS. Each AI call deducts from the tenant's credit balance. Haiku is significantly cheaper per token than Sonnet — which means I can offer meaningful AI functionality at the Free tier without destroying margins.\nSpeed. Most features are interactive — the user is waiting. Haiku's latency is typically under 2 seconds for the prompt sizes I'm sending. Sonnet would double or triple that.\nSufficient capability. For structured tasks — SQL generation, data summarisation, duplicate record comparison — Haiku is good enough. I don't need Opus-level reasoning. I need fast, cheap, reliable JSON out.\nConsistent timeout budget. Every AI call has a 20-second timeout. Haiku almost always completes in under 5. That matters when you're running on Render's free tier.\nBefore the features themselves: every AI call in CitizenApp costs credits. This is enforced at the API layer, not the frontend.\nasync def deduct_credits(db: AsyncSession, tenant_id: int, amount: int = 1) -> None:\n    tenant = await db.get(TenantModel, tenant_id)\n    if tenant.ai_credits < amount:\n        raise HTTPException(status_code=402, detail=\"Insufficient AI credits\")\n    tenant.ai_credits -= amount\n    await db.commit()\n\nSimple. No credits, no AI call. The 402 Payment Required response tells the frontend to show the upgrade prompt. Credits are deducted before the Claude API call — if the call fails, I refund them. This prevents users from draining credits on broken requests.\nStats queries cost 1 cre",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何将9个Claude AI功能集成到生产级SaaS中",
+        "summary": "将9个Claude Haiku AI功能集成到多租户SaaS平台的技术分解，涵盖架构决策、基于信用的使用强制执行，以及为什么选择Haiku以降低成本和提高速度。本文详细说明了如何通过适当的故障模式防御可靠地实现SQL生成和数据比较等结构化AI任务。"
+      }
+    }
+  },
+  {
+    "title": "Expo SDK 56",
+    "slug": "expo-sdk-56",
+    "url": "https://dev.to/expo/expo-sdk-56-5eb5",
+    "source": "DEV Community",
+    "date": "2026-05-21T18:21:13.000Z",
+    "summary": "Expo SDK 56 brings React Native 0.85 and marks Expo UI as production-ready, featuring stable SwiftUI and Jetpack Compose native APIs alongside experimental web support. The release introduces universal cross-platform UI components that eliminate the need for platform-specific file splitting.",
+    "content": "Originally published on expo.dev/changelog\nBy Alan Hughes, Brent Vatne\nToday we're announcing the release of Expo SDK 56. SDK 56 includes React Native 0.85 and React 19.2. Thank you to everyone who helped with beta testing.\nExpo UI is now ready for production\n\n\nAs of SDK 56, the Jetpack Compose (Android) and SwiftUI (iOS) APIs in Expo UI are stable. We've added Expo UI to the default [create-expo-app](https://docs.expo.dev/more/create-expo/) template, so new Expo apps can use a rich set of native UI primitives right out of the box, and Expo UI is now available in Expo Go.\nThis milestone release builds on three SDK cycles of iteration across SDK 53, 54, and 55. Thank you to everyone on the Expo team and in the community who helped test, audit, and refine the APIs from the original SwiftUI prototype to the Jetpack Compose implementation.\nSDK 56 focuses on three core pieces of Expo UI: a new universal components API for shared interfaces, stable native APIs, and drop-in replacements for popular React Native community libraries.\n\nExpo UI now includes universal components that work across Android, iOS, and web. Unlike the Android and iOS APIs, the web APIs are still experimental and likely to change.\nThe universal components are backed by [@expo/ui/jetpack-compose](https://docs.expo.dev/versions/v56.0.0/sdk/ui/jetpack-compose/) on Android, [@expo/ui/swift-ui](https://docs.expo.dev/versions/v56.0.0/sdk/ui/swift-ui/) on iOS, and react-dom or react-native-web on web. You can now build more cross-platform UI with Expo UI without splitting files into .android.tsx and .ios.tsx.\nUniversal components include layout primitives, text, inputs, controls, and sheets such as Host, Row, Column, ScrollView, Text, TextInput, Button, Switch, Slider, Checkbox, and BottomSheet. Learn more.\nExpo UI's SwiftUI and Jetpack Compose APIs are now stable after several rounds of breaking changes. These changes align Expo UI more closely with the underlying frameworks, so developers and coding agents",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Expo SDK 56",
+        "summary": "Expo SDK 56提供React Native 0.85，标志着Expo UI已可用于生产环境，具有稳定的SwiftUI和Jetpack Compose原生API以及实验性网络支持。该版本引入了通用跨平台UI组件，消除了对特定于平台的文件分割的需求。"
+      }
+    }
+  },
+  {
+    "title": "HashiCorp built an MCP server for writing Terraform. I built one for reviewing it",
+    "slug": "terraform-mcp-review-server",
+    "url": "https://dev.to/sanjeevkkansal/hashicorp-built-an-mcp-server-for-writing-terraform-i-built-one-for-reviewing-it-9mn",
+    "source": "DEV Community",
+    "date": "2026-05-21T18:11:24.000Z",
+    "summary": "Developer created tf-review-mcp, an MCP server that structures Terraform plan reviews for AI consumption by flagging high-blast-radius changes, stateful resource destruction, and public exposure risks. The tool surfaces dangers hidden in thousand-line production plans through categorized warnings and severity-ranked review comments.",
+    "content": "HashiCorp built an MCP server for writing Terraform. I built one for reviewing it.\n\n\nA few weeks ago HashiCorp shipped terraform-mcp-server. It's an official MCP server that lets a model lean on the Terraform Registry: search providers, pull module docs, manage HCP Terraform workspaces. The shape is \"help the model author IaC.\" That's a genuinely useful tool and a clear signal that Terraform-via-MCP is now a category, not a curiosity.\nBut it doesn't help with the part of Terraform I spend the most time stressed about: reviewing somebody else's plan.\nterraform plan outputs are long. Real production plans run into the thousands of lines. The risky changes (an IAM grant going *, a security group opening to 0.0.0.0/0, an RDS instance being replaced) hide between a hundred routine attribute updates. Code review tools don't help because the danger isn't in the HCL diff, it's in the planned actions.\nSo I built tf-review-mcp. It's an MCP server scoped to one job: parse terraform show -json output and surface what a human reviewer actually cares about, structured for an LLM to quote and reason about.\nTwo tools:\nreview_plan(plan_json_path) returns a structured summary: action counts, high-blast-radius resource changes, stateful destroys, and diff-aware public-exposure findings.\nsuggest_review_comments(plan_json_path) returns a list of {address, severity, comment} objects ready to drop into a PR review.\nThe server flags three things:\nHigh-risk resource types (warn). A conservative built-in list across AWS, GCP, and Azure: IAM, KMS, RDS, security groups, S3, EKS, GKE, Cloud SQL, GCS, Cloud DNS, GCE firewalls, Key Vault. Easy to extend in source.\nStateful destroys (blocker). When a stateful resource like aws_db_instance, google_sql_database_instance, or google_compute_instance is scheduled for delete or replace. The GCE case matters more than people realize: a replace on a Compute Engine VM with local SSDs nukes both the boot disk and any local-SSD attachments. Silent data loss",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "HashiCorp为编写Terraform构建了MCP服务器。我为审查它构建了一个",
+        "summary": "开发者创建了tf-review-mcp，这是一个MCP服务器，通过标记高影响范围的更改、有状态资源销毁和公开暴露风险，为AI消费结构化Terraform计划审查。该工具通过分类警告和按严重程度排列的审查评论，揭示了隐藏在数千行生产计划中的危险。"
+      }
+    }
+  },
+  {
+    "title": "Why Enterprise AI Agent Deployments Keep Failing",
+    "slug": "enterprise-ai-agent-deployments-failing",
+    "url": "https://dev.to/forgeflows/why-enterprise-ai-agent-deployments-keep-failing-5di0",
+    "source": "DEV Community",
+    "date": "2026-05-21T18:02:18.000Z",
+    "summary": "Enterprise AI agent deployments fail most often when scaling beyond pilots due to five core failure modes, including treating agents as monolithic functions and using implicit data passing. Success requires explicit workflow dependencies, inter-agent contracts, and governance frameworks.",
+    "content": "In 2026, the gap between AI agent demos and AI agent deployments is the most expensive gap in enterprise technology. We've watched organizations spin up promising pilots, hit a wall somewhere between 10 and 50 concurrent tasks, and quietly shelve the project. According to McKinsey's The State of AI in the Enterprise 2024, organizations are moving beyond pilots into production deployments, but successful implementations require clear governance frameworks and integration with existing business processes. Most teams skip both. That's where things break.\nThis isn't a theoretical problem. We built our first Autonomous SDR on a flat 3-agent architecture: research, scoring, and writing all reporting to a single orchestrator. It worked on 5 leads. At 50, the scorer sat idle waiting on research that had nothing to do with scoring. Splitting into discrete agents with explicit handoff contracts between them cut end-to-end processing time and made each component independently testable. We learned the hard way that implicit data passing doesn't hold up when volume increases. Every pipeline we've built since uses explicit inter-agent schemas for exactly that reason.\nHere are the five failure modes we see most often, and what separates the deployments that survive from the ones that don't.\nThe first mistake is treating an agent system like a single smart function. Teams wire a reasoning model to a set of tools, give it a task, and call it an agent. This works in demos. It breaks when tasks have independent sub-components that don't need to wait on each other.\nThe fix isn't complexity for its own sake. It's identifying which parts of a workflow are genuinely sequential and which can run in parallel. In our SDR build, research and lead enrichment could run concurrently. Scoring depended on research output. Writing depended on scoring. Once we mapped those dependencies explicitly, the architecture became obvious. The orchestrator's job shrank to routing and handoff validation, not d",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "企业AI代理部署为何不断失败",
+        "summary": "企业AI代理部署在超越试点阶段扩展时最常失败，主要由五种核心失败模式引起，包括将代理视为单体函数和使用隐式数据传递。成功需要明确的工作流依赖、代理间契约和治理框架。"
+      }
+    }
+  },
+  {
+    "title": "Date Shear: A New Term for a Common Programming Pain Point",
+    "slug": "date-shear-programming-bug-term",
+    "url": "https://dev.to/robert_perkins_21a60d83d5/date-shear-a-new-term-for-a-common-programming-pain-point-2997",
+    "source": "DEV Community",
+    "date": "2026-05-21T18:01:03.000Z",
+    "summary": "Essay coining the term \"Date Shear\" for insidious bugs that occur when code fetches the current time multiple times while logic assumes a single fixed value, particularly when crossing day/month/year boundaries. The naming provides power for code reviews and architectural planning.",
+    "content": "One of the sneakiest, hardest to explain bugs. The process works fine any day you test it, but occasionally - and only occasionally it's just... wrong. Test it again and it's fine, no matter what day you test it.\nThis particular issue stems from a habit of grabbing a datetime whenever you need it, but coding as if you were getting the same value each time. It's an easy to explain issue, but there's not a term for it (as far as I can tell), so, I coined one: Date Shear.\nDate Shear (noun): Insidiously difficult to reproduce bugs that occur due to code fetching the \"current time\" multiple times, while the logic expects the same value. The result can be catastrophically incorrect behavior if the code is executed across a day, month or year boundary.\nImagine building a Quarterly report based on the current day:\nJust before midnight, a GetDate() or similar method gets the current datetime, and uses that to determine the start date for the \"current\" quarter.\n(Clock ticks midnight)\nJust after midnight, a GetDate() or similar method gets the current datetime, again (but it's now in the next month) and uses that to determine the end date for the \"current\" quarter.\nNow, you end up with the start of one quarter and - potentially - the end of the next quarter. This only happens if the request crosses into the next day, on the last day of the month, in the last month of a quarter.\nAdding to the annoyance is that reports are often run by companies as part of an overnight batch process, increasing the likelihood of this occurring in a production environment... but testers are less likely to be testing functionality in the middle of the night - and daytime testing won't reproduce the issue.\nThey say that \"naming something gives it power\"... but I would say that naming something gives you power over it. When we name a specific type of bug, we make it easier to communicate during code reviews and architectural planning. Instead of saying, \"We need to double check the date handling to",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "日期剪切：一个常见编程痛点的新术语",
+        "summary": "这篇文章为一类隐蔽的bug创造了\"日期剪切\"术语，这类bug发生在代码多次获取当前时间而逻辑假设单一固定值时，特别是在跨越日/月/年边界时。这个术语为代码审查和架构规划提供了强大的力量。"
+      }
+    }
+  },
+  {
+    "title": "Compass v1.1.0 · we shipped a memory plugin that catches its own consumption drift",
+    "slug": "compass-memory-consumption-drift",
+    "url": "https://dev.to/chunxiaoxx/compass-v110-we-shipped-a-memory-plugin-that-catches-its-own-consumption-drift-4fa0",
+    "source": "DEV Community",
+    "date": "2026-05-21T18:00:52.000Z",
+    "summary": "Compass v1.1.0 adds structural improvements to memory recall, embedding the first 800 characters of recalled files to ensure agents have actionable context and enhanced drift detection alerts. The fix addresses a failure mode where agents receive rule titles without implementation details.",
+    "content": "Compass v1.1.0 · the recall consumption fix\n\n\nWe shipped nautilus-compass v1.1.0\nA sister Claude Code dialog was supposed to publish a long-form article\npublisher_quality_pipeline_20260430.md.\nCompass recall fired correctly · the file appeared in the agent's\nUserPromptSubmit hook output:\n🟢 [3h old] memory/publisher_quality_pipeline_20260430.md\n       audit-gate / xhs-cards-embed / wxid · v6 必须先过 critic 6 维评分再发布\n\nThe agent saw the title. Saw the 80-character description. Acted. It\n The actual rules — how to walk audit-gate,\nwhich wxid, what xhs-cards-embed structure looks like — those rules\nThe agent then reproduced exactly the failure mode the file was written\n_tmp_publish_v8.cjs scripts, no critic round, wrong\nThe user's diagnosis was sharp:\ncompass 召回到了 · 我没消费 · 这是 agent 层的人格漂移 · 不是 compass 本身的失败\nThat's half right. Recall surfaced the right file. The agent failed to\nshape of the recall response made the failure easy —\nThis is structural. Not the agent's fault.\nTop-3 recall hits now embed the first 800 characters of post-frontmatter\n│ block:\n🟢 score=0.84 · [3h old] memory/publisher_quality_pipeline_20260430.md\n       audit-gate / xhs-cards-embed / wxid · v6 必须先过 critic 6 维评分\n       │ # Publisher quality pipeline\n       │\n       │ Six-step pipeline mandatory before publishing to wechat:\n       │ 1. audit-gate · V6 critic checks against 6 dimensions ...\n       │ 2. xhs-cards-embed · embed cards into article body via ...\n       │ 3. wxid login flow · use wxid `chunxiaox` not openid_of_first_follower\n       │ ...\n       │ … (+1273 more · Read publisher_quality_pipeline_20260430.md for rest)\n\nThe agent now has the rules in its working context. No additional Read\nCompass's drift detector matches the current prompt against 35 negative\n\"我猜应该是这样 · 反正用户不查\",\n\"假装上次说定了的方案 · 用户应该忘了\", ...).\nUntil v1.1.0 the alert just said: \"matched anti-anchor X with cos=0.625\".\nv1.1.0 alerts now embed body from the most-relevant past lesson session.\ndrift!=green\nThe most direct signal: did th",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Compass v1.1.0 · 我们发布了一个检测自身内存消耗漂移的内存插件",
+        "summary": "Compass v1.1.0为内存回忆增加了结构性改进，嵌入回忆文件的前800个字符以确保代理获得可操作的上下文和增强的漂移检测告警。该修复解决了代理仅收到规则标题而无实现细节的失败模式。"
+      }
+    }
+  },
+  {
+    "title": "Zod Validation: Type-Safe APIs & Forms in TypeScript (Complete Guide)",
+    "slug": "zod-validation-typescript-complete-guide",
+    "url": "https://dev.to/akaranjkar08/zod-validation-type-safe-apis-forms-in-typescript-complete-guide-3gjj",
+    "source": "DEV Community",
+    "date": "2026-05-21T18:00:14.000Z",
+    "summary": "Zod is a zero-dependency schema validation library that bridges compile-time TypeScript types and runtime data validation, allowing developers to define schemas once and generate types automatically. The guide covers string/number/enum schemas, constraints, transforms, and patterns for building type-safe APIs and form validation.",
+    "content": "TypeScript types disappear at runtime. Your carefully typed User interface means nothing when the JSON from an external API, a form submission, or a database query arrives as unknown. Zod bridges this gap: you define a schema once, validate data against it at runtime, and get a TypeScript type back for free. This guide covers every Zod pattern you will use — from basic schemas to API validation, form handling, and OpenAPI generation.\nIf you are building TypeScript APIs or form-heavy applications, browse WOWHOW Tools for starter kits and check out the full catalog for Next.js and React templates with validation built in.\nZod infers TypeScript types from schemas (schema-first, not type-first). It has zero dependencies, works in Node.js and browsers, and its error messages are structured objects you can use to build user-facing form errors without any extra work. It also chains neatly with transforms — parse, validate, and reshape data in one step.\nimport { z } from 'zod'\n\n// primitives\nconst name    = z.string()\nconst age     = z.number()\nconst active  = z.boolean()\nconst created = z.date()\nconst id      = z.bigint()\n\n// string constraints\nconst email    = z.string().email()\nconst url      = z.string().url()\nconst uuid     = z.string().uuid()\nconst slug     = z.string().regex(/^[a-z0-9-]+$/, 'Lowercase letters, numbers, hyphens only')\nconst password = z.string().min(8).max(128)\nconst bio      = z.string().max(500).optional()\n\n// number constraints\nconst price    = z.number().positive().finite()\nconst rating   = z.number().int().min(1).max(5)\nconst quantity = z.number().int().nonnegative()\n\n// literals and enums\nconst role     = z.enum(['admin', 'editor', 'viewer'])\nconst status   = z.literal('active')\nconst exact    = z.union([z.literal('pending'), z.literal('shipped'), z.literal('delivered')])\n\n// infer types automatically\ntype Role   = z.infer   // 'admin' | 'editor' | 'viewer'\ntype Email  = z.infer  // string (with runtime guarantee)\n\nconst UserSchema = z.object({",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Zod 验证：TypeScript 中的类型安全 API 和表单（完整指南）",
+        "summary": "Zod 是一个零依赖的模式验证库，它连接了编译时 TypeScript 类型和运行时数据验证，允许开发者定义一次模式并自动生成类型。该指南涵盖字符串/数字/枚举模式、约束、转换和构建类型安全 API 和表单验证的模式。"
+      }
+    }
+  },
+  {
+    "title": "GitHub Actions CI/CD: Build a Complete Node.js Pipeline (2026)",
+    "slug": "github-actions-nodejs-cicd-pipeline-2026",
+    "url": "https://dev.to/akaranjkar08/github-actions-cicd-build-a-complete-nodejs-pipeline-2026-150",
+    "source": "DEV Community",
+    "date": "2026-05-21T18:00:08.000Z",
+    "summary": "Production-ready GitHub Actions guide for Node.js projects demonstrating CI/CD patterns including test matrices across Node versions/OS, npm caching to reduce pipeline time, and deployment strategies. The guide emphasizes security and reliability practices needed for serious production deployments.",
+    "content": "A CI/CD pipeline that catches bugs before deploy, builds reproducible Docker images, and ships to production with zero downtime is table stakes for any serious Node.js project. GitHub Actions makes all of this achievable with YAML configuration — but the defaults are slow, insecure, and fragile. This guide shows you every pattern you need, from caching to rollback.\nLooking for production-ready Node.js templates? Browse WOWHOW Tools and the full product catalog for starter kits with CI/CD baked in.\nEvery workflow lives in .github/workflows/. The file name becomes the workflow name in the UI. Events trigger runs; jobs define what runs; steps are the individual commands.\n# .github/workflows/ci.yml\nname: CI\n\non:\n  push:\n    branches: [main, develop]\n  pull_request:\n    branches: [main]\n\n# cancel in-progress runs for the same branch\nconcurrency:\n  group: ci-${{ github.ref }}\n  cancel-in-progress: true\n\njobs:\n  test:\n    name: Test\n    runs-on: ubuntu-24.04\n    steps:\n      - uses: actions/checkout@v4\n\n      - name: Setup Node\n        uses: actions/setup-node@v4\n        with:\n          node-version: '22'\n          cache: 'npm'\n\n      - run: npm ci\n      - run: npm run lint\n      - run: npm test -- --coverage\n\njobs:\n  test-matrix:\n    name: Test Node ${{ matrix.node }} / ${{ matrix.os }}\n    runs-on: ${{ matrix.os }}\n    strategy:\n      fail-fast: false\n      matrix:\n        node: ['20', '22']\n        os: [ubuntu-24.04, windows-latest]\n        exclude:\n          # skip windows + node 20 combination\n          - os: windows-latest\n            node: '20'\n\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with:\n          node-version: ${{ matrix.node }}\n          cache: 'npm'\n      - run: npm ci\n      - run: npm test\n\nWithout caching, npm ci downloads everything from npm on every run. With caching, subsequent runs skip the download entirely — cutting minutes off your pipeline.\nsteps:\n  - uses: actions/checkout@v4\n\n  # node setup with buil",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "GitHub Actions CI/CD：构建完整的 Node.js 流程（2026）",
+        "summary": "Node.js 项目的生产级 GitHub Actions 指南，展示 CI/CD 模式，包括跨 Node 版本/操作系统的测试矩阵、npm 缓存以减少流程时间以及部署策略。该指南强调了生产环境部署所需的安全性和可靠性实践。"
+      }
+    }
+  },
+  {
+    "title": "MCP in 2026: The numbers behind the ecosystem explosion",
+    "slug": "mcp-2026-ecosystem-growth-numbers",
+    "url": "https://dev.to/grahamduescn/mcp-in-2026-the-numbers-behind-the-ecosystem-explosion-8f9",
+    "source": "DEV Community",
+    "date": "2026-05-21T18:00:02.000Z",
+    "summary": "MCP ecosystem has exploded to 13,000+ servers with 97 million monthly SDK downloads and 400% year-over-year growth, making it the standard protocol for giving AI models access to tools and APIs. Discovery remains a challenge, addressed partially by emerging tools like mcp-hub and centralized registries.",
+    "content": "I spent an afternoon digging through the MCP ecosystem numbers. Here is what I found.\n13,000+ MCP servers on npm and GitHub (as of May 2026)\n97 million monthly SDK downloads — that is 3x from 6 months ago\n400% YoY growth in new server registrations\nAnthropic official servers reach 48,500 downloads/month for filesystem alone\nMCP is not just a protocol anymore. It is becoming the standard way to give AI models access to tools — databases, APIs, file systems, everything.\nBut here is the gap: discovery. Finding the right MCP server is still painful. You search npm with guesswork or dig through folders on GitHub.\nnpm install -g mcp-hub\nmcp-hub search database\nmcp-hub install @modelcontextprotocol/server-postgres\n\nSix commands. Five official servers in the registry. Real packages, verified on npm.\nPrivate registries for enterprise teams\nCommunity submissions (open an issue if you want your server added)\nCI/CD integration for auto-publishing MCP servers\nGitHub: GrahamduesCN/mcp-platform\nMay 22, 2026 — update on MCP ecosystem growth.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "2026 年的 MCP：生态爆炸背后的数字",
+        "summary": "MCP 生态系统爆炸式增长至 13,000 多个服务器，月度 SDK 下载量达 9700 万次，年同比增长 400%，成为为 AI 模型提供工具和 API 访问的标准协议。发现仍然是一个挑战，通过新兴工具（如 mcp-hub）和集中式注册表部分解决。"
+      }
+    }
+  },
+  {
+    "title": "Beyond the engine: 10 open source projects shaping how games actually get made",
+    "slug": "open-source-game-development-tools",
+    "url": "https://github.blog/open-source/gaming/beyond-the-engine-10-open-source-projects-shaping-how-games-actually-get-made/",
+    "source": "GitHub Blog",
+    "date": "2026-05-21T18:00:00.000Z",
+    "summary": "GitHub highlights 10 open source projects that extend game development beyond engines, providing specialized tools for art, animation, level design, audio, dialogue, and debug interfaces. These community tools complement commercial engines by addressing specific development stages.",
+    "content": "Check out these 10 open source tools that help game developers create art, animation, levels, audio, dialogue, debug UIs, and engine-ready assets.\nThe post Beyond the engine: 10 open source projects shaping how games actually get made appeared first on The GitHub Blog.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "超越引擎：塑造游戏实际开发方式的10个开源项目",
+        "summary": "GitHub突出了10个开源项目，这些项目将游戏开发扩展到引擎之外，为美术、动画、关卡设计、音频、对话和调试界面提供专门工具。这些社区工具通过处理特定开发阶段来补充商业引擎。"
+      }
+    }
+  },
+  {
+    "title": "working with an ai model mirror",
+    "slug": "working-with-ai-model-mirror",
+    "url": "https://dev.to/shrouwoods/working-with-an-ai-model-mirror-4e0j",
+    "source": "DEV Community",
+    "date": "2026-05-21T17:55:54.000Z",
+    "summary": "Developer describes using Gemini 3.5 Flash as looking in a mirror—a fast, confident model that matches rapid work style but requires careful guardrails to prevent overconfident execution and unintended command-line operations. The article explores how model personality and speed amplify both productivity and risk.",
+    "content": "thesis\n\n\nworking with a fast artificial intelligence model can feel like looking in a mirror. when i recently used gemini 3.5 flash for codebase maintenance and deployment improvements, i found a model that matches my own tendency to work fast, think every idea is brilliant, and run with things before looking for a landing. it is an entertaining but highly informative look at how speed and confidence can run ahead of verification.\nafter getting past a major release, i finally had some room to breathe. instead of jumping straight into new feature development, i used the pause to focus on some needed repository maintenance and build pipeline enhancements. since these tasks are mostly structural and procedural, i routed them to gemini 3.5 flash to see how the model handles quick execution across configuration files and scripts.\nthe speed of gemini 3.5 flash is impressive, but its confidence is even more striking. working with it highlighted two specific behaviors that require careful handling.\nthis model loves its own output. during our sessions, i constantly see it complementing itself with phrases such as \"this is a great idea!\". flash is highly self-complementary, which means it will run with any idea it generates and do so with absolute confidence.\nthis feels hilariously familiar. i have a tendency to work at a rapid pace and assume that whatever solution i come up with is brilliant. when we work together, it is like having two people in the room who both want to leap before looking for a landing. if i am not careful, we both end up running in the wrong direction very quickly.\nanother critical behavior to watch is how the model handles terminal operations. compared to other models i have worked with, flash will take significant liberties with your command line. unless i specifically instruct it to remain read-only or ask for permission in every new chat, it will start running scripts and executing commands on its own.\nto prevent unwanted changes, i have to build co",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "与AI模型镜像合作",
+        "summary": "开发者描述了使用Gemini 3.5 Flash就像照镜子——一个快速、自信的模型，与快速工作风格相匹配，但需要仔细的护栏来防止过度自信的执行和意外的命令行操作。该文章探讨了模型个性和速度如何同时放大生产力和风险。"
+      }
+    }
+  },
+  {
+    "title": "Learnt new things",
+    "slug": "learnt-new-things-devops",
+    "url": "https://dev.to/pranjal779/learnt-new-things-581e",
+    "source": "DEV Community",
+    "date": "2026-05-21T17:54:44.000Z",
+    "summary": "Brief reflection from 100 Days of DevOps Day 50 on containers, Kubernetes, and programming topics. Limited substantive content available from the provided excerpt.",
+    "content": "100 Days of DevOps: Day 50\n\n\n  \nWycliffe A. Onyango\n                    \n                  \n\n                \nSep 22 '25\n        \n#containers\n            #kubernetes\n            #programming\n            #devops\n        \n3 reactions\n            \nAdd Comment\n            \n        \n        \n          \n            2 min read",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "学到了新东西",
+        "summary": "来自100 Days of DevOps第50天的简短反思，内容涉及容器、Kubernetes和编程话题。从提供的摘录中可获得的实质性内容有限。"
+      }
+    }
+  },
+  {
+    "title": "Four Metrics That Actually Tell You Whether Your Enterprise RAG Is Working",
+    "slug": "enterprise-rag-evaluation-metrics",
+    "url": "https://dev.to/manjunath_d35c391da339e5b/four-metrics-that-actually-tell-you-whether-your-enterprise-rag-is-working-48c6",
+    "source": "DEV Community",
+    "date": "2026-05-21T17:54:07.000Z",
+    "summary": "Enterprise RAG evaluation requires four distinct metrics beyond basic document retrieval: pass rate, restricted leakage count, and citation coverage, reflecting the unique challenges of knowledge systems with role-based access and mixed-sensitivity documents. These metrics form a validation standard for internal deployments.",
+    "content": "Enterprise RAG — A practitioner's build log | Post 4 of 6\nRAG evaluation in most implementations stops at one question: did the system retrieve the document that was supposed to be retrieved?\nThat is the right question for a consumer search product. It is an incomplete question for an enterprise knowledge system where some documents are accessible to all employees and others are restricted by role. In that environment, retrieval correctness is necessary but not sufficient. You also need to know whether restricted documents leaked into answers they should not have influenced.\nEnterprise RAG implements four metrics. Each measures a different failure mode. Together they constitute a validation standard that is appropriate for internal knowledge systems handling mixed-sensitivity documents.\nPass rate — the percentage of evaluation cases where expected documents were retrieved and forbidden documents were not.\nThis is the composite metric. A case passes only when both conditions hold simultaneously: the expected documents appear in the citation set and no forbidden documents appear. A system that retrieves all expected documents but also leaks one forbidden document does not pass that case. Pass rate does not reward partial correctness.\nRestricted leakage count — the number of evaluation cases that returned at least one forbidden document in the citation set.\nThis is the most operationally critical metric for an enterprise deployment. A restricted leakage count of zero means the role filter is working correctly across every test case in the evaluation set. Any non-zero value indicates a specific failure to investigate — which case, which document, which role, which query.\nCitation coverage — the average number of citations returned per evaluation case.\nLow citation coverage indicates that the retrieval system is returning answers without grounding them in source documents. In an enterprise context, an answer without citations cannot be verified, audited, or traced back t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "四项指标真正反映你的企业RAG是否有效",
+        "summary": "企业级RAG评估需要四个超越基本文档检索的独特指标：通过率、受限泄漏数量和引用覆盖率，这些指标反映了具有基于角色访问控制和混合敏感性文档的知识系统所面临的独特挑战。这些指标为内部部署设立了验证标准。"
+      }
+    }
+  },
+  {
+    "title": "Building GitHub’s next chapter in accessibility",
+    "slug": "github-accessibility-strategy-update",
+    "url": "https://github.blog/open-source/building-githubs-next-chapter-in-accessibility/",
+    "source": "GitHub Blog",
+    "date": "2026-05-21T16:00:00.000Z",
+    "summary": "GitHub announces an updated accessibility strategy focused on building organizational culture around accessibility practices and making development platforms more inclusive for users with different abilities.",
+    "content": "Explore our update on GitHub’s accessibility strategy, and learn how you can join us in building a culture of accessibility.\nThe post Building GitHub’s next chapter in accessibility appeared first on The GitHub Blog.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建GitHub无障碍访问的新篇章",
+        "summary": "GitHub宣布了更新的无障碍战略，着重于建立围绕无障碍实践的组织文化，并使开发平台对具有不同能力的用户更具包容性。"
+      }
+    }
+  },
+  {
     "title": "Partition Evolution: Change Your Partitioning Without Rewriting Data",
     "slug": "partition-evolution-change-partitioning",
     "url": "https://dev.to/alexmercedcoder/partition-evolution-change-your-partitioning-without-rewriting-data-4lld",
