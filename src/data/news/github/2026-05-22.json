@@ -1,0 +1,194 @@
+[
+  {
+    "title": "DNS security in 2026: 10 things developers get wrong",
+    "slug": "dns-security-2026-10-things-developers-get-wrong",
+    "url": "https://dev.to/ayinedjimi-consultants/dns-security-in-2026-10-things-developers-get-wrong-53on",
+    "source": "DEV Community",
+    "date": "2026-05-22T00:50:46.000Z",
+    "summary": "Network auditor identifies 10 common DNS misconfigurations found in virtually every engagement, including missing DNSSEC, incorrect SPF records, and DNS lookup limits. The article provides practical checks to identify and fix these critical security gaps.",
+    "content": "I audit networks for a living. DNS configuration errors are in every single engagement — not occasionally, not mostly, but in every single one. The mistakes aren't exotic. They're the same 10 problems, over and over, across startups and mid-sized companies alike.\nDevelopers own DNS more than they realize. You set up the subdomain for your staging environment, you configure SPF when the marketing team complains about email deliverability, you manage the certificate workflow. You are doing DNS work. Most of it is probably misconfigured.\nHere's what I keep finding, and how to check yourself.\nDNSSEC signs your DNS records so resolvers can verify they haven't been tampered with. Without it, a cache poisoning attack can redirect your users to an attacker-controlled server and there's nothing in the DNS layer to detect it.\n# Check if DNSSEC is enabled for a domain\ndig +dnssec example.com A\n\n# Look for the AD flag in the response header — \"ad\" means authenticated data\n# Also check the RRSIG records in the answer section\ndig @8.8.8.8 example.com DNSKEY +short\n\nIf you get no RRSIG records, DNSSEC isn't configured. Most registrars support it now. It takes 30 minutes to set up and you do it once.\n+all (or no SPF at all)\n\n\nSPF records specify which servers are allowed to send email for your domain. +all means \"and also anyone else\" — which defeats the entire purpose.\n# Check your SPF record\ndig TXT yourdomain.com | grep spf\n\n# Red flags:\n# v=spf1 +all              ← allows everyone\n# v=spf1 include:sendgrid.net +all  ← same problem\n# (no result)              ← no SPF at all\n\nThe correct terminator is -all (fail) or ~all (softfail, useful during migration). +all is worse than no SPF because it creates a false sense of protection.\nSPF has a hard limit of 10 DNS lookups during evaluation. Each include: costs one lookup, and some includes contain nested includes. Exceed 10 and the record is considered invalid — meaning SPF fails for your legitimate emails.\n# Count your lookups manua",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "2026年DNS安全：开发者易犯的10个错误",
+        "summary": "网络审计师发现了虚拟上每次检查中都存在的10个常见DNS配置错误，包括缺少DNSSEC、SPF记录不正确和DNS查询限制。本文提供了实用的检查方法来识别和修复这些关键安全漏洞。"
+      }
+    }
+  },
+  {
+    "title": "Stupid Javascript Tricks",
+    "slug": "stupid-javascript-tricks",
+    "url": "https://dev.to/evanskaufman/stupid-javascript-tricks-33ed",
+    "source": "DEV Community",
+    "date": "2026-05-22T00:50:45.000Z",
+    "summary": "Collection of elegant but potentially non-performant JavaScript syntactical tricks, including using optional chaining with filter for handling optional properties, and Array.flat() as a shorthand for wrapping values in arrays. Demonstrates advanced JavaScript features for cleaner code patterns.",
+    "content": "Started a collection of elegant syntactical Javascript tricks that — fair warning — may not always be the most performant way to do what we're doing.\noptional values\n\n\nYou have this object, and a bunch of properties that it might have...but how to gather them into a coherent list?\nTraditionally, you might loop over a list of possible properties, checking for each one and accumulating them into a list manually:\nconst options = ['first', 'middle', 'last'];\nconst names = { first: 'John', last: 'Doe' };\n\nlet displayName = [];\nfor (const prop of options) {\n  if (names.hasOwn(prop)) {\n    displayName.push(names[prop]);\n  }\n}\ndisplayName = displayName.join(' ');\n\nThis works, but it involves maintaining that list of properties, looping through said list, and doing some manual clean up. A more elegant way is to use optional chaining, and Array.filter to discard any falsey values:\nconst names = { first: 'John', last: 'Doe' };\nconst displayName = [ names?.first, names?.middle, names?.last ]\n  .filter(Boolean)\n  .join(' ')\n;\n// -> 'John Doe'\n\nSay that you have a value that you want to iterate, but it may or may not already be an array.\nThe more explicit (and arguably more readable) approach would be to test the value beforehand with an explicit Array.isArray check:\nconst theLongWay = (maybeAnArray) => {\n  if (Array.isArray(maybeAnArray)) return maybeAnArray;\n  else return [ maybeAnArray ];\n};\n\n...or you could just use Array.prototype.flat:\nconst wrapInArray = (maybeAnArray) => [ maybeAnArray ].flat();\n                                   // ^ much shorter        ^\n\nwrapInArray( 'a string' );\n// -> [ 'a string' ]\n\nwrapInArray( [ 'a', 'list', 'of', 'strings' ] );\n// -> [ 'a', 'list', 'of', 'strings' ]\n\nNote that .flat only collapses the outer most array — any already nested arrays are preserved:\nwrapInArray( [ ['several'], ['nested'], ['lists'] ] );\n// -> [ [ 'several' ], [ 'nested' ], [ 'lists' ] ]\n\nSometimes you don't need the entire return value from something, just an object pr",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "愚蠢的JavaScript技巧",
+        "summary": "优雅但可能性能较差的JavaScript句法技巧集合，包括使用可选链接与filter来处理可选属性，以及Array.flat()作为将值包装在数组中的简写。展示了高级JavaScript功能实现更清洁的代码模式。"
+      }
+    }
+  },
+  {
+    "title": "Kerberoasting for developers: why your Active Directory is probably misconfigured",
+    "slug": "kerberoasting-developers-active-directory-misconfigured",
+    "url": "https://dev.to/ayinedjimi-consultants/kerberoasting-for-developers-why-your-active-directory-is-probably-misconfigured-321a",
+    "source": "DEV Community",
+    "date": "2026-05-22T00:49:42.000Z",
+    "summary": "Explains Kerberoasting attack plainly for developers, where any authenticated domain user can request encrypted service tickets and crack them offline to gain service account passwords. Demonstrates how common misconfigurations expose Windows domain environments to this fundamental security risk.",
+    "content": "If you are a developer who has ever been handed credentials to run a service on a Windows domain, you have probably contributed to a security problem you did not know existed. I am not saying this to be condescending — I did not understand Kerberoasting until I started doing Active Directory security reviews professionally. Now I find the same three misconfigurations in almost every organization I assess.\nThis post explains Kerberoasting plainly for people who write code but do not specialize in Active Directory security. No acronym soup, no red team posturing.\nWhen you log into a Windows domain, Kerberos handles authentication. You prove your identity to a central server (the Key Distribution Center, or KDC) and receive a Ticket Granting Ticket (TGT). When you need to access a specific service — a SQL Server, a web application, a file share — your client uses that TGT to request a Service Ticket (TGS) for that specific service.\nThe service is identified by a Service Principal Name (SPN). An SPN is a string like MSSQLSvc/sqlserver01.corp.local:1433 registered in Active Directory against the account that runs that service.\nHere is the key point: the TGS is encrypted with the NTLM hash of the service account's password. The KDC does not check whether the requesting user is authorized to use the service — that check happens when the user actually presents the ticket to the service. Any authenticated domain user can request a TGS for any SPN in the domain.\nKerberoasting is requesting TGS tickets for service accounts and taking those encrypted tickets offline to crack them. Since the ticket is encrypted with the service account's password hash, cracking it gives you the plaintext password.\nThere is nothing exotic about this. Any domain user can do it. No elevated privileges required for the initial step.\n# Find accounts with SPNs (potential Kerberoasting targets)\n# Run this as any domain user\nGet-ADUser -Filter {ServicePrincipalName -ne \"$null\"} `\n    -Properties Service",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "面向开发者的Kerberoasting：为什么你的Active Directory可能配置错误",
+        "summary": "为开发者清晰解释Kerberoasting攻击，其中任何经过身份验证的域用户都可以请求加密的服务票据并离线破解它们以获取服务账户密码。演示了常见的配置错误如何将Windows域环境暴露在这个基本的安全风险中。"
+      }
+    }
+  },
+  {
+    "title": "Building a real-time SEO scoring engine in Go: 8 rules that actually moved rankings",
+    "slug": "real-time-seo-scoring-engine-go-8-rules",
+    "url": "https://dev.to/ayinedjimi-consultants/building-a-real-time-seo-scoring-engine-in-go-8-rules-that-actually-moved-rankings-2683",
+    "source": "DEV Community",
+    "date": "2026-05-22T00:48:58.000Z",
+    "summary": "Developer built custom SEO scoring engine in Go for technical long-form content with rules derived from 18 months of traffic analysis, including specific requirements like 120-word opening paragraphs and internal link counts. Key insight: Go's len() counts bytes not Unicode characters, critical for content with accented characters.",
+    "content": "I distrust SEO tools. Not because they are wrong, but because they are generic. They optimize for the average page, not your specific content and audience. When I was running a cybersecurity consulting site with over 1,600 technical articles, I needed scoring rules that made sense for long-form, technical content — not e-commerce product pages.\nSo I built my own SEO scoring engine in Go, embedded directly in the backend. It runs on every article save and surfaces scores through an internal API. Here is what I actually learned.\nExternal SEO tools are either expensive, rate-limited, or both. More importantly, they cannot score your content against your own standards. My articles needed to satisfy criteria that Yoast or Clearscope cannot express: a minimum 120-word opening paragraph (the \"chapeau\"), a FAQ section with interrogative headings, at least 4 internal links pointing to related guides, and a specific H2-to-word-count ratio.\nThese rules came from watching traffic data for 18 months. They are opinionated and they are mine.\nBefore I explain the rules, here is the most important technical thing I learned: len() in Go counts bytes, not characters. For SEO character counting, this matters because a lot of cybersecurity content includes accented French characters, special symbols, and technical abbreviations.\n// Wrong — counts bytes, not characters\nfunc titleTooShort(title string) bool {\n    return len(title) < 50 // WRONG for non-ASCII content\n}\n\n// Correct — counts Unicode code points\nfunc titleLength(title string) int {\n    return len([]rune(title))\n}\n\nfunc scoreTitleLength(title string) (int, string) {\n    l := len([]rune(title))\n    switch {\n    case l < 30:\n        return 0, \"title too short (< 30 chars)\"\n    case l < 50:\n        return 5, \"title acceptable but below optimal (50–60 chars)\"\n    case l <= 60:\n        return 10, \"title length optimal\"\n    case l <= 70:\n        return 5, \"title slightly long (> 60 chars)\"\n    default:\n        return 0, \"title too l",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "用Go构建实时SEO评分引擎：8条实际推动排名的规则",
+        "summary": "开发者用Go为技术长文内容构建了自定义SEO评分引擎，规则源于18个月的流量分析，包括120字开头段落和内部链接数量等具体要求。关键洞察：Go的len()计算字节而非Unicode字符，对包含重音字符的内容至关重要。"
+      }
+    }
+  },
+  {
+    "title": "Stop Losing Shopify Webhooks: A Retry Strategy That Survives Real Outages",
+    "slug": "stop-losing-shopify-webhooks-retry-strategy",
+    "url": "https://dev.to/masadashraf/stop-losing-shopify-webhooks-a-retry-strategy-that-survives-real-outages-4jl4",
+    "source": "DEV Community",
+    "date": "2026-05-22T00:40:32.000Z",
+    "summary": "Shopify's webhook retry policy was updated in September 2024 to allow 8 retries over 4 hours with exponential backoff, down from previously documented 19 retries over 48 hours. Failed endpoints risk having their webhook subscription removed entirely, requiring a custom retry layer to survive deployment windows and outages.",
+    "content": "Stop Losing Shopify Webhooks: A Retry Strategy That Survives Real Outages\n\n\nHere is a scenario every Shopify developer eventually lives through.\nIt is the middle of a deploy. Your endpoint is down for maybe 90 minutes. Nothing dramatic. But while you were shipping, three orders came in, an inventory sync fired, and a customer updated their address.\nShopify tried to deliver those webhooks. It retried. Then it gave up.\nThose events are gone. Not delayed. Gone.\nI have watched this exact thing happen, and the worst part is how quiet it is. No error in your logs. No alert. Just a slow drift between what Shopify knows and what your system knows. You find out days later when a customer asks where their order went.\nSo let us talk about how to actually fix this, properly, with a retry strategy that survives more than a quick hiccup.\nYou cannot build a good retry layer until you know what the platform gives you for free.\nWhen Shopify sends a webhook, it waits 5 seconds for your endpoint to respond. Any 2xx status code is a success. Anything else, including a timeout, is a failure.\nAfter a failure, Shopify retries. And here is the part people get wrong, because the internet is full of outdated info:\nAs of the September 2024 policy update, Shopify retries a failed webhook up to 8 times over a 4-hour window with exponential backoff.\nThe old \"19 retries over 48 hours\" number you will find in older blog posts is dead. If your reliability code was written before late 2024, your timing assumptions are probably wrong.\nA quick reference:\n\n\n\nBehavior\nDetail\n\n\n\n\nTimeout\n5 seconds per attempt\n\n\nSuccess\nAny 2xx status\n\n\nRetries\nUp to 8 attempts\n\n\nWindow\n4 hours total\n\n\nBackoff\nExponential\n\n\nPayload\nOriginal payload from trigger time\n\n\nThe scary part\nPersistent failures delete the subscription\n\n\n\n\nThat last row is the one that ruins weekends. If your endpoint fails enough, Shopify does not just drop events. It removes the webhook subscription. New events stop firing entirely until you re-r",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "停止丢失Shopify Webhooks：一个能在真实中断中存活的重试策略",
+        "summary": "Shopify的webhook重试政策在2024年9月更新，允许在4小时内进行8次重试并采用指数退避，少于之前记录的48小时内19次重试。失败的端点面临webhook订阅被完全移除的风险，需要自定义重试层来应对部署窗口和中断。"
+      }
+    }
+  },
+  {
+    "title": "Lessons from building Electron auto-update across 25 releases",
+    "slug": "electron-auto-update-25-releases-lessons",
+    "url": "https://dev.to/ryuji_saas/lessons-from-building-electron-auto-update-across-25-releases-1ah7",
+    "source": "DEV Community",
+    "date": "2026-05-22T00:34:26.000Z",
+    "summary": "Indie developer shipped 25 desktop app releases using electron-updater with GitHub Releases as CDN, providing highest-ROI infrastructure decision for reducing support burden from users on outdated versions. Stack uses simple periodic manifest checks, user prompts, and automatic installation without a separate update server.",
+    "content": "If you're shipping an Electron desktop app to end users and you don't have auto-update wired in, you're going to keep getting \"this is broken\" bug reports from users who are actually running a version from three releases ago.\nI've shipped 25 releases of GramShift Desktop (an Instagram automation indie SaaS) over the past several months, and bolting on auto-update from day one was easily one of the highest-ROI infrastructure decisions I've made. This post is the implementation core + the specific traps I walked into.\nThe stack is boring on purpose:\nelectron-updater (the npm package) handles update detection + download + install\nGitHub Releases hosts the installer assets + a latest.yml manifest\nClients periodically check latest.yml against their current version\nOn detection, they download and prompt the user to install\nRelease flow:\nnpm version patch (or minor/major)\nnpm run build produces installers (.exe, .dmg)\nUpload .exe + latest.yml to a new GitHub Release\nRunning clients see the new manifest on next check, prompt the user, install\nThe big upside: no separate update server. GitHub Releases acts as your CDN. The free tier handles indie-scale traffic without breaking a sweat.\nThe smallest thing that works in your Electron main process:\nconst { app, dialog } = require('electron');\nconst { autoUpdater } = require('electron-updater');\n\nfunction setupAutoUpdate(mainWindow) {\n  autoUpdater.autoDownload = false;\n  autoUpdater.autoInstallOnAppQuit = true;\n\n  autoUpdater.on('update-available', (info) => {\n    dialog.showMessageBox(mainWindow, {\n      type: 'info',\n      title: 'Update available',\n      message: `Version ${info.version} is ready.`,\n      buttons: ['Update now', 'Later']\n    }).then((result) => {\n      if (result.response === 0) autoUpdater.downloadUpdate();\n    });\n  });\n\n  autoUpdater.on('update-downloaded', () => {\n    dialog.showMessageBox(mainWindow, {\n      title: 'Update ready',\n      message: 'Restart to apply the update.',\n      buttons: ['Restart',",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "跨25个版本构建Electron自动更新的经验教训",
+        "summary": "独立开发者使用electron-updater和GitHub Releases作为CDN发布了25个桌面应用版本，这是减少来自过时版本用户支持负担的最高ROI基础设施决策。该堆栈使用简单的定期清单检查、用户提示和自动安装，无需单独的更新服务器。"
+      }
+    }
+  },
+  {
+    "title": "Twigest — A Daily AI Digest of Twitter/X Activity for Your Brand, Competitors & Keywords",
+    "slug": "twigest-daily-ai-digest-twitter-x-activity",
+    "url": "https://dev.to/tahakotil/twigest-a-daily-ai-digest-of-twitterx-activity-for-your-brand-competitors-keywords-38d",
+    "source": "DEV Community",
+    "date": "2026-05-22T00:24:59.000Z",
+    "summary": "AI-powered monitoring tool watches X/Twitter for accounts, keywords, and misspellings, then delivers one daily digest via email/Slack/Telegram with sentiment classification instead of real-time notification firehose. Solves the scaling problem of monitoring multiple brands, competitors, and keywords that native tools cannot handle.",
+    "content": "If you run a brand, manage social media, or just want to know what's said about your product on X/Twitter, you've probably tried the same thing I tried first: native notifications, TweetDeck, search columns, hashtag pages.\nHere's what nobody admits: none of that scales past one keyword. Add a second brand to track, a competitor handle, a misspelling, a niche term — and the firehose breaks you. You stop checking. You miss the angry quote-tweet at 11pm on a Saturday. You don't see the share-of-voice shift until the next quarterly review.\nI built Twigest because I needed it. It's a tool that watches X/Twitter for whatever you tell it to watch, runs everything through AI classification, and delivers one structured digest per day — to email, Slack, or Telegram.\nThis post explains what it does, who it's for, and how it's different from the dozen monitoring tools that already exist.\nTwigest is an AI-powered Twitter monitoring and social listening tool that sends you a daily digest of what mattered on X/Twitter — instead of a real-time notification firehose.\nYou connect what you want tracked:\nAccounts — competitor handles, industry voices, your own brand\nKeywords — brand name, product name, hashtags, topic phrases\nMisspellings — the 8-15% of brand mentions that get your name wrong\nTwigest runs its own scraping pipeline (no X API access needed, no developer account, no $5,000/mo Enterprise tier), classifies every captured tweet across 5 sentiment categories — positive, negative, angry, excited, neutral — and writes a summary every 24 hours.\nYou get the summary in your inbox, your team Slack channel, or a Telegram bot. Pick whichever you actually read.\nYou don't have a community manager. You can't afford to scroll. You need to know if someone's complaining about your product before it goes viral, and you need to know which competitors are gaining momentum without sitting on X all day.\nTwigest replaces 200 notifications with one 5-minute morning read.\nYou're tracking 5+ brands",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Twigest——您的品牌、竞争对手和关键词的Twitter/X日活动AI摘要",
+        "summary": "人工智能监控工具监视X/Twitter上的账户、关键词和拼写错误，然后通过电子邮件/Slack/Telegram提供每日摘要并进行情感分类，而不是实时通知轰炸。解决了本地工具无法处理的监控多个品牌、竞争对手和关键词的扩展问题。"
+      }
+    }
+  },
+  {
+    "title": "Stop Getting Rejected by ATS: Free Open-Source LaTeX Resume Template 🚀",
+    "slug": "free-open-source-latex-resume-template-ats",
+    "url": "https://dev.to/dev-amr-elsherif/stop-getting-rejected-by-ats-free-open-source-latex-resume-template-19hn",
+    "source": "DEV Community",
+    "date": "2026-05-22T00:20:32.000Z",
+    "summary": "Mobile engineer open-sourced ATS-friendly LaTeX resume template with clean, minimalist layout and built-in AI prompts for content generation using Gemini or ChatGPT. Template prioritizes parsing compatibility over design complexity, solving the common problem of beautifully formatted resumes failing ATS screening.",
+    "content": "If you are a Software Engineer, you probably know the struggle of formatting a CV. You spend hours designing a beautiful layout, only to find out that the ATS (Applicant Tracking System) couldn't parse your text properly.\nAs a mobile software engineer, I value Clean Architecture—not just in my Dart/Flutter code, but in how I present my professional experience. That's why I optimized and customized an ATS-Friendly LaTeX Resume Template, and I am open-sourcing it for the community!\n✨ Key Features\nClean & Minimalist Layout: Perfectly aligned sections for Summary, Skills, Projects, Experience, and Education without visual clutter.\nAI-Assisted Editing: I included specific prompt instructions in the source code. You can simply copy the LaTeX code, paste it into Gemini or ChatGPT, and ask it to fill the template with your data.\n🛠️ How to Get It\nhttps://github.com/dev-amr-elsherif/software-engineer-resume-template\nYou will also find it available soon on the Overleaf Gallery!\n💡 Pro Tip for Devs\nLet me know in the comments if you have any questions or need help setting it up. Happy job hunting! 🚀",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "停止被ATS拒绝：免费开源LaTeX简历模板",
+        "summary": "移动工程师开源了一个ATS友好的LaTeX简历模板，具有简洁极简的布局和使用Gemini或ChatGPT生成内容的内置AI提示。该模板优先考虑解析兼容性而不是设计复杂性，解决了格式精美的简历在ATS筛选中失败的常见问题。"
+      }
+    }
+  },
+  {
+    "title": "The Merging Was Always the Point",
+    "slug": "merging-was-always-the-point",
+    "url": "https://dev.to/aronchick/the-merging-was-always-the-point-27g",
+    "source": "DEV Community",
+    "date": "2026-05-22T00:20:21.000Z",
+    "summary": "OpenAI's internal model disproved the 80-year-old Erdős unit-distance conjecture by showing point sets can beat the conjectured mathematical bound forever, resolving one of combinatorial geometry's most famous open problems. The breakthrough demonstrates how AI can generalize and extend classical mathematical construction techniques beyond human exploration.",
+    "content": "Yesterday, an internal model at OpenAI disproved the Erdős unit-distance conjecture. The conjecture is from 1946. It is, depending on which discrete geometer you ask, either the best-known or the most-tried open problem in combinatorial geometry. Paul Erdős attached a $500 prize to it. The disproof is, according to the nine mathematicians who examined it line by line, correct.\nLet me say what the problem actually is, because It took me forever to understand it (did i mention I am not a mathematician??)\nPut n points in a plane, anywhere you want. Count the pairs of points that are exactly distance 1 from each other. Call that count the \"unit distances.\" How big can the count get as n grows? Erdős showed in 1946 that you can get the count to grow a tiny bit faster than n itself. He conjectured that you cannot do much better than that, formally that the count is bounded by n raised to (1 + o(1)), where the o(1) shrinks toward zero as n grows. Eighty years of human effort have, broadly, been on the side of proving that ceiling. The model showed there is no such ceiling. You can construct point sets that beat the bound by a fixed exponent forever.\nThe way it did this is, if you squint at it, the most ordinary thing mathematics has ever done.\nThe original Erdős construction was a square grid of points where the coordinates were ordinary integers, and the unit distances came from the algebraic structure of the Gaussian integers, the ring Z[i], the same object you saw the first time you took a course on complex numbers. The natural generalization is to swap the Gaussian integers for some other algebraic object of the same shape and see whether you get more unit distances No matter what they tried, the bound would stubbornly recover Erdős's original number. Will Sawin's reflection in the companion paper explains why: when you actually compute it out, the natural generalization gives you the same answer as the original construction, so there is no apparent reason to try anyth",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "合并一直都是重点",
+        "summary": "OpenAI的内部模型通过展示点集可以永远超越猜测的数学界限，反驳了80年历史的Erdős单位距离猜想，解决了组合几何最著名的开放问题之一。这一突破展示了人工智能如何能够推广和扩展超越人类探索的经典数学构造技术。"
+      }
+    }
+  },
+  {
+    "title": "Hertz Contact Stress: How to Predict Pressure Where Two Surfaces Meet",
+    "slug": "hertz-contact-stress-pressure-two-surfaces",
+    "url": "https://dev.to/01888927bd0e8aa92caca/hertz-contact-stress-how-to-predict-pressure-where-two-surfaces-meet-3l81",
+    "source": "DEV Community",
+    "date": "2026-05-22T00:17:02.000Z",
+    "summary": "Explains Hertz contact theory for predicting stress and contact area where curved surfaces touch, critical for designing bearings, gears, and mechanical components that fail under repeated contact loads. Key insight: contact area grows as cube root of force, not linearly, making contact mechanics essential for accurate engineering design.",
+    "content": "When a hardened steel ball rests on a flat plate, the entire load passes through a contact patch smaller than a pinhead. Intuitively you might expect the stress there to be enormous — and it is. A 100 N load, roughly the weight of a 10 kg mass, can generate more than 1 GPa of pressure inside that tiny spot. That is several times the yield strength of mild steel, yet well-designed parts survive millions of cycles. Understanding why is the entire point of Hertz contact theory.\nThis article walks through how to estimate contact pressure and contact size for curved bodies, works a full numerical example, and explains the subsurface stress that engineers most often forget.\nContact stress decides the fate of a surprising range of machine elements: ball and roller bearings, gear teeth, cam-and-follower pairs, wheel-rail interfaces, and press fits. None of these fail because the average stress is high. They fail because a concentrated, repeated contact load drives fatigue cracks just below the surface.\nIf you size these components using nominal stress — load divided by some projected area — you will be wildly optimistic. The real contact area is tiny and load-dependent: it grows only as the cube root of force. So the pressure does not scale the way bulk-stress intuition suggests. You need contact mechanics to get a number you can defend in a design review.\nHeinrich Hertz solved the elastic contact problem in 1881 for smooth, frictionless, non-conforming bodies. For a sphere of radius R pressed onto a flat surface — a flat is just a sphere of infinite radius — three results matter.\nFirst, combine the two materials into an effective modulus E*:\n1 / E*  =  (1 - v1^2) / E1  +  (1 - v2^2) / E2\n\nThen the contact radius a:\na  =  ( 3 F R / (4 E*) ) ^ (1/3)\n\nAnd the maximum contact pressure p0, which sits at the center of the patch:\np0  =  3 F / (2 pi a^2)\n\nTwo features are worth internalizing. The contact radius grows with the cube root of load, so doubling the force enlarges the p",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "赫兹接触应力：如何预测两个表面接触处的压力",
+        "summary": "解释赫兹接触理论，用于预测弧形表面接触处的应力和接触面积，这对于设计轴承、齿轮和在重复接触负载下失效的机械部件至关重要。关键见解：接触面积随力的立方根增长，而不是线性增长，这使得接触力学对精确工程设计至关重要。"
+      }
+    }
+  },
+  {
+    "title": "What Korea's Foreign Exchange Transactions Act Amendment Means for Offshore Foundations and Exchanges",
+    "slug": "korea-foreign-exchange-act-amendment-offshore-foundations",
+    "url": "https://dev.to/denniskim/what-koreas-foreign-exchange-transactions-act-amendment-means-for-offshore-foundations-and-3m56",
+    "source": "DEV Community",
+    "date": "2026-05-22T00:16:05.000Z",
+    "summary": "South Korea passed amendment on May 7, 2026 establishing registration requirements for cross-border virtual asset transfers, creating accountability for offshore foundations and exchanges operating in Korean market. Change shifts digital asset flows from gray zone to formal regulatory framework, affecting offshore token issuers and global exchanges serving Korean investors.",
+    "content": "What Korea's Foreign Exchange Transactions Act Amendment Means for Offshore Foundations and Exchanges\n\n\nA column by Dennis Kim · May 2026\nOn May 7, 2026, the plenary session of Korea's National Assembly passed an amendment to the Foreign Exchange Transactions Act, establishing a new registration obligation for the cross-border transfer of virtual assets. A separate category—\"digital asset transfer business\"—was created, formally designating virtual asset service providers (VASPs) as the accountable parties for cross-border digital asset flows. The debate so far has centered mainly on the registration burden that domestic exchanges and custodians will carry. But the parties this amendment shakes most quietly, and most deeply, lie elsewhere: the offshore foundations and offshore exchanges that look at the Korean market from abroad.\nThe structural signature of Korea's digital asset market is an asymmetry: domestic liquidity is enormous, yet much of the issuance and infrastructure sits offshore. The foundations that issue tokens are domiciled in Singapore, the Cayman Islands, Zug in Switzerland, or the British Virgin Islands (BVI), while liquidity and settlement infrastructure are held by global exchanges. Korean investors and Korean projects have transacted on top of this offshore structure.\nUntil now, this flow operated in a \"gray zone.\" Whether an offshore foundation distributed tokens to Korean investors, or a global exchange moved a Korean user's assets across the border, it was unclear whether such activity even fell within the discipline of the foreign exchange order. This amendment resolves that ambiguity. The moment cross-border movement of digital assets enters the foreign exchange monitoring framework, the new test—regardless of whether the party involved is a domestic or foreign entity—becomes whether the activity constitutes a \"transfer business between Korea and a foreign country.\"\nFirst, is token distribution targeting Korea a \"transfer business\"? The fir",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "韩国外汇交易法修订对离岸基金会和交易所意味着什么",
+        "summary": "韩国于2026年5月7日通过修订案，为跨境虚拟资产转移建立注册要求，为在韩国市场运营的离岸基金会和交易所建立问责制。此举将数字资产流动从灰色地带转向正式监管框架，影响离岸代币发行者和为韩国投资者服务的全球交易所。"
+      }
+    }
+  },
+  {
+    "title": "AI Is Becoming Ambient: My Biggest Takeaway From Google I/O 2026",
+    "slug": "ai-becoming-ambient-google-io-2026",
+    "url": "https://dev.to/neithergalax/ai-is-becoming-ambient-my-biggest-takeaway-from-google-io-2026-3a7h",
+    "source": "DEV Community",
+    "date": "2026-05-22T00:12:02.000Z",
+    "summary": "Key takeaway from Google I/O 2026 is that AI integration is shifting from standalone products to ambient background layer across Search, Workspace, Android, Chrome, and developer tools. Presentations emphasized multimodal interfaces and agentic AI that performs tasks and makes decisions rather than just answering questions.",
+    "content": "This is a submission for the Google I/O Writing Challenge\nI spent some time watching the Google I/O 2026 “What’s New in AI” session, and one small detail personally stood out to me.\nOne of the presenters was Paige Bailey. Years ago, I used to watch her GenAI workshops on Kaggle while learning AI on my own. Seeing her present at Google I/O felt like a reminder of how quickly this space has evolved.\nBut beyond the announcements themselves, I think the biggest message from Google I/O was this:\nAI is no longer being treated as a standalone product.\nWhat stood out to me most was how deeply AI is now integrated across Google’s ecosystem.\nSearch, Workspace, Android, Chrome, YouTube, developer tools — AI is quietly being embedded everywhere.\nNot as a separate chatbot tab, but as an invisible layer sitting behind the products people already use every day.\nAI is becoming ambient.\nAnother thing that stood out was how natural multimodal interaction now feels.\nText, voice, images, video, screen understanding, and real-time context are all starting to blend together into a single experience.\nInstead of switching between different tools, the AI increasingly understands multiple forms of input at once.\nThat feels like a major UX shift.\nAnother word that repeatedly appeared during the presentations was “agentic.”\nThe industry is clearly moving away from AI that simply answers questions toward AI that can actually perform tasks, make decisions, and operate across tools.\nThat shift feels important.\nThe conversation is no longer:\n“Can AI chat with you?”\nNow it’s:\n“Can AI do things for you?”\nOne thing became very obvious during the demos:\nThe old version of Google Search is quietly disappearing.\nTyping keywords and manually digging through links is slowly being replaced by AI-generated summaries, conversational search, and agents that help organize information for you.\nWhether that change is good or bad is still open for debate, especially for creators and websites across the internet.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "人工智能正在变成环境层：我对谷歌I/O 2026的最大收获",
+        "summary": "谷歌I/O 2026的关键要点是，AI集成正在从独立产品转向跨搜索、工作空间、Android、Chrome和开发者工具的环境背景层。演讲强调了多模态界面和可以执行任务和做出决策而不仅仅回答问题的代理AI。"
+      }
+    }
+  }
+]
