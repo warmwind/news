@@ -1,5 +1,213 @@
 [
   {
+    "title": "A website to save you from messy browser tabs",
+    "slug": "website-save-messy-browser-tabs",
+    "url": "https://dev.to/catssaymeow/a-website-to-save-you-from-messy-browser-tabs-41eo",
+    "source": "DEV Community",
+    "date": "2026-05-25T13:15:42.000Z",
+    "summary": "Developer creates an all-in-one toolkit website to consolidate browser tabs with tools like JWT decoder, Base64 encoder, JSON formatter, and markdown editor; features cyber-noir cat theme and mobile optimization.",
+    "content": "I saw some posts where people complained about having too many tabs open and constantly switching between basic tools like JWT decoder, Base64 encoder/decoder, data generators, API client, editor, and so on.\nI can relate, because that’s exactly what I was dealing with a few months ago. So I started building an all-in-one toolkit for my daily work:\nhttps://catssaymeow.org\nIt has a cyber-noir + cat theme, with dark mode by default.\nJSON Formatter: supports custom nested levels and a visualizer\n\n\nMarkdown Editor: GitHub-like features, plus a bit more\n\n\n\n\nI also optimized it to work better on mobile. Yes! I really did have to debug a JSON payload while traveling at night on my tiny iPhone, so mobile support became personal.\nHope you find it useful. If not, that’s fine. My cat-themed nonsense will continue existing either way.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "一个网站帮你整理混乱的浏览器标签页",
+        "summary": "开发者创建了一个一站式工具包网站，用于整合浏览器标签页，包括JWT解码器、Base64编码器、JSON格式化器和markdown编辑器；具有赛博朋克猫咪主题和移动设备优化。"
+      }
+    }
+  },
+  {
+    "title": "Postgres JSONB indexes: GIN vs BTREE on the same column",
+    "slug": "postgres-jsonb-indexes-gin-vs-btree",
+    "url": "https://dev.to/baodev-studio/postgres-jsonb-indexes-gin-vs-btree-on-the-same-column-4hb0",
+    "source": "DEV Community",
+    "date": "2026-05-25T13:15:00.000Z",
+    "summary": "Postgres JSONB indexing performance depends on query shape: GIN excels at contains operations (@>) while BTREE on extracted scalars vastly outperforms for field comparisons (27x faster in benchmarked scenario).",
+    "content": "caught this in production last quarter and the answer is more boring than i expected: GIN and BTREE on the same JSONB column solve different problems, and the right choice depends on the SHAPE of your queries, not the size of the data.\nheres the actual benchmark + when each one wins.\ntable: users with 2.3M rows. one column attributes JSONB. typical row contains:\n{\n  \"plan\": \"pro\",\n  \"country\": \"ID\",\n  \"signup_source\": \"organic\",\n  \"feature_flags\": [\"beta_search\", \"new_billing\"],\n  \"preferences\": {\"theme\": \"dark\", \"lang\": \"id\"}\n}\n\nqueries i run regularly:\nQ1: WHERE attributes->>'plan' = 'pro' — find all pro users\nQ2: WHERE attributes @> '{\"feature_flags\": [\"beta_search\"]}' — find users with a feature flag\nQ3: WHERE attributes->>'country' = 'ID' AND attributes->>'plan' = 'pro' — pro users in indonesia\nQ4: WHERE attributes ? 'preferences' — users who have the preferences key at all\nfour queries. different optimal indexes for each.\n-- option A: GIN on whole column\nCREATE INDEX idx_attrs_gin ON users USING GIN (attributes);\n\n-- option B: GIN with jsonb_path_ops (faster but only for @>)\nCREATE INDEX idx_attrs_gin_path ON users USING GIN (attributes jsonb_path_ops);\n\n-- option C: BTREE on extracted scalar\nCREATE INDEX idx_attrs_plan ON users ((attributes->>'plan'));\n\nQ1: WHERE attributes->>'plan' = 'pro'\nno index: 480ms (seq scan)\nGIN (option A): 220ms (bitmap scan, recheck) — GIN is generic, returns false positives, needs the recheck step\nGIN path_ops (option B): doesn't work for ->> extraction. ignored.\nBTREE on (attributes->>'plan') (option C): 8ms (index scan, no recheck) — winner by 27x\nQ2: WHERE attributes @> '{\"feature_flags\": [\"beta_search\"]}'\nno index: 510ms (seq scan)\nGIN: 14ms (bitmap scan) — solid\nGIN path_ops: 6ms — winner. path_ops loses other operators but is 2.3x faster for @> specifically because it stores hashed paths only.\nBTREE on extracted: cant express this query. n/a.\nQ3: WHERE plan='pro' AND country='ID' (compound on JSONB)\nBTREE on plan only: 120ms",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Postgres JSONB索引：同列GIN与BTREE的对比",
+        "summary": "Postgres JSONB索引性能取决于查询形式：GIN在包含操作（@>）中表现出色，而基于提取标量的BTREE在字段比较中性能远超GIN（基准测试中快27倍）。"
+      }
+    }
+  },
+  {
+    "title": "The $5 AI That Remembers Everything",
+    "slug": "5-dollar-ai-remembers-everything",
+    "url": "https://dev.to/stephen_sebastian_c85ea2b/the-5-ai-that-remembers-everything-517f",
+    "source": "DEV Community",
+    "date": "2026-05-25T13:11:23.000Z",
+    "summary": "Open-source Hermes Agent enables independent AI deployment on $5 servers with 5-layer memory architecture, eliminating vendor lock-in and cloud pricing concerns while enabling autonomous skill refinement.",
+    "content": "This is a submission for the Hermes Agent Challenge: Write About Hermes Agent\nYou know the one: \"Our AI is free!\" You sign up, start building workflows around it, then months later you’re staring at a new pricing page, a restricted API, or a feature that suddenly vanished.\nLast month, I asked a popular AI agent to debug a Python memory leak. It gave me a solid answer. The next day, I asked the exact same question — and it started from zero, suggesting the same solution like it had never seen the problem before.\nThat’s not intelligence. That’s amnesia with a chat interface.\nBut a system that can’t remember isn’t stateless. It’s broken.\nI got tired of renting intelligence. So I spent 30 days running Hermes Agent on a $5 Digital Ocean droplet. This isn’t hype. This is what happened when I gave an open agent time to learn — and why I’m never going back.\nI expected dependency hell. Instead:\ncurl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash\nhermes model    # Choose your provider\nhermes chat     # Start talking\n\nNine minutes from zero to running. No upgrade nags. No telemetry. No “connect your account” flow. Just my agent, on my server.\nNo more praying that a cloud provider won’t change its terms mid‑project.\nWhat makes Hermes different isn’t raw model size — it’s memory architecture.\nMost agents stop at Layer 1 (short‑term context window). Hermes builds five:\n\n\n\nLayer\nName\nWhat it does\n\n\n\n\n1\nWorking memory\nCurrent conversation context (every agent has this).\n\n\n2\nProcedural Skill Docs\nAuto‑generated Markdown skills in ~/.hermes/skills/; steps, tools, reasoning.\n\n\n3\nContextual Persistence\nSession summaries, project context in SQLite with full‑text search.\n\n\n4\nLong‑term Semantic Memory\nBuilds a model of you — style, preferences, recurring patterns.\n\n\n5\nGEPA Skill‑Learning Loop\nEvery ~15 tasks, it reviews performance and refines or creates new skills.\n\n\n\nBy week 2, my agent wasn’t just remembering facts. It was getting bette",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "能记住一切的5美元AI",
+        "summary": "开源Hermes Agent实现了在5美元服务器上独立部署AI，具有5层记忆架构，消除了供应商锁定和云计算定价问题，同时支持自主技能优化。"
+      }
+    }
+  },
+  {
+    "title": "What are your goals for the week? #180",
+    "slug": "weekly-goals-week-180",
+    "url": "https://dev.to/jarvisscript/what-are-your-goals-for-the-week-180-1aho",
+    "source": "DEV Community",
+    "date": "2026-05-25T13:09:40.000Z",
+    "summary": "Weekly community check-in thread where developers share goals, projects, job search activities, and events for the upcoming week.",
+    "content": "It's Memorial Day and I'm working at a Ren Faire. I'll fix goals later in the week.\nWhat are you building this week?\nWhat do you want to learn?\nWhat events are you attending this week?\nJob Search.\n\n\nNetwork\nApply\nProject work.\n\n\nContent for side project.\nWork on my own project. \nSend follow up email for content for client's site.\nContent & Project Calendar for May. \nBlog\nEvents.\nRun a goal setting thread on Virtual Coffee(VC) Slack.\nProcess pics from Ren Faire.\nJob Search.\n\n\n✅ Network\nApply\nProject work.\n\n\n * ✅ Content for side project.\n * ✅Work on my own project. \n * ✅ Send follow up email for content for client's site.\n * ✅ Content & Project Calendar for May. \n * ✅  Blog\nEvents.\n\n\n❌ Thursday Dads in Tech. Postponed \n * ✅ Run a goal setting thread on Virtual Coffee(VC) Slack.\n * ✅ Process pics from Ren Faire.\nWhat are you building this week?\nWhat do you want to learn?\nWhat events are you attending this week?\nCover image is my LEGO photography. It's Daffy Duck working at a desktop computer. In the background is a mini rubber duck.\n-$JarvisScript git commit -m \"edition 180\"",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你本周的目标是什么？#180",
+        "summary": "开发者社区每周签到帖，分享目标、项目、求职活动和即将到来一周的活动。"
+      }
+    }
+  },
+  {
+    "title": "Zettelkasten for Developers: A Practical Method That Works",
+    "slug": "zettelkasten-developers-practical-method",
+    "url": "https://dev.to/rosgluk/zettelkasten-for-developers-a-practical-method-that-works-3ij",
+    "source": "DEV Community",
+    "date": "2026-05-25T13:09:20.000Z",
+    "summary": "Zettelkasten—a linked note-taking system—provides developers a practical method to organize dispersed knowledge from APIs, incidents, and discussions into a reusable knowledge base for better engineering decisions.",
+    "content": "Developers do not usually suffer from a lack of information. We suffer from too much of it.\nThere are API docs, pull requests, production incidents, design discussions, meeting notes, architecture diagrams, code comments, Slack threads, research papers, experiments, bookmarks, and half-finished ideas sitting in five different tools. The hard part is not saving information. The hard part is turning it into reusable thinking.\nThat is where Zettelkasten becomes useful.\nA Zettelkasten is often described as a note-taking system, but that undersells it. Used well, it is a personal knowledge system for developing ideas over time. For developers, it can become a practical bridge between code, architecture, debugging, learning, and writing.\nThe opinionated part is this: most developers should not use Zettelkasten as a romantic productivity hobby. Do not build a beautiful note museum. Build a working system that helps you solve problems, explain systems, and make better engineering decisions.\nZettelkasten means \"slip box\". The method is associated with sociologist Niklas Luhmann, who used a large collection of linked notes to develop ideas and write extensively.\nThe important lesson is not that he used paper cards. The important lesson is that his notes were not isolated files. Each note had a clear idea, a place in the system, and links to other notes. Over time, the system became more valuable because connections accumulated.\nFor developers, the modern version is simple:\nWrite one useful idea per note.\nLink it to related notes.\nUse those links to grow explanations, decisions, patterns, and articles.\nThat is it. The rest is implementation detail.\nSoftware development creates knowledge that is both detailed and temporary.\nYou learn why a cache invalidation bug happened. You discover a weird edge case in a framework. You compare two queueing strategies. You debug a production outage. You understand why a legacy service behaves strangely. You read a great article about distribu",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "开发者的Zettelkasten：一个行之有效的实用方法",
+        "summary": "Zettelkasten是一个关联笔记系统，为开发者提供了一种实用方法，将来自API、事件和讨论的分散知识组织成可复用的知识库，以便做出更好的工程决策。"
+      }
+    }
+  },
+  {
+    "title": "OpenClaw vs Hermes Agent: Stars, Downloads & Usage 2026",
+    "slug": "openclaw-vs-hermes-agent-stars-2026",
+    "url": "https://dev.to/rosgluk/openclaw-vs-hermes-agent-stars-downloads-usage-2026-b07",
+    "source": "DEV Community",
+    "date": "2026-05-25T13:09:06.000Z",
+    "summary": "GitHub rankings of open-source AI agent frameworks reveal OpenClaw (TypeScript, 373K stars) and Hermes Agent (Python, 160K stars) dominating the self-hosted AI space, with competitors trailing significantly as of May 2026.",
+    "content": "Open-source AI agent frameworks are exploding in popularity on GitHub.\nself-hosted AI systems ecosystem — OpenClaw and Hermes Agent — have pulled so far ahead that the rest of the field is fighting for a distant third place.\nHere is the full picture as of May 2026.\nStar counts are live data fetched from the GitHub API on May 21, 2026. Repos are sorted by current stars, descending.\n\n\n\nRank\nProject\nGitHub repo\nLanguage\nStars\nReleases last 30 days\n\n\n\n\n1\nOpenClaw\nopenclaw/openclaw\nTypeScript\n373,616\n62\n\n\n2\nHermes Agent\nNousResearch/hermes-agent\nPython\n160,175\n5\n\n\n3\nNanobot\nHKUDS/nanobot\nPython\n42,873\n2\n\n\n4\nAstrBot\nAstrBotDevs/AstrBot\nPython\n32,709\n11\n\n\n5\nZeroClaw\nzeroclaw-labs/zeroclaw\nRust\n31,500\n≥1\n\n\n6\nNanoClaw\nnanocoai/nanoclaw\nTypeScript\n29,143\n≥1\n\n\n7\nPicoClaw\nsipeed/picoclaw\nGo\n29,121\n3\n\n\n8\nAionUi\niOfficeAI/AionUi\nTypeScript\n26,025\n≥3\n\n\n9\nNemoClaw\nNVIDIA/NemoClaw\nTypeScript\n20,571\n0\n\n\n10\nOpenFang\nRightNow-AI/openfang\nRust\n17,599\n≥5\n\n\n11\nLangBot\nlangbot-app/LangBot\nPython\n16,084\n1\n\n\n12\nmemU\nNevaMind-AI/memU\nPython\n13,672\n0\n\n\n13\nIronClaw\nnearai/ironclaw\nRust\n12,305\n4\n\n\n14\nMoltworker\ncloudflare/moltworker\nTypeScript\n9,899\n0\n\n\n15\nMemOS\nMemTensor/MemOS\nPython\n9,246\n≥2\n\n\n16\nClawWork\nHKUDS/ClawWork\nPython\n8,111\n0\n\n\n17\nNullClaw\nnullclaw/nullclaw\nZig\n7,603\n2\n\n\n18\nMimicLaw\nmemovai/mimiclaw\nC\n5,422\n0\n\n\n19\nMoltis\nmoltis-org/moltis\nRust\n2,697\n≥3\n\n\n20\nClawra\nSumeLabs/clawra\nTypeScript\n2,298\n0\n\n\n\nOpenClaw is a personal AI assistant framework built in TypeScript. It runs entirely on the user's own device and connects to over 50 messaging platforms — WhatsApp, Telegram, Slack, Discord, and more — through a single unified interface.\nThe project launched in November 2025 but truly ignited on January 30, 2026, reaching 100,000 stars within 48 hours of its relaunch. By April 2026 it had overtaken React to become the most-starred software repository in GitHub's history. At the time of this writing it sits at 373,616 stars, 72,000+ forks, and 360 contributors.\nThe release cadence is extr",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "OpenClaw vs Hermes Agent：星标、下载量与使用情况 2026",
+        "summary": "GitHub上开源AI代理框架排名显示，OpenClaw（TypeScript，373K星标）和Hermes Agent（Python，160K星标）主导自托管AI领域，截至2026年5月，竞争对手明显落后。"
+      }
+    }
+  },
+  {
+    "title": "The Weekly Challenge: The Common Beauty",
+    "slug": "weekly-challenge-common-beauty",
+    "url": "https://dev.to/simongreennet/the-weekly-challenge-the-common-beauty-5eh3",
+    "source": "DEV Community",
+    "date": "2026-05-25T13:07:54.000Z",
+    "summary": "Weekly programming challenge solution finding strings appearing exactly once in both arrays using frequency counting and set intersection in Python and Perl.",
+    "content": "Weekly Challenge 375\n\n\nEach week Mohammad S. Anwar sends out The Weekly Challenge, a chance for all of us to come up with solutions to two weekly tasks. My solutions are written in Python first, and then converted to Perl. Unless otherwise stated, Copilot (and other AI tools) have NOT been used to generate the solution. It's a great way for us all to practice some coding.\nChallenge, My solutions\nYou are given two array of strings.\nWrite a script to return the number of strings that appear exactly once in each of the two given arrays. String comparison is case sensitive.\nFor input from the command, I take two space separated strings to generate the two arrays.\nFor this task, I start by counting the frequency of words in each list (array in Perl).\nfrom collections import Counter\n\ndef single_common_word(array1: list[str], array2: list[str]) -> int:\n    freq1 = Counter(array1)\n    freq2 = Counter(array2)\n\nI then create two sets of words which only appear once in each list.\n    unique1 = {word for word in freq1 if freq1[word] == 1}\n    unique2 = {word for word in freq2 if freq2[word] == 1}\n\nFinally, I return the length of the intersection of both sets.\n    return len(unique1 & unique2)\n\nThe Perl solution follows a similar logic. Using the scalar function will return the number of items in the array.\nuse Array::Utils 'intersect';\n\nsub main ( $str1, $str2 ) {\n    my @array1 = split /\\s+/, $str1;\n    my @array2 = split /\\s+/, $str2;\n\n    my ( %freq1, %freq2 );\n    $freq1{$_}++ foreach @array1;\n    $freq2{$_}++ foreach @array2;\n\n    my @unique1 = grep { $freq1{$_} == 1 } keys %freq1;\n    my @unique2 = grep { $freq2{$_} == 1 } keys %freq2;\n\n    say scalar( intersect( @unique1, @unique2 ) );\n}\n\n$ ./ch-1.py \"apple banana cherry\" \"banana cherry date\"\n2\n\n$ ./ch-1.py \"a ab abc\" \"a a ab abc\"\n2\n\n$ ./ch-1.py \"orange lemon\" \"grape melon\"\n0\n\n$ ./ch-1.py \"test test demo\" \"test demo demo\"\n0\n\n$ ./ch-1.py \"Hello world\" \"hello world\"\n1\n\nYou are given a number and a digit k.\nWrite a script t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "每周挑战：共同的美",
+        "summary": "每周编程挑战解决方案，使用频率计数和集合交集在Python和Perl中查找在两个数组中都恰好出现一次的字符串。"
+      }
+    }
+  },
+  {
+    "title": "Cheminformatics in Rust in 2025-2026: What Exists, What Doesn't, and Why",
+    "slug": "cheminformatics-rust-2025-2026",
+    "url": "https://dev.to/kent-tokyo/cheminformatics-in-rust-in-2025-2026-what-exists-what-doesnt-and-why-e3h",
+    "source": "DEV Community",
+    "date": "2026-05-25T13:07:26.000Z",
+    "summary": "Rust cheminformatics landscape relies on C++ FFI bindings to RDKit; pure-Rust implementations stalled since 2020-2021, though a new attempt (cosmolkit) launched in May 2026 with unproven scope.",
+    "content": "RDKit has been the dominant cheminformatics library since its open-source release in 2006. It is written in C++, wrapped in Python, and has accumulated nearly two decades of validated chemistry: SMILES and SMARTS parsing, multiple fingerprint types, 2D coordinate generation, 3D conformer generation, MMFF94 and UFF force fields, a PostgreSQL cartridge. Most cheminformatics pipelines assume it is present.\nIn mid-2026, Rust's answer is rdkit-sys — bindings to RDKit's C++ CFFI interface — and a collection of pure-Rust crates that stalled in 2020-2021.\n\n\n\nCrate\nType\nLatest\nStatus\n\n\n\n\nrdkit-sys\nC++ FFI to RDKit\n0.4.12 (Oct 2024)\nMaintained\n\n\nopenbabel\nC++ FFI to Open Babel\n0.5.4 (Jan 2025)\nMaintained\n\n\nchemcore\nPure Rust\n0.4.1 (Feb 2021)\nUnmaintained\n\n\npurr\nPure Rust (SMILES parser)\n0.9.0 (Mar 2021)\nUnmaintained\n\n\nsmiles-parser\nPure Rust (SMILES parser)\n0.4.1 (Nov 2020)\nUnmaintained\n\n\ncosmolkit\nPure Rust (new attempt)\n0.2.3 (May 2026)\nNew, unproven\n\n\n\nThe pattern in the pure-Rust column is consistent: implementations hit a wall around 2020-2021 and stopped. The active work is FFI bindings to existing C++ tools. A new attempt (cosmolkit) appeared recently with an ambitious scope — SMILES, SDF, conformers, molecular graphs — but with under 800 downloads it is too early to evaluate.\nParsing a SMILES string is a context-free grammar problem, and Rust handles those well. purr implements the full OpenSMILES specification. smiles-parser does the same. Both work. Neither has had a release since 2020-2021.\nThe problem starts after parsing.\nA SMILES string like c1ccccc1 (benzene) uses lowercase atoms to indicate aromaticity. To do anything useful — calculate molecular weight, count implicit hydrogens, check valence — you need to convert it to a Kekulé structure: alternating single and double bonds. This is kekulization, and it is a constraint-satisfaction problem on the molecular graph.\nchemcore, the most complete pure-Rust attempt, has supported kekulization since its initial rele",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "2025-2026年Rust中的化学信息学：现状、空缺与原因",
+        "summary": "Rust化学信息学领域依赖C++ FFI绑定到RDKit；纯Rust实现自2020-2021年起停滞，尽管新项目cosmolkit在2026年5月启动，但范围仍未确定。"
+      }
+    }
+  },
+  {
+    "title": "Why I Added SD Card Support to My ESP32 Project",
+    "slug": "sd-card-support-esp32-project",
+    "url": "https://dev.to/thilak_kumar/why-i-added-sd-card-support-to-my-esp32-project-4enk",
+    "source": "DEV Community",
+    "date": "2026-05-25T13:05:27.000Z",
+    "summary": "ESP32 project adds SD card storage via SPI to persistently save captured IR signals and NFC card data, transforming device from volatile to reusable tool.",
+    "content": "When building my ESP32-based project, I wanted the device to save important data directly inside the system instead of losing everything after reboot.\nMy project mainly works with:\nIR signal capture\nNFC card operations\nBecause of this, I needed a simple and reliable storage system.\nThat’s why I decided to add SD card support to my project, IRUTESAM V1.0.\nOne of the biggest reasons I added storage support was to save captured data for later use.\nWithout storage:\nCaptured IR signals would be lost\nNFC card information could not be reused\nData would disappear after restarting the device\nI wanted the system to work like a standalone embedded tool, so saving data became very important.\nI selected an SD card module because it provided:\nLow-cost storage\nEasy ESP32 integration\nSimple file management\nReliable data saving\nThe SD card module worked perfectly for storing the project data I needed.\nOne of the main uses of the SD card in my project is storing captured IR signals.\nThis allows the system to:\nSave remote signals\nReload saved signals\nReplay stored IR commands later\nThis made the IR module much more useful and practical.\nThe SD card is also used to save NFC card information captured using the PN532 module.\nThe system stores:\nNFC UID data\nSaved card records\nEmulation-related information\nThis allows previously scanned cards to be reused without rescanning them every time.\nThe SD card module communicates with the ESP32 using SPI communication.\nUsing Arduino libraries, I was able to:\nCreate files\nSave records\nRead stored data\nLoad saved information\nThe integration process was simple and stable during testing.\nAdding storage support improved the overall experience of the device.\nUsers can:\nSave important IR signals\nStore NFC card data\nReload saved records easily\nUse the system without repeating scans every time\nThis made the project feel more complete and practical.\nIn IRUTESAM V1.0, the SD card module is mainly used for:\nIR signal storage\nNFC card data saving\nRecord loadin",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么我给ESP32项目添加了SD卡支持",
+        "summary": "ESP32项目通过SPI接口添加SD卡存储，用于持久保存捕获的红外信号和NFC卡数据，将设备从易失性存储变成可重用工具。"
+      }
+    }
+  },
+  {
+    "title": "Running Classic ASP Without IIS: The Modern Cross-Platform Alternative",
+    "slug": "running-classic-asp-without-iis",
+    "url": "https://dev.to/lucas_guimaraes/running-classic-asp-without-iis-the-modern-cross-platform-alternative-5d59",
+    "source": "DEV Community",
+    "date": "2026-05-25T13:05:25.000Z",
+    "summary": "AxonASP—a Go-based open-source server—enables Classic ASP applications to run cross-platform without IIS, addressing VBScript deprecation and enabling modern containerized deployments.",
+    "content": "For decades, Internet Information Services (IIS) has been the undisputed home for Classic ASP applications. However, the landscape of web hosting is changing rapidly. With Microsoft officially announcing the deprecation of VBScript, many developers and system administrators are left wondering about the future of their legacy codebases. Migrating massive, business-critical Classic ASP applications to a new language is often too expensive and time-consuming.\nHistorically, when developers looked for an alternative to IIS, they turned to solutions like Sun ONE ASP (formerly ChiliSoft), Abyss Web Server, or the lightweight Baby Web Server. Today, these options are either long abandoned, proprietary, or lack the modern architecture required for contemporary cloud deployments.\nIf you are searching for a viable, actively maintained alternative to IIS to keep your Classic ASP applications running securely and efficiently, the solution is AxonASP.\nAxonASP is an open-source server environment built from the ground up to host Classic ASP applications on virtually any operating system. It completely removes the dependency on Windows Server and IIS, providing a bridge between legacy VBScript codebases and modern deployment infrastructure.\nInstead of being a commercial product trying to lock you in, AxonASP is a community-driven project aimed at bringing Classic ASP into the modern era.\nBecause AxonASP is written in Go (Golang), it boasts true cross-platform compatibility. You are no longer tied to Windows environments. You can run your Classic ASP applications natively on:\nLinux (Ubuntu, Debian, Alpine, CentOS, etc.)\nmacOS\nWindows\nARM Architectures (Making it compatible with Raspberry Pi, Apple Silicon, and efficient cloud processors like AWS Graviton)\nYou can deploy AxonASP as a lightweight standalone executable application or run it as a Docker container. This containerization support is critical for teams wanting to integrate legacy ASP applications into modern CI/CD pipelines",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "无IIS运行经典ASP：现代跨平台替代方案",
+        "summary": "AxonASP是一个基于Go的开源服务器，使经典ASP应用能够在没有IIS的情况下跨平台运行，解决VBScript弃用问题并实现现代容器化部署。"
+      }
+    }
+  },
+  {
+    "title": "How I built a zero-knowledge secret sharing tool",
+    "slug": "zero-knowledge-secret-sharing-tool",
+    "url": "https://dev.to/secretvoid/how-i-built-a-zero-knowledge-secret-sharing-tool-329g",
+    "source": "DEV Community",
+    "date": "2026-05-25T13:02:14.000Z",
+    "summary": "SecretVoid uses dual-layer zero-knowledge encryption—client-side AES-256-GCM (key in URL) plus server-side encryption—ensuring neither URL leaks nor database breaches alone compromise secrets.",
+    "content": "I work with developers. That means at some point, someone needs to share a database password or API key quickly, and Slack is just… there. It's convenient. But that credential is now sitting in Slack's servers, searchable, forever. There are tools out there to handle this better, but many of them are server-side only, which means the people running the service can technically read what you sent.\nSo I built SecretVoid. And the core feature is this: I genuinely cannot read your secrets. Not because of a policy or a promise, but because of how the encryption works.\nHere's how I got there.\nMany tools encrypt your secret on the server. You trust them not to look. That's fine for most use cases, but if you're sharing production credentials or API keys, \"trust me bro\" isn't good enough.\nThe alternative is client-side encryption. Your browser encrypts the secret before it ever leaves your device. The server only ever sees gibberish. I'd seen this technique used before, but I wanted to take it a step further.\nSecretVoid uses two completely independent layers:\nLayer 1 (client-side): Your browser generates a random AES-256-GCM key. It encrypts your secret locally. The key never leaves your browser. It goes into the URL fragment (#key), which the HTTP spec guarantees is never transmitted to the server. The server receives an encrypted blob it cannot read.\nLayer 2 (server-side): When the server receives that blob, it encrypts it again with its own key before storing it. So what's sitting in the database is doubly encrypted.\nTo decrypt a secret you need both keys simultaneously: the one in the URL fragment, and the server key. A database breach alone gets you nothing. A URL leak alone gets you nothing either.\nThis is the bit I found most elegant. When you share a secret, the URL looks like:\nhttps://secretvoid.com/secret/abc123#clientKey\n\nEverything after # is the fragment. This isn't a browser quirk or a convention. It's defined in the internet standards that all browsers must fo",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何构建了一个零知识密钥分享工具",
+        "summary": "SecretVoid使用双层零知识加密——客户端AES-256-GCM（密钥在URL中）加上服务器端加密——确保URL泄露或数据库泄露都不会单独泄露秘密。"
+      }
+    }
+  },
+  {
+    "title": "I'm not an ML engineer. I built one anyway.",
+    "slug": "built-ml-engineer-anyway",
+    "url": "https://dev.to/zrouga/im-not-an-ml-engineer-i-built-one-anyway-3feb",
+    "source": "DEV Community",
+    "date": "2026-05-25T13:02:14.000Z",
+    "summary": "Developer builds kernel-based anomaly detection (Cerberus) for constrained ARM edge devices using eBPF, proving behavioral signal analysis replaces cloud-native ML assumptions.",
+    "content": "Not because I wanted to — but because every tool I tried on ARM edge devices either needed the cloud, needed a GPU, or needed more RAM than the service it was supposed to be watching.\nSo this post isn't really about Cerberus. It's about the problem it forced me to actually understand: what does anomaly detection require on constrained hardware, and how do you get there without black-box ML?\nHere's what I learned.\nWhen you're deploying on cloud VMs, the weight of your tooling is invisible. You have RAM to spare. You have fast networks. You have Prometheus scraping endpoints on a LAN that never goes offline.\nDrop the same assumptions onto an ARM gateway at a remote industrial site and things break differently. The telemetry pipeline competes with the workload for CPU cycles. The collector needs connectivity that doesn't exist. The ML inference endpoint is somewhere in a cloud region the device can't reach.\nThe problem isn't the tools — they were built for a different environment. The problem is treating cloud-native observability as a default rather than a choice.\nOnce I asked \"what does edge observability actually need?\" the answer was much smaller than I expected:\nDid traffic behavior change?\nIs something probing unusual ports?\nAre protocol patterns different from yesterday?\nIs there unexplained traffic acceleration?\nWhich specific device changed?\n\nThat's not a distributed tracing problem. It's a behavioral signal problem.\nThe kernel already sees everything. Every packet, every connection, every flag — it all passes through the network stack before any userspace process touches it.\neBPF lets you attach small programs directly to that stack using TC (Traffic Control) or XDP hooks. Instead of running tcpdump through a pipe, or copying full payloads into userspace for inspection, you write a kernel-side filter that extracts only the metadata you care about and hands it to you via a ring buffer.\nFor Cerberus, that's roughly 208 bytes per event:\nstruct network_event {",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我不是机器学习工程师。但我还是构建了一个。",
+        "summary": "开发人员使用eBPF为受限的ARM边缘设备构建了基于内核的异常检测（Cerberus），证明行为信号分析可以替代云原生ML假设。"
+      }
+    }
+  },
+  {
+    "title": "Magnifica Humanitas (Encyclical Letter)",
+    "slug": "magnifica-humanitas-encyclical-letter",
+    "url": "https://www.vatican.va/content/leo-xiv/en/encyclicals/documents/20260515-magnifica-humanitas.html",
+    "source": "Hacker News",
+    "date": "2026-05-25T10:11:29.000Z",
+    "summary": "Papal encyclical letter from May 2026 addressing humanistic themes; generated discussion on Hacker News.",
+    "content": "Article URL: https://www.vatican.va/content/leo-xiv/en/encyclicals/documents/20260515-magnifica-humanitas.html\nComments URL: https://news.ycombinator.com/item?id=48265206\nPoints: 257\n# Comments: 79",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "宏伟人道（教宗通谕）",
+        "summary": "2026年5月的教宗通谕信函，探讨人文主义主题；在黑客新闻上引发了讨论。"
+      }
+    }
+  },
+  {
     "title": "Your To-Do List Doesn't Know You — So I Gave Mine Three Brains",
     "slug": "your-to-do-list-three-brains",
     "url": "https://dev.to/ashihamaheshkumar/your-to-do-list-doesnt-know-you-so-i-gave-mine-three-brains-27me",
@@ -188,6 +396,22 @@
       "zh": {
         "title": "虚拟化和云基础",
         "summary": "这份综合指南介绍了虚拟化技术，使用管理程序在共享硬件上运行多个虚拟机，以及云计算通过互联网提供计算资源，涵盖了管理程序类型、部署模型和可扩展性、成本降低等好处。本文解释了关键概念，包括第1类和第2类管理程序、公有/私有/混合云模型，以及为什么虚拟化支持现代云基础设施。理解这些基础对从事现代分布式系统的开发人员和基础设施工程师来说至关重要。"
+      }
+    }
+  },
+  {
+    "title": "Jira Is Turing-Complete",
+    "slug": "jira-turing-complete",
+    "url": "https://seriot.ch/computation/jira.html",
+    "source": "Hacker News",
+    "date": "2026-05-25T03:54:14.000Z",
+    "summary": "Technical analysis demonstrates Jira workflow and configuration system is Turing-complete, enabling arbitrary computation within the platform.",
+    "content": "Article URL: https://seriot.ch/computation/jira.html\nComments URL: https://news.ycombinator.com/item?id=48263253\nPoints: 212\n# Comments: 95",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Jira是图灵完全的",
+        "summary": "技术分析表明Jira工作流和配置系统是图灵完全的，能够在该平台内实现任意计算。"
       }
     }
   },
