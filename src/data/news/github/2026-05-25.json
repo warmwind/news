@@ -1,5 +1,229 @@
 [
   {
+    "title": "Benchmarking LLM Structured Outputs",
+    "slug": "benchmarking-llm-structured-outputs",
+    "url": "https://dev.to/david_moores_cbc0233b7447/benchmarking-llm-structured-outputs-1ijc",
+    "source": "DEV Community",
+    "date": "2026-05-25T18:33:04.000Z",
+    "summary": "This article benchmarks structured output reliability across six LLM APIs (OpenAI, Anthropic, and Google Gemini) using eight schema stressors and finds that despite API documentation promises, production behavior varies significantly across providers—each with distinct failure patterns requiring defensive validation.",
+    "content": "Cross-posted from carrick.tools.\nWhen you read the API documentation for OpenAI, Anthropic, or Google Gemini, the feature called \"structured outputs\" looks like a solved problem: pass a JSON schema, get back JSON that conforms to it.\nIn production, it is not a contract. It is a well-typed, best-effort suggestion.\nAt Carrick, the code-analysis scanner I work on, our post-LLM pipeline relies on a four-stage fallback parser. We attempt a direct parse, strip markdown fences, scan for array bounds inside surrounding garbage text, and finally apply regex cleanup. If all four fail, we drop the payload and proceed. If structured outputs worked as advertised, this would be a single serde_json::from_str(response).\nTo isolate why this defensive parsing is necessary, I built a benchmark testing 8 synthetic schemas against six models (the flagship and cheaper tiers from each provider). The schemas isolate one structural stressor each: a flat baseline, a 3-level nested object, a 7-level nested chain, a long enum, a oneOf tagged union, nullable + format fields, a 20-item array, and a closed object with additionalProperties: false. Every response is validated against the original schema using two independent validators (ajv and hyperjump). A response only counts as strict adherence when both agree.\nHere is how the implementations actually behave.\nOf the 8 stressor schemas, here is how many each model handled with full strict adherence on every run, and how many tripped a specific failure mode:\n\nThree patterns emerge. OpenAI rejects most schemas at submit time and then conforms perfectly on what is left. Anthropic accepts every schema but silently corrupts one specific structure. Gemini rejects a narrow set of features and conforms perfectly on the rest. Each pattern is the symmetric mirror of the others.\nAnthropic's tool-use API is the most permissive of the three. It accepts almost any standard JSON schema as the input_schema for a tool, and on 7 of the 8 schemas in this bench, bo",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "LLM结构化输出基准测试",
+        "summary": "本文通过八个模式压力测试对六个LLM API（OpenAI、Anthropic和Google Gemini）的结构化输出可靠性进行了基准测试，发现尽管API文档承诺了可靠性，但生产环境中的实际行为在不同提供商之间存在显著差异——每个提供商都有不同的失败模式，需要进行防御性验证。"
+      }
+    }
+  },
+  {
+    "title": "ShareBox v5 — GPU transcoding, Netflix-style grid, and why I don't need Plex anymore",
+    "slug": "sharebox-v5-gpu-transcoding-netflix-grid",
+    "url": "https://dev.to/ohugonnot/sharebox-v5-gpu-transcoding-netflix-style-grid-and-why-i-dont-need-plex-anymore-d5e",
+    "source": "DEV Community",
+    "date": "2026-05-25T18:26:54.000Z",
+    "summary": "ShareBox v5 is a lightweight, self-hosted alternative to Plex and Jellyfin built in pure PHP with zero framework dependencies. The update introduces hardware-accelerated GPU transcoding with automatic fallback, Netflix-style grid browsing with TMDB posters, and security fixes for path traversal, IDOR, and XSS vulnerabilities.",
+    "content": "I wanted to send a movie link to a friend. Plex wanted me to scan a library, create an account, configure metadata agents. Jellyfin was lighter but still required a database server. Emby wanted a subscription.\nAll I needed: point at a file, get a link, let the other person click play. So I built ShareBox — a self-hosted media server in pure PHP, no framework, no dependencies. Version 5 just shipped.\nShareBox is a lightweight self-hosted alternative to Plex and Jellyfin. Point at a folder, launch Docker, it's online. No library scan (the filesystem is the library), no external database, no plugins. PHP 8 + SQLite + ffmpeg, that's it.\n\nThe grid view pulls TMDB posters automatically, with season navigation for TV shows. The built-in player handles subtitles (SRT, ASS, PGS), multiple audio tracks, and Picture-in-Picture. I covered the zero-dependency philosophy in the v1 article — that hasn't changed.\nThis is the big one. ShareBox auto-detects available hardware and picks the best encoder:\n  Intel VAAPI — Synology NAS, mini-PCs, most servers. Available whenever an Intel iGPU is present.\n  NVIDIA NVENC — desktop/laptop GPUs via Docker with the NVIDIA runtime. A dedicated docker-compose.nvidia.yml is included.\n  Raspberry Pi V4L2M2M — the Pi 4's hardware codec. Good enough for real-time 720p on a 2 GB Pi.\nIf the GPU fails (missing driver, unsupported format), ShareBox falls back to software transcoding automatically. No config, no flags to toggle. The fallback is transparent.\nA \"Continue Watching\" row appears at the top of the browse page, showing the last 8 videos in progress with progress bars. Stored in localStorage on the client — no user account needed. Close the browser, come back, pick up where you left off.\nPath traversal on mark_watched, IDOR letting non-admins delete system links, XSS via error responses and search queries, race condition on the download counter, HTTP host header injection. Every fix is documented in the CHANGELOG.\nBrowse, posters, admin, player",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "ShareBox v5——GPU转码、Netflix风格网格，以及为什么我不再需要Plex",
+        "summary": "ShareBox v5是一个轻量级的自托管Plex和Jellyfin替代品，用纯PHP构建，零框架依赖。该更新引入了支持自动回退的硬件加速GPU转码、带TMDB海报的Netflix风格网格浏览，以及针对路径遍历、IDOR和XSS漏洞的安全修复。"
+      }
+    }
+  },
+  {
+    "title": "TOML Schema is live",
+    "slug": "toml-schema-is-live",
+    "url": "https://dev.to/brunoborges/toml-schema-is-live-4gi1",
+    "source": "DEV Community",
+    "date": "2026-05-25T18:24:07.000Z",
+    "summary": "TOML Schema is a new schema language for validating TOML configuration files, written in TOML itself to maintain consistency with existing practices. The specification, now available for testing at toml-schema.org, defines validation rules for structure, types, and constraints while preserving TOML's readability.",
+    "content": "TOML Schema is now available for testing and evaluation, and now has a home: https://toml-schema.org\nTOML Schema is a schema language for TOML that is itself written in TOML. It lets a project describe the expected structure, names, value types, and constraints of a TOML file without asking users or tools to switch mental models or formats such as JSON Schema.\nThat means a schema can look like this:\n[toml-schema]\nversion = \"1.0.0\"\n\n[elements.database]\ntype = \"table\"\n\n  [elements.database.enabled]\n  type = \"boolean\"\n\n  [elements.database.ports]\n  type = \"array\"\n  arraytype = \"integer\"\n\nIf your project already uses TOML, the schema is still TOML. It is readable, diffable, and friendly to the same tooling habits people already use around configuration files.\nTOML Schema began in June 2020. The first repository commits created the initial README, example TOML document, and example schema. The work started from a human-authored idea: TOML should have a compact, TOML-native way to describe and validate TOML configuration files.\nThe original motivation has stayed steady:\nCatch misconfiguration before it reaches production.\nGive tools and editors a concrete source of truth for validation, completion, and hints.\nKeep the format approachable for people who already know TOML.\nOver time, the project evolved from an idea and examples into a fuller specification. The current spec defines top-level schema structure, metadata, reusable types, document elements, collections, unions, arrays, tuples, constraints, file extension, MIME type, and schema lookup from a TOML document.\nThe language design and most of the conceptual work were human-authored. The recent acceleration with a coding agent did not replace that. It helped turn the old idea into a more complete, tested, and shareable project, with reference implementations and a public website.\nTOML is popular for configuration because it is explicit without being noisy. It has a small, practical value model: strings, integers, floa",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "TOML Schema正式上线",
+        "summary": "TOML Schema是一种新的模式语言，用于验证TOML配置文件，本身采用TOML编写以保持与现有实践的一致性。该规范现已在toml-schema.org上可供测试，定义了用于结构、类型和约束的验证规则，同时保持了TOML的可读性。"
+      }
+    }
+  },
+  {
+    "title": "Original Kubernetes Dashboard — retired upstream, upgraded to Angular 21.",
+    "slug": "kubernetes-dashboard-angular-21-upgrade",
+    "url": "https://dev.to/isms-core-adm/original-kubernetes-dashboard-retired-upstream-upgraded-to-angular-21-2b7a",
+    "source": "DEV Community",
+    "date": "2026-05-25T18:23:12.000Z",
+    "summary": "The official Kubernetes Dashboard was archived in January 2026 due to unmaintainable Angular code, prompting a fork and upgrade to Angular 21. The effort aims to preserve the familiar UI while modernizing the underlying framework using AI-assisted development.",
+    "content": "Original Kubernetes Dashboard — retired upstream, upgraded to Angular 21.\n\n\n\n\n\n\n  \n  \n  Background\n\n\nThe official Kubernetes Dashboard was archived in January 2026. The Angular codebase was unmaintainable, the toolchain was fragile, and the upstream maintainers called it quits.\nSo time ago I posted this here We Rebuilt the Kubernetes Dashboard From Scratch — Here's What We Added and I like the result, it works properly without any issues but somehow it does not \"feel correct\".\nFor years we used the Kubernetes Dashboard provided by The Kubernetes Authors and we somehow got used to the WebUI with that blue ribbon or those green \"pies\" that sometimes got yellow or red in Workloads.\nBefore I go any further, I would like to make a statement: I am not a developer, do not pretend to be one and hope one day maybe to be one.\nI am active in Secure Systems Engineering and my knowledge of coding languages are the ones I use in my job such as Python or PowerShell or Bash but mainly in \"execution mode\" and sometimes in \"troubleshooting mode\" when they do not work...\nWith the emergence of AI such as ChatGPT, Gemini, Mistral or Claude, \"coding\" has become more accessible to humans without any coding knowledge. I will pass on the the \"Vibe Coding\" Topic fully as it's not in focus of this post.\nSince the tools are there I decided to use them and do some projects, so yes I may be a \"Vibe Coder\" and I can live with that tag but the projects always apply Secure Systems Engineering Principals and when there is a knowledge lack I do not hesitate to ask my colleagues developers at work for advice.\nWith help of Claude Code (the man's the 2nd best friend after the dog...) we forked the original GitHub Repository, updated the Go Backend without any issues. When it came to the Angular update, well the  things got complicated as the original project was in Angular 16 and we needed to update to Angular 21. So what went wrong? Well the human decided to not listen to his AI Assistant and we upgrad",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "原始Kubernetes仪表板——上游已停用，升级到Angular 21",
+        "summary": "官方Kubernetes仪表板因代码难以维护而在2026年1月被归档，促使开发者分叉并升级到Angular 21。该项目旨在保留熟悉的用户界面，同时使用AI辅助开发现代化底层框架。"
+      }
+    }
+  },
+  {
+    "title": "لماذا أسست ترينافو للتجار العرب الذين تتجاهلهم المنصات الغربية",
+    "slug": "trinava-arab-ecommerce-platform",
+    "url": "https://dev.to/doonfrs/lmdh-sst-trynfw-lltjr-lrb-ldhyn-ttjhlhm-lmnst-lgrby-4ac8",
+    "source": "DEV Community",
+    "date": "2026-05-25T18:22:52.000Z",
+    "summary": "A self-funded Arab entrepreneur addresses critical gaps in e-commerce platforms for Arab merchants, showing how Shopify lacks proper Arabic support, regional alternatives like Salla are too expensive, and WordPress solutions are operationally complex. The article presents the rationale for Trinava, an Arab-first SaaS platform.",
+    "content": "نظرة مؤسس عربي بتمويل ذاتي على الفجوة بين Shopify وSalla، ولماذا \"البدء مجاناً\" في عالمنا العربي أهم بكثير مما يعترف به النقاش العام.\nفي عام 2026، ما زال التاجر في القاهرة أو عمّان أو دبي عاجزاً عن إطلاق متجر إلكتروني جدّي بنفس السهولة التي يفعلها التاجر في تورنتو أو برلين.\nتبدو الجملة دراماتيكية. أتمنى لو لم تكن صحيحة. قضيت معظم العقد الماضي في بناء البرمجيات لهذه المنطقة، والفجوة حقيقية. ليس لأن التجار العرب أقلّ طموحاً أو أقلّ خبرة تقنية، بل لأن الأدوات المتاحة مبنية لسوق ليس سوقنا.\nأريد أن أتحدّث عن هذه الفجوة، وعمّا تعلّمته أثناء محاولة سدّها، وعمّا أصبحت أؤمن به بشأن بناء SaaS لسوق ناشئ.\nإذا كنت تاجراً خليجياً أو شامياً في 2026، فلديك تقريباً ثلاثة خيارات.\nShopify هي التوصية العالمية الافتراضية. منتج جميل بحقّ. لكنها تتعامل مع العربية كفكرة لاحقة. دعم RTL مرقّع، ليس أصلياً. بوابات الدفع المحلية التي تعمل فعلاً في عالمنا العربي (تلك التي يثق بها التجار هنا) إما غير مدعومة، أو مدعومة بشكل سيئ، أو تحتاج إضافات طرف ثالث تضاعف التكلفة. والواجهات التي تخرج من قوالب Shopify لم تُصمَّم مع الطباعة العربية في الحسبان. تستطيع إطلاق متجر بـShopify، لكنّك لن تفخر بشكله.\nSalla وZid هما اللاعبان الإقليميان، وكلاهما جيد. لن أتظاهر بعكس ذلك. لقد أتقنا بوابات الدفع السعودية. تجربة المستخدم العربية لديهما حقيقية ومدروسة. إذا كنت تاجراً سعودياً بمنتج واضح وميزانية، فهما يفيان بالغرض.\nلكن لديهما مشكلتان. الأولى السعر. باقاتهما المبتدئة تتجاوز ما يمكن للتاجر الجديد أن ينفقه على أيّ شيء في سنته الأولى. الثانية العمق. إذا نما متجرك بعد مرحلة \"أبيع عشرة منتجات\"، تكتشف أن المنصة لا تتوسّع معك بنفس الطريقة التي تتوسّع بها Shopify. ستتجاوز إمكاناتها، ومسار الهجرة مؤلم.\nWooCommerce هو الخيار الثالث، وأحبّ أنّه موجود، لكنّ الواقع التشغيلي لمكدّس WordPress مع الإضافات في عالمنا العربي قاسٍ. مشاكل الاستضافة، تعارضات الإضافات، تحديثات الأمان التي لا يريد أيّ تاجر التفكير فيها، ومكدّس ينكسر في كلّ مرّة تحاول فيها إنشاء نسخ متعدّدة اللغات. ليس جواباً جدّياً لمؤسّس غير تقني.\nإذاً التاجر الذي يريد أن يكون على الإنترنت (وهم بالملايين) مجبر على الاختيار بين دفع الكثير لمنصة بُنيت لمكان آخر، أو دفع",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么我为被西方平台忽视的阿拉伯商人创建了Trinava",
+        "summary": "一位自资的阿拉伯企业家应对了为阿拉伯商人提供电子商务平台的关键缺口，展示Shopify缺乏适当的阿拉伯语支持、地区替代方案如Salla成本过高，以及WordPress解决方案操作复杂的问题。该文章介绍了Trinava（一个以阿拉伯为先的SaaS平台）的建立理由。"
+      }
+    }
+  },
+  {
+    "title": "When APIs Lie: A Lesson in Defensive Debugging",
+    "slug": "when-apis-lie-defensive-debugging",
+    "url": "https://dev.to/chris_lee_5e58cce05f5d01d/when-apis-lie-a-lesson-in-defensive-debugging-291j",
+    "source": "DEV Community",
+    "date": "2026-05-25T18:21:44.000Z",
+    "summary": "A developer spent six hours debugging a payment gateway integration that returned HTTP 200 but contained a hidden error flag in the response body, revealing how surface-level status codes can mask failures. The experience demonstrates why defensive programming—validating entire API payloads, not just headers—is essential.",
+    "content": "Last week, I spent six hours chasing a ghost in our payment gateway integration. The API returned a 200 OK status, yet the transaction failed silently. My code assumed success based on the status code and moved on, only to discover later that the response body contained an error message buried under a success: false flag. The API wasn’t broken—it was my assumptions that were flawed. I’d treated the integration like a black box, trusting surface-level signals instead of validating the entire payload.  \nThe fix was simple once I found it: I added strict validation for both status codes and response data, logging every field to catch discrepancies early. Now, I treat all API responses like potential liars—checking for hidden errors, rate limits, and unexpected formats, even when everything looks fine on the surface. This experience taught me that defensive programming isn’t paranoia; it’s preparation. APIs are complex ecosystems, and the most \"reliable\" ones can still surprise you. Always read the fine print in their documentation, and never assume a 200 means everything is okay.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "当API说谎：防御性调试的教训",
+        "summary": "一位开发者花费六小时调试支付网关集成，该网关返回HTTP 200但响应体中包含隐藏的错误标志，揭示了表面层的状态码如何掩盖故障。这个经验表明，防御性编程——验证整个API有效负载，而不仅仅是头部——至关重要。"
+      }
+    }
+  },
+  {
+    "title": "Why QA Engineers Should Learn Playwright MCP",
+    "slug": "why-qa-engineers-should-learn-playwright-mcp",
+    "url": "https://dev.to/muhammadjon_sanaev/why-qa-engineers-should-learn-playwright-mcp-nbf",
+    "source": "DEV Community",
+    "date": "2026-05-25T18:21:01.000Z",
+    "summary": "Playwright MCP helps QA engineers inspect running applications and understand test scenarios during development, complementing but not replacing traditional test execution. The tool accelerates test discovery and generation for realistic flows while requiring QA judgment for validation and refinement.",
+    "content": "How I used Cursor, Playwright MCP, and Playwright CLI to build real automation for SwiftCart\n\n\nAI will not magically turn weak tests into strong automation. But it can help QA engineers move faster when it is used the right way.\nRecently, I built a small automation project for a SwiftCart e-commerce app using Playwright, TypeScript, Cursor, Playwright MCP, Context7 MCP, and GitHub Actions CI.\nThe biggest lesson was simple:\nPlaywright MCP does not replace Playwright. It helps you inspect the app faster so you can create better Playwright tests.\nThat difference matters.\nWhat is Playwright\n\n\nPlaywright MCP lets Cursor interact with the browser through tools like:\nbrowser_navigate\nbrowser_click\nbrowser_type\nbrowser_snapshot\nbrowser_wait_for\n\nRegular Playwright runs your test files:\nnpx playwright test\n\n\nPlaywright MCP helps during development. It lets Cursor open the app, inspect flows, understand locators, and help generate test code.\nSimple way to remember it:\nPlaywright MCP = helps inspect and build tests\nPlaywright CLI = runs the final tests\n\nThe website itself is not using MCP. Cursor is using MCP to inspect the website.\nWhy QA engineers should care\n\n\nA big part of automation is not just writing code. It is deciding:\nWhat flow should be tested?\nWhich locator is stable?\nWhat should be asserted?\nIs this a real bug or a weak test?\nCan this test run in CI?\nMCP helps with the discovery part. It can inspect the app and help generate a first version faster.\nBut the QA engineer still has to review, clean, refactor, and validate the test.\nAI can speed up the work. It should not replace judgment.\nWhat I automated in SwiftCart\n\n\nI tested three common e-commerce flows:\nSearch flow\nHomepage → Search input → Results page → Product results visible\n\n\n\nAdd to cart flow\n\n\n\nProducts page → Product detail → Add to cart → Cart page → Item visible\n\nCheckout and login validation\n\n\n\nCart → Checkout → Login required → Checkout page → Form validation\n\nThese are realistic flows that QA teams",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "QA工程师为什么应该学习Playwright MCP",
+        "summary": "Playwright MCP帮助QA工程师在开发过程中检查运行中的应用程序并理解测试场景，补充但不替代传统的测试执行。该工具加速了真实流程的测试发现和生成，同时需要QA的判断力来进行验证和改进。"
+      }
+    }
+  },
+  {
+    "title": "El Dilema del Renderizado: Guía de Ingeniería de Software para Dominar Googlebot y los Answer Engines de IA",
+    "slug": "rendering-dilemma-googlebot-seo-architecture",
+    "url": "https://dev.to/carlous1991/el-dilema-del-renderizado-guia-de-ingenieria-de-software-para-dominar-googlebot-y-los-answer-5dgn",
+    "source": "DEV Community",
+    "date": "2026-05-25T18:19:13.000Z",
+    "summary": "Single-page applications using client-side rendering face delayed indexation when Googlebot's crawl budget exhausts before JavaScript executes, potentially delaying visibility for weeks. Server-side rendering or static generation is mandatory, and technical optimization of server response times directly impacts SERP rankings under Google's latest performance standards.",
+    "content": "Por qué las arquitecturas SPA modernas están rompiendo tu visibilidad orgánica y cómo auditar el SEO técnico a nivel de infraestructura.\nEl mito de que \"Google ya renderiza JavaScript perfectamente\" ha costado millones de euros en pérdida de tráfico orgánico a nivel global. En esta guía, analizaremos desde una perspectiva puramente técnica cómo optimizar tu arquitectura web para que sea legible tanto para humanos como para modelos de lenguaje masivos (LLMs).\nEl problema de la \"Segunda Ola de Indexación\"\nCuando Googlebot rastrea un sitio web basado en renderizado del lado del cliente (CSR), se enfrenta a un doble proceso. La primera ola descarga el HTML básico (que en una SPA suele ser un div vacío con un script). Si los recursos de cómputo de Google están saturados, la ejecución de JavaScript se encola en una segunda ola, que puede tardar días o semanas.\nJavaScript\nJavaScript SEO avanzadas como el Renderizado del Lado del Servidor (SSR) o la Generación de Sitios Estáticos (SSG) es obligatorio. Si estás utilizando arquitecturas híbridas, el enfoque debe centrarse en asegurar que el árbol DOM final coincida exactamente entre el servidor y el cliente para evitar errores de hidratación que rompan el rastreo.\n\n\nPresupuesto de Rastreo (Crawl Budget) y Métricas de Rendimiento Real\nCada milisegundo que tu servidor tarda en responder (TTFB) o que el navegador tarda en procesar scripts bloqueantes, destruye tu Crawl Budget. Si tu sitio tiene miles de páginas dinámicas, optimizar el código no es una opción de rendimiento, es una necesidad de indexación.\nUna auditoría profunda de SEO Técnico requiere analizar los archivos de registro (Log Files) para comprobar si los bots están abandonando el sitio debido a bucles de redirección, archivos CSS gigantescos o scripts de terceros no optimizados. El nuevo estándar de Google, Interaction to Next Paint (INP), demuestra que el rendimiento técnico y la visibilidad en las SERPs están intrínsecamente conectados.\nPreparando la Infraestruct",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "渲染困境：掌握Googlebot和AI应答引擎的软件工程指南",
+        "summary": "使用客户端渲染的单页应用程序在Googlebot的爬虫预算在JavaScript执行前耗尽时会面临索引延迟，可能导致可见性延迟数周。服务器端渲染或静态生成是强制性的，服务器响应时间的技术优化在Google最新的性能标准下直接影响SERP排名。"
+      }
+    }
+  },
+  {
+    "title": "Pope Leo XIV's AI Encyclical: What Builders Must Know (2026)",
+    "slug": "pope-leo-xiv-ai-encyclical-magnifica-humanitas",
+    "url": "https://dev.to/akaranjkar08/pope-leo-xivs-ai-encyclical-what-builders-must-know-2026-423c",
+    "source": "DEV Community",
+    "date": "2026-05-25T18:18:05.000Z",
+    "summary": "Pope Leo XIV released 'Magnifica Humanitas,' a 235-page encyclical on May 25, 2026, directly addressing AI's impact on human dignity, labor, and concentrated power—framed explicitly as this generation's Industrial Revolution moment. The document, co-presented with Anthropic co-founder Christopher Olah, articulates concerns reshaping government and enterprise AI policy.",
+    "content": "Today, something unprecedented happened: the Roman Catholic Church published its most direct statement on artificial intelligence in history. Pope Leo XIV signed \"Magnifica Humanitas\" (\"Magnificent Humanity\") — a 235-page encyclical, the highest-level formal teaching document a pope can publish — specifically addressing AI's impact on human dignity, labor, warfare, and concentrated power. Released on May 25, 2026, on the 135th anniversary of Rerum Novarum (the Church's foundational labor rights document), it arrived with a striking co-presenter: Christopher Olah, co-founder of Anthropic and one of the world's leading neural network interpretability researchers.\nWhether you are a devout Catholic, a secular AI engineer, or somewhere in between, this document articulates concerns that are reshaping how governments, enterprises, and society are thinking about what AI should be. Ignoring it because it comes from a religious institution would be a mistake. The arguments inside are sharp, the timing is deliberate, and the audience is explicitly the people building AI systems — not just the people governing them.\nThe timing of Magnifica Humanitas was not accidental. Pope Leo XIII's 1891 encyclical Rerum Novarum addressed the crisis of industrial capitalism — child labor, dangerous factory conditions, the destruction of artisan trades — at exactly the moment those forces were transforming society faster than institutions could adapt. It became one of the most influential documents in the history of labor rights and social policy. Pope Leo XIV, releasing Magnifica Humanitas on its 135th anniversary, is making an explicit historical claim: AI is this generation's Industrial Revolution, carrying the same potential for both liberation and brutal exploitation.\nRerum Novarum did not call for abolishing industrial machinery. It called for ethical frameworks, worker protections, and limits on monopolistic control. Magnifica Humanitas makes the same argument for AI. The technology it",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "教宗利奥十四世的AI通谕：建设者必须了解的内容（2026）",
+        "summary": "教宗利奥十四世在2026年5月25日发布了235页的通谕《宏伟人性》，直接涉及AI对人类尊严、劳动力和权力集中的影响——明确框架为这一代的工业革命时刻。该文件由Anthropic联合创始人克里斯托弗·欧拉共同提出，阐述了重塑政府和企业AI政策的关切。"
+      }
+    }
+  },
+  {
+    "title": "Donna v0.3.0",
+    "slug": "donna-v0.3.0-release",
+    "url": "https://dev.to/nikolas_skyl/donna-v030-4kj1",
+    "source": "DEV Community",
+    "date": "2026-05-25T18:16:20.000Z",
+    "summary": "Donna v0.3.0 improves developer experience with enhanced error messages for linker and type failures, introduces todo and panic keywords for incomplete functions, corrects opaque type behavior, and refines error formatting with summary counts. The roadmap emphasizes continued error improvements, bug fixes, formatter refinement, and LSP implementation.",
+    "content": "Donna released v0.3.0 today. What this version brings to Donna?\nDonna designed to be a small functional language that compiles to native binaries and focus on DX(Developer Experience).It's also statically typed and bootstrapped. In the past versions we focused to make the experience of using Donna better. We focused on a list of things that needed to refined. Let's take a brief look on those:\nError messages. \nUsing donna revealed plenty of errors that happened because of linker failure that didn't help with further information. We tried to catch as many of those and create Donna errors that will contain more details.\nType errors.\nWe improved type errors so users will have the info needed to debug their programs.\nTodo & Panic.\nWe implement todo and panic in the language. Todo used as a placeholder in a function that is not implemented yet. It raises a warning though, so users will have to return.\nPanic crashes the program by throwing an error.\nWe implement Opaque types correct behaviour. So far opaque types had the same functionality asa pub types and their constructors was accessible from other modules. Now they work as they supposed to.\n\n\nWe implement error for duplicate function names\n\n\necho now is for debug and will raise a warning. You should use new io module from stdlib:\n\n\n\n\nio.println(\"hello\")\n\nWe improved error structure and style. We also added a summary of total errors and warnings.\nWe also fixed a lot of smaller bugs. Donna will keep evolving by focusing in users happiness. In the next versions we will focus on:\nImprove errors\nFix bugs\nImprove formatter\nStart LSP implementation\nIf you still didn't try donna and you want, you can visit the github repository. \nIf you want to learn more about donna visit the website and take the tour.\nThere is also a list of donna projects in awesome-donna repo here (Even it is still one man show)",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Donna v0.3.0",
+        "summary": "Donna v0.3.0 通过为链接器和类型失败提供增强的错误消息来改进开发者体验，引入了 todo 和 panic 关键字用于处理不完整的函数，纠正了不透明类型行为，并通过摘要计数完善了错误格式化。路线图强调了继续改进错误、修复 bug、完善格式化工具和实现 LSP。"
+      }
+    }
+  },
+  {
+    "title": "HTB — MonitorsFour | Writeup",
+    "slug": "htb-monitorsfour-writeup",
+    "url": "https://dev.to/whyshell/htb-monitorsfour-writeup-381k",
+    "source": "DEV Community",
+    "date": "2026-05-25T18:15:21.000Z",
+    "summary": "MonitorsFour is a Windows-based security challenge that chains four vulnerabilities: an IDOR flaw leaking credentials from a PHP API, a vulnerable Cacti monitoring service with RCE, execution inside an unauthenticated Docker container, and escape via an exposed Docker API. The challenge demonstrates container detection techniques and systematic service enumeration.",
+    "content": "🇫🇷 Version française\nPlatform: HackTheBox | Difficulty: Easy | OS: Windows (Docker Desktop / WSL2)\nMachine: HTB — MonitorsFour\nChain: IDOR → Hash cracking → Cacti RCE → Docker escape\nMonitorsFour is a Windows box that hides almost its entire attack surface behind a PHP web application and a containerized infrastructure. The path unfolds in four acts: a logic flaw in an API leaks credentials, those credentials grant access to a vulnerable monitoring service with an RCE, the resulting shell lands inside a Docker container, and the final escape leverages the Docker API exposed without authentication on the internal network.\nrustscan -a $IP --ulimit 5000 -- -sC -sV\n\n\n\n\nPort\nService\nNotes\n\n\n\n\n80\nHTTP nginx\nRedirects to monitorsfour.htb — virtual hosting\n\n\n5985\nWinRM (Microsoft HTTPAPI)\nWindows shell access if valid creds\n\n\n\nWhy this matters: The nginx + WinRM combination on a Windows box is a classic containerization signal. nginx typically runs on Linux — here it's inside a Docker Desktop container on the Windows host. Port 5985 is the actual Windows WinRM. This observation should have triggered suspicion immediately.\necho \"$IP monitorsfour.htb\" | sudo tee -a /etc/hosts\n\nffuf -w /usr/share/seclists/Discovery/DNS/combined_subdomains.txt \\\n     -u http://monitorsfour.htb \\\n     -H \"Host: FUZZ.monitorsfour.htb\" \\\n     -ac -t 50 -s | tee fuzz.txt\n# cacti\n\nResult: cacti.monitorsfour.htb\n[IMAGE: Cacti interface — login page]\necho \"$IP monitorsfour.htb cacti.monitorsfour.htb\" | sudo tee -a /etc/hosts\n\nWhy fuzz vhosts: A single server can host multiple websites based on the HTTP Host: header. Since the box already uses virtual hosting (the IP → domain redirect gives it away), there are likely other hidden sites behind the same IP. cacti.monitorsfour.htb turns out to be the real entry point.\nffuf -u http://monitorsfour.htb/FUZZ \\\n     -w /usr/share/seclists/Discovery/Web-Content/common.txt \\\n     -e .php -t 50 -mc 200,301,302,403 -ic\n\n\n\n\nRoute\nStatus\nNotes\n\n\n\n\n/login\n200\nLogin",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "HTB — MonitorsFour | 解题报告",
+        "summary": "MonitorsFour 是一个基于 Windows 的安全挑战，涉及四个漏洞的利用链：PHP API 中的 IDOR 漏洞导致凭证泄露、易受攻击的 Cacti 监控服务的远程代码执行、在未身份验证的 Docker 容器内执行，以及通过暴露的 Docker API 逃逸。该挑战演示了容器检测技术和系统化的服务枚举。"
+      }
+    }
+  },
+  {
+    "title": "The Free Tool You Trust Is the One You Should Fear the Most",
+    "slug": "free-tool-privacy-data-collection",
+    "url": "https://dev.to/hrs_projects_c4b897a9b457/privacy-is-not-a-myth-1eh9",
+    "source": "DEV Community",
+    "date": "2026-05-25T18:14:16.000Z",
+    "summary": "Many popular free online tools collect sensitive user data despite privacy claims; the author created Fileora as a privacy-first alternative for PDF compression that processes documents locally with no server involvement. Local-first tools eliminate privacy concerns by design rather than relying on privacy policies.",
+    "content": "I just realized something uncomfortable. And I think you need to hear it too.\nAnd then one day it hit me.\nThe thing that really got me though?\nThis isn't about being paranoid.\nSo I built Fileora.\nI'm not saying the other tools are definitely stealing your data.\nGive Fileora — free, private PDF compression a try the next time a portal rejects your file.\nYour Aadhaar stays on your device. That's a promise that doesn't need a privacy policy — because there's no server involved in the first place.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你信任的免费工具是你最应该害怕的工具",
+        "summary": "许多流行的免费在线工具声称保护隐私，但实际上收集敏感用户数据；作者创建了 Fileora 作为隐私优先的 PDF 压缩替代方案，可在本地处理文档，无需服务器。本地优先的工具通过设计消除了隐私问题，而不是依赖于隐私政策。"
+      }
+    }
+  },
+  {
+    "title": "GitHub for Beginners: Getting started with Git and GitHub in VS Code",
+    "slug": "github-beginners-git-vs-code",
+    "url": "https://github.blog/developer-skills/github/github-for-beginners-getting-started-with-git-and-github-in-vs-code/",
+    "source": "GitHub Blog",
+    "date": "2026-05-25T16:00:00.000Z",
+    "summary": "GitHub's guide introduces beginners to VS Code's integrated Git and GitHub features for version control and collaboration, making pull requests, commits, and repository management accessible to new developers.",
+    "content": "Discover how to use VS Code to interact with GitHub and maintain your projects.\nThe post GitHub for Beginners: Getting started with Git and GitHub in VS Code appeared first on The GitHub Blog.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "GitHub初学者指南：在VS Code中开始使用Git和GitHub",
+        "summary": "GitHub的指南向初学者介绍了VS Code集成的Git和GitHub功能，用于版本控制和协作，使拉取请求、提交和存储库管理对新开发人员来说易于理解。"
+      }
+    }
+  },
+  {
+    "title": "Pope Leo XIV says AI must serve humanity, not the powerful few",
+    "slug": "pope-leo-xiv-ai-serve-humanity",
+    "url": "https://religionnews.com/2026/05/25/in-his-first-encyclical-pope-leo-xiv-says-ai-must-serve-humanity-not-the-powerful-few/",
+    "source": "Hacker News",
+    "date": "2026-05-25T13:17:58.000Z",
+    "summary": "Pope Leo XIV's encyclical emphasizes that artificial intelligence must benefit humanity broadly rather than concentrate power among elites, representing the Church's most direct formal statement on AI's societal implications.",
+    "content": "Article URL: https://religionnews.com/2026/05/25/in-his-first-encyclical-pope-leo-xiv-says-ai-must-serve-humanity-not-the-powerful-few/\nComments URL: https://news.ycombinator.com/item?id=48266485\nPoints: 326\n# Comments: 169",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "教宗利奥十四世说AI必须服务人类，而不是少数强权",
+        "summary": "教宗利奥十四世的通谕强调，人工智能必须广泛造福人类，而不是在精英中集中权力，这代表了教会关于AI社会影响的最直接的正式声明。"
+      }
+    }
+  },
+  {
     "title": "A website to save you from messy browser tabs",
     "slug": "website-save-messy-browser-tabs",
     "url": "https://dev.to/catssaymeow/a-website-to-save-you-from-messy-browser-tabs-41eo",
@@ -188,6 +412,22 @@
       "zh": {
         "title": "我不是机器学习工程师。但我还是构建了一个。",
         "summary": "开发人员使用eBPF为受限的ARM边缘设备构建了基于内核的异常检测（Cerberus），证明行为信号分析可以替代云原生ML假设。"
+      }
+    }
+  },
+  {
+    "title": "Search engines alternatives now that Google isn't Google anymore",
+    "slug": "search-engine-alternatives-google",
+    "url": "https://techcrunch.com/2026/05/21/six-search-engines-worth-trying-now-that-google-isnt-really-google-anymore/",
+    "source": "Hacker News",
+    "date": "2026-05-25T12:27:11.000Z",
+    "summary": "As Google's search quality declines due to AI-generated spam and algorithm changes, alternative search engines provide viable options for users seeking different information discovery approaches and higher-quality results.",
+    "content": "Article URL: https://techcrunch.com/2026/05/21/six-search-engines-worth-trying-now-that-google-isnt-really-google-anymore/\nComments URL: https://news.ycombinator.com/item?id=48266051\nPoints: 471\n# Comments: 444",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "现在谷歌不再是谷歌了，搜索引擎替代品应运而生",
+        "summary": "由于谷歌搜索质量因AI生成的垃圾信息和算法变化而下降，替代搜索引擎为用户提供了寻求不同信息发现方法和更高质量结果的可行选择。"
       }
     }
   },
