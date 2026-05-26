@@ -1,5 +1,197 @@
 [
   {
+    "title": "Transaction Hooks: A General Primitive for Post-Commit Side Effects (Case Study: Queuert)",
+    "slug": "transaction-hooks-post-commit-side-effects",
+    "url": "https://dev.to/dr_kvet/transaction-hooks-a-general-primitive-for-post-commit-side-effects-case-study-queuert-k7d",
+    "source": "DEV Community",
+    "date": "2026-05-26T13:00:00.000Z",
+    "summary": "Transaction hooks are a pattern for handling side effects that should fire after database commits without failing the commit if they fail. Examples include pub/sub notifications, metrics pings, and cache warming. The primitive buffers work during a transaction and flushes it after commit, discarding on rollback.",
+    "content": "The previous two posts in this series walked through how Queuert keeps job state atomic with your domain writes — on the producer side (startChain inside your transaction) and on the consumer side (atomic and staged complete). Two transactions, both gone. The DB is the single source of truth.\nBut there's a third kind of side effect that doesn't fit either pattern: work you want to fire after the commit, that shouldn't fail the commit if it fails, and that you'd rather not run at all if the commit rolls back. Sending a NOTIFY for pub/sub. Pinging a metrics endpoint. Logging an audit event to an external sink. Warming a cache.\nThis problem isn't specific to Queuert or even to background jobs — any application that talks to a database hits it. The pattern that solves it cleanly is a small primitive called transaction hooks: a buffer that collects work during a transaction, flushes it after commit, and discards it on rollback. Queuert ships an implementation (withTransactionHooks) and uses it internally for one of its most-marketed features — sub-second worker wakeup — but the primitive itself stands on its own. You can pull it into any transaction in your codebase, Queuert or not.\nAtomic and staged mode both end with a Postgres commit. After that commit lands, there's often follow-up work that's informed by the commit but isn't gated by it in the strict ACID sense.\nPub/sub notifications are the canonical example. When a job is enqueued, you want the worker to wake up — fast. The naive way to do that is to fire NOTIFY new-job immediately after the INSERT. But \"immediately after the INSERT\" is inside the transaction, and inside the transaction is exactly the wrong place for a notification:\nIf the transaction rolls back, listeners get a wakeup for a job that doesn't exist.\nIf you batch-insert 100 jobs in one transaction, you fire 100 NOTIFY events — most of them redundant.\nIf the NOTIFY adapter is slow, you've slowed your commit.\nYou want the notification to fire after th",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "事务钩子：处理提交后副作用的通用原语（案例研究：Queuert）",
+        "summary": "事务钩子是一种处理应在数据库提交后触发但不会因失败而导致提交失败的副作用的模式。示例包括发布/订阅通知、指标ping和缓存预热。该原语在事务期间缓冲工作，在提交后刷新它，在回滚时丢弃。"
+      }
+    }
+  },
+  {
+    "title": "Lines vs Blocks(CSS): Divide & Grid Explained",
+    "slug": "css-divider-lines-grid-tailwind-utilities",
+    "url": "https://dev.to/asmaa-almadhoun/lines-vs-blockscss-divide-grid-explained-57hl",
+    "source": "DEV Community",
+    "date": "2026-05-26T13:00:00.000Z",
+    "summary": "Divider lines are essential for clean UI design but implementing them in responsive grids creates CSS complexity with double borders and overlapping issues. Tailwind's divide utilities use the CSS adjacent sibling selector to elegantly handle grid and block separators without messy hacks.",
+    "content": "Divider lines are one of the most underrated tools in modern UI design. At first glance, they may seem like nothing more than thin strokes on a screen. Yet, when used thoughtfully, they transform cluttered layouts into clean, organized interfaces. A simple line can elevate a feature list from ordinary to premium, guiding the user’s eye and making information easier to scan.\nFor designers, dividers are a subtle way to add structure. For developers, however, implementing them in responsive grids often feels like a headache double borders, overlapping lines, and messy CSS hacks are common pitfalls. \nThat’s where utility-first frameworks like Tailwind CSS step in, offering elegant solutions to a deceptively tricky problem.\nThe Problem With Borders in Grids\nFor developers, divider lines sound simple until responsive layouts enter the picture.\nA grid with borders can quickly become messy:\nDouble-thick lines\nOverlapping borders\nUneven spacing\nBroken corners\nComplex CSS selectors\nWhat looks clean in a static mockup often becomes difficult in production.\nThe Secret Life of Tailwind's divide​\nTo master the grid divider, you first have to understand how Tailwind’s divide-x and divide-y utilities actually work. They don't just blindly slap a border on every element. Instead, they leverage the CSS adjacent sibling selector (* + *).\n\nThis layout uses grid-cols-1 and divide-y. Notice how the dark blue horizontal lines appear only between the grey rows, not at the very top or bottom of the container.\n\nThis image displays three elements in a row using grid-cols-3 and divide-x. Thin, grey vertical lines divide the cards. Notice how the vertical dividers are perfectly flush with the blue background above and below the cards, separating the text elements while maintaining a sleek, unified container.\n\nThe Best Interfaces Use Both\nFor example:\nA dashboard may use cards as blocks\nBut use divider lines inside each card\nA pricing section may use separate columns\nWhile subtle separators orga",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "线条与块（CSS）：分割和网格解释",
+        "summary": "分割线对于干净的UI设计至关重要，但在响应式网格中实现它们会产生CSS复杂性，包括双边框和重叠问题。Tailwind的divide实用程序使用CSS相邻兄弟选择器来优雅地处理网格和块分隔符，而无需混乱的黑客手段。"
+      }
+    }
+  },
+  {
+    "title": "A .NET Dinosaur in Web3. Day 13 — Access Control",
+    "slug": "solidity-access-control-vault-management",
+    "url": "https://dev.to/alenadevsoft/a-net-dinosaur-in-web3-day-13-access-control-3l89",
+    "source": "DEV Community",
+    "date": "2026-05-26T13:00:00.000Z",
+    "summary": "By default, all smart contract functions are public and vulnerable to unauthorized calls. This article demonstrates protecting administrative functions using owner-based access control modifiers and custom errors for gas optimization.",
+    "content": "🆕 New Challenge. Day 1 of 7: Access Control & Vault Management\nAfter building two MVPs around smart contracts, I wanted to go deeper into the contracts themselves. Not just use them — understand them.\n🙈 7 days.\nBy default, every function in a deployed smart contract is public. Anyone on the network can call anything. If you leave administrative functions — like changing rates, withdrawing funds, pausing the contract — without protection, anyone can call them. It's how real exploits happen.\nThe concept is straightforward: one address is the owner, set at deployment. Certain functions are restricted to that address only. Final version of this contract:\n// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\n\ncontract AccessControlledVault {\n    // Owner address\n    address public owner;\n\n    // Rate variable\n    uint256 public conversionRate;\n\n    // Custom error for gas optimization\n    error NotAnOwner();\n\n    // Event emitted when the rate changes\n    event RateChanged(uint256 newRate);\n\n    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);\n\n    // Constructor — sets the deployer as the owner\n    constructor() {\n        owner = msg.sender;\n    }\n\n    // Modifier using custom error instead of require\n    modifier onlyOwner() {\n        if (msg.sender != owner) {\n            revert NotAnOwner();\n        }\n        _;\n    }\n\n    // Apply the modifier and emit the event\n    function setRate(uint256 _newRate) public onlyOwner {\n        conversionRate = _newRate;\n        emit RateChanged(_newRate);\n    }\n\n    function renounceOwnership() external onlyOwner {\n        emit OwnershipTransferred(owner, address(0));\n        owner = address(0);\n    }\n}\n\nSome things I'd learned before, but some I'd missed or hadn't gone deeper into. Some are just reminders, some were genuinely new.\nAlready knew — nothing new:\nconstructor runs exactly once at deployment. msg.sender at that moment is the deployer's address. Capture it then and it's stored perma",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Web3中的.NET恐龙。第13天——访问控制",
+        "summary": "默认情况下，所有智能合约函数都是公开的，容易受到未授权调用的攻击。本文演示了如何使用基于所有者的访问控制修饰符和自定义错误来保护管理函数并优化gas。"
+      }
+    }
+  },
+  {
+    "title": "\"How I Cut My Go Markdown Linter's Benchmark by 81%\"",
+    "slug": "go-markdown-linter-benchmark-optimization",
+    "url": "https://dev.to/_402ccbd6e5cb02871506/how-i-cut-my-go-markdown-linters-benchmark-by-81-4ain",
+    "source": "DEV Community",
+    "date": "2026-05-26T13:00:00.000Z",
+    "summary": "The author optimized gomarklint, a Go Markdown linter, achieving an 81% benchmark improvement through systematic optimization, now processing 100,000+ lines in under 170ms. The process involved 20 PRs over three weeks, each measured before merging.",
+    "content": "When I started optimizing gomarklint, I had no benchmarks. I had unit tests. I had coverage. But I had no idea what the linter actually cost to run on a real document.\nHere's what I found, what I changed, and what I'd do differently next time.\ngomarklint is a Go-based CLI Markdown linter I've been building as an open-source project. The pitch: catch broken links before your readers do, keep your Markdown clean, single binary, no Node.js required.\nThe main alternative most teams reach for is markdownlint, which works well but requires a Node.js runtime. For Go projects running in a lean CI environment, pulling in Node.js just to lint Markdown felt like the wrong tradeoff. gomarklint ships as a standalone binary installable via Homebrew, npm, or go install, and integrates with GitHub Actions and pre-commit out of the box.\nThe rule set covers around 25 checks: structural rules like heading-level (no H4 appearing under H2 without an H3 in between), content rules like no-bare-urls and fenced-code-language, and link validation including internal anchor checking. Each rule emits diagnostics with file path, line number, and severity — error causes a non-zero exit, making it safe as a CI gate.\nInternally, each rule is a function that receives the full file content as a slice of lines and returns a slice of violations. No shared parse tree, no AST, just functions over strings. That made it easy to add rules quickly.\nThe current release processes 100,000+ lines in under 170ms. A typical 200-line README lints in under 0.2 ms across all rules, and a large documentation site with hundreds of files fits in a CI step nobody notices. Getting there required 20 PRs over three weeks, each measured before it merged.\ngomarklint's rules like heading-level, no-bare-urls, fenced-code-language, and around 25 others each receive the full file content split into lines and return a slice of violations. Rules run independently, no shared parse tree, no AST, just functions over strings.\nThat arch",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何将Go Markdown Linter的基准降低81%",
+        "summary": "作者优化了gomarklint（Go Markdown linter），通过系统优化实现了81%的基准改进，现在可在170毫秒内处理100,000+行。该过程涉及三周内的20个PR，每个都在合并前进行了测量。"
+      }
+    }
+  },
+  {
+    "title": "The Business Context Problem: Why Vulnerability Severity Scores Lie",
+    "slug": "vulnerability-severity-business-context",
+    "url": "https://dev.to/jon_rose/the-business-context-problem-why-vulnerability-severity-scores-lie-3nea",
+    "source": "DEV Community",
+    "date": "2026-05-26T13:00:00.000Z",
+    "summary": "CVSS vulnerability severity scores lack business context and don't reflect actual risk, which depends on data sensitivity, attack paths, compensating controls, and specific exploitation impact. Real risk assessment requires understanding what would happen if exploited in your environment.",
+    "content": "A critical vulnerability on an Alpine-based reverse proxy sitting behind three layers of network controls isn't actually critical.\nA medium-severity finding on the database holding 90% of your customer data might be.\nCVSS scores don't know the difference. Your security team needs to.\nVulnerability prioritization is a hot topic for security teams and vendors. Everyone wants a magic number that tells you what to fix first. The problem is that magic number doesn't exist--at least not without context.\nThe way we approach it: focus on criticals and highs, generally ignore lows, and treat mediums as a \"maybe\" that gets reviewed after the urgent stuff is handled. That's a reasonable baseline, but it's just the starting point.\nSome things flagged as critical don't matter much in practice. Some highs can be demoted when compensating controls reduce the real risk. And some mediums deserve more attention because of what they protect.\nWhen you look at prioritization honestly, it comes down to business impact. The technical severity score is one input, but it's not the whole picture.\nReal risk to the business: What happens if this gets exploited? Not in theory. In your specific environment, with your specific data, serving your specific customers.\nCommercial and legal exposure: What does a breach mean for contracts? For liability? For regulatory compliance? A vulnerability affecting systems that process healthcare data carries different weight than one on an internal dev server.\nData classification: Is this customer data? Internal data? Partner data? Public data? The sensitivity of what's at risk changes how fast you need to move.\nAttack path: How hard is it to get here? A vulnerability on an internet-facing system is different from one buried behind VPNs, firewalls, and authentication layers.\nKnown exploitability: Is this on the CISA KEV list? Is it being actively exploited in the wild? EPSS scores help predict exploitability. These signals matter more than theoretical CVSS cal",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "业务背景问题：为什么漏洞严重程度分数会误导",
+        "summary": "CVSS漏洞严重程度分数缺乏业务背景，不反映实际风险，实际风险取决于数据敏感性、攻击路径、补偿控制和具体利用影响。真正的风险评估需要理解在您的环境中被利用时会发生什么。"
+      }
+    }
+  },
+  {
+    "title": "Casting Resurrection on a Dead D&D Table",
+    "slug": "resurrecting-dnd-campaign-ai-prep-assistant",
+    "url": "https://dev.to/lucas_quest/casting-resurrection-on-a-dead-dd-table-10af",
+    "source": "DEV Community",
+    "date": "2026-05-26T12:59:00.000Z",
+    "summary": "A DM revived a dormant D&D campaign by building an AI-powered prep assistant that generates session content, solving the challenge of insufficient time for manual preparation while managing other life responsibilities.",
+    "content": "The Roadtrip\n\n\nBoredom is optional nowadays. We are always pursuing some source of entertainment, and at the slightest sign that dopamine will cease, we promptly get our phones to keep it flowing.\nThat's very unfortunate, as sometimes you have to stay alone with your thoughts to make sense of things, to build your own understanding, and also to have great ideas, or at least interesting ones.\nIn 2025 I had to drive my wife to perform a surgery in another state. It was a neighboring state, but as Brazil is huge, it was enough for me to drive 8 hours on each leg. When we were returning, with my unusually quiet wife beside me, recovering from surgery, I was left alone with my thoughts as the road passed by.\nAt the time, and really constantly since the current wave of AI started, my thoughts revolved around the FOMO of not building something and the dread of being useless if true AGI comes. So many build ideas have crossed my mind that I've lost track of them, but they always get rejected by my market research department. A simple google search is enough to find ten different implementations of any idea that I have. Sometimes it feels like everything that could be built is already being built.\nThen I started to think about some frustrations that I have. What personal problems could I really solve using AI?\nI had a small group that played D&D once in a while. In the Brazilian countryside we didn't have much access to D&D content, as one can imagine, so we did our best to gather material online and play when we could. During the pandemic I was the DM for a few sessions, but preparation was always hard for me. With a lot going on in my life, finding a few hours a week to prep the next session felt almost impossible, and I always felt like I wasn't covering everything. I'm not great at improvisation, so I tried to prepare in advance for the most likely ways the story could evolve. It was overwhelming.\nThe table died slowly. First I started postponing sessions because prep wa",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "对已死亡的D&D桌施放复活法术",
+        "summary": "一位DM通过构建AI驱动的准备助手来复兴一个休眠的D&D活动，该助手生成会话内容，解决了在管理其他生活责任的同时时间不足以进行手动准备的挑战。"
+      }
+    }
+  },
+  {
+    "title": "The Story Behind Java: From C++ Limitations to Platform Independence",
+    "slug": "why-java-created-platform-independence",
+    "url": "https://dev.to/vinayagam_6a170db9281d526/the-story-behind-java-from-c-limitations-to-platform-independence-1f0p",
+    "source": "DEV Community",
+    "date": "2026-05-26T12:57:59.000Z",
+    "summary": "Java was created to solve C++'s platform dependency problem with the \"Write Once, Run Anywhere\" concept using bytecode and the Java Virtual Machine, allowing code to run on any system without recompilation.",
+    "content": "Introduction\n\n\nToday I learned Java basics from my trainer, and he explained it in a simple and interesting way. He started with a story about why Java was created and how it solved problems that existed in C++.\nThis explanation helped me understand not just the syntax, but the real purpose behind Java.\nThe Problem with C++\n\n\nBefore Java, C++ was widely used for building applications, systems, and even some websites. It is a powerful and fast language because it directly converts code into machine-level instructions.\nBut it had one major problem: platform dependency.\nIn C++:\nCode is directly compiled into binary (machine code)\n\nThis binary is specific to a particular operating system\nThat means:\nA program written for Windows will not work on Linux or macOS\nDevelopers need to recompile or modify code for each system\nThis made development time-consuming and less flexible.\nThe Birth of Java\n\n\nTo solve this issue, Java was introduced with a new concept:\n“Write Once, Run Anywhere”\nInstead of directly converting code into machine code, Java introduced an intermediate step called bytecode.\nThis changed everything.\nLevels of Code in Java\n\n\nJava works with three levels of code:\nHigh-Level Code\nThe code written by programmers\nEasy to read and understand\nExample: Java syntax\nBytecode (Mid-Level)\nIntermediate code generated after compilation\nPlatform-independent\nMachine Code (Low-Level / Binary)\nExecuted by the computer\nConsists of 0s and 1s\nRole of JDK (Java Development Kit)\n\n\nThe JDK is used to develop Java programs.\nIt includes:\nCompiler (javac)\nTools required for development\nMain function:\nConverts high-level Java code → bytecode\n\n\n\nSo the process starts like this:\nJava Code → JDK Compiler → Bytecode\n\nUnderstanding JVM and JRE\n\n\nJava does not stop at bytecode. It needs to run the program, and that is where JVM and JRE come in.\nJVM (Java Virtual Machine)\n\n\n\nResponsible for executing bytecode\nConverts bytecode into machine code\nMakes Java platform-independent\nJRE (Java Runtim",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Java的故事：从C++的局限性到平台独立性",
+        "summary": "Java的创建是为了用\"一次编写，到处运行\"的概念解决C++的平台依赖问题，通过字节码和Java虚拟机，使代码无需重新编译就能在任何系统上运行。"
+      }
+    }
+  },
+  {
+    "title": "Keep Appium out of your test code: BasePage + lazy locators",
+    "slug": "appium-basepage-lazy-locators-abstraction",
+    "url": "https://dev.to/mayvinrmm/keep-appium-out-of-your-test-code-basepage-lazy-locators-ohp",
+    "source": "DEV Community",
+    "date": "2026-05-26T12:56:55.000Z",
+    "summary": "Mobile test code should abstract Appium driver details through a BasePage pattern with lazy locators and dependency injection, allowing tests to express intent without coupling to driver implementation details.",
+    "content": "If your test methods import AndroidDriver, call findElement directly, or know what a locator strategy is, your tests are coupled to Appium. The day a selector changes or the driver setup moves, that coupling spreads the edit across every test you've written.\nThe fix is an abstraction layer your tests talk to instead. Tests describe intent — loginScreen.signIn(user) — and never see the driver underneath.\nWhat the article builds:\n🧱 A BasePage that runs PageFactory.initElements with AppiumFieldDecorator, so every screen object inherits element wiring for free\n🐌 Lazy locators — @AndroidFindBy fields resolve to real elements at interaction time, not at construction\n🔌 A Spring-managed DriverManager that owns the session so screen objects receive an already-initialized driver\n💉 Constructor injection that passes that single driver down through the framework\n⚖️  The SRP and DIP reasoning for why the driver lives in one place\nOne concrete detail worth knowing: because AppiumFieldDecorator makes locators lazy, instantiating a screen object does not query the UI. Nothing touches the device until you actually call a method that uses a field. That's why you can construct screen objects in a constructor without the app being on the right screen yet — a common source of confusion when people expect @AndroidFindBy to fail immediately on a missing element.\nThis is Article 3 of a series building a mobile framework end to end. If your tests are tangled up with Appium internals, this is the layer that separates them.\n👉 Read the full guide here: https://www.mobile-automation.io/driver-setup-screen-objects-mobile-framework/",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在测试代码中避免使用Appium：BasePage + 延迟定位器",
+        "summary": "移动测试代码应该通过BasePage模式和延迟定位器以及依赖注入来抽象Appium驱动程序细节，使测试能够表达意图而不耦合到驱动程序实现细节。"
+      }
+    }
+  },
+  {
+    "title": "How I use agents for my personal projects",
+    "slug": "cost-effective-ai-agents-personal-projects",
+    "url": "https://dev.to/crusty0gphr/how-i-use-agents-for-my-personal-projects-1j5b",
+    "source": "DEV Community",
+    "date": "2026-05-26T12:56:29.000Z",
+    "summary": "Using AI agents for personal projects requires cost-conscious strategies, comparing token pricing across Claude, DeepSeek, and Gemini. Efficiency comes from providing explicit guidance with file locations rather than abstract tasks.",
+    "content": "Agents are expensive, like awfully expensive. For example, Claude can charge up to $25 per million tokens, almost the same, but a little bit cheaper, for Codex from OpenAI. So in rough calculations, depending on usage, you can spend up to $150-170 a month (if you check Reddit, people proudly burn $2k-4k a month, this is insanely expensive).\nCloud Code is powerful, possibly the best agent out there. The problem is, it drains my $20 PRO usage in a few runs. With agents, you might accidentally burn all tons of tokens if you're not careful enough, and this is a major problem keeping me away from switching to the pay-as-you-go plan. Skills also affect token usage and bump the usage up to 50% more. Not even talking about the MCPs.\nFor the last month I was using agents and workflows to understand the most cost-efficient way to fulfill my needs for my side hustles. Currently, I use two Agents (probably will cancel one in the future) and one LLM. \nMy setups is the following:\nOpenCode with DeepSeek 4 Flash ($0.14/M input and $0.28/M output tokens).\nJunie CLI by JetBrains with Gemini 2.5 Flash ($0.16/M input and $0.60/M output tokens)\nClaude Sonnet 4.6\nWith Opencode and Junie, I use $10 subscriptions (roughly converts to 10 credits on each of them). Believe me, this is a huge amount if you use it correctly. For example, I still write code manually occasionally, and mostly use agents for code reviews, code updates, generating tests, improving coverage, and performing partial refactorings in a small scope of the code. \nImportantly, NEVER ASK OR PROVIDE ABSTRACT TASKS OR QUESTIONS. Since I'm the owner of the code, I know what and where it is in my project. Instead of injecting a prompt to the agent to go and find X and perform Y, I explicitly guide them:\n\"Add additional unittests for X. You can find the already existing Y. Package is missing unittests for [L:100-120] and [L:300-310] when calling thisImportantMethod\"\nThis saves cycles, and the agent avoids calling additional tools",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何在个人项目中使用AI代理",
+        "summary": "在个人项目中使用AI代理需要具有成本意识的策略，比较Claude、DeepSeek和Gemini的令牌价格。效率来自于提供带有文件位置的明确指导，而不是抽象任务。"
+      }
+    }
+  },
+  {
+    "title": "I Built a Compliance Health Scanner for Indian Startups in 24 Hours - Here’s What I Learned",
+    "slug": "compliance-scanner-indian-startups",
+    "url": "https://dev.to/nehaaaa6/i-built-a-compliance-health-scanner-for-indian-startups-in-24-hours-heres-what-i-learned-1770",
+    "source": "DEV Community",
+    "date": "2026-05-26T12:55:41.000Z",
+    "summary": "CompliScore is a free compliance scanner for Indian startups that delivers risk assessment and actionable next steps in plain language rather than overwhelming founders with compliance data tables.",
+    "content": "I built this in a day. Not because it was easy, but because I wanted to prove something: Indian founders don't need another complicated dashboard. They need someone to tell them, in plain English, what's broken and what to fix first.\nLast weekend, I sat down and built CompliScore – a free 60-second compliance health scanner for Indian startups. You type your company name, and it gives you:\nA Compliance Score (out of 100)\nA list of pending GST & MCA filings\nA penalty risk level (Low / Medium / High)\nAn AI‑generated action plan written in simple language\n🔗 Live Demo: compliscore-nu.vercel.app\nI'm Neha, a software engineer from Mumbai. I've been deep in the compliance automation space for months, building DigiNav AI – an autonomous agent that will eventually handle actual GST filings, incorporation, and audits end‑to‑end.\nBut the big product takes weeks to build. I needed something today that could help founders right now and also serve as a live portfolio piece. So I stripped everything down to the single most useful action: Show me my risks.\nI've also contributed 150+ PRs to core AI agent frameworks (Mastra, LlamaIndexTS, LiteLLM, PostHog) – so I understand both the compliance domain and the AI orchestration under the hood.\nFounders don't care about compliance data. They care about consequences.\nMost tax-tech tools dump a table of due dates. That's useless. What a founder actually wants to know is:\nAm I about to get a penalty?\nHow much will it cost?\nWhat's the ONE thing I should do right now?\nI designed the scanner to answer exactly that. The score and risk badge give an instant emotional signal (green = relief, red = danger), and the AI‑written action plan gives a clear next step in 150 words.\nThe scanner uses mock data for now (real GST/MCA integration is in progress), but the UI flow and the AI logic are production‑ready. I built it in <8 hours using Next.js, Tailwind, shadcn/ui, and Groq for the AI summary. When you ship fast and share publicly, people notice. W",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我在24小时内为印度初创公司构建了合规性健康扫描仪 - 我学到了什么",
+        "summary": "CompliScore是一个免费的印度初创公司合规扫描器，可以提供风险评估和可操作的后续步骤，而不是用合规数据表淹没创始人。"
+      }
+    }
+  },
+  {
+    "title": "What AMQP compatibility means for a local Azure emulator",
+    "slug": "amqp-compatibility-layers-azure-service-bus",
+    "url": "https://dev.to/kamil-mrzyglod/what-amqp-compatibility-means-for-a-local-azure-emulator-3de8",
+    "source": "DEV Community",
+    "date": "2026-05-26T12:51:46.000Z",
+    "summary": "AMQP compatibility for Azure Service Bus emulators has two layers: SDK compatibility (easier, basic operations) and framework compatibility (harder, full specification). True compatibility requires both to work with production message-processing frameworks.",
+    "content": "\"Supports AMQP\" covers a lot of ground. A broker that accepts a TCP connection on port 5671 and exchanges OPEN/BEGIN frames with the client technically speaks AMQP. So does a broker that handles hundreds of thousands of messages per second with full PeekLock semantics, dead-letter routing, and session state. When an emulator claims AMQP compatibility, the interesting question is how far that compatibility actually goes — and specifically, whether it is deep enough for a real message-processing framework to drive it.\nThis post is about what that means in practice, and why we know Topaz passes the test: because we got it wrong first and had to fix it.\n⭐ Star Topaz on GitHub\n\n\n\n  \n  \n  The two layers of Service Bus compatibility\n\n\nMost discussions of Azure Service Bus compatibility focus on the control plane: can you create namespaces, queues, and topics through ARM or the Azure CLI? That layer is important — it is what makes az servicebus queue create and azurerm_servicebus_queue work locally — but it is not the interesting layer for message-processing code.\nThe interesting layer is the AMQP data plane, and it breaks down into two sub-layers:\nSDK compatibility — does the Azure Service Bus SDK connect, authenticate, send, and receive? This is the easier bar. The SDK connects through CBS (Claims-Based Security), opens a sender link for sending and a receiver link for receiving, and uses basic settled transfers for most operations. A passable emulator can get this right with a few hundred lines of AMQP link handling code.\nFramework compatibility — does a message-processing framework like MassTransit, NServiceBus, or Rebus actually work on top of it? Frameworks drive a more complete subset of the AMQP specification. They open management links alongside receive links, use $management request-response to perform operations the SDK does not surface directly, expect unsettled transfers with explicit client-side settlement, and rely on correct credit replenishment to maintain",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AMQP兼容性对本地Azure模拟器意味着什么",
+        "summary": "Azure Service Bus模拟器的AMQP兼容性有两层：SDK兼容性（更简单，基本操作）和框架兼容性（更难，完整规范）。真正的兼容性需要两者都能与生产消息处理框架一起工作。"
+      }
+    }
+  },
+  {
+    "title": "Why I stopped rotating active log files in Python",
+    "slug": "python-log-rotation-file-handle-coordination",
+    "url": "https://dev.to/d_9d93cd53/why-i-stopped-rotating-active-log-files-in-python-5g2o",
+    "source": "DEV Community",
+    "date": "2026-05-26T12:51:03.000Z",
+    "summary": "Log rotation on active files creates file-handle coordination problems, especially on Windows where rename operations can fail while other handles have the file open, forcing complex failure-mode decisions.",
+    "content": "Log rotation is usually treated as a solved problem.\nWrite to app.log.\n\nWhen it gets too large, or when the day changes, rename it to something else.\n\nThen open a new app.log.\nThat model works well enough in many deployments. If it works for yours, I would not replace it just for the sake of replacing it.\nBut while building a local-file logging library for Python, I became more interested in a narrower problem:\nWhat happens when the file you rotate is still the file being written to?\nA log file is not just a path. It is also an open file handle, a writer state, and sometimes a coordination point between processes.\nThat is the detail that changed how I think about local-file logging.\nOn Windows, renaming an active log file can fail if another handle still has it open in a way that blocks the rename.\nThat can happen more often than people expect:\na service process still owns the file\nanother process is tailing or collecting it\nantivirus or backup software touches it at the wrong time\nmultiple workers are writing to what looks like the same log destination\nIn a rotation-based design, the fragile moment is the boundary where the logger tries to rename, truncate, or reopen the active file.\nIf that operation fails, the logger now has to decide what failure means. Should the application fail? Should the log record be dropped? Should the handler retry? Should the old file continue receiving records? Should the error be visible or hidden?\nThe practical issue is that a logging policy decision has become a file-handle coordination problem.\nOn POSIX systems, the failure mode is different.\nA rename usually succeeds even if another process still has the old file open. That sounds better, and often it is.\nBut pathnames and file descriptors are not the same thing.\nIf a writer still holds the old file descriptor, it can keep appending to the file that has already been moved away from the active path.\nSo the filesystem operation can succeed while new records still go to a file you no",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我为什么停止在Python中轮换活跃的日志文件",
+        "summary": "对活跃文件的日志轮换会创建文件句柄协调问题，特别是在Windows上，其中重命名操作可能会在其他句柄打开文件时失败，导致复杂的故障模式决策。"
+      }
+    }
+  },
+  {
     "title": "Beyond Autonomous AI: Understanding Self-Healing Agents in Enterprise AI Systems",
     "slug": "beyond-autonomous-ai-self-healing-agents",
     "url": "https://dev.to/sridhar_s_dfc5fa7b6b295f9/beyond-autonomous-ai-understanding-self-healing-agents-in-enterprise-ai-systems-40e4",
@@ -188,6 +380,22 @@
       "zh": {
         "title": "Next.js动态OG图像：修复Turbopack CPU挂起",
         "summary": "作者识别并记录了一个Turbopack性能问题，其中opengraph-image.tsx文件约定在Next.js 15+开发中首次页面加载时导致300-400% CPU挂起。该文章解释了Satori的延迟编译模型为何触发这种行为，并为动态OG图像生成提供了替代解决方案。"
+      }
+    }
+  },
+  {
+    "title": "Motorola phones have started hijacking the Amazon app to insert affiliate codes",
+    "slug": "motorola-amazon-app-affiliate-code-hijacking",
+    "url": "https://9to5google.com/2026/05/25/motorola-amazon-app-hijacking-behavior/",
+    "source": "Hacker News",
+    "date": "2026-05-26T03:56:09.000Z",
+    "summary": "Motorola devices have been injecting Amazon affiliate codes into the Amazon app without user consent, redirecting potential revenue and compromising user experience.",
+    "content": "Article URL: https://9to5google.com/2026/05/25/motorola-amazon-app-hijacking-behavior/\nComments URL: https://news.ycombinator.com/item?id=48274794\nPoints: 228\n# Comments: 111",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "摩托罗拉手机开始劫持亚马逊应用以插入联盟代码",
+        "summary": "摩托罗拉设备在未经用户同意的情况下向亚马逊应用注入亚马逊联盟代码，转移潜在收入并损害用户体验。"
       }
     }
   },
