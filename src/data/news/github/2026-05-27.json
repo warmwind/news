@@ -1,5 +1,213 @@
 [
   {
+    "title": "The Moment the JSON Config Parser Became the Enemy",
+    "slug": "json-config-parser-performance-bottleneck",
+    "url": "https://dev.to/built-from-africa/the-moment-the-json-config-parser-became-the-enemy-3oae",
+    "source": "DEV Community",
+    "date": "2026-05-27T13:07:05.000Z",
+    "summary": "A treasure-hunt game server handling 50 MB/s of player events solved a critical latency bottleneck by replacing YAML config parsing with compile-time constants and a gRPC sidecar. The change reduced p99 latency from 1.3 seconds to 29 milliseconds and cache misses from 42% to 12%, demonstrating how config parsing can become a performance killer at scale.",
+    "content": "The Problem We Were Actually Solving\n\n\nThe treasure-hunt server receives 50 MB/s of dynamic map events—player moves, loot spawns, fog-of-war reveals—and must broadcast deltas to 100 k sockets without re-serializing the entire world every tick.\nconfig.yaml:\nworld:\n width: 1024\n height: 1024\n chunk_size: 32\n\nWhat they do not mention is the hidden oltp_workers: 4 knob that the YAML parser silently casts to a u16 and then divides by the core count.\nperf record -F99 -g -p <pid> showed 42 % of CPU burned in serde_yaml::from_reader waiting for the lock around the global IndexMap.\nWe started with serde_yaml because the helm chart shipped a ConfigMap volume.\nflamegraph-rs we saw 1.8 μs per config reload, but multiplied by 28 k sessions and the Kubernetes watch events, we added 50 ms of tail latency every time the ConfigMap updated—even when the file content was identical.\nserde_yaml::indexmap::IndexMap<K,V>::entry\n└── _raw_vec::RawVec<T,A>::reserve\n\nThe IndexMap kept reallocating the backing array on every watch trigger.\nserde_json with the same file; the parser was 2× faster, but the blocking I/O still destroyed tail latency.\nWe ripped out the whole config layer and replaced it with a two-part system:\nA compile-time constants module generated from a tiny TOML file (constants.toml) with build.rs.\nA sidecar gRPC service that only accepts runtime state diffs and streams them to the main process over a Unix domain socket.\nThe constants are embedded in the binary, so the treasure-hunt server never parses anything at runtime.\ntonic async runtime, so the config change path is lock-free and non-blocking.\nAfter the change we re-ran the 28 k session test with perf stat -e cache-misses,instructions -d and saw:\nBefore:\n 42.1 % cache misses\n 1.3 s p99 /w config updates\n 2 RTS (runtime scaling stalls)\nAfter:\n 11.8 % cache misses\n 29 ms p99\n 8 RTS (no stalls)\n\nTail latency at 1 ms granularity (collected with tokio-console) dropped from 48 ms to 6 ms.\njemalloc dependency in the main proces",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "JSON配置解析器成为瓶颈的那一刻",
+        "summary": "一款处理每秒50MB玩家事件的游戏服务器，通过用编译时常数和gRPC边车替换YAML配置解析，解决了关键延迟瓶颈。该改变使p99延迟从1.3秒降至29毫秒，缓存未命中率从42%降至12%，展示了配置解析在大规模场景下如何成为性能杀手。"
+      }
+    }
+  },
+  {
+    "title": "n8n vs Zapier — Which Is Right for Production Workflows?",
+    "slug": "n8n-vs-zapier-production-workflows",
+    "url": "https://dev.to/syednoor760dev/n8n-vs-zapier-which-is-right-for-production-workflows-5fdo",
+    "source": "DEV Community",
+    "date": "2026-05-27T13:05:50.000Z",
+    "summary": "This comparison of n8n and Zapier recommends Zapier for non-technical teams with simple workflows under 50 tasks/day, and n8n for self-hosting, complex logic, high volume (hundreds/thousands per day), or regulated industries. Both excel at different scales and use cases without clear winner.",
+    "content": "An honest comparison of n8n and Zapier across 8 dimensions — pricing, self-hosting, error handling, complexity ceiling, ease of use, integrations, support, and production-readiness. No fanboyism, just tradeoffs.\nIf you are evaluating n8n vs Zapier for workflows that need to run reliably in production — not just a quick Slack notification, but real business logic with error handling, data sovereignty, and scale — this post is for you. I consult exclusively on n8n, so I will be upfront about my bias. But I have migrated enough teams off Zapier to know\nChoose Zapier if your team is non-technical, you need fewer than 50 tasks per day, and your integrations are straightforward (connect App A to App B, maybe with a filter).\nChoose n8n if you need self-hosting, your workflows involve branching logic or custom code, you are processing hundreds or thousands of events per day, or you operate in a regulated industry where data cannot leave your infrastructure.\nBoth are good tools. They solve different problems at different scales.\nZapier is a cloud-hosted automation platform that connects over 6,000 apps through a trigger-action model. You pick a trigger (\"new row in Google Sheets\"), add one or more actions (\"create contact in HubSpot, send Slack message\"), and Zapier runs it for you. The UI is polished, onboarding is fast, and for simple automations it genuinely works well.\nn8n is an open-source workflow automation tool that you can self-host on your own infrastructure or run on n8n's managed cloud. It uses a visual node-based editor where workflows can branch, loop, merge, and include inline JavaScript or Python code. n8n has 400+ built-in integrations, but its real power is that any API accessible over HTTP is a first-class citizen — you are never locked out of a service because the platform has not built a connector yet.\nZapier charges per task — and a \"task\" is any action that executes, not any workflow run. A five-step Zap running 1,000 times per month consumes 5,000 tas",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "n8n vs Zapier — 哪个适合生产工作流?",
+        "summary": "这份对比建议非技术团队采用Zapier用于简单工作流(日任务数少于50)，以及n8n用于自托管、复杂逻辑、高容量(日数百至数千)或受规管行业。两者在不同规模和使用场景下都表现出色，但没有明确的赢家。"
+      }
+    }
+  },
+  {
+    "title": "AI Security Tools Are Drowning Open Source Maintainers — curl Is the Canary",
+    "slug": "ai-security-tools-drowning-maintainers",
+    "url": "https://dev.to/thegatewayguy/ai-security-tools-are-drowning-open-source-maintainers-curl-is-the-canary-3mp7",
+    "source": "DEV Community",
+    "date": "2026-05-27T13:05:20.000Z",
+    "summary": "curl creator Daniel Stenberg reports AI-powered security reports have surged to 4-5x the 2024 rate, averaging over one credible, detailed report per day. The upcoming release faces a record 12 confirmed vulnerabilities, as the bottleneck shifts from bug quality to human maintainer bandwidth absorbing AI-driven security research.",
+    "content": "curl is installed on roughly 30 billion devices. It's arguably the most scrutinised, most-fuzzed networking library on the planet. And right now, its creator is burning out.\nNot because curl is suddenly full of holes. Because AI-powered security research has reached a quality and volume that human maintainers weren't built to absorb.\nDaniel Stenberg, curl's founder and lead developer, published a raw, honest post this week:\nThe rate of incoming security reports is 4-5 times higher than it was in 2024 and double the speed of 2025 — meaning that on average we now get more than one report per day. The quality is way higher than ever before. The reports are typically very detailed and long.\nThis isn't the slop era anymore. In 2024, Stenberg was writing about stupid LLM hallucinations flooding bug trackers. In early 2025, it was \"death by a thousand slops.\" Now in 2026, the tooling has matured — and so has the pressure.\nReports are arriving at 4-5× the 2024 rate, 2× the 2025 rate — over one per day\nThey're no longer hallucinations — reports are credible, detailed, and require full triage\nThe upcoming release already has 12 confirmed vulnerabilities — a project record\ncurl is on track to publish 30+ CVEs in 2026 before the year is half over\nStenberg is spending almost all his working hours on HackerOne triage, patching, and advisory writing\nFor the first time, his wife has raised concerns about his work/life balance\nHere's the thing: technically, curl is holding up. Every vulnerability found in the last few years has been rated LOW or MEDIUM severity. The last HIGH severity CVE was October 2023. Thirty years of relentless engineering means the catastrophic holes are genuinely rare.\nBut that's almost beside the point. The constraint isn't bug quality — it's human bandwidth.\nAI security tooling can now do systematic, deep code analysis at scale. That's a net positive for software quality. But there's no corresponding scaling on the other side: the small team of maintainers",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI安全工具正在淹没开源维护者——curl是金丝雀",
+        "summary": "curl创建者Daniel Stenberg报告AI驱动的安全报告激增至2024年的4-5倍，平均每天超过一份可信、详细的报告。即将发布的版本面临创纪录的12个已确认漏洞，因为瓶颈从漏洞质量转向人类维护者吸收AI驱动安全研究的带宽。"
+      }
+    }
+  },
+  {
+    "title": "I was wondering\r\nwhether we can write both the Deployment and Service manifest in the same file?\r\nbut your explaination made it clearer",
+    "slug": "kubernetes-deployment-service-manifest",
+    "url": "https://dev.to/pranjal779/i-was-wondering-whether-we-can-write-both-the-deployment-and-service-manifest-in-the-same-file-47j6",
+    "source": "DEV Community",
+    "date": "2026-05-27T13:03:04.000Z",
+    "summary": "A brief DevOps clarification explaining that Kubernetes Deployment and Service manifests can be written in the same YAML file, addressing a common question about manifest organization and configuration best practices.",
+    "content": "100 Days of DevOps: Day 58\n\n\n  \nWycliffe A. Onyango\n                    \n                  \n\n                \nSep 30 '25\n        \n#devops\n            #kubernetes\n            #containers\n            #linux\n        \n1 reaction\n            \nAdd Comment\n            \n        \n        \n          \n            2 min read",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我想知道我们是否可以在同一个文件中编写 Deployment 和 Service 清单？但你的解释让我理解得更清楚了",
+        "summary": "一份简短的 DevOps 说明，解释了 Kubernetes Deployment 和 Service 清单可以在同一个 YAML 文件中编写，解答了关于清单组织和配置最佳实践的常见问题。"
+      }
+    }
+  },
+  {
+    "title": "GitHub Copilot Has a New App. Here's What Changed for My Daily Workflow.",
+    "slug": "github-copilot-desktop-app-agent-sessions",
+    "url": "https://dev.to/mrclaw207/github-copilot-has-a-new-app-heres-what-changed-for-my-daily-workflow-1emk",
+    "source": "DEV Community",
+    "date": "2026-05-27T13:01:31.000Z",
+    "summary": "GitHub's new desktop Copilot app in technical preview enables persistent agent sessions tied to repos, issues, or PRs with resumable workspace and multi-file context. A developer completed a 14-file refactor in 15 minutes of review time that would have taken 2 hours manually.",
+    "content": "GitHub Copilot Has a New App. Here's What Changed for My Daily Workflow.\n\n\nGitHub launched a desktop-native Copilot app in technical preview this week. The key feature: agent sessions tied to a repo, issue, or PR — with a full session space that pauses, resumes, and can drive changes into a pull request.\nI spent the last two days testing it. Here's what's actually different and whether it's worth your attention.\nThe old way: you open VS Code, you get Copilot completions in your editor, maybe you use a chat panel. The agent is a feature inside your IDE.\nThe new way: you open a standalone Copilot app that treats your repository as a first-class context. You can kick off an agent session tied to a specific PR, issue, or branch. The session has a full workspace — files, conversation history, task state — that pauses when you close the app and resumes when you come back.\nThe agent can then open a PR with its changes, which you review through normal GitHub PR workflows.\nHere's what I did this morning: I had a refactor I was avoiding because it touched 14 files and I was pretty sure I'd miss something. I opened the Copilot app, pointed it at the branch, described what I wanted, and let it run.\nIt made the changes. It opened a PR. I reviewed the diff in about 15 minutes instead of the two hours the manual refactor would have taken.\nThe key difference from just using Copilot in VS Code: the session has persistent context across a larger scope of work. I wasn't doing one-off completions — I was running an agent against a multi-file task and getting a reviewable artifact at the end.\nGetting into the technical preview:\nPro/Pro+ early access: sign up at github.com/features/copilot (look for the desktop app section)\nBusiness/Enterprise: it's rolling out through your organization admin\nThe setup took about 5 minutes once I had access — install the app, authenticate with your GitHub account, pick a repo to connect.\nI want to be precise about this: I'm not replacing OpenClaw with Gi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "GitHub Copilot 有一个新应用。以下是我日常工作流程中的变化。",
+        "summary": "GitHub 新的 Copilot 桌面应用处于技术预览阶段，支持绑定到仓库、问题或 PR 的持久代理会话，具有可恢复的工作区和多文件上下文。一位开发者在 15 分钟的审查时间内完成了 14 个文件的重构，这在手动操作中需要 2 小时。"
+      }
+    }
+  },
+  {
+    "title": "5 gotchas I hit moving LLM logs from Postgres to ClickHouse",
+    "slug": "llm-logs-postgres-to-clickhouse-migration",
+    "url": "https://dev.to/spanlens/5-gotchas-i-hit-moving-llm-logs-from-postgres-to-clickhouse-2458",
+    "source": "DEV Community",
+    "date": "2026-05-27T13:00:47.000Z",
+    "summary": "An LLM observability platform migrated from PostgreSQL to ClickHouse to handle API call logging at scale, as the requests table became a critical bottleneck. The article documents 5 specific gotchas and design tradeoffs encountered during the migration to a columnar database.",
+    "content": "The problem\n\n\nI am building Spanlens, an open-source LLM observability platform. Every call to OpenAI, Anthropic, or Gemini gets recorded with its model, latency, tokens, cost, and full request and response body. At low traffic on Supabase Postgres this was fine, but I could already see a few signs that this specific table would not stay fine for long.\nThe requests table will dominate the DB at any meaningful scale. Every other table is bounded by org or project counts, but requests grows with every API call.\nDate-range scans on created_at are the dashboard's primary query pattern, and Postgres cannot compress the JSON body columns well, so these queries would get slower as the table grew.\nDaily backup size scales with table size, and backing up large JSON bodies in Postgres looked like a clear path to pain.\nAggregation queries like \"top expensive prompts in 7 days\" that work in milliseconds on a small table are not going to scale that way.\nSo I migrated to ClickHouse early, before it became a fire. This post is what I wish I had known before the migration, with 5 gotchas that bit me and the fallback design I built so I would not lose data while finding them.\nIf you want to see the full implementation in context, Spanlens is open source on GitHub under MIT.\nHere is the shortlist I evaluated.\nTimescaleDB was too close to Postgres and didn't really solve the storage cost concern.\nDuckDB is great for embedded analytics but I wanted a managed service.\nBigQuery's pricing model felt unpredictable.\nClickHouse Cloud's Development tier was cheap to start with, and columnar compression handles JSON body blobs well.\nThe decision driver was the workload shape. It is insert-heavy, append-only, and almost all reads are time-range scans with one or two equality filters like organization_id and model. ClickHouse is built for exactly this.\nI kept Postgres (Supabase) for everything relational with RLS, including orgs, projects, members, API keys, prompts, alerts, and billing. ClickHo",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "将 LLM 日志从 Postgres 迁移到 ClickHouse 时遇到的 5 个陷阱",
+        "summary": "一个 LLM 可观测性平台从 PostgreSQL 迁移到 ClickHouse 以处理大规模 API 调用日志，因为请求表成为了关键瓶颈。本文记录了在迁移到列式数据库期间遇到的 5 个具体陷阱和设计权衡。"
+      }
+    }
+  },
+  {
+    "title": "AWS Database Savings Plans: What DB Teams Need to Know",
+    "slug": "aws-database-savings-plans-discounts",
+    "url": "https://dev.to/aman_singh_414811a9e4168b/aws-database-savings-plans-what-db-teams-need-to-know-53pn",
+    "source": "DEV Community",
+    "date": "2026-05-27T13:00:45.000Z",
+    "summary": "AWS introduced Database Savings Plans offering up to 35% discounts on managed database services by committing to hourly spend rather than specific instances. The spend-based model covers Aurora, RDS, DynamoDB, and ElastiCache with No Upfront monthly billing and flexible multi-region coverage.",
+    "content": "AWS expanded its Savings Plans portfolio with Database Savings Plans, a spend-based discount model for managed database services that can cut costs by up to 35%. This is the first time the Savings Plans model has extended beyond compute, and it changes how DB teams can commit to long-term database spend.\nUsage.ai added native support for Database Savings Plans in January 2026.\nInstead of committing to a specific instance class, engine, or Region (like Reserved Instances require), you commit to a consistent hourly spend amount for a one-year term. AWS automatically applies discounts across all eligible usage up to that committed amount, every hour, without manual action.\nThe model mirrors how Compute Savings Plans work but applied to the database layer for the first time. It covers both provisioned and serverless database usage.\nHow the commitment works\nCommit to a dollar amount per hour for 1 year\nAWS applies discounts to eligible usage each hour, prioritizing where it delivers the most value\nUsage beyond the committed amount is charged at standard on-demand rates\nA single plan can cover an RDS instance in one Region and an Aurora instance in another no separate RIs needed\nPayment options\nDatabase Savings Plans are No Upfront only billed as monthly charges over the 1-year term. There's no All Upfront or Partial Upfront option, which is a structural difference from Compute and EC2 Instance Savings Plans. AWS offers a separate \"Advance Pay\" billing feature for pre-payment of monthly charges, but this isn't a payment option on the Savings Plan itself.\nDatabase Savings Plans apply across these managed database services:\nAmazon Aurora: Gen 7+ provisioned instances (db.r7, db.r8g, db.m7 families), Aurora Serverless v2, Aurora DSQL\nAmazon RDS: Gen 7+ provisioned instances (db.r7, db.r8g, db.m7 families)\nAmazon DynamoDB: On-demand throughput (up to 18% savings); provisioned capacity (up to 12% savings)\nAmazon ElastiCache: Valkey engine only (Gen 7+ provisioned and Serverles",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AWS数据库节省计划：数据库团队需要了解什么",
+        "summary": "AWS推出了数据库节省计划，通过按小时消费承诺而非特定实例，提供高达35%的托管数据库服务折扣。该基于消费的模式涵盖Aurora、RDS、DynamoDB和ElastiCache，支持无预付月度计费和灵活的多区域覆盖。"
+      }
+    }
+  },
+  {
+    "title": "Self-Expiring Report-Only CI Gates: From Advisory to Enforced",
+    "slug": "self-expiring-report-only-ci-gates",
+    "url": "https://dev.to/jeremy_longshore/self-expiring-report-only-ci-gates-from-advisory-to-enforced-3c2c",
+    "source": "DEV Community",
+    "date": "2026-05-27T13:00:40.000Z",
+    "summary": "Advisory CI gates become permanent technical debt when violations scroll past without enforcement. The solution uses self-expiring gates marked with REPORT-ONLY-UNTIL dates that fail the build if deadlines pass, forcing teams to fix violations and enable enforcement or remove the gate.",
+    "content": "Advisory CI gates are where good intentions go to die. A team adds a linter \"in warning mode for now,\" and \"for now\" becomes forever. The violations scroll past in PR reviews, nobody cleans them, the gate never goes blocking. Six months later the warnings are archaeological noise.\nThe pattern that breaks this cycle is simple but mechanical: every report-only gate carries a self-expiring deadline marker — REPORT-ONLY-UNTIL: <date> — and a meta-gate script fails the build if any gate outlives its deadline. Advisory mode becomes temporary by construction. The second part: organize around one logical concern per PR, bulk-cleaning all violations for that concern in the same commit. Tightly-coupled tools — like eslint and prettier, or ruff and ruff-format — flip together because they share a single run step and a single class of violation. Unrelated gates never share a PR. This keeps each change reviewable and the blame surface small.\nA self-expiring report-only CI gate is a quality check that runs in advisory mode — violations are warnings, not build failures — but carries an explicit deadline date. A meta-gate fails the build once that deadline passes, forcing the team to either clean the violations and flip the gate to blocking, or remove it. This prevents advisory gates from quietly becoming permanent technical debt.\nThe enforcement script is small but decisive. It lives in the workflow as a step that runs before any code cleanup and fails the build if any gate is past its deadline:\n- name: Check CI deadline compliance\n  run: |\n    python scripts/check-ci-deadlines.py\n  env:\n    GITHUB_REF: ${{ github.ref }}\n\nThe script (~150 lines) scans workflow files for REPORT-ONLY-UNTIL: <date> markers and compares them against datetime.now():\nimport re\nimport datetime\nimport sys\n\ndef check_deadlines(workflow_file):\n    with open(workflow_file) as f:\n        content = f.read()\n\n    # Match: REPORT-ONLY-UNTIL: YYYY-MM-DD\n    pattern = r'REPORT-ONLY-UNTIL:\\s*(\\d{4}-\\d{2}-\\d{2})'",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "自动过期的仅报告CI门：从建议到强制执行",
+        "summary": "当违规情况在没有强制执行的情况下被忽视时，建议CI门禁会变成永久的技术债务。该解决方案使用标记有REPORT-ONLY-UNTIL日期的自动过期门禁，如果截止日期过期，将导致构建失败，迫使团队修复违规和启用强制执行或删除该门禁。"
+      }
+    }
+  },
+  {
+    "title": "What happens when an AI agent commits to your repo",
+    "slug": "ai-agents-git-commit-history-discipline",
+    "url": "https://dev.to/mdenda/what-happens-when-an-ai-agent-commits-to-your-repo-4cgg",
+    "source": "DEV Community",
+    "date": "2026-05-27T13:00:00.000Z",
+    "summary": "AI-assisted developers produce vastly different Git histories based on expertise: juniors create vague, large commits (fix stuff, more changes), while seniors create focused, atomic, well-described commits. The commit history reveals the developer's discipline and git practice, not just AI capability.",
+    "content": "A few weeks ago, I argued that AI is not a great equalizer — it's a great amplifier. It amplifies what developers already are, for better and for worse. Juniors with AI produce junior code at senior speed. Seniors with AI produce senior code at supernatural speed.\nThis post is about where that amplification becomes visible: your Git history.\nEvery team that's adopted AI coding assistants — Claude Code, Cursor, GitHub Copilot, Windsurf — has introduced a new kind of contributor to their repo. Sometimes it's tagged explicitly (co-authored-by: claude). Sometimes it's invisible. Either way, the commits AI produces (or AI-assisted developers produce) look different, and Git reveals the difference within weeks.\nHere's what to watch for, and why the fundamentals of Git practice matter more now than ever.\nOpen any repository that's been using AI assistance for a few months and run this:\ngit log --oneline --since=\"3 months ago\" | head -50\n\nYou'll see two patterns emerge.\nPattern A — the junior-amplified commit:\na7f3c21 fix stuff\n9e2b8f4 more changes\n12a4e5c update\n8d1f90b fix tests\nf5a23de wip\n\nLarge commits, vague messages, no clear scope. The developer asked AI \"fix this bug\" and committed whatever AI produced. A month later, nobody knows what any of these commits actually do.\nPattern B — the senior-amplified commit:\na7f3c21 feat(search): add cursor-based pagination for users endpoint\n9e2b8f4 perf(search): replace LIKE '%q%' with full-text index\n12a4e5c test(search): add edge cases for empty query and unicode input\n8d1f90b refactor(search): extract query builder into reusable module\nf5a23de chore(deps): upgrade full-text-search-lib to 2.3.1\n\nSmall, atomic, well-described commits. The developer guided AI to produce focused changes, committed each unit separately, and wrote messages a future debugger will thank them for.\nSame AI. Same prompts, roughly. Radically different commit history.\nA Git history full of Pattern A commits is a Git history that can't be bisected, can't b",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "当AI代理向你的代码库提交时会发生什么",
+        "summary": "基于专业知识水平，AI辅助的开发者会产生非常不同的Git历史记录：初级开发者创建模糊、大型的提交（修复内容、更多改动），而资深开发者创建专注、原子性、描述详细的提交。提交历史反映了开发者的纪律性和git实践，而不仅仅是AI的能力。"
+      }
+    }
+  },
+  {
+    "title": "Cadence v8.4: a multi-model coding harness where Claude writes, Codex reviews, and Bugbot triages",
+    "slug": "cadence-multi-model-coding-harness",
+    "url": "https://dev.to/axledbetter/cadence-v84-a-multi-model-coding-harness-where-claude-writes-codex-reviews-and-bugbot-triages-1d73",
+    "source": "DEV Community",
+    "date": "2026-05-27T13:00:00.000Z",
+    "summary": "Cadence v8.4 uses different AI models for each SDLC phase—Claude for planning/implementation, GPT-5.5 for adversarial review, and Gemini for architecture tie-breaks—instead of single-model self-review. This reduces blind spots that occur when one model both writes and reviews code.",
+    "content": "Claude writes. Codex reviews. Bugbot triages. Gemini sits on the council.\nI shipped v8.4.0 this week. Here's why the multi-model angle matters and what the harness actually does.\nThe single-model problem                                            \nMost coding agents (including the well-funded ones) run the whole SDLC on one model. The same weights write the diff, review the diff, and decide whether the bug report is real. That's the equivalent of letting a junior engineer self-review their own PR and also decide which Sentry alerts to dismiss.                                                         \nA model that wrote subtly broken code is statistically the worst model to catch the bug in it. They share the same blind spots: the same fencepost errors, the same favorite anti-patterns, the same overconfidence on the parts they got wrong. Tier-1 human teams don't review like this. The author writes. Someone else reviews. A third person triages production incidents. Different people, different cognitive frames, different incentives.\nCadence treats LLMs the same way. The author and the reviewer should be different models, ideally from different families, ideally trained on different data mixes.\nWhat Cadence does                                                   \nCadence is a pipeline of rewireable skills:\nbrainstorm -> spec -> plan -> implement -> migrate -> validate -> PR -> review -> bugbot -> merge\nEach phase is a skill: a markdown contract plus a small amount of harness glue. Each phase can route to a different provider. The defaults I run:                                                        \nbrainstorm / spec — Claude (Anthropic) for structured longform reasoning\n\nimplement — Claude Sonnet for the writing pass\nreview — GPT-5.5 / Codex for the adversarial pass on the diff\n\ncouncil (optional) — Gemini, brought in for tie-breaks on architectural calls\n\nbugbot triage — Cursor's bugbot on the PR, then a model pass to classify each finding (real bug / false positive /",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Cadence v8.4：多模型编码工具——Claude负责编写、Codex负责审查、Bugbot负责分类",
+        "summary": "Cadence v8.4在软件开发生命周期的各个阶段使用不同的AI模型——Claude用于规划和实现、GPT-5.5用于对抗性审查、Gemini用于架构权衡——而不是采用单一模型的自我审查。这减少了当一个模型同时负责代码编写和审查时产生的盲点。"
+      }
+    }
+  },
+  {
+    "title": "How I Run Two Claude Accounts as One",
+    "slug": "claude-rate-limit-workarounds",
+    "url": "https://dev.to/inulute/how-i-run-two-claude-accounts-as-one-49b1",
+    "source": "DEV Community",
+    "date": "2026-05-27T13:00:00.000Z",
+    "summary": "A developer explores workarounds for Claude's rate limiting, frustrated by the choice between expensive upgrades (Claude Max at $100/month) or spiraling API costs (well above $100 for intensive sessions). The bottleneck is securing slightly more capacity without committing to enterprise pricing.",
+    "content": "Right! When Claude is finally getting it - your codebase, your weird architectural choices, that one bug you've been chasing for three days, BOOM! it stops. In between!\nRate limit exceeded. Please try again later.\nLater!? Like am I supposed to just pause my brain and come back in another five hours?\nI'm a developer. I don't have five hours. I have right now.\nFive hours. That's what gets me.\nAnd those five hours? They are never convenient. The limit doesn't wait for a clean stopping point. It hits mid-bug, mid-thought, right when the fix was one prompt away. It gets worse when there's a deadline on the other end: the PR due tonight, the demo tomorrow morning, the feature you already promised. The rate limit does not care about any of that or your credibility.\n\"Come back later\" also promises that later is useful. Hit the limit at 3pm and the reset lands after you've logged off for the day. Hit it late and it resets at some hour you'll sleep through. The window opens when you're not there to use it.\nYou can't just go and do something else. You feel very helpless. When you're deep in a Claude Code session, that session is the work. There's no parallel task sitting there waiting for you. You're not freed for the next five hours. You're blocked for those five hours.\nThat is the real cost. Not the limit, but the dead time it drops you into. And usually right when you can least afford it.\n\nOption One: Upgrade to Max.\nAnthropic wants you on Claude Max. That's $100 a month, with a $200/month tier above it.\nBut Max is built for people running Claude Code 24/7, burning tokens like they are free. That's clearly not me. That's probably not you either.\nI didn't need a lot more. I needed a little more. Just enough to finish a session without getting cut off. Paying 5x for headroom?? That I'd never fully use?? It felt wrong.\nOption Two: the API.\nPay per token, no hard limits. Sounds clean, until you do heavy Claude Code sessions and watch the bill spiral well past $100/month. Out.\nO",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何以一个账户的方式运行两个Claude账户",
+        "summary": "一位开发者在探索Claude速率限制的解决方案，为在昂贵的升级方案（Claude Max每月$100）或不断增加的API成本（密集使用远超$100）之间做出选择而感到沮丧。痛点在于如何在不承诺企业定价的情况下获得稍微更多的容量。"
+      }
+    }
+  },
+  {
+    "title": "How to Pass the Google Play 12-Tester Rule Without Losing Your Sanity",
+    "slug": "google-play-12-tester-requirement",
+    "url": "https://dev.to/codignia/how-to-pass-the-google-play-12-tester-rule-without-losing-your-sanity-2d5n",
+    "source": "DEV Community",
+    "date": "2026-05-27T13:00:00.000Z",
+    "summary": "Solo developers publishing on Google Play face a 12-tester closed testing requirement (for accounts created after November 2023) lasting 14 days minimum before production release. The article breaks down Google's behavioral filter designed to eliminate spam and provides actionable recruitment strategies.",
+    "content": "Hey devs! 👋 I'm a solo developer building mobile apps (some of you might remember my previous app, Finanzy, which I shared here a while ago). \nLike many of you, I recently ran into the ultimate indie developer roadblock: the Google Play 12-tester requirement for new personal developer accounts. It was a massive headache, so I spent weeks breaking down the official policies and testing alternative workflows to figure out how to conquer this safely without begging in random, sketchy forums.\nI published the full strategy over on my blog, but I wanted to share the exact actionable breakdown right here with the community. Let's dive into how the 12-tester rule actually works and how to bypass the friction.\nYou’ve spent weeks, maybe months, tracking down bugs, optimizing your widget tree, and wrestling with backend security rules. You run flutter build appbundle or compile your native release build, thinking the hardest part is behind you.\nThen you open the Google Play Console, and you’re hit with the ultimate indie developer roadblock: The 12-tester requirement.\nIf you registered a personal developer account after November 2023, you cannot simply push your app to production. Google requires you to run a closed test with at least 12 testers for 14 days consecutively. And no, just having 12 friends download the APK via a Google Drive link won’t cut it.\nLet’s break down exactly what Google looks for in a closed testing phase, why so many solo developers get rejected, and how you can pass this hurdle without losing your sanity.\nGoogle’s policy isn’t just a simple checkbox; it’s a strict behavioral filter designed to eliminate spam apps. The core requirement states that you must recruit a minimum of 12 testers who download your app and participate in your closed track.\nHere is how the straightforward technical workflow actually looks:\nYou upload your .aab file to the Closed Testing track in your Console.\nYou create a Google Group containing the email addresses of your tester",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何通过Google Play 12测试人员规则而不失去理智",
+        "summary": "在Google Play发布应用的独立开发者需要满足12测试人员的封闭测试要求（针对2023年11月后创建的账户），至少需要14天才能发布到生产环境。文章详细说明了Google为消除垃圾应用而设计的行为过滤器，并提供了可行的招聘策略。"
+      }
+    }
+  },
+  {
+    "title": "I'm Tired of Talking to AI",
+    "slug": "tired-of-talking-to-ai",
+    "url": "https://orchidfiles.com/im-tired-of-ai-generated-answers/",
+    "source": "Hacker News",
+    "date": "2026-05-27T10:43:25.000Z",
+    "summary": "A widely-upvoted Hacker News post expressing fatigue with AI-generated answers becoming ubiquitous on the internet, reflecting growing frustration with low-quality AI content and the normalization of AI interaction as the default mode of information seeking.",
+    "content": "Article URL: https://orchidfiles.com/im-tired-of-ai-generated-answers/\nComments URL: https://news.ycombinator.com/item?id=48292224\nPoints: 506\n# Comments: 298",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我厌倦了与AI聊天",
+        "summary": "一篇黑客新闻上高赞的帖子，表达了对AI生成答案充斥互联网的厌倦，反映出人们对低质量AI内容日益增长的沮丧，以及将AI互动作为默认信息获取方式的现象。"
+      }
+    }
+  },
+  {
     "title": "I Built a Git-Tracked Book Production Pipeline",
     "slug": "git-tracked-book-production-pipeline",
     "url": "https://dev.to/onsen/i-built-a-git-tracked-book-production-pipeline-2b8m",
@@ -188,6 +396,22 @@
       "zh": {
         "title": "真正看起来专业的CSS盒子阴影",
         "summary": "这篇文章将过时的CSS阴影技术与Linear、Vercel和Stripe等领先产品使用的现代设计实践进行对比。适当的阴影使用多个分层效果，具有适当的不透明度和模糊半径，以创建专业的深度和视觉层次。"
+      }
+    }
+  },
+  {
+    "title": "Stripe is friendly to “friendly fraud”",
+    "slug": "stripe-friendly-fraud-chargebacks",
+    "url": "https://www.gingerlime.com/2026/stripe-seem-friendly-to-friendly-fraud/",
+    "source": "Hacker News",
+    "date": "2026-05-27T00:40:05.000Z",
+    "summary": "A post examining how Stripe's chargeback dispute process may inadvertently enable friendly fraud—customers disputing legitimate charges as fraudulent—suggesting potential gaps in Stripe's fraud detection or dispute handling mechanisms.",
+    "content": "Article URL: https://www.gingerlime.com/2026/stripe-seem-friendly-to-friendly-fraud/\nComments URL: https://news.ycombinator.com/item?id=48287982\nPoints: 286\n# Comments: 194",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Stripe容易被\"友善欺诈\"所利用",
+        "summary": "一篇帖子审视Stripe的拒付异议流程如何可能无意中促成友善欺诈——消费者将合法费用虚假声称为欺诈——表明Stripe的欺诈检测或纠纷处理机制可能存在缺陷。"
       }
     }
   },
