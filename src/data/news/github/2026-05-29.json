@@ -1,5 +1,197 @@
 [
   {
+    "title": "Connect Claude to a live options-analytics API over MCP (the 2-endpoint gotcha)",
+    "slug": "connect-claude-live-options-analytics-api-mcp",
+    "url": "https://dev.to/tomasz_dobrowolski_35d32c/connect-claude-to-a-live-options-analytics-api-over-mcp-the-2-endpoint-gotcha-3e00",
+    "source": "DEV Community",
+    "date": "2026-05-29T13:10:21.000Z",
+    "summary": "Guide to connecting Claude to FlashAlpha's options-analytics API via Model Context Protocol, explaining authentication differences across claude.ai web, Claude Desktop, Claude Code, and editor clients with step-by-step setup for each.",
+    "content": "FlashAlpha ships two MCP endpoints with the same tool catalogue but different auth, and picking the wrong one is the single most common setup failure. This walks both paths and the errors you will actually hit.\nFlashAlpha exposes 40 tools over the Model Context Protocol (23 live, 17 historical-replay), so you can ask Claude about gamma exposure, dealer positioning, volatility surfaces and Greeks in plain English instead of hand-rolling REST calls.\nSame tools on both. Different authentication. Match the row to the client you are configuring.\n\n\n\nClient\nURL\nAuth\n\n\n\n\nclaude.ai (web)\nhttps://lab.flashalpha.com/mcp-oauth\nOAuth (one-time sign-in)\n\n\nClaude Desktop\n\nhttps://lab.flashalpha.com/mcp-oauth (current builds) or https://lab.flashalpha.com/mcp\n\nOAuth, or API key on older builds\n\n\nClaude Code (CLI)\nhttps://lab.flashalpha.com/mcp\nAPI key per tool call\n\n\nCursor / Windsurf / VS Code\nhttps://lab.flashalpha.com/mcp\nAPI key per tool call\n\n\n\nThe one rule: claude.ai web and current Claude Desktop builds use the -oauth endpoint and OAuth sign-in. The CLI and editor clients (Claude Code, Cursor, Windsurf, VS Code) use the plain /mcp endpoint and you hand Claude the key in your first message. If your Desktop build is old enough that OAuth fails, fall back to /mcp and the apiKey path below.\nCleanest setup. Sign in once, click Allow, and Claude calls tools on your behalf with no key handling. Works on Free, Pro, Max, Team and Enterprise.\nOpen claude.ai and sign in.\nYour name (bottom-left) then Settings.\nCustomize then Connectors. On Team/Enterprise the workspace owner adds connectors under Organization settings then Connectors.\nClick + then Add custom connector.\nFill in the dialog:\n\n\n\nName: FlashAlpha\n\n\nRemote MCP server URL: https://lab.flashalpha.com/mcp-oauth. The -oauth suffix is required.\nAdvanced settings: leave empty. FlashAlpha uses Dynamic Client Registration, so Claude registers itself. No client ID or secret to paste.\nClick Add, then Connect.\nSign in on the FlashAlpha",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "通过 MCP 将 Claude 连接到实时期权分析 API（2 端点陷阱）",
+        "summary": "通过模型上下文协议将 Claude 连接到 FlashAlpha 期权分析 API 的指南，说明 claude.ai 网页、Claude Desktop、Claude Code 和编辑器客户端之间的身份验证差异，并为每个客户端提供分步设置说明。"
+      }
+    }
+  },
+  {
+    "title": "From Kernel Scheduler to Python Source Line: Tracing a GPU Stall End to End",
+    "slug": "tracing-gpu-stall-kernel-scheduler-python",
+    "url": "https://dev.to/ingero/from-kernel-scheduler-to-python-source-line-tracing-a-gpu-stall-end-to-end-3f7f",
+    "source": "DEV Community",
+    "date": "2026-05-29T13:10:00.000Z",
+    "summary": "eBPF-based approach to tracing GPU stalls across kernel scheduler, CUDA runtime, and Python interpreter, allowing developers to pinpoint exact source code lines causing performance issues without profiling overhead.",
+    "content": "TL;DR\n\n\nA GPU that reports 97% utilization can still be the slowest part of a training step, and the reason usually lives outside the GPU: a CPU scheduler preemption, a driver-level allocation, a collective waiting on a straggler rank. Reading that reason off the hardware counters is impossible because counters do not carry causality. An eBPF agent that attaches to the CUDA runtime, the CUDA driver, and the kernel scheduler at the same time can correlate those layers by timestamp and PID, then resolve the stall to the exact line of the training loop that triggered it. This post walks the chain from a sched_switch to train.py:142.\nA training step slows down. The first tool anyone reaches for is nvidia-smi, which reports utilization in the high 90s and memory comfortably under the limit. Nothing actionable. The next step is a profiler. Nsight Systems and Nsight Compute produce excellent traces, but their overhead is large enough that they are development tools, not something left running on a production training job. So the investigation falls back to the oldest method there is: add timing prints around suspect sections, rerun, read the numbers, move the prints, rerun again. On a multi-hour job on rented hardware, each iteration is expensive, and the prints only ever measure what someone already suspected.\nThe information needed to skip all of that exists. It is just spread across three layers that no single counter joins: the Linux kernel knows when the training process was scheduled off-CPU, the CUDA driver knows when a cuLaunchKernel or a cudaMalloc actually ran, and the Python interpreter knows which source line issued the call. The problem has never been a lack of data. It is that the data is not correlated.\neBPF makes the join possible without modifying the workload. The agent attaches uprobes to libcudart.so (the CUDA Runtime API), libcuda.so (the CUDA Driver API), and libnccl.so (collectives), and tracepoints to the kernel scheduler, the memory subsystem, bloc",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "从内核调度程序到 Python 源代码行：端到端追踪 GPU 停滞",
+        "summary": "基于 eBPF 的 GPU 停滞追踪方法，跨越内核调度程序、CUDA 运行时和 Python 解释器，允许开发人员精确定位导致性能问题的源代码行，无需分析开销。"
+      }
+    }
+  },
+  {
+    "title": "Shopify Data Mapping Strategies: Patterns That Prevent Silent Integration Failures",
+    "slug": "shopify-data-mapping-strategies-integration-failures",
+    "url": "https://dev.to/asad_abdullah_zafar/shopify-data-mapping-strategies-patterns-that-prevent-silent-integration-failures-3dc6",
+    "source": "DEV Community",
+    "date": "2026-05-29T13:09:51.000Z",
+    "summary": "Eight data mapping patterns for Shopify integrations organized in a five-stage transformation pipeline to prevent silent failures from unmapped fields, type coercion errors, and missing enums in production systems.",
+    "content": "Poor data quality costs $12.9M per year on average (Gartner, 2022). In Shopify integrations, the failure mode is specific: an unmapped field silently drops a value, an incorrect type coercion truncates a price, a missing enum routes an order to the wrong fulfillment channel.\nThe 8 Mapping Patterns Reference\n\n  \n    \nPattern\n      Use Case\n      Complexity\n      Failure Risk\n    \nDirect field mapping\n      Same data type, different name\n      Low\n      Low\n    \nType coercion\n      String to number, float to int\n      Low\n      Medium — precision loss\n    \nValue transformation\n      Enum remapping, format conversion\n      Medium\n      Medium — unmapped values\n    \nComputed field\n      Derived from multiple source fields\n      Medium\n      Medium — logic errors\n    \nLookup / cross-reference\n      ID resolution across systems\n      High\n      High — missing mappings\n    \nConditional mapping\n      Field depends on other field values\n      High\n      High — edge cases\n    \nAggregation mapping\n      Many-to-one field compression\n      High\n      Medium — data loss risk\n    \nSplit mapping\n      One-to-many field expansion\n      Medium\n      Low with validation\n    \n\n\n\nThe Transformation Pipeline\nStructure transformation as five independent stages — not monolithic logic.\n\n\n\n\njsclass ShopifyOrderTransformPipeline {\n  async run(rawWebhookPayload, shop) {\n    const extracted   = await this.extract(rawWebhookPayload);\n    const normalized  = await this.normalize(extracted);\n    const transformed = await this.transform(normalized, shop);\n    const validated   = await this.validate(transformed);\n    return validated; // Delivery is separate — different failure mode\n  }\n  async extract(raw) {\n    const order    = typeof raw === 'string' ? JSON.parse(raw) : raw;\n    const required = ['id', 'line_items', 'shipping_address', 'total_price'];\n    for (const field of required) {\n      if (order[field] === undefined || order[field] === null) {\n        throw new MappingError(`Required fiel",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Shopify 数据映射策略：防止沉默集成失败的模式",
+        "summary": "针对 Shopify 集成的八种数据映射模式，组织在五阶段转换管道中，防止未映射字段、类型强制转换错误和缺失枚举导致的生产系统中的沉默失败。"
+      }
+    }
+  },
+  {
+    "title": "Copilot is making juniors mass-produce code they can't debug",
+    "slug": "copilot-juniors-mass-produce-code-cant-debug",
+    "url": "https://dev.to/adioof/copilot-is-making-juniors-mass-produce-code-they-cant-debug-3lgm",
+    "source": "DEV Community",
+    "date": "2026-05-29T13:09:46.000Z",
+    "summary": "Analysis of how GitHub Copilot's speed optimization enables junior developers to write code faster than they can understand it, masking skill gaps and increasing code churn and production bugs.",
+    "content": "We have created a generation of developers who are able to write code at a pace that they cannot read. This shouldn't be a skill.\nBy early 2024, over 1.8 million paid subscribers trusted GitHub Copilot to write their code. The tool is omnipresent. And no, I won't argue against AI assistants. I'll argue we've been turning a blind eye to one of their consequences, and it's going to sting.\nCopilot is optimized for one thing: output speed. Hit Tab, get code. Hit Tab again, get more code. It feels productive. It feels like flow.\nHowever, being able to follow the flow of code does not mean that you understood everything. A junior dev can scaffold an entire feature in an afternoon without understanding a single line of what was generated.\nThe GitClear 2024 report revealed that there was more measurable code churn; that’s the code you write which is quickly revised or trashed. That’s not velocity. That’s waste.\nOne uncomfortable truth that no one wants to address. When that AI-generated code breaks at 2am in production, Copilot isn't on call. You are.\nStanford research has shown the tradeoff clearly: AI-assisted code ships faster but doesn't necessarily ship more correctly. Speed goes up. Bug rates don't go down. Sometimes they go up.\nI have seen developers spend minutes staring at a stack trace for something they wrote — I mean, they accepted. There’s a difference. If you can’t trace the logic in your head, you can’t make the fix under pressure. 🔥\nThe loudest debate in tech right now is \"will AI replace developers?\" Wrong question.\nThe real risk is developers who can't function without autocomplete shipping production code to real users. That's not hypothetical. That's happening right now at companies of every size.\nConsider it in this manner:\n→ A senior dev uses Copilot as a shortcut for boilerplate they already understand\nThis doesn't imply that AI assistants are bad. It's an argument for being honest about the skill gap they can mask.\nI don't think the answer is bannin",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Copilot 让初级开发者大量生成他们无法调试的代码",
+        "summary": "分析了 GitHub Copilot 如何通过速度优化使初级开发者能够比理解代码更快地编写代码，掩盖技能差距并增加代码变更和生产错误。"
+      }
+    }
+  },
+  {
+    "title": "Done means released. Everything else is inventory.",
+    "slug": "done-means-released-everything-else-inventory",
+    "url": "https://dev.to/natyoung/done-means-released-everything-else-is-inventory-46fc",
+    "source": "DEV Community",
+    "date": "2026-05-29T13:08:35.000Z",
+    "summary": "Explanation of continuous delivery built on trunk-based development and continuous integration, emphasizing that 'done' means released to users, not deployed, and distinguishing deployment as technical event from release as business decision.",
+    "content": "Part 3. Part 1 was trunk-based development. Part 2 was continuous integration. Trunk-based development and CI enable Continuous Delivery.\nContinuous Delivery means the head of master/main is always kept in a deployable state. The functionality is releasable to users, on demand, whenever the business decides.\nRelease is a business decision. The code is always ready to go. The question is whether you want to release it now.\nOn \"CD won't work here.\" Every organisation thinks it is special. There are special rules and regulations that mean CD is not possible at their particular company. Despite evidence to the contrary from the research output from DORA data across thousands of organisations, including regulated industries, government, and finance. The rules blocking CD may or may not really exist, but they are rarely examined closely enough to find out.\nCD is the result of everything before it working together:\nTrunk-based development - everyone commits to trunk, decoupling strategies keep incomplete work hidden\nContinuous integration - every commit is verified by a fast automated build and test suite\nAutomated deployment - deploying is a scripted, repeatable, non-event\nMonitoring and rollback - you can detect problems quickly and recover quickly\nWhen any of these are missing, teams batch up changes, deploy infrequently, and accumulate risk.\n\nDeploy: the code made it through to production.\nRelease: users are experiencing the change.\nThese are two different events. The gap between them should be a deliberate business decision, not an accident or a \"big bang\" release. When it is, risk accumulates.\nYou can deploy many times before releasing. Each deploy is a technical (non) event. Code moves to production, behind a feature flag or dark launch. Release is the human decision to make the change visible to users.\n\"Done\" means released to end users. Not the dev environment, or done but \"waiting for QA\".\nThe world's premier upcoming project management tool for teams that don't",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "完成意味着已发布，其他一切都是库存",
+        "summary": "解释了建立在主干开发和持续集成基础上的持续交付，强调\"完成\"意味着向用户发布而非仅仅部署，并区分了部署作为技术事件和发布作为业务决策。"
+      }
+    }
+  },
+  {
+    "title": "My Productivity System Is a Desktop Wallpaper",
+    "slug": "productivity-system-desktop-wallpaper",
+    "url": "https://dev.to/akyavagal/my-productivity-system-is-a-desktop-wallpaper-bnn",
+    "source": "DEV Community",
+    "date": "2026-05-29T13:08:26.000Z",
+    "summary": "Desktop wallpaper-based productivity system using a Kanban board with two-dimensional status (NOW/SOON/LATER/HOLD) and priority tracking that replaces traditional task management tool overhead.",
+    "content": "Most productivity discussions start with a tool recommendation.\nNotion.\nThe list never ends.\nMy current productivity system uses none of them.\nIt's a desktop wallpaper.\nAnd a handful of empty files.\nI created a wallpaper with five sections:\n📁 Apps & Docs\n🔥 NOW\n⏭️ SOON\n📅 LATER\n⏸️ HOLD\nThen I started using empty files as project tokens.\nEach file represents a piece of work:\nDeployment scripts\nConfiguration changes\nDocumentation\nAutomation projects\nTesting activities\nIdeas worth keeping around\nInstead of maintaining a task board in another application, I simply drag the token to the appropriate section of the desktop.\nAt first glance, it looks like a personal Kanban board.\nBut there's a second dimension.\nNOW → SOON → LATER → HOLD\n\nMoving a token horizontally changes its status.\nTop    = Critical\nMiddle = Important\nBottom = When Time Permits\n\nMoving a token vertically changes its priority.\nThis means every item has two attributes:\nStatus\nPriority\nWithout opening a single application.\nThe interesting part isn't the board itself.\nIt's the visibility.\nMost productivity systems are pull-based.\nYou have to remember they exist.\nYou open the app.\nYou check the board.\nYou review the tasks.\nYou decide what to do.\nThis desktop system is different.\nIt's ambient.\nEvery time I minimize a window, my priorities are already there.\nI instantly see:\nWhat I'm working on now\nWhat I'm doing next\nWhat can wait\nWhat I've consciously parked\nThe information is impossible to miss.\nMany productivity tools introduce their own maintenance overhead.\nYou end up managing the system instead of the work.\nCreating tasks.\nUpdating statuses.\nMaintaining labels.\nCleaning dashboards.\nReviewing boards.\nEventually, the system becomes another project.\nMy desktop board removes almost all of that friction.\nReprioritizing takes one action:\nDrag an icon.\nThat's it.\nMoving something from SOON to NOW is a deliberate commitment.\nYou can't pretend everything is high priority.\nItems in HOLD are still visible but no l",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我的生产力系统是一张桌面壁纸",
+        "summary": "基于桌面壁纸的生产力系统，使用具有二维状态（当前/即将/稍后/暂停）和优先级追踪的看板，以此替代传统任务管理工具的开销。"
+      }
+    }
+  },
+  {
+    "title": "Building a Multi-Seller Marketplace with Next.js + Whop (No Stripe Connect)",
+    "slug": "multi-seller-marketplace-nextjs-whop",
+    "url": "https://dev.to/egledigital/building-a-multi-seller-marketplace-with-nextjs-whop-no-stripe-connect-57nf",
+    "source": "DEV Community",
+    "date": "2026-05-29T13:08:10.000Z",
+    "summary": "Multi-seller marketplace template using Next.js and Whop's platform API for authentication, payment routing, KYC, and promo codes, eliminating weeks of integration work.",
+    "content": "A few weekends ago we built Stax — a multi-seller template marketplace where any signed-in user can become a seller, upload Notion/Figma/Webflow/code templates, set their own price, and start collecting payouts. The platform takes a 5% cut on every paid sale.\nLive demo →\n\n\nHere's the architecture and the tradeoffs.\nA \"real\" marketplace needs all of this on day one:\nAuthentication for both buyers and sellers\nPayment routing — money has to land on the seller's account, minus your cut\nKYC for anyone receiving payouts\nFile delivery with access control\nA discount/promo engine\nA review system\nWe use Whop for four of them, which collapsed weeks of plumbing into a single SDK:\nWhop OAuth for sign-in (handles credentials, recovery, sessions).\nWhop for Platforms for connected accounts and payment splits via application_fee_amount on each checkout. No Stripe Connect setup, no manual payouts.\nWhop hosted KYC for seller verification.\nWhop Promo Codes API — sellers issue their own codes, scoped to their templates, redeemed at the embedded checkout.\nThat leaves files + reviews + UI to build ourselves.\nNext.js App Router + Turbopack, deployed on Vercel\nNeon Postgres via the Vercel integration (auto-populated DATABASE_URL)\nPrisma 7 with @prisma/adapter-pg\nUploadThing for file uploads (preview images on public routes, downloadables gated)\niron-session for encrypted cookie sessions (no Redis)\nZod for env + input validation\nTailwind (CSS-first config, @theme blocks, no config file)\nThis is the part that usually takes weeks. With Whop for Platforms:\nSeller signs in → clicks \"Become a seller\" → app creates a connected company under our parent Whop platform company → Whop redirects them through hosted KYC.\nSeller publishes a template → app creates a Whop product on the seller's connected company → creates a checkout configuration with application_fee_amount (our 5% cut).\nBuyer pays via embedded checkout. Whop processes payment, deducts the fee, routes the rest to the seller's connected bal",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用 Next.js + Whop 构建多卖家市场（无 Stripe Connect）",
+        "summary": "使用 Next.js 和 Whop 平台 API 的多卖家市场模板，用于身份验证、支付路由、KYC 和促销代码，消除数周的集成工作。"
+      }
+    }
+  },
+  {
+    "title": "Stop Using WebSockets for Everything 🚨",
+    "slug": "stop-using-websockets-for-everything",
+    "url": "https://dev.to/koolkamalkishor/stop-using-websockets-for-everything-3l26",
+    "source": "DEV Community",
+    "date": "2026-05-29T13:06:34.000Z",
+    "summary": "Argument against overusing WebSockets, presenting alternatives like Server-Sent Events, long polling, and WebRTC with a decision matrix for selecting appropriate real-time communication technology by use case.",
+    "content": "When developers hear \"real-time communication,\" the first thing that comes to mind is usually WebSockets.\nBut here's the thing:\nWebSockets are not always the best solution.\nChoosing the wrong real-time technology can add unnecessary complexity, infrastructure costs, and maintenance headaches.\nLet's look at some alternatives and when you should use them.\nSSE allows the server to push updates to the client over a regular HTTP connection.\nPerfect for:\n✅ Live dashboards\nExample:\nconst eventSource = new EventSource(\"/events\");\n\neventSource.onmessage = (event) => {\n  console.log(event.data);\n};\n\nWhy I like it:\nSimpler than WebSockets\nNative browser support\nAutomatic reconnection\nLower infrastructure complexity\nBefore WebSockets became popular, long polling was the go-to approach.\nHow it works:\nClient sends a request.\nServer keeps the request open.\nWhen data is available, server responds.\nClient immediately creates another request.\nUseful for:\n✅ Legacy systems\nNot ideal for high-frequency updates.\nWebRTC enables direct peer-to-peer communication.\nBest for:\n✅ Video calls\nThis is what powers many modern meeting applications.\nWith HTTP/2 and modern browsers, streaming data continuously is easier than ever.\nUseful for:\n✅ AI-generated content streaming\nUse WebSockets when you need:\n✅ Bidirectional communication\n\n\n\nUse Case\nRecommended Technology\n\n\n\n\nAI Streaming\nSSE\n\n\nNotifications\nSSE\n\n\nLive Dashboard\nSSE\n\n\nChat App\nWebSocket\n\n\nMultiplayer Game\nWebSocket\n\n\nVideo Call\nWebRTC\n\n\nLegacy Systems\nLong Polling\n\n\n\nOne of the biggest engineering mistakes is choosing a more complex solution when a simpler one would work perfectly.\nNot every real-time application needs WebSockets.\nSometimes a simple SSE connection is all you need.\nWhat real-time technology are you using in production today?",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "停止在所有地方使用 WebSocket 🚨",
+        "summary": "反对过度使用 WebSocket 的论点，提出了服务器发送事件、长轮询和 WebRTC 等替代方案，以及根据用例选择适当的实时通信技术的决策矩阵。"
+      }
+    }
+  },
+  {
+    "title": "Hey just joined this community, I am the founder of blog2video.app",
+    "slug": "founder-blog2video-joins-community",
+    "url": "https://dev.to/arslan1997/hey-just-joined-this-community-i-am-the-founder-of-blog2videoapp-29bd",
+    "source": "DEV Community",
+    "date": "2026-05-29T13:06:19.000Z",
+    "summary": "Community introduction post from the founder of blog2video.app, a tool for converting blog content to video format.",
+    "content": "",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "嗨，我刚加入这个社区，我是 blog2video.app 的创始人",
+        "summary": "来自 blog2video.app 创始人的社区介绍帖子，该工具用于将博客内容转换为视频格式。"
+      }
+    }
+  },
+  {
+    "title": "@media css",
+    "slug": "media-css-responsive-web-design",
+    "url": "https://dev.to/raja_b_0c9d242e2c26cf063b/media-css-3m95",
+    "source": "DEV Community",
+    "date": "2026-05-29T13:06:10.000Z",
+    "summary": "Overview of the @media CSS rule for responsive web design, explaining how it applies styles based on device characteristics with examples for mobile-first design and print styles.",
+    "content": "@media is a CSS rule that applies different styles based on device characteristics (screen size, orientation, resolution, etc.) — the foundation of responsive web design.\nWhat use???\n@media applies CSS styles only when certain conditions are met\n\n\nIt checks: screen width, height, orientation, resolution, device type\n\n\nCore technology for responsive web design (RWD) \n\n\n\nWhy use???\nDifferent screen sizes:Mobile, tablet, desktop need different layouts.\nBetter UX:Content adapts to device for better user experience.\nPrint vs Screen: Different styles for printing vs displaying on screen \nWhen use???\nUse @media when:\nScreen width changes — e.g., mobile (< 600px), tablet (600-900px), desktop (> 900px).\n\n\nOrientation changes — portrait vs landscape.\n\n\nDevice type — screen, print, speech (screen readers).\n\n\nUser preferences — reduced motion, dark mode, data usage.\n\n\n\nHow to Use???\nBasic Syntax:\n\n@media media-type and (media-feature: value) {\n  /* CSS rules */\n}\n\nCommon Examples:\n1. Mobile First: (screen width ≤ 600px)\n\n/* Default (mobile) */\n.container \n{\n  width: 100%;\n  padding: 10px;\n}\n\n\n/* Tablet and Desktop */\n@media (min-width: 600px) \n{\n  .container {\n    width: 540px;\n    padding: 20px;\n  }\n}\n\n/* Large Desktop */\n@media (min-width: 900px) \n{\n  .container {\n    width: 720px;\n  }\n}\n\n2. Orientation (Portrait vs Landscape):\n/* Portrait mode */\n@media (orientation: portrait) \n{\n  .image \n  {\n    width: 100%;\n  }\n}\n\n\n/* Landscape mode */\n@media (orientation: landscape) \n{\n  .image \n {\n    width: 50%;\n  }\n}\n\n3. Print Styles:\n@media print {\n  .no-print {\n    display: none;\n  }\n\n  body {\n    font-size: 12pt;\n  }\n}\n\n4. Multiple Conditions:\n@media screen and (min-width: 768px) and (max-width: 1024px) {\n  /* Applies to tablets only */\n  .grid {\n    columns: 2;\n  }\n}\n\nQuick Reference Table:\n\n\n\nMedia Feature\nExample\nWhat it checks\n\n\n\n\nmin-width\n@media (min-width: 600px)\nScreen width ≥ 600px\n\n\nmax-width\n@media (max-width: 768px)\nScreen width ≤ 768px\n\n\norientation\n@media (orientation",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "@media css",
+        "summary": "概述 @media CSS 规则在响应式网页设计中的应用，解释它如何根据设备特性应用样式，包括移动优先设计和打印样式的示例。"
+      }
+    }
+  },
+  {
+    "title": "MCP Security in 2026: The Vulnerabilities You're Probably Running Right Now",
+    "slug": "mcp-security-vulnerabilities-2026",
+    "url": "https://dev.to/mrclaw207/mcp-security-in-2026-the-vulnerabilities-youre-probably-running-right-now-25b7",
+    "source": "DEV Community",
+    "date": "2026-05-29T13:05:33.000Z",
+    "summary": "Analysis of two critical MCP vulnerabilities in 2026: a CVSS 9.8 nginx-ui flaw enabling unauthenticated system takeover and a fundamental MCP STDIO transport design flaw affecting all SDKs.",
+    "content": "MCP Security in 2026: The Vulnerabilities You’re Probably Running Right Now\n\n\nLast week, the MCP ecosystem got a wake-up call. Two critical vulnerabilities were disclosed that together put hundreds of thousands of MCP servers at risk — and if you're running any MCP integration in production, there's a real chance you're exposed right now without knowing it.\nI'm not going to scare you. I'm going to show you exactly what's affected, what the actual risk looks like, and the specific steps to lock down your setup. This is hands-on, OpenClaw-specific guidance — not theoretical security theater.\nThis is the scariest one. A flaw in the nginx-ui MCP endpoint allows unauthenticated attackers to achieve full system takeover. CVSS 9.8 out of 10. That's as close to \"drop everything\" as security scores get.\nThe exposure: more than 2,600 internet-exposed instances right now. If you're running nginx-ui with an MCP integration, assume you're in this number until proven otherwise.\nHow to check if you're exposed:\nnginx-ui admin panel accessible from the internet\nNo IP allowlisting on the MCP endpoint\nRunning any nginx-ui version before the latest patch\nThe fix: Update nginx-ui to the latest version. If you can't update immediately, restrict access to the admin panel via network-level allowlisting. Don't rely on the nginx-ui auth alone — that was the attack surface.\nThe more widespread issue is a fundamental design flaw in Anthropic's MCP STDIO transport. This affects all supported SDKs. The attacker doesn't even need credentials — if they can get a malicious message to your MCP server, they can execute arbitrary OS commands.\nYour exposure here depends on how your MCP servers are deployed:\nLocal dev environments: Lower risk — attacker would need local access or a path to your dev machine\nShared/internal infra: Real risk — anyone with network access to your MCP endpoint can potentially pivot to your host\nCloud deployments with exposed MCP ports: This is where it gets serious. If your S",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "2026年MCP安全问题：你现在可能正在运行的漏洞",
+        "summary": "分析了2026年两个关键的MCP漏洞：一个CVSS 9.8的nginx-ui漏洞导致未经身份验证的系统接管，以及一个影响所有SDK的MCP STDIO传输设计根本缺陷。"
+      }
+    }
+  },
+  {
+    "title": "Your AI Agent Is Only As Good As Your CRM Connection",
+    "slug": "ai-agent-only-good-as-crm-connection",
+    "url": "https://dev.to/mrclaw207/your-ai-agent-is-only-as-good-as-your-crm-connection-566n",
+    "source": "DEV Community",
+    "date": "2026-05-29T13:05:23.000Z",
+    "summary": "Argument that enterprise AI deployment success depends on data integration quality over model capability, showing how CRM and data layer issues cause agent failures and prescribing read-first and single-source-of-truth patterns.",
+    "content": "Your AI Agent Is Only As Good As Your CRM Connection\n\n\nIntegration is the number one challenge in enterprise AI deployments. Not model quality. Not agent capability. Integration. Here's why every AI strategy discussion needs to start with your data layer — not your model card.\nYou've seen the demos. The AI agent that answers customer questions, drafts responses, pulls up relevant context, routes cases to the right team. It looks like magic in the vendor presentation.\nThen you deploy it and it says: \"I'm sorry, I don't have access to that information.\"\nThe demo worked because the vendor had clean, complete data in a sandbox environment. Your production environment has twelve years of CRM debt — inconsistent fields, duplicate records, three systems that don't quite agree on what a \"customer\" is.\nThe AI can only work with what it can access. If your data layer is a mess, your agent will be a mess.\nThe reason most AI deployments underinvest in integration is that integration work is invisible. Nobody gets promoted for cleaning up a data pipeline. Nobody writes a case study about \"how we spent six months normalizing our contact records.\"\nBut everyone notices when the AI agent gives wrong answers because it pulled from the wrong CRM field.\nThe symptoms show up in the AI layer. The root cause is in the integration layer. And the fix has to happen in the integration layer — not the model layer.\nAfter watching dozens of AI deployments succeed and fail, three integration patterns consistently appear in the successes:\n1. Read-first, write-second. The agent needs to read data before it can write anything useful. Build the read integration first — clean, reliable, with proper error handling. The write integration can come later.\n2. Single source of truth. One system owns each piece of data. The agent reads from that system and writes back to that system. When the CRM contradicts the support system, the agent knows which one to trust.\n3. Human-in-the-loop for writes. Any write op",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的AI代理只有与CRM连接一样好",
+        "summary": "论证企业AI部署的成功取决于数据集成质量而非模型能力，展示CRM和数据层问题如何导致代理失败，并规定了读优先和单一真实来源的模式。"
+      }
+    }
+  },
+  {
     "title": "A-Z Database Glossary",
     "slug": "a-z-database-glossary",
     "url": "https://dev.to/preetid/a-z-database-glossary-39hk",
@@ -188,6 +380,38 @@
       "zh": {
         "title": "你应该了解的 Angular @switch 升级",
         "summary": "Angular 的 @switch 块现在包括详尽的类型检查，在 TypeScript 类型更改时检测缺失的情况，以及分组情况以消除重复标记。这些改进有助于防止支持票队列等组件中的 UI 状态与类型定义不同步。"
+      }
+    }
+  },
+  {
+    "title": "Cars collect a startling amount of data about you",
+    "slug": "cars-collect-startling-amount-of-data",
+    "url": "https://www.bbc.com/future/article/20260513-your-car-is-spying-on-you-its-about-to-get-worse",
+    "source": "Hacker News",
+    "date": "2026-05-29T03:01:00.000Z",
+    "summary": "BBC analysis of the extensive data collection practices by modern vehicles and growing privacy concerns as automotive data collection capabilities expand.",
+    "content": "Article URL: https://www.bbc.com/future/article/20260513-your-car-is-spying-on-you-its-about-to-get-worse\nComments URL: https://news.ycombinator.com/item?id=48318481\nPoints: 400\n# Comments: 192",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "汽车收集的关于你的数据量令人震惊",
+        "summary": "英国广播公司对现代汽车广泛数据收集实践的分析，以及随着汽车数据收集能力扩展而增加的隐私担忧。"
+      }
+    }
+  },
+  {
+    "title": "Blue Origin's New Glenn blows up during static fire test",
+    "slug": "blue-origin-new-glenn-static-fire-test-failure",
+    "url": "https://twitter.com/nasaspaceflight/status/2060164928472854821",
+    "source": "Hacker News",
+    "date": "2026-05-29T01:16:38.000Z",
+    "summary": "Blue Origin's New Glenn heavy-lift rocket experienced catastrophic failure during static fire testing, a significant setback for the company's planned commercial spaceflight operations.",
+    "content": "https://twitter.com/nasaspaceflight/status/20601649284728548...\nhttps://xcancel.com/nasaspaceflight/status/20601649284728548...\nhttps://twitter.com/SawyerMerritt/status/2060174287563116696...\nhttps://xcancel.com/SawyerMerritt/status/2060174287563116696...\nhttps://arstechnica.com/space/2026/05/blue-origins-new-glenn...\nComments URL: https://news.ycombinator.com/item?id=48317774\nPoints: 336\n# Comments: 331",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "蓝色起源新格伦火箭在静火测试中爆炸",
+        "summary": "蓝色起源新格伦重型火箭在静火测试期间遭遇灾难性故障，这对该公司计划的商业太空飞行运营是一个重大挫折。"
       }
     }
   },
