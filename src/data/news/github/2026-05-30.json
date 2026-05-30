@@ -1,5 +1,197 @@
 [
   {
+    "title": "为什么使用代理总弹出“安全验证”？深度解析 Cloudflare 拦截机制与避坑指南",
+    "slug": "proxy-security-verification-cloudflare-bypass",
+    "url": "https://dev.to/guigenyi/wei-shi-yao-shi-yong-dai-li-zong-dan-chu-an-quan-yan-zheng-shen-du-jie-xi-cloudflare-lan-jie-ji-zhi-yu-bi-keng-zhi-nan-1795",
+    "source": "DEV Community",
+    "date": "2026-05-30T06:51:45.000Z",
+    "summary": "This technical guide explains why proxies trigger persistent security verification challenges on websites like GitHub and Medium, analyzing Cloudflare's detection mechanisms including datacenter IP reputation, browser fingerprinting, and behavioral anomalies. It offers practical optimization strategies for avoiding these blocks by selecting residential IPs, maintaining persistent connections, and using mainstream browsers.",
+    "content": "为什么使用代理总弹出“安全验证”？深度解析 Cloudflare 拦截机制与避坑指南\n\n\n\n在互联网开发、跨国办公或日常浏览中，使用代理（如 VPN、机场、Socks5、OpenVPN/WireGuard 协议等）已经是不可或缺的技能。\n然而，许多人在开启代理后，访问国外网站（如 Dev.to、GitHub、Medium 等）时，频繁遭遇如下提示：\nPerforming security verification\nThis website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot.\n甚至更让人崩溃的是，有时候点击了验证码，它依然不断刷新，陷入无限验证死循环。这并不是你的系统或浏览器损坏了，而是代理网络的特性触发了现代 Web 安全防御机制。本文将从技术原理深入拆解这一现象，并提供切实可行的优化方案。\n现代网站大多会部署 Cloudflare（如 Turnstile 验证）、Akamai、Imperva 等网络安全与防 DDoS 攻击服务。这些服务通过以下几个维度来评估访问者是“真实人类”还是“恶意机器人（Bot）”：\n这是最核心的技术原因。代理服务商（特别是商业 VPN 或公共机场）所使用的 IP 地址，绝大多数属于数据中心（Data Center）机房 IP，而非普通家庭的住宅（Residential）IP。\n高密度共用： 同一个代理 IP 节点上，可能同时有成百上千个用户在发起请求。\n黑名单牵连： 如果该 IP 下的其他匿名用户正在使用自动化脚本抓取数据、进行端口扫描，或者发起恶意网络攻击，安全系统的风控引擎（如 Cloudflare IP Threat Score）就会瞬间拉高该 IP 的风险等级。当你恰好切换到这个“脏 IP”时，就会被系统无差别“连坐”，要求强制验证。\n安全防御系统不仅看你的 IP 归属地，还会通过深层网络和浏览器几何特征来判断你的真实身份：\nTLS/SSL 握手特征（JA3 指纹）： 当你通过一些特定协议或混淆模式（如带有特定加密的 TCP 隧道）连接网站时，浏览器发出的 TLS 握手特征可能会发生形变。\nTCP/IP 栈特征： 经过代理服务器的转发，数据包的 TTL（生存时间）、Window Size（TCP 窗口大小）等底层参数可能会与你浏览器宣称的操作系统（如 Windows 11 或 Ubuntu 24.04）的标准特征不匹配。\n浏览器画布与几何指纹（Canvas/Geometry）： 浏览器的窗口大小、屏幕分辨率以及它们的比例，也是风控系统评估的重要指标。 自动化爬虫脚本（如 Selenium、Puppeteer）在启动时，常常使用死板的默认分辨率（如完美的 1024x768 或 800x600）。如果你的代理 IP 本身信誉度低，窗口又处于这些“机器人专属分辨率”下，或者网页窗口大小与物理显示器分辨率比例极其诡异（例如伪造环境时穿帮），就会直接触发拦截。\n风控系统对你使用的浏览器品牌同样有一套风险权重评估。\n如果你使用的是 Yandex 浏览器 或某些小众、经过重度隐私魔改的浏览器，在配合代理时会变得极其难通过验证。Yandex 浏览器虽然基于 Chromium 内核，但其内部由俄罗斯团队集成了大量独特的隐私保护技术与 Canvas 渲染机制，计算出的浏览器指纹非常非主流。\n更致命的是地缘标签冲突：欧美的主流网络安全公司（如 Cloudflare）对特定区域标签的客户端流量天然设置了更低的信任阈值。当你用着 Yandex 浏览器，IP 却挂着美国或日本的代理时，这种“指纹与地理位置的剧烈冲突”在风控模型眼里极度反常，系统会判定该请求大概率来自自动化黑客工具，从而直接卡死验证。\n如果你的代理客户端开启了“负载均衡”或“定时自动切换节点”，可能会导致前一分钟请求来自日本，后一分钟请求来自美国。这种超越物理极限的“空间瞬移”属于高风险异常行为。此外，如果通过代码瞬间改变窗口尺寸，而非人类拖拽时产生的连续 resize 事件，也会被风控脚本捕捉到异常。\n要彻底解决或缓解这个问题，可以根据实际的使用场景，从节点筛选、路由分流以及浏览器环境三个层面进行针对性优化：\n避开热门节点，寻找冷门/原生 IP： 放弃那些人数爆满的公共节点，尝试切换到使用人数较少的边缘地区节点。\n优先选择住宅/ISP 节点： 如果你的代理服务商提供标注有 \"Residential\" 或 \"ISP\" 字样的节点，请优先使用。安全风控系统对家庭宽带 IP 的信任度天然远高于机房 IP。\n保持连接的持久性（Sticky Se",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么使用代理总弹出\"安全验证\"？深度解析 Cloudflare 拦截机制与避坑指南",
+        "summary": "这份技术指南解释了为什么代理会在 GitHub 和 Medium 等网站上触发持续的安全验证挑战，分析了 Cloudflare 的检测机制，包括数据中心 IP 声誉、浏览器指纹识别和行为异常。它提供了实用的优化策略来避免这些拦截，包括选择住宅 IP、维护持久连接和使用主流浏览器。"
+      }
+    }
+  },
+  {
+    "title": "The .txt File as the Soul of a Personal AI — FileRAG Memory Architecture",
+    "slug": "filerag-txt-memory-chatbot-architecture",
+    "url": "https://dev.to/dharanidh75/the-txt-file-as-the-soul-of-a-personal-ai-filerag-memory-architecture-k71",
+    "source": "DEV Community",
+    "date": "2026-05-30T06:45:32.000Z",
+    "summary": "FileRAG proposes a novel memory architecture for AI assistants that stores conversation distillations in plain .txt files instead of traditional databases or vector stores, using hybrid BM25+semantic retrieval to maintain contextual understanding across long conversations. The approach is human-readable, editable, and scales better than raw message histories or embedding-heavy systems.",
+    "content": "The .txt File as the Soul of a Personal AI — FileRAG Memory Architecture\n\n\nBy Dharanidharan J (JD)\n\nFull Stack & AI Engineer | Building Jarvix\nEvery chatbot tutorial teaches you the same thing:\nhistory = []\nhistory.append({\"role\": \"user\", \"content\": message})\n\nAnd that works — until it doesn't.\nAfter 500 turns, your dict has forgotten who the user is. After 1000 turns, you're hitting token limits. After a restart, everything is gone. Redis helps with persistence but still buries early facts under noise. Vector DBs help with retrieval but bloat storage and need infrastructure.\nWhat if the memory itself was just a file?\nEvery conversation a user has gets distilled into a plain .txt file. That file is the brain. On every new query, a hybrid BM25 + semantic RAG retrieves the most relevant chunks from it and injects them as context.\nusers/\n└── jd.txt        ← the soul file\n\nThe soul file looks like this:\n[Turns 1-5]\n- User's name is JD, software engineer\n- Building FileRAG, a novel memory architecture\n- Uses Pop!_OS with Fish shell and NVIDIA GPU\n\n[Turns 6-10]\n- Has a cat named Pixel who distracts during coding\n- Paused TaskNest due to burnout\n- Now focused on AgenticMesh\n\nHuman readable. Editable. Yours.\nMost memory systems store messages. FileRAG stores a relationship.\n\n\n\nSystem\nWhat it stores\n\n\n\n\nDict / Redis\nRaw message objects\n\n\nVector DB\nEmbeddings of messages\n\n\nFileRAG\nDistilled understanding of the user\n\n\n\nThe longer you use it, the more the AI understands you — not because it has more messages, but because it has a better summary of who you are.\nUser message\n     ↓\nTopic drift check (cosine similarity)\n     ├── Drift detected → distill current buffer immediately\n     └── No drift → continue\n     ↓\nHybrid retrieval (BM25 + ChromaDB) from soul file\n     ↓\nInject context → LLM responds\n     ↓\nAppend to turn buffer\n     ↓\nEvery 5 turns → distill → append to soul file → update ChromaDB\n     ↓\nEmergency distillation on exit (SIGINT/SIGTERM)\n\n1. Topic-Drift Distillatio",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": ".txt 文件作为个人 AI 的灵魂——FileRAG 记忆架构",
+        "summary": "FileRAG 提出了一种新型的 AI 助手记忆架构，它将对话蒸馏存储在纯文本文件中，而不是传统数据库或向量存储，使用混合 BM25+语义检索来维持长对话中的上下文理解。这种方法具有人类可读性、可编辑性，比原始消息历史记录或嵌入密集型系统更具可扩展性。"
+      }
+    }
+  },
+  {
+    "title": "로봇 두 대가 말 없이 협업? 피규어 AI 암묵적 협업 기술의 비밀",
+    "slug": "figure-ai-implicit-collaboration-robots",
+    "url": "https://dev.to/ai_openfree_b23025ef075cf/robos-du-daega-mal-eobsi-hyeobeob-pigyueo-ai-ammugjeog-hyeobeob-gisulyi-bimil-45eg",
+    "source": "DEV Community",
+    "date": "2026-05-30T06:45:05.000Z",
+    "summary": "Figure AI demonstrated two humanoid robots tidying a bedroom in two minutes using implicit collaboration—silent, decentralized coordination without explicit commands or language. The achievement signals robots evolving beyond centralized control to distributed decision-making that mirrors human tacit teamwork through real-time environmental perception and self-directed action planning.",
+    "content": "로봇 두 대가 말 한마디 없이 방을 정리했다, 그런데 진짜 질문은 '어떻게'가 아니다\n\n\n협업의 정의가 바뀌고 있다. 인간끼리도 아니고, 인간과 로봇도 아니라, 로봇과 로봇 사이에서.\n\nTL;DR: 피규어 AI의 휴머노이드 두 대가 언어 없이 2분 만에 침실 정리에 성공했다. 기술 자체보다 흥미로운 것은, 이 '눈치'가 어떻게 만들어졌는가이다. 로봇 협업이 인간 협업의 방식을 모방한 게 아니라, 아예 다른 방식으로 진화하고 있다는 신호다.\n로봇 산업에는 잘 알려지지 않은 규칙이 하나 있다.\n로봇을 한 대 잘 만드는 것보다, 두 대가 함께 작동하게 만드는 것이 기하급수적으로 어렵다는 것. 보스턴 다이내믹스는 수십 년 동안 혼자 뛰고, 혼자 문을 열고, 혼자 계단을 오르는 로봇을 만들어왔다. 테슬라의 옵티머스는 혼자 부품을 집고, 혼자 배터리를 나른다. 그런데 피규어 AI는 올해 다른 질문을 던졌다. \"두 대가 서로 말을 하지 않아도, 협력할 수 있을까?\"\n그리고 최근 그 답이 나왔다. 2분이었다.\n먼저, '눈치'라는 단어를 다시 생각해야 한다\n우리가 일상에서 쓰는 '눈치'는 상당히 복잡한 인지 활동이다. 상대방의 행동을 보면서, 다음 행동을 예측하고, 내 행동을 조율하고, 충돌을 피하고, 빈틈을 채우는 것. 인간은 이걸 언어 없이, 심지어 시선 교환만으로 해낸다. 오랜 시간을 함께한 팀에서, 숙련된 주방의 요리사들 사이에서, 그리고 가족 사이에서.\n그런데 이 능력은 학습된 것이지, 타고난 것이 아니다. 아이들은 눈치가 없다. 신입 직원도 눈치가 없다. 수백 번의 상호작용과 실수와 교정을 거쳐야 비로소 '눈치'가 생긴다.\n피규어 AI의 휴머노이드 두 대는 이 과정을 어떻게 압축했을까. 보도에 따르면 이들은 사전에 언어 명령이나 역할 분담 지시 없이, 상대 로봇의 행동을 실시간으로 인식하고 자신의 다음 동작을 결정했다. 공간을 나눠 쓰고, 같은 물건에 손을 뻗지 않고, 한쪽이 멈추면 다른 쪽이 채웠다. 이것을 연구자들은 '암묵적 협업(implicit collaboration)'이라고 부른다.\n쉽게 말하면, 로봇이 눈치를 배웠다는 뜻이다.\n두 대가 함께 움직인다는 것의 기술적 의미\n단일 로봇의 작동 원리는 비교적 단순하게 설명할 수 있다. 센서가 환경을 인식하고, 모델이 행동을 결정하고, 액추에이터가 실행한다. 루프가 하나다.\n두 대가 함께 움직이는 순간, 루프가 두 개가 아니라 세 개가 된다. 로봇 A의 루프, 로봇 B의 루프, 그리고 A와 B가 서로를 환경으로 인식하면서 생기는 상호작용 루프. 이 세 번째 루프가 문제다. A의 행동이 B의 환경을 바꾸고, 그 변화가 다시 B의 행동을 바꾸고, 그 행동이 또 A의 환경을 바꾼다. 루프가 루프를 먹는 구조다.\n이것을 중앙에서 통제하는 방식은 예전부터 존재했다. 공장 자동화에서 쓰이는 PLC(프로그래머블 로직 컨트롤러) 방식이 대표적이다. A는 1번 작업, B는 2번 작업, 충돌 시 A가 우선 — 이런 식으로 모든 경우의 수를 미리 프로그래밍한다. 정해진 공간, 정해진 물건, 정해진 순서. 공장에서는 작동한다. 일상에서는 작동하지 않는다.\n침실은 공장이 아니다. 물건의 위치가 매번 다르고, 침대 정리와 바닥 정리가 동시에 일어나야 할 수도 있고, 하나가 예상치 못한 물건을 발견하면 계획 전체가 바뀐다. 규칙 기반의 중앙 통제로는 불가능하다.\n피규어 AI가 선택한 방향은 분산 의사결정이었다. 각 로봇이 독립적으로 환경을 인식하고, 상대 로봇의 현재 상태를 하나의 입력값으로 받아들이면서, 스스로 다음 행동을 결정하는 방식이다. 중앙 관제탑이 없다. 각자가 판단하되, 서로를 인식한다. 이것이 인간의 눈치와 구조적으로 가장 유사한 접근이다.\n2분이라는 숫자가 중요한 이유\n2분. 이 숫자를 처음 들으면 \"겨우 2분?\"이라고 생각할 수 있다. 그런데 맥락을 알면 반응이 바뀐다.\n로봇이 단독으로 침실을 정리하는 데 걸리는 시간과 비교해보자. 현재 가장 발전한 단일 휴머노이드 로봇들의 가사 작업 수행 속도는, 같은 작업을 인간이 하는 것보다 보통 3배에서 10배 느리다. 동작이 느린 것도",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "两个机器人无言协作？Figure AI 隐性协作技术的秘密",
+        "summary": "Figure AI 展示了两个人形机器人在两分钟内收拾卧室，使用隐性协作——无声、去中心化的协调，无需明确命令或语言。这项成就标志着机器人正在从集中控制向分布式决策演进，通过实时环境感知和自主行动规划镜像人类隐性团队合作。"
+      }
+    }
+  },
+  {
+    "title": "Building ReefWatch, a Coral-Powered Production Triage Agent",
+    "slug": "reefwatch-coral-production-triage-agent",
+    "url": "https://dev.to/siiddhantt/building-reefwatch-a-coral-powered-production-triage-agent-23hf",
+    "source": "DEV Community",
+    "date": "2026-05-30T06:43:00.000Z",
+    "summary": "ReefWatch is a Coral-powered production triage agent that discovers connected observability tools at runtime and queries them via read-only SQL to correlate incident evidence across code, deploys, and alerts. The system generates incident reports only when evidence supports conclusions, avoiding false-positive alarm triage.",
+    "content": "Production incidents almost never break in one place.\nThe alert fires in one tool. The broken deploy is in Netlify. The suspicious\nA normal chatbot can sound helpful in that situation. It can say things like\nBut that is not triage. That is a polished to-do list.\nI wanted something more useful: an agent that could go get the evidence, connect\nThe design constraint from the start was simple: no evidence, no answer.\nThat became ReefWatch, a Coral-powered production triage agent built to\n\nIt discovers the tools connected to a workspace at runtime, queries them as\nCoral became the backbone because it turns the messiest part of agent tooling\nSQL.\nBy the end of this route, you will have a blueprint for an agent that can:\ndiscover connected Coral sources at runtime\nquery production systems through read-only SQL\n\ncorrelate evidence across code, deploys, errors, alerts, chats, and runbooks\nstream every query and row count into an inspectable UI\nrun the same investigation workflow from a CLI when you want a scriptable path\ngenerate an incident report only when the evidence supports one\nstay focused with policy layers instead of a giant prompt blob\n\nIn one sentence:\nReefWatch is a Coral-powered investigation workspace that lets an agent discover connected tools at runtime, query them with read-only SQL, stream the evidence trail, and generate an incident report only when the facts actually support one.\n\nMCP is excellent as an integration layer. It gives models a way to call tools\nBut if every source becomes a separate collection of bespoke tools, a new\nthe model has to learn many tool shapes\nevery API has different pagination and filters\njoining records across sources becomes a prompt exercise\nsource-specific errors leak straight into the agent loop\nevery new integration asks the app to own more integration logic\nCoral changes the abstraction.\nIt still uses MCP, but the agent mostly sees a small set of stable capabilities:\nThat means a new source is not:\nteach ReefWatch another",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建 ReefWatch：珊瑚驱动的生产分诊代理",
+        "summary": "ReefWatch 是一个珊瑚驱动的生产分诊代理，可在运行时发现连接的可观测性工具，并通过只读 SQL 查询关联代码、部署和告警之间的事件证据。该系统仅在证据支持结论时生成事件报告，避免误报告警分诊。"
+      }
+    }
+  },
+  {
+    "title": "OpenAI’s Frontier Governance Framework: Risk Tiers, Trusted Access, and What Developers Need to Know",
+    "slug": "openai-frontier-governance-framework-2026",
+    "url": "https://dev.to/akaranjkar08/openais-frontier-governance-framework-risk-tiers-trusted-access-and-what-developers-need-to-know-n8c",
+    "source": "DEV Community",
+    "date": "2026-05-30T06:23:46.000Z",
+    "summary": "OpenAI published its Frontier Governance Framework on May 29, 2026, detailing how it evaluates frontier AI model risks across six functional areas and applies tier-based deployment controls aligned with EU and California regulations. Developers building on frontier APIs or in regulated industries need to understand the framework's risk tiers, Trusted Access programs, and compliance mechanisms.",
+    "content": "On May 29, 2026, OpenAI published its Frontier Governance Framework — and most developers moved on to the next item in their feed. That’s a mistake worth correcting. The document doesn’t announce a new model or lower an API price. It describes how OpenAI measures whether its own systems could enable mass-casualty events, what access controls gate who can reach those capabilities, and how this maps to the regulations — the EU AI Act and California’s Transparency in Frontier AI Act — that are actively shaping compliance requirements for any enterprise deploying frontier AI this year.\nIf you build security tools on OpenAI APIs, the framework’s Trusted Access for Cyber program directly affects what your application can and cannot do. If you operate in a regulated environment, the framework is the vendor-side accountability document your compliance team needs to reference. And if you build on frontier models at all, the risk tier system in this framework governs the capability restrictions you will encounter — and, increasingly, what auditors and procurement teams will ask about when vetting your AI vendor stack.\nThe Frontier Governance Framework is OpenAI’s published methodology for evaluating the risk profile of frontier models before and after deployment. It covers six functional areas: risk assessment and mitigation, model reporting, security risk management, incident response, external expert input, and framework updates. Each area has defined processes, thresholds, and accountability mechanisms.\nThe core architecture is a tier system applied across four risk domains. Each domain is evaluated independently, with tiers reflecting capability levels that could enable specific categories of harm. A model’s rating in any domain determines what deployment controls apply — what gets blocked at the API layer, who gets elevated access, and what triggers an incident response workflow.\nThe framework was published explicitly to align with two regulatory instruments. California’",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "OpenAI 的前沿治理框架：风险等级、信任接入和开发者需要了解的内容",
+        "summary": "OpenAI 于 2026 年 5 月 29 日发布了《前沿治理框架》，详细说明了它在六个功能领域如何评估前沿 AI 模型风险，并应用与欧盟和加州法规相一致的分层部署控制。在前沿 API 上构建或在受监管行业工作的开发者需要理解该框架的风险等级、信任接入计划和合规机制。"
+      }
+    }
+  },
+  {
+    "title": "Hiring an AI Development Company? 7 Questions to Ask First",
+    "slug": "evaluating-ai-development-companies-questions",
+    "url": "https://dev.to/bitronix/hiring-an-ai-development-company-ask-these-7-questions-first-hce",
+    "source": "DEV Community",
+    "date": "2026-05-30T06:23:22.000Z",
+    "summary": "This hiring guide identifies seven critical questions for vetting AI development companies: data security practices, observability and monitoring capabilities, performance evaluation loops, failure handling and fallback logic, access controls and permissions, regulatory compliance, and ownership of code and infrastructure. Success depends on operational maturity, not flashy demos.",
+    "content": "Hiring an AI Development Company? Ask These 7 Questions First\n\n\nMost AI projects fail long before deployment.\nNot because the model is bad.\nBecause teams skip the hard engineering questions.\nIf you're evaluating an AI development company, ask these 7 questions first:\nAI systems process sensitive business information.\nAsk:\nWhere is data stored?\nIs encryption enabled at rest and in transit?\nWho has access to prompts, logs, and embeddings?\nAre enterprise security standards followed?\nSecurity should be designed in from day one.\nYou can't improve what you can't monitor.\nA production AI system should include:\nRequest tracing\nPrompt/version tracking\nLatency monitoring\nCost visibility\nError reporting\nIf nobody can explain what happened after a bad output — that's a problem.\nAI performance changes over time.\nQuestions to ask:\nHow are outputs evaluated?\nIs feedback collected?\nHow are prompts/versioning managed?\nWhat happens when accuracy drops?\nProduction systems need iteration loops.\nNo system is perfect.\nAsk:\nIs there fallback logic?\nHuman review?\nRetry handling?\nGraceful degradation?\nFailure handling matters more than demos.\nEnterprise AI systems require permissions.\nExamples:\nRole-based access\nAPI authentication\nAudit logs\nTeam-level controls\nNot everyone should access everything.\nEspecially important for regulated industries.\nAsk whether the system considers:\nGDPR\nSOC2\nHIPAA\nFinancial or internal compliance rules\nCompliance cannot be an afterthought.\nClarify ownership before signing anything.\nAsk:\nWho owns the source code?\nCloud infrastructure?\nModels and prompts?\nData pipelines?\nYou should avoid vendor lock-in.\nAI success is rarely about flashy demos.\nIt's about secure infrastructure, reliability, observability, and long-term maintainability.\nWhat question would you add to this list?",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "招聘 AI 开发公司？首先要问的 7 个问题",
+        "summary": "本招聘指南确定了七个关键问题，用于审查 AI 开发公司：数据安全实践、可观测性和监控能力、性能评估循环、失败处理和备用逻辑、访问控制和权限、监管合规和代码与基础设施所有权。成功取决于运营成熟度，而不是花哨的演示。"
+      }
+    }
+  },
+  {
+    "title": "Finishing My Personal Website: Mobile-Friendly, Dark Mode, and a Better Projects Section",
+    "slug": "finishing-personal-website-portfolio-improvements",
+    "url": "https://dev.to/ehsankahrizi/finishing-my-personal-website-mobile-friendly-dark-mode-and-a-better-projects-section-154d",
+    "source": "DEV Community",
+    "date": "2026-05-30T06:19:17.000Z",
+    "summary": "A developer revamped their personal portfolio website to add mobile responsiveness, dark mode support, an enhanced projects section, and SEO improvements as part of the GitHub Finish-Up-A-Thon Challenge. The project moved from an unfinished proof-of-concept to a polished portfolio representing their skills and work.",
+    "content": "This is a submission for the GitHub Finish-Up-A-Thon Challenge\nI revisited my personal website and decided to turn it into a more complete and polished portfolio.\nThe project originally started as a simple personal website hosted on GitHub Pages. While it was functional, many planned features and improvements were never completed.\nFor this challenge, I am working on improving the mobile experience, adding dark mode support, enhancing the Projects section, improving SEO, fixing existing issues, and making the website more interactive and professional.\nMy goal is to transform an unfinished personal website into a modern portfolio that better represents my work, skills, and projects.\nhttps://ehsankahrizi.github.io/\nhttps://github.com/Ehsankahrizi/Ehsankahrizi.github.io\nThis project is currently being improved as part of the GitHub Finish-Up-A-Thon Challenge.\nPlanned improvements include:\nBetter mobile responsiveness\nDark mode support\nEnhanced Projects section\nImproved SEO\nMore interactive user experience\nBetter website performance\nAdditional pages and content\nFixing existing usability issues\nWhen I returned to this project, I realized that many ideas I originally had for the website were still unfinished.\nAlthough the website was online, it still had several limitations:\nThe mobile experience needed improvement.\nDark mode was not available.\nThe Projects section was incomplete.\nThe contact functionality needed attention.\nSEO optimization was missing.\nThe website relied on a mostly single-page structure.\nUser interactions were limited.\nPerformance could be improved.\nInstead of starting a new project, I decided to revisit this existing one and finally complete the improvements that had been postponed.\nThis challenge provided the perfect opportunity to continue development, clean up the codebase, improve the user experience, and turn the website into something I can confidently share with others.\nGitHub Copilot has been a valuable companion while revisiting and improving a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "完成我的个人网站：移动友好、深色模式和更好的项目部分",
+        "summary": "一位开发者改进了他们的个人作品集网站，添加了移动响应式设计、深色模式支持、改进的项目部分和SEO优化，作为GitHub Finish-Up-A-Thon挑战的一部分。该项目从未完成的概念验证转变为展示他们技能和工作的精美作品集。"
+      }
+    }
+  },
+  {
+    "title": "The Real Sovereign OS - OnemanBSD updated!",
+    "slug": "onemanBSD-update-audacity-godot",
+    "url": "https://dev.to/biala/the-real-sovereign-os-onemanbsd-updated-3pnp",
+    "source": "DEV Community",
+    "date": "2026-05-30T06:16:57.000Z",
+    "summary": "OnemanBSD, a sovereign operating system project, received a major update adding audio editing (Audacity), game development (Godot), media playback (DeadBeef), and word processing (Ted) tools plus bug fixes. The creator invites community participation as active developers rather than passive users.",
+    "content": "I lost more than 60 days but I made a huge update \n\naudacity (audio editor)\ngodot (game editor)\ndeadbeef (mp3 player)\nted (word processor)\nAlso some bug fixes.\nHere is the link again:\nhttp://bialamusic.com/onemanBSD/\nHere are my thoughts:\nIt is now in your hands so you can be active developers not just passive users.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "真正的主权操作系统 - OnemanBSD 更新！",
+        "summary": "OnemanBSD是一个主权操作系统项目，收到了一个重大更新，添加了音频编辑(Audacity)、游戏开发(Godot)、媒体播放(DeadBeef)和文字处理(Ted)工具以及错误修复。创建者邀请社区成员作为活跃开发者而不是被动用户参与。"
+      }
+    }
+  },
+  {
+    "title": "Building a Production-Grade Customer Inquiry Auto-Responder with SQLite Logging",
+    "slug": "customer-inquiry-auto-responder-sqlite",
+    "url": "https://dev.to/playsmai/building-a-production-grade-customer-inquiry-auto-responder-with-sqlite-logging-4plb",
+    "source": "DEV Community",
+    "date": "2026-05-30T06:15:46.000Z",
+    "summary": "A developer transformed a fragile text-parsing prototype for customer inquiry classification into a production-grade auto-responder using SQLite for persistent analytics, exception handling, and timestamp tracking. The refactored system demonstrates the transition from brittle string matching to resilient enterprise automation with structured data persistence.",
+    "content": "The Journey\n\n\nI set out to build an efficient automation backend utility designed to classify incoming customer inquiries and automatically suggest optimized replies. My goal for this challenge was to document the transition of a basic, fragile text-parsing utility into a highly resilient, enterprise-ready application script.\nThe Before (Fragile Prototype Base): The initial design relied entirely on rigid, case-sensitive string matching. It contained no persistent database engine, meaning analytics data was lost instantly upon script termination, and it lacked structural exception guarding, making it highly susceptible to standard runtime crashes if empty or unexpected values were inputted.\nThe After (Fault-Tolerant Enterprise Core): I fully refactored the utility's entire architectural layout. The system now initializes a local SQLite relational table structure (analytics.db), appends automated date/time timestamps for granular metrics tracking, leverages strict array-based substring evaluation, and traps fatal exceptions seamlessly via localized error handling catch loops.\nThe complete operational source code, database persistence schemas, and functional verification blocks can be inspected directly via my public repository:\nhttps://github.com/playsmai/biz-responder-automation-",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用SQLite日志构建生产级客户询问自动应答器",
+        "summary": "一位开发者将脆弱的文本解析原型转变为生产级自动应答器，用于客户询问分类，使用SQLite进行持久分析、异常处理和时间戳跟踪。重构后的系统展示了从脆弱的字符串匹配到具有弹性的企业自动化与结构化数据持久化的过渡。"
+      }
+    }
+  },
+  {
+    "title": "Anthropic Just Dropped Claude Opus 4.8: What It Means for Developers 🚀",
+    "slug": "claude-opus-4-8-release-improvements",
+    "url": "https://dev.to/sheraz046/anthropic-just-dropped-claude-opus-48-what-it-means-for-developers-58ma",
+    "source": "DEV Community",
+    "date": "2026-05-30T06:12:32.000Z",
+    "summary": "Anthropic released Claude Opus 4.8 with four-fold reduction in undetected code bugs, Dynamic Workflows for parallelized subtask handling across millions of lines of code, and manual effort controls for balancing speed and reasoning depth. New API features include mid-conversation system messages and improved model family consistency across deployment platforms.",
+    "content": "Claude Opus 4.8, a major upgrade to their flagship AI model. If you use AI tools to help you write, debug, or architect software, this release has some huge updates that will change your daily workflow.\nThe best part? It is available right now for the exact same price as Opus 4.7. \nHere is a quick, no-nonsense breakdown of what is new and why you should care.\nWe have all been there: an LLM confidently hands you a block of code, claiming it’s perfect, only for you to find out it breaks completely. \nAnthropic spent a lot of time fixing this \"false confidence\" problem. According to their internal testing, Opus 4.8 is four times less likely to let bugs or flaws in its written code pass by unremarked. It has better judgment, meaning it will actually question a bad plan, catch its own mistakes before showing them to you, and admit when it is uncertain about an edge case. \nAvailable in research preview for Claude Code (Enterprise, Team, and Max plans), Dynamic Workflows allows Claude to break a massive programming task down into smaller pieces. \nInstead of tackling a codebase line-by-line, it can spin up and run hundreds of parallel subagents at the same time to solve large problems. Anthropic notes that it can manage codebase-scale migrations across hundreds of thousands of lines of code from start to merge, verifying everything against your existing test suites.\nYou can now manually choose how much processing power Claude puts into a task on Claude.ai and Cowork:\nHigh Effort: Claude thinks longer, reasons deeper, and double-checks its work. Best for complex architecture, tricky debugging, or heavy logic.\nLow Effort: Claude replies much faster and conserves your token rate limits. Best for quick syntax checks, simple explanations, or boilerplate code.\nIf you are building products on top of Claude's API, Amazon Bedrock, or Google Cloud Vertex AI, there are a few welcome updates:\nMid-Conversation System Messages: You can now inject a new role: \"system\" message right into th",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Anthropic 刚发布 Claude Opus 4.8：对开发者的意义 🚀",
+        "summary": "Anthropic 发布了 Claude Opus 4.8，具有未检测代码缺陷四倍的减少、用于跨数百万行代码的并行化子任务处理的动态工作流，以及用于平衡速度和推理深度的手动工作量控制。新的 API 功能包括中途系统消息和跨部署平台改进的模型系列一致性。"
+      }
+    }
+  },
+  {
+    "title": "How I Built CoralSec Copilot: A Unified Enterprise SOC with Coral & Next.js in 4 Days",
+    "slug": "coralsec-copilot-enterprise-soc-platform",
+    "url": "https://dev.to/codewithmehru/how-i-built-coralsec-copilot-a-unified-enterprise-soc-with-coral-nextjs-in-4-days-235o",
+    "source": "DEV Community",
+    "date": "2026-05-30T06:10:46.000Z",
+    "summary": "CoralSec Copilot is an AI-powered Security Operations Center built in four days using Coral and Next.js, unifying context across GitHub, Slack, and Notion to correlate security events with developer permissions and compliance policies. The platform eliminates fragmented REST API integrations by using Coral's unified query layer for holistic threat detection.",
+    "content": "The tech industry is currently in a frenzy. Everyone is rushing to build the next big AI application, slapping a chatbot interface onto a database and calling it a day. But in this gold rush, we are leaving something critical behind: Enterprise Security.\nLiving in a Kali Linux environment and spending time hunting vulnerabilities teaches you one fundamental truth: security is entirely about context. Hardcoded API keys, undocumented access escalations, and compliance blind spots remain the number one cause of major data breaches. Security teams don’t just need a chatbot that can answer questions; they need a single pane of glass. They need a Security Operations Center (SOC).\nFor the Pirates of the Coral-Bean Hackathon (hosted by Coral and WeMakeDevs), I decided to tackle this massive industry problem. Over the course of 4 sleepless nights, I built CoralSec Copilot—an AI-powered, unified Enterprise SOC platform.\nHere is the complete Captain's Log of my entire journey, the architecture, the roadblocks, and a reproducible guide so you can build and run it yourself.\nWhen the hackathon was announced, my initial thought was basic: \"I'll build a CLI agent that scans code.\" I fired up my IDE, opened Cursor, and started bouncing ideas around. I even looked into some AI models like Grok to understand how they process vast amounts of real-time data.\nBut while brainstorming the architecture, I hit a wall. Scanning a GitHub commit for a leaked AWS key is great, but what if the AI also knew whether the developer who pushed that commit had recently escalated their admin privileges? What if it knew the exact SOC2 compliance policy from our company’s Notion workspace?\nTo do this traditionally, I would have to write dozens of messy REST API integrations. I'd have to handle rate limits, write custom Python scripts for GitHub, another set for Slack, another for Notion, and then build fragile ETL (Extract, Transform, Load) pipelines to bring all that data together.\nIt sounded like an abs",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何打造 CoralSec Copilot：用 Coral 和 Next.js 在 4 天内构建统一的企业 SOC",
+        "summary": "CoralSec Copilot 是一个由人工智能驱动的安全运营中心，在四天内使用 Coral 和 Next.js 构建，跨 GitHub、Slack 和 Notion 统一上下文，以关联安全事件与开发人员权限和合规政策。该平台通过使用 Coral 的统一查询层来消除分散的 REST API 集成，实现整体威胁检测。"
+      }
+    }
+  },
+  {
+    "title": "This week in agent commerce: seven moves, and where atomic settlement actually sits",
+    "slug": "agent-commerce-infrastructure-week-review",
+    "url": "https://dev.to/barissozen/this-week-in-agent-commerce-seven-moves-and-where-atomic-settlement-actually-sits-3dda",
+    "source": "DEV Community",
+    "date": "2026-05-30T06:07:37.000Z",
+    "summary": "This week-in-review surveys seven infrastructure moves in agent commerce, including Coinbase's Base MCP server for ChatGPT and Claude wallet integration, and the x402 HTTP payment protocol standard for agent-driven API payments. The piece analyzes where atomic settlement primitives fit in the emerging agent economy infrastructure stack.",
+    "content": "\"Settlement layer for the agent economy\" has become a phrase used by more than one architecture this month. Some of those architectures are venues. Some are payment rails. Some are identity stacks. One is what we build — a trust-minimized atomic settlement primitive — and we keep getting asked how it sits next to the others.\nSo this is a short, opinionated week-in-review. Seven moves that landed recently in agent-commerce infrastructure, what each one actually is, and where atomic settlement fits underneath. No leaderboard. No \"who wins.\" Just the layers.\nCoinbase shipped a Base MCP server: ChatGPT, Claude, and Cursor can connect directly to Base wallets, with built-in Uniswap and Morpho integrations. Two-line install, agent-driven swaps, on-chain account control from inside the model client.\nWhat it is: a wallet-side, exchange-aligned MCP. The agent drives a wallet on Base; Coinbase has thought hard about UX, key handling, and AI client ergonomics. If your agent is already operating inside the Coinbase + Base orbit, this is a meaningful drop in friction.\nWhat it isn't: a cross-chain settlement layer. It is one L2, deeply integrated. The agent's trust assumptions are \"Coinbase wallet infrastructure + Base + the DEXes that Base MCP integrates with.\" That is a reasonable trust budget for a lot of trades; it is not the budget for an agent that wants to trade BTC for ETH without picking a venue.\nCoinbase and Cloudflare announced an x402 Foundation this month. x402 is the HTTP-based agent payment standard — a 402 response code carrying payment metadata, designed so an agent can pay for an API call inline. Cloudflare joining elevates this from a Coinbase-led initiative to a multi-party standards effort. Cloudflare also runs an enormous slice of the internet's edge; if x402 becomes a default payment rail, it will be visible from the edge first.\nWhat it is: a payment-handshake protocol. How an agent asks for and acknowledges a payment on the wire. Beautiful primitive, real",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "本周代理商务动态：七个举措及原子结算的实际位置",
+        "summary": "本周回顾调查了代理商务中的七个基础设施举措，包括 Coinbase 的 Base MCP 服务器用于 ChatGPT 和 Claude 钱包集成，以及用于代理驱动 API 支付的 x402 HTTP 支付协议标准。该文章分析了原子结算原语在新兴代理经济基础设施堆栈中的位置。"
+      }
+    }
+  },
+  {
     "title": "nbwipers: Setup and Troubleshooting",
     "slug": "nbwipers-setup-and-troubleshooting",
     "url": "https://dev.to/sanemat/nbwipers-setup-and-troubleshooting-2m33",
