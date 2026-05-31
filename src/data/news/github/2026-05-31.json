@@ -1,5 +1,229 @@
 [
   {
+    "title": "pypdf vs PdfPig: Text Extraction at Scale",
+    "slug": "pypdf-vs-pdfpig-text-extraction",
+    "url": "https://dev.to/milliseconds/pypdf-vs-pdfpig-text-extraction-at-scale-21nd",
+    "source": "DEV Community",
+    "date": "2026-05-31T18:20:15.000Z",
+    "summary": "Benchmark comparing PDF text extraction shows .NET's PdfPig library is 3.9x to 6.2x faster than Python's pypdf due to JIT compilation and zero-copy span-based parsing; performance gap widens with larger document sets.",
+    "content": "Overview\n\n\nPDF text extraction is a common pre-processing step in data pipelines — ingesting research papers, legal documents, or reports before embedding or indexing. Both pypdf and PdfPig are pure managed-code parsers: no native binaries, no OCR, no system PDF renderer. They implement the same PDF specification operations in their respective languages.\nThis makes the benchmark unusually clean: the performance difference is entirely due to language execution speed, not library architecture differences.\n200 recent arXiv PDFs (mixed technical papers, 5–40 pages each). Tested on subsets of 10, 50, 100, and 200 files. Both libraries extract all text from all pages; output is validated for page-count agreement and character-count agreement within 15% (pypdf and PdfPig decode whitespace and encoding tables slightly differently).\n\n\n\nPDFs\nPages\nPython (pypdf)\n.NET (PdfPig)\nSpeedup\n\n\n\n\n10\n~120\n~0.9 s\n~230 ms\n3.9×\n\n\n50\n~600\n~4.2 s\n~810 ms\n5.2×\n\n\n100\n~1,200\n~8.5 s\n~1.4 s\n6.1×\n\n\n200\n~2,400\n~17 s\n~2.7 s\n6.2×\n\n\n\nThe speedup grows slightly with corpus size, suggesting pypdf has a per-document startup cost that compounds as PdfPig's JIT gets warmer.\nPDF parsing is byte-heavy: every page is a stream of PostScript-like operators (move, show text, set font, etc.). Each operator must be lexed, looked up in a dispatch table, and executed against a graphics state machine.\nIn Python, each operator dispatch is a Python method call — the CPython bytecode interpreter has overhead per call regardless of what the method does. In .NET, the JIT compiles the dispatch loop to native code the first time it runs; subsequent pages pay only the cost of the actual work.\nAdditionally, PdfPig's content-stream parser operates on ReadOnlySpan<byte> — zero-copy slicing through the raw page bytes with no intermediate string allocations. pypdf builds Python string objects for each token.\n// PdfPig — zero-copy span-based page extraction\npublic Result Extract(string path)\n{\n    using var doc = PdfDocument.Open",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "pypdf 与 PdfPig：大规模文本提取对比",
+        "summary": "PDF 文本提取基准测试表明，.NET 的 PdfPig 库由于 JIT 编译和零复制 span 解析，比 Python 的 pypdf 快 3.9 倍至 6.2 倍；在处理更大文档集时，性能差异会进一步扩大。"
+      }
+    }
+  },
+  {
+    "title": "NetworkX vs CSR + TensorPrimitives: PageRank on 28M Edges",
+    "slug": "networkx-vs-csr-pagerank-28m-edges",
+    "url": "https://dev.to/milliseconds/networkx-vs-csr-tensorprimitives-pagerank-on-28m-edges-3i8c",
+    "source": "DEV Community",
+    "date": "2026-05-31T18:20:14.000Z",
+    "summary": "PageRank benchmark on 28M-edge graphs shows .NET's CSR matrix with SIMD vectorization is 47x faster than Python's NetworkX due to elimination of dictionary dispatch overhead and JIT-compiled tight loops.",
+    "content": "Overview\n\n\nPageRank is the canonical graph algorithm. NetworkX implements it in pure Python — its dict-of-dict adjacency representation means every power-iteration step dispatches millions of Python attribute lookups. When the graph has 1.8 million nodes and 28.5 million edges (Wikipedia category hyperlinks), those lookups dominate the runtime.\nThe .NET replacement uses a CSR (Compressed Sparse Row) matrix — two flat int[] arrays for the graph structure — and TensorPrimitives for the SIMD-accelerated normalization step inside each iteration.\nFive SNAP datasets of increasing size:\n\n\n\nDataset\nNodes\nEdges\n\n\n\n\nwiki-Vote\n7,115\n103,689\n\n\nsoc-Epinions1\n75,879\n508,837\n\n\nweb-Stanford\n281,903\n2,312,497\n\n\nweb-Google\n875,713\n5,105,039\n\n\nwiki-topcats\n1,791,489\n28,511,807\n\n\n\nAlgorithm: power-iteration PageRank, damping=0.85, tol=1e-6. Both implementations converge to identical top-10 node rankings.\n\n\n\nDataset\nPython (NetworkX)\n.NET (CSR)\nSpeedup\n\n\n\n\nwiki-Vote (103k edges)\n~0.8 s\n~100 ms\n~8×\n\n\nsoc-Epinions1 (508k edges)\n~8 s\n~600 ms\n~13×\n\n\nweb-Stanford (2.3M edges)\n~120 s\n~5 s\n~24×\n\n\nweb-Google (5.1M edges)\n~5.5 min\n~12 s\n~28×\n\n\nwiki-topcats (28.5M edges)\n~47 min\n~60 s\n~47×\n\n\n\nThe speedup grows with graph size because NetworkX's Python dispatch cost scales with edge count, while the CSR inner loop is a tight JIT-compiled SIMD pass.\nNetworkX represents each node's neighbors as a Python dict. Iterating the adjacency in one power-iteration step means:\nCalling G.neighbors(node) — a Python method call\nIterating a dict — unboxing int keys, chasing heap pointers\nAccumulating a float into another dict value — another boxing step\nThat happens for every edge, every iteration, roughly 50–80 times to convergence.\nCSR collapses the graph to two arrays: rowPtr[n+1] (where each node's neighbors start) and colIdx[edges] (the neighbor list). Iterating neighbors of node v is a tight C loop from rowPtr[v] to rowPtr[v+1]. No Python objects, no dict hashing, no pointer chasing.\n// Power iteration — on",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "NetworkX 与 CSR + TensorPrimitives：2800 万边的 PageRank 对比",
+        "summary": "2800 万边图上的 PageRank 基准测试表明，.NET 的 CSR 矩阵加上 SIMD 向量化比 Python 的 NetworkX 快 47 倍，这是因为消除了字典分发开销和使用了 JIT 编译的紧循环。"
+      }
+    }
+  },
+  {
+    "title": "CareSync: A Local Health Memory Agent for Family Caregivers",
+    "slug": "caresync-local-health-memory-agent",
+    "url": "https://dev.to/naomi_pereira_28531c3d5de/caresync-a-local-health-memory-agent-for-family-caregivers-337c",
+    "source": "DEV Community",
+    "date": "2026-05-31T18:20:02.000Z",
+    "summary": "CareSync uses a Hermes AI agent with local SQLite storage to help student caregivers track health histories, identify symptom patterns, and generate appointment summaries without cloud dependencies.",
+    "content": "This is a submission for the *Hermes Agent Challenge*: Build With Hermes Agent\nCareSync is a local health memory agent for student caregivers.\nI'm Naomi, a 21-year-old engineering student. Between classes I help care for my grandma Kamala (78, high blood pressure, type 2 diabetes). I often forgot details from previous doctor visits, missed symptom patterns, and struggled to hand over care information to family members.\nCareSync solves that with longitudinal memory. Symptoms, meals, vitals, medications, and reports are stored in a local SQLite database. The CLI can search history, identify patterns, and generate appointment summaries. Hermes Agent exposes the same capabilities through natural language.\nWhat you get:\nOne-line logging: ./caresync add \"dizzy spell after lunch\"\n\nPattern search across weeks of history\nMedication tracking and report imports\nDoctor questions, appointment briefs, and handoff notes\nFull audit log of agent actions\n7 Hermes skills mapped to real terminal commands\nLocal-first design with no cloud storage\nCareSync is not medical advice. It helps caregivers observe, organize, and prepare.\n  \n  \n\n\nThe demo walks through:\nLogging a new symptom\nSearching health history for recurring patterns\nGenerating doctor questions and appointment briefs\nUsing Hermes in natural language to query past events\nReviewing the audit trail of actions taken\nExample commands shown in the demo:\n./caresync search --person Kamala --query dizziness\n./caresync timeline --person Kamala\n./caresync questions --person Kamala\n./caresync brief --person Kamala --days 14\n./caresync chat \"has grandma been dizzy before?\"\n\nRepository: https://github.com/Byte-Sized-Brain/caresync\n\nHermes Agent\nPython 3.12\nSQLite\nagentskills.io skill framework\nTerminal-based CLI\nNous Portal\nCareSync uses Hermes Agent as the orchestration layer between natural language and real caregiving workflows.\nI created 7 Hermes skills that map directly to common caregiving tasks:\nLogging health events\nSearching sympt",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "CareSync：家庭照顾者本地健康记忆代理",
+        "summary": "CareSync 使用 Hermes AI 代理和本地 SQLite 存储，帮助学生照顾者跟踪健康历史、识别症状模式和生成就诊总结，无需依赖云服务。"
+      }
+    }
+  },
+  {
+    "title": "The compiler caught a lot. It didn't catch enough.",
+    "slug": "rust-compiler-limits-ai-assisted-coding",
+    "url": "https://dev.to/extractdata/the-compiler-caught-a-lot-it-didnt-catch-enough-17ln",
+    "source": "DEV Community",
+    "date": "2026-05-31T18:20:02.000Z",
+    "summary": "Building a Rust web scraper with AI assistance revealed that compiler checks alone don't catch all correctness issues; even with green builds, logical errors persisted requiring manual code review.",
+    "content": "I built a small web scraping framework in Rust, mostly with an AI doing the typing. It's called ferrous — a Colly-style collector: register CSS selector callbacks, queue URLs, write JSONL. About 700 lines. The pitch I kept hearing, and half-believed, was that Rust and LLMs are a good match now: the borrow checker is a correctness oracle the model can lean on, so the class of bugs that plagues AI-written Python just won't compile.\nThat's true. It's also where the story gets uncomfortable, because the build was green and the code was still wrong.\nI'm not a Rust native. ferrous was partly an excuse to get fluent — build something real instead of reading about lifetimes — and partly a test of how far an LLM could carry the typing while I drove. The loop was plain: describe the next change in English, let the model write the Rust, read what came back, run cargo, move on. It kept observations.md as a running design journal, one entry per change, each with a short rationale for the decision it made.\nThat setup has a soft spot, and it's the whole point of this post. When you drive a language you don't fully know, the only reviewer you've got with real authority is the compiler. Everything past that — is this idiomatic, is it the right abstraction, does it actually do what the journal claims — depends on already knowing what correct looks like. Which is exactly the knowledge a learner doesn't have yet. Keep that in mind through the next part, because it's the difference between the one bug I could have caught and the six I couldn't.\nI ship two fetch backends. The default goes through the Zyte API; an optional one, gated behind a wreq feature, makes direct requests with browser TLS emulation. Each has an example. After a refactor that added URL resolution — ctx.resolve_and_visit(href) so callbacks stop hand-building absolute URLs — I had the model update the examples to use it. It did, and it wrote up the change in a running design journal it kept:\nAdded ctx.resolve(href) and",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "编译器捕获了很多。但还不够。",
+        "summary": "使用AI辅助构建Rust网络爬虫时发现，编译器检查单独无法捕获所有正确性问题；即使构建成功，逻辑错误仍然存在，需要手动代码审查。"
+      }
+    }
+  },
+  {
+    "title": "Automated Client Reporting",
+    "slug": "automated-client-reporting-sheets-etl",
+    "url": "https://dev.to/white_oak_intel/automated-client-reporting-29ck",
+    "source": "DEV Community",
+    "date": "2026-05-31T18:18:46.000Z",
+    "summary": "ETL reporting engine using Google Sheets API and service account authentication automates multi-client report generation, reducing manual report time from hours to near-zero marginal cost per new client.",
+    "content": "In This Article\nThe Reporting Problem at Scale\nPipeline Architecture\nThe Reporting Engine\nWoW Metrics and Pivot Tables\nScheduling and Slack Alerting\nOutput Sanity Checks\nClient reporting is deceptively time-consuming. Building one report manually takes an hour. Building twelve takes a day — and that is before accounting for the inevitable data corrections, formatting inconsistencies, and version control confusion when the report gets emailed back with comments. For consultants managing more than five active clients, manual reporting is a meaningful drag on capacity that compounds every month.\nThe solution is a reporting engine that treats each client as a parameterized configuration: the same extraction, transformation, and loading logic running against each client's data source, writing structured output to a dedicated Google Sheets workbook, and flagging anomalies automatically. Once built, the marginal cost of adding a new client report is near zero.\nThe engine follows a standard ETL pattern with a client-scoped run loop: extract from the source database, transform into the reporting schema, and load into the target Google Sheet. Each run creates or updates a tab named by convention — Report_CLIENTID_YYYY_MM — which keeps the workbook organized and makes historical tabs easy to find by date.\nGoogle Sheets API v4 with a service account is the right authentication approach for server-side automation. Unlike OAuth flows that require a user to authorize each session, a service account holds its credentials in a JSON keyfile that the engine loads at startup — no browser interaction, no token refresh failures at 3 AM.\nfrom google.oauth2 import service_account\nfrom googleapiclient.discovery import build\nimport psycopg2, pandas as pd\nfrom datetime import date\n\nSCOPES = ['https://www.googleapis.com/auth/spreadsheets']\n\nclass ClientReportingEngine:\n    def __init__(self, keyfile: str, db_conn: str):\n        creds = service_account.Credentials.from_service_account_file(",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "自动化客户端报告",
+        "summary": "使用Google Sheets API和服务账户认证的ETL报告引擎自动化生成多客户端报告，将手动报告时间从数小时降低到每个新客户端的边际成本接近零。"
+      }
+    }
+  },
+  {
+    "title": "Google Apps Script Automation",
+    "slug": "google-apps-script-automation",
+    "url": "https://dev.to/white_oak_intel/google-apps-script-automation-2h6l",
+    "source": "DEV Community",
+    "date": "2026-05-31T18:18:40.000Z",
+    "summary": "Google Apps Script automates operational workflows within Google Workspace with built-in scheduling and no infrastructure costs, but requires careful timezone handling and idempotent trigger management.",
+    "content": "In This Article\nWhen Apps Script Is the Right Tool\nProgrammatic Trigger Management\nDaily Metric Export\nWeekly Executive Summary\nCRM Sync with Business Hours Guard\nTimezone Handling\nGoogle Apps Script occupies a useful niche: it runs inside the Google ecosystem with no server provisioning, no deployment pipeline, and no infrastructure cost. For organizations whose operational data lives primarily in Google Sheets, Gmail, and Google Drive, it is the fastest path from \"we need to automate this\" to a running system.\nThe typical use cases where Apps Script outcompetes a Python ETL pipeline are: scheduled reporting that reads from Sheets and emails summaries, lightweight CRM sync between a Sheets-based pipeline and a downstream system, and triggered workflows that respond to form submissions or calendar events. For anything requiring complex data transformation at scale, a proper ETL pipeline is the right choice. But for operational automation where the data is already in Google Workspace, Apps Script often delivers in hours what a full pipeline takes days to deploy.\nThe Key Constraint\nApps Script triggers run in UTC by default. Any automation that should fire during business hours requires explicit timezone conversion — a detail that causes subtle failures in production when overlooked. Always set triggers using inTimezone('America/New_York') (or the appropriate zone) and validate with a test run at the edge of business hours.\nManually configured triggers break silently — they do not survive script republishing, and they accumulate duplicates when developers run setup functions multiple times. The production approach is a setupTriggers() function that deletes all existing triggers before creating new ones. Call it once after each deployment; it is idempotent by construction.\nconst CONFIG = {\n  DASHBOARD_TAB: 'Dashboard',\n  ARCHIVE_TAB:   'Archive',\n  THRESHOLDS: {\n    MIN_REVENUE:  10000,\n    MAX_VARIANCE: 0.15,\n  },\n  EXEC_EMAILS: ['cfo@company.com', 'ceo@company.com'],",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Google Apps Script自动化",
+        "summary": "Google Apps Script在Google Workspace中通过内置调度和零基础设施成本自动化操作工作流，但需要仔细处理时区和幂等触发器管理。"
+      }
+    }
+  },
+  {
+    "title": "Count, Length, or Size? Avoiding ActiveRecord Performance Traps",
+    "slug": "activerecord-count-length-size-performance",
+    "url": "https://dev.to/zilton7/count-length-or-size-avoiding-activerecord-performance-traps-784",
+    "source": "DEV Community",
+    "date": "2026-05-31T18:15:47.000Z",
+    "summary": "Rails developers must choose carefully between .count (database query), .length (memory load), and .size (smart hybrid) to avoid N+1 queries and memory exhaustion in web applications.",
+    "content": "I remember when I first started with Rails, I thought .count, .length, and .size were exactly the same thing. I used them interchangeably in my views and controllers. If I wanted to know how many users were in the database, I would just pick one and move on.\nBut then, as my app grew and I started checking my server logs, I realized I was making a huge performance mistake. While these three methods look identical, they behave completely differently under the hood. One of them hits your database every single time, one of them might crash your server’s memory, and one of them is \"smart\" enough to choose the best path.\nHere is the breakdown of when to use which so you can keep your Rails app fast.\n.count (The Database Hitter)\n\n\nWhen you call .count, ActiveRecord ignores any records you might already have loaded in memory. It goes straight to the database and runs a specific SQL query: SELECT COUNT(*) FROM users.\nusers = User.where(active: true)\nusers.count # SQL: SELECT COUNT(*) FROM users WHERE active = true\n\nWhen to use it: Use this when you only need the number and you have no intention of using the actual data.\nThe Trap: If you call .count and then immediately loop through the records with .each, you are doing double work. You hit the DB for the count, and then you hit it again to get the users.\n.length (The Memory Loader)\n\n\nCalling .length is the equivalent of saying: \"Give me everything.\" \nActiveRecord will fetch every single column for every single record in that query and load them all into your computer's RAM. Only after everything is loaded does it count how many items are in the array.\nusers = User.where(active: true)\nusers.length # SQL: SELECT * FROM users WHERE active = true\n# Every user object is now sitting in your RAM.\n\nWhen to use it: Use this only if you have already loaded the records (for example, if you already called @users.to_a).\nThe Trap: If you have 100,000 users and you just want to show a number in the navbar, calling .length will try to load",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Count、Length 还是 Size？避免 ActiveRecord 性能陷阱",
+        "summary": "Rails 开发者必须在 .count（数据库查询）、.length（内存加载）和 .size（智能混合）之间仔细选择，以避免 N+1 查询和 Web 应用程序中的内存耗尽。"
+      }
+    }
+  },
+  {
+    "title": "AI Cost Attribution: LLM Chargeback by Business Unit",
+    "slug": "ai-cost-attribution-llm-chargeback",
+    "url": "https://dev.to/void_stitch/ai-cost-attribution-llm-chargeback-by-business-unit-315b",
+    "source": "DEV Community",
+    "date": "2026-05-31T18:15:22.000Z",
+    "summary": "Defensible LLM cost chargeback by business unit requires request-level telemetry via gateway proxy and OpenTelemetry, not just provider invoice totals; monthly reconciliation prevents attribution drift.",
+    "content": "TL;DR:\nAI invoice totals from OpenAI and Bedrock are not enough for business-unit chargeback. You need request-level identity and pricing fields captured at runtime.\nA gateway-centric pattern using LiteLLM or a custom proxy plus OpenTelemetry gives higher attribution accuracy than app-only logging or post-hoc invoice allocation.\nAccording to the OpenTelemetry GenAI semantic conventions, token and model attributes like gen_ai.usage.input_tokens and gen_ai.request.model should be captured consistently across spans.\nFinance-ready chargeback needs a reconciliation cadence: daily ingest, weekly variance review, and month-end close with explicit adjustment rules.\nThe AI Cost Attribution Auditor at agentcolony.org helps teams test whether one trace has enough metadata for defensible per-request chargeback.\nIf your company spends $10,000 or more per month on LLM APIs, chargeback mistakes stop being a reporting annoyance and start becoming a planning and trust problem. A business unit lead sees one number from finance, engineering sees another number in logs, and procurement sees a third number in the provider invoice export. The gap usually comes from a simple structural issue: most teams start with account-level billing data, but they try to answer request-level accountability questions. That mismatch breaks quickly once multiple products and teams share the same provider account, model pool, and gateway.\nThis guide is for FinOps engineers and platform leads who need defensible attribution, not rough showback. The focus is practical implementation across OpenAI and Amazon Bedrock with gateway telemetry, OpenTelemetry semantics, and reconciliation controls that can survive audit review.\nThe common failure mode is treating provider invoice exports as if they already contain your internal ownership model. They do not. OpenAI and Bedrock billing data can tell you token categories, model identifiers, and cost totals, but they do not natively know your business taxonomy. They do",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI 成本归属：按业务部门的 LLM 费用分摊",
+        "summary": "可辩护的按业务部门 LLM 费用分摊需要通过网关代理和 OpenTelemetry 的请求级遥测，而不仅仅是提供商发票总额；月度对账防止归属偏差。"
+      }
+    }
+  },
+  {
+    "title": "Challenges and Solutions in High-Resolution Camera Design",
+    "slug": "high-resolution-camera-design-challenges",
+    "url": "https://dev.to/siliconsignals_ind/challenges-and-solutions-in-high-resolution-camera-design-2jpc",
+    "source": "DEV Community",
+    "date": "2026-05-31T18:15:10.000Z",
+    "summary": "High-resolution camera engineering addresses chromatic aberration and signal integrity through apochromatic optics, ISP look-up tables, and calibrated correction matrices; problems compound at extreme angles.",
+    "content": "High-resolution camera design pushes the boundaries of optical engineering, electronics, and software processing. As megapixel counts increase and applications demand sharper images, engineers face unique challenges that can undermine image quality and system performance. From chromatic aberration to MIPI signal integrity issues, these problems require careful hardware tuning, custom firmware, and optimized software to overcome.\nThis guide explores the five most critical challenges in high-resolution camera design engineering and their technical solutions, with a focus on embedded systems, product design, and real-world deployment scenarios.\nChromatic aberration in camera design causes color fringing that degrades image clarity in high-contrast scenes. This is particularly problematic in applications such as medical diagnostics, where accuracy is critical. The issue occurs when lenses fail to focus all wavelengths of light at the same point, especially in wide-angle designs where light enters at extreme angles.\nWhen different wavelengths (colors) focus at different distances from the lens, you see purple or green fringes around high-contrast edges. This reduces effective resolution and can cause measurement errors in machine vision applications.\nCamera design engineering employs multiple strategies to minimize wavelength separation and correct chromatic aberration:\nOptical Design Solutions:\nApochromatic lenses use special glass compounds that bring three wavelengths (red, green, blue) into focus at the same point\nLow-dispersion glass (ED glass) reduces wavelength separation at the source\nMulti-element lens designs with carefully matched dispersion coefficients compensate for color errors\nFirmware and ISP Corrections:\nFirmware applies real-time correction via Image Signal Processor (ISP) Look-Up Tables (LUTs)\nYocto-based Board Support Packages (BSPs) configure V4L2 controls for ISP parameters\nCorrection matrices are calibrated per lens unit during manufacturing\nSoftw",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "高分辨率摄像头设计中的挑战与解决方案",
+        "summary": "高分辨率摄像头工程通过消色差光学、ISP 查找表和校准的校正矩阵来解决色差和信号完整性问题；在极端角度时问题会加剧。"
+      }
+    }
+  },
+  {
+    "title": "Replit agents just got a financial identity — and Visa backed it",
+    "slug": "replit-visa-trusted-agent-protocol-identity",
+    "url": "https://dev.to/thegatewayguy/replit-agents-just-got-a-financial-identity-and-visa-backed-it-3ep8",
+    "source": "DEV Community",
+    "date": "2026-05-31T18:14:12.000Z",
+    "summary": "Visa's investment in Replit integrates native payment infrastructure and introduces a Trusted Agent Protocol for cryptographic AI agent identity verification, enabling secure merchant transactions.",
+    "content": "Visa just made a strategic investment in Replit and the two are integrating payment infrastructure directly into Replit's agent-building environment. Tokenization, authentication, wallet management, payment instructions — native, from day one, not bolted on after the fact.\nBut the more interesting piece isn't the payments. It's the identity layer.\nVisa Intelligent Commerce APIs are now accessible natively in Replit's dev environment. Developers building agents don't need to wire up payments separately — the building blocks are there as they build.\nVisa made a strategic investment in Replit. Amount undisclosed. More than 1,000 Visa employees are already using the platform for internal prototyping.\nReplit is exploring joining the Visa Trusted Agent Protocol registry — the mechanism that would let agents built on Replit transact with merchants and services on behalf of users.\n\"The next generation of builders and companies is emerging within ecosystems like Replit has developed. Our investment and partnership reflect a shared view that card payments should be native, secure and integrated directly into those experiences from the start.\"\n— Rubail Birwadker, SVP, Head of Growth Products and Partnerships, Visa\nVisa's Trusted Agent Protocol registry is a public key distribution system for AI agents. Agents register their identity and publish cryptographic keys. Merchants and infrastructure providers can then verify an agent's identity and intent in real time — distinguishing between a trusted agent acting for a user versus unknown or potentially malicious automation.\nFor an agent to be \"Visa-trusted,\" it needs to go through Visa's onboarding, approval, and certification process. Replit is exploring a path to put agents built on its platform into that registry.\nThis matters more than the payment integration. Payments are table stakes. Verified agent identity is the unsolved problem. The moment an AI agent can be cryptographically identified and trusted by a merchant, the who",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Replit代理获得了金融身份——Visa为其保驾护航",
+        "summary": "Visa对Replit的投资整合了原生支付基础设施，并推出可信代理协议，用于加密AI代理身份验证，实现安全的商户交易。"
+      }
+    }
+  },
+  {
+    "title": "Algorithmic Trading Pipelines",
+    "slug": "algorithmic-trading-pipelines-architecture",
+    "url": "https://dev.to/white_oak_intel/algorithmic-trading-pipelines-4pjj",
+    "source": "DEV Community",
+    "date": "2026-05-31T18:13:46.000Z",
+    "summary": "Production trading pipelines isolate ingestion, normalization, signal processing, and persistence into independent layers with ring buffers for backpressure management and asynchronous batch writes.",
+    "content": "In This Article\nFour-Layer Pipeline Architecture\nWebSocket Ingestion with asyncio\nAnomaly Detection and Tick Validation\nThe Circuit Breaker Pattern\nSignal Processing and Persistence\nA production trading data pipeline is not a single process — it is a layered system where each layer has a defined responsibility and a clean handoff to the next. Collapsing these layers into a monolith makes the system brittle: a normalization bug corrupts the signal processor, a persistence failure blocks ingestion, and debugging requires understanding the entire system simultaneously.\nThe four-layer model separates concerns cleanly: ingestion handles WebSocket connection management and raw tick buffering; normalization cleans and standardizes the raw data; signal processing applies the trading logic; persistence writes the output. Each layer can be tested, monitored, and replaced independently.\nIngestion: Responsibility: WebSocket connection, raw tick buffering — Key Design Concern: Reconnection resilience, backpressure management\nNormalization: Responsibility: Schema validation, unit conversion, deduplication — Key Design Concern: Malformed tick handling without pipeline stall\nSignal Processing: Responsibility: Anomaly detection, feature computation, alerts — Key Design Concern: Rolling state, low-latency execution\nPersistence: Responsibility: Write to time-series DB, async batching — Key Design Concern: Write durability, batch sizing, backpressure\nThe ingestion layer maintains a persistent WebSocket connection to the data feed, buffers incoming ticks in a fixed-size ring buffer, and reconnects automatically on connection failure using exponential backoff. The ring buffer — a collections.deque with maxlen=10_000 — acts as a backpressure mechanism: when the downstream processing layers fall behind, the oldest ticks are silently dropped rather than allowing the buffer to grow unboundedly and exhaust memory.\nimport asyncio, json, websockets\nfrom collections import deque\nfrom typing impo",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "算法交易管道",
+        "summary": "生产交易管道将摄取、规范化、信号处理和持久化隔离到独立层中，采用环形缓冲区进行背压管理和异步批量写入。"
+      }
+    }
+  },
+  {
+    "title": "The 100 Prisoners Problem: Permutation Cycles and the 31% Miracle",
+    "slug": "100-prisoners-problem-permutation-cycles",
+    "url": "https://dev.to/white_oak_intel/the-100-prisoners-problem-permutation-cycles-and-the-31-miracle-39o2",
+    "source": "DEV Community",
+    "date": "2026-05-31T18:13:39.000Z",
+    "summary": "The 100 prisoners problem reveals a counterintuitive loop strategy that achieves 31% survival probability by following permutation cycles, vastly outperforming independent random strategies.",
+    "content": "In This Article\nThe Question\nThe Intuition Trap: Why Independent Strategies Fail\nThe Loop Strategy: Following the Permutation Cycle\nThe Mathematical Proof\nPython Simulation: 100,000 Trials\nBusiness Application: Correlated Failure vs. Independent Risk\nThe director of a prison offers 100 prisoners on death row a chance to survive. A room contains a cupboard with 100 drawers. The director randomly places one prisoner's number — drawn from 1 to 100 — into each closed drawer, one per drawer, so that the assignment is a uniformly random permutation. The prisoners enter the room one at a time. Each prisoner may open and look into exactly 50 drawers in any order. After examining the drawers, the prisoner leaves the room and the drawers are all closed again. No prisoner may communicate with the others once the game has begun, and they may not leave any marks or signals.\nThe prisoners survive if and only if every single prisoner finds their own number among the 50 drawers they open. If even one prisoner fails to find their number, all 100 are executed. Before the first prisoner enters the room, the prisoners may meet and agree on a collective strategy.\nThe question: what is the optimal strategy, and what is the resulting probability of survival?\nThe answer is that there exists a strategy — the loop strategy — under which the prisoners survive with probability approximately 31.18%. This is not a small improvement over a bad strategy. For comparison, the naive strategy of each prisoner randomly selecting 50 drawers yields a survival probability of (1/2)¹⁰⁰ ≈ 8 × 10^(-31) — a number so small it is effectively zero in any physical sense. The loop strategy raises that number to nearly one-in-three. The result, first established by Anna Gál and Peter Bro Miltersen in 2003, remains one of the most stunning results in combinatorial probability precisely because the improvement seems to come from nowhere.\nThe first instinct is to reason about a single prisoner. Each prisoner faces 100",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "100名囚犯问题：排列循环和31%奇迹",
+        "summary": "100名囚犯问题揭示了一种反直觉的循环策略，通过遵循排列循环实现31%的生存概率，远超独立随机策略的表现。"
+      }
+    }
+  },
+  {
+    "title": "The solution might be cancelling my AI subscription",
+    "slug": "solution-cancelling-ai-subscription",
+    "url": "https://thoughts.hmmz.org/2026-05-31.html",
+    "source": "Hacker News",
+    "date": "2026-05-31T14:23:30.000Z",
+    "summary": "Hacker News discussion questioning the value and necessity of AI subscriptions for typical users.",
+    "content": "Article URL: https://thoughts.hmmz.org/2026-05-31.html\nComments URL: https://news.ycombinator.com/item?id=48345896\nPoints: 281\n# Comments: 183",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "解决方案可能是取消我的AI订阅",
+        "summary": "黑客新闻上关于AI订阅对普通用户价值和必要性的讨论"
+      }
+    }
+  },
+  {
+    "title": "Cloudflare Turnstile requiring fingerprintable WebGL",
+    "slug": "cloudflare-turnstile-webgl-fingerprinting",
+    "url": "https://hacktivis.me/articles/cloudflare-turnstile-webgl-fingerprinting",
+    "source": "Hacker News",
+    "date": "2026-05-31T14:13:20.000Z",
+    "summary": "Privacy concerns raised on Hacker News about Cloudflare Turnstile's use of WebGL, which may enable browser fingerprinting beyond its intended CAPTCHA purpose.",
+    "content": "Article URL: https://hacktivis.me/articles/cloudflare-turnstile-webgl-fingerprinting\nComments URL: https://news.ycombinator.com/item?id=48345840\nPoints: 230\n# Comments: 128",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Cloudflare Turnstile需要可指纹识别的WebGL",
+        "summary": "黑客新闻上对Cloudflare Turnstile使用WebGL的隐私担忧,这可能导致超出其预期CAPTCHA目的的浏览器指纹识别"
+      }
+    }
+  },
+  {
     "title": "Scribe vs ClickTrek vs Tango vs Guidde vs Floik: Workflow Documentation Tools Compared (2026)",
     "slug": "scribe-clicktrek-tango-guidde-floik-compared",
     "url": "https://dev.to/pbinder_2e65897d5/scribe-vs-clicktrek-vs-tango-vs-guidde-vs-floik-workflow-documentation-tools-compared-2026-5077",
@@ -188,6 +412,22 @@
       "zh": {
         "title": "我用 Coral 和 Gemini 在一周内构建了 AI 部署守卫：解决方案分享",
         "summary": "作者构建了 Harbourmaster，一个 CLI 工具，使用 Coral 的 SQL 基础 API 查询和 Gemini 2.5 Flash 在 10 秒内检查六个与部署相关的来源（GitHub、Sentry、Datadog、PagerDuty、StatusGator、Linear），并提供 GO/CAUTION/HOLD 判决。通过将 API 视为数据库来源，这种方法消除了通常需要数周才能完成的自定义 OAuth 和分页样板代码。这展示了构建 AI 驱动部署安全门的实用模式。"
+      }
+    }
+  },
+  {
+    "title": "Dav2d",
+    "slug": "dav2d",
+    "url": "https://jbkempf.com/blog/2026/dav2d/",
+    "source": "Hacker News",
+    "date": "2026-05-31T11:44:45.000Z",
+    "summary": "Hacker News discussion of Dav2d, a high-performance AV1 video decoder implementation.",
+    "content": "Article URL: https://jbkempf.com/blog/2026/dav2d/\nComments URL: https://news.ycombinator.com/item?id=48344961\nPoints: 308\n# Comments: 95",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Dav2d",
+        "summary": "黑客新闻上关于Dav2d的讨论,一个高性能AV1视频解码器的实现"
       }
     }
   },
