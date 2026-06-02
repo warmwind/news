@@ -1,5 +1,245 @@
 [
   {
+    "title": "OpenAI is treating coding agents like governed infrastructure",
+    "slug": "openai-treating-coding-agents-like-governed-infrastructure",
+    "url": "https://dev.to/yujia_zhang_0328/openai-is-treating-coding-agents-like-governed-infrastructure-9pm",
+    "source": "DEV Community",
+    "date": "2026-06-02T19:09:57.000Z",
+    "summary": "OpenAI's Codex employs a three-layer safety architecture using process isolation, network policy, and approval routing to govern agent execution. The system classifies actions into risk tiers, automatically executing read-only operations while requiring asynchronous or synchronous approval for write operations and security-critical actions. Agent-native telemetry provides audit trails at scale, making autonomous code execution safe for production enterprise environments.",
+    "content": "OpenAI's Codex safety notes are notable because they focus on approvals, network policy, and logs rather than raw coding benchmarks. That is what production agent deployment looks like when risk is taken seriously.\nAgent Governance - May 8, 2026\nOpenAI's Codex safety architecture is built around three layers that matter in sequence: process isolation, network policy, and approval routing. The execution environment is a Windows sandbox using App Container isolation  - not a Linux container  - which is a deliberate choice. App Container restricts filesystem access, inter-process communication, and network connectivity at the OS level without requiring a separate hypervisor. Every tool call Codex makes  - git, npm, a compiler, a test runner  - runs inside that boundary. The default-deny network posture allowlists package registries and VCS hosts and blocks everything else. That default is what makes autonomous execution safe to enable in the first place.\nThe approval routing model is where the practical enterprise architecture lives. Codex classifies each planned action into a risk tier before executing it. Read-only operations  - file reads, test runs, local builds  - run automatically. Write operations that cross repository boundaries  - git push, external API calls, file writes outside the working directory  - trigger asynchronous approval requests. Operations with production or security implications  - credential access, schema modifications, infrastructure changes  - require synchronous human approval before the step proceeds. That three-tier model mirrors the coarse-to-fine permission structure in any well-designed RBAC system. What is novel is applying it dynamically to agent action sequences rather than to static resource access.\nAgent-native telemetry is the capability that makes this auditable at scale. Codex emits structured trace events at each step: tool call name, arguments, return values, latency, and the decision rationale logged before invoking the too",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "OpenAI将代码代理视为受治理的基础设施",
+        "summary": "OpenAI的Codex采用三层安全架构，利用进程隔离、网络策略和审批路由来管理代理执行。系统将操作分类为风险等级，自动执行只读操作，同时对写操作和安全关键操作需要异步或同步审批。代理原生遥测在规模上提供审计跟踪，使自主代码执行对生产企业环境更加安全。"
+      }
+    }
+  },
+  {
+    "title": "Span attributes that catch LLM cost regressions before billing does",
+    "slug": "span-attributes-catch-llm-cost-regressions",
+    "url": "https://dev.to/jasmine_park_dev/span-attributes-that-catch-llm-cost-regressions-before-billing-does-472n",
+    "source": "DEV Community",
+    "date": "2026-06-02T19:09:31.000Z",
+    "summary": "Teams building LLM-powered systems can detect cost regressions early by adding team.id, feature.id, and llm.model attributes to OpenTelemetry spans. A Grafana alert based on week-over-week token output spikes caught a runaway retry loop that organization-level spend dashboards missed. This approach enables per-team and per-feature cost tracking with minimal instrumentation overhead.",
+    "content": "The default OTel + OpenInference span has llm.tokens.input and llm.tokens.output as numeric attributes. Useful for trace-level debugging. Not useful for per-team cost regressions, because nothing groups traces by team.\nThe 3 attribute additions that earned their keep:\nteam.id. Tagged on every span at the gateway layer (before the call routes to the LLM provider). This is the column that makes the cost rollup possible. Without it, you can attribute spend to an org but not to a team inside the org.\nfeature.id. The product feature that triggered the call (chat_assistant, summarizer, rag_search). Lets you see when one feature's token cost spikes vs the overall trend.\nllm.model. Already standard in OpenInference but worth flagging: without this, you cannot separate a cheap mini-tier model's spikes from a frontier model's spikes when both are in the same feature.\nThe daily Tempo + Grafana query (TraceQL):\n{ resource.service.name = \"llm-gateway\" }\n| histogram_quantile(0.95, llm.tokens.output_total) by (team.id, feature.id, llm.model)\n\nThe alert rule: page when 7-day-trailing average of output-tokens-per-team-per-feature jumps more than 2x week-over-week. We caught a runaway retry loop last quarter that the org-level spend dashboard missed because the total stayed within budget while one team's bill quietly doubled.\nWhat we tried and dropped:\nuser.id tagging: privacy concerns at scale, and the rollup-by-team covered the use case.\nrequest.id tagging: redundant with the trace_id; just adds cardinality.\nDrafted with AI assistance, edited and verified by author.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在账单前发现大语言模型成本回退的跨度属性",
+        "summary": "构建大语言模型驱动系统的团队可以通过向OpenTelemetry跨度添加team.id、feature.id和llm.model属性来提前发现成本回退。基于周度令牌输出激增的Grafana告警捕捉到了组织级支出仪表板遗漏的失控重试循环。这种方法以最少的检测开销实现按团队和按功能的成本跟踪。"
+      }
+    }
+  },
+  {
+    "title": "The Developer's Guide to Actually Finding AI That Writes Good Code (Without Breaking the Bank)",
+    "slug": "developers-guide-finding-ai-writes-good-code",
+    "url": "https://dev.to/loyaldash/the-developers-guide-to-actually-finding-ai-that-writes-good-code-without-breaking-the-bank-52c2",
+    "source": "DEV Community",
+    "date": "2026-06-02T19:09:12.000Z",
+    "summary": "A junior developer tested 10 different AI models on real coding tasks and discovered significant performance variance across models, with some producing correct, production-ready code while others generated subtle bugs or failed completely. The testing covered Python, JavaScript, TypeScript, and Go across tasks including algorithm implementation, bug fixing, and API development. This empirical approach helps developers choose the right AI tool for their specific needs.",
+    "content": "Look, I'm going to be real with you. When I graduated from my coding bootcamp six months ago, I thought I'd have AI writing all my code for me within a week. I'd seen the YouTube videos—\"AI will replace developers!\" \"Just prompt your way to a full app!\" And honestly? I was excited. I figured I'd never have to write another for loop from scratch.\nThen I actually started trying to use AI for coding, and... wow. I had no idea how wrong I was.\nThe first time I asked an AI to write a Python function for me, it gave me something that looked right but had a bug so subtle it took me three hours to find. The second time, it wrote beautiful code that worked perfectly—until I hit 100 users. Then it crashed spectacularly. The third time? It just refused to even try.\nI was shocked. I thought this stuff was supposed to be magic?\nFast forward to today, and I've learned something crucial: not all AI models are created equal for coding. Some are incredible. Some are trash. And the prices? They're all over the place. I've spent way too much of my own money testing these things, so you don't have to.\nHere's what I discovered.\nI tested 10 different AI models on real coding tasks. Not \"write hello world\" tasks. Actual stuff you'd do at work: fixing bugs, building APIs, implementing algorithms. I used Python, JavaScript, TypeScript, and Go—the languages I actually use day-to-day.\nEach model got the same five challenges:\nWrite a recursive Python function to flatten nested lists (sounds easy, but edge cases are brutal)\nFix a JavaScript bug involving async/await race conditions (this one actually happened to me at work)\nImplement Dijkstra's algorithm in TypeScript (because who doesn't love graph theory, right?)\nReview Go code for security issues (I'm still learning Go, so I needed help)\nBuild a complete REST API endpoint with pagination and filtering in Express.js\nI scored each one on correctness, code quality, documentation, and how well they handled edge cases. Here's the wild part.\n\n\n\nRa",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "开发者指南：真正找到编写优质代码的人工智能（不破产）",
+        "summary": "一位初级开发者在真实编码任务上测试了10个不同的人工智能模型，发现了模型间的显著性能差异，有些模型生成了正确、生产就绪的代码，而其他模型则产生细微错误或完全失败。测试覆盖了Python、JavaScript、TypeScript和Go，涵盖算法实现、bug修复和API开发等任务。这种实证方法帮助开发者为特定需求选择合适的人工智能工具。"
+      }
+    }
+  },
+  {
+    "title": "ChatGPT no Navegador: O Fim da Dependência de APIs?",
+    "slug": "chatgpt-navegador-fim-dependencia-apis",
+    "url": "https://dev.to/kabrau/chatgpt-no-navegador-o-fim-da-dependencia-de-apis-41m3",
+    "source": "DEV Community",
+    "date": "2026-06-02T19:06:53.000Z",
+    "summary": "A Brazilian developer successfully ran a ChatGPT-style language model directly in the browser using WebAssembly and WebGPU, eliminating the need for API calls to remote servers. This Edge AI approach enables faster response times, better privacy, and reduced latency by leveraging the user's local CPU and GPU resources. The technique demonstrates a paradigm shift toward decentralized AI inference that could reduce costs and third-party dependencies.",
+    "content": "E aí, gurizada! Deixa eu te contar uma coisa que me deixou de cara: rodei um modelo de linguagem estilo ChatGPT direto no navegador, sem API e sem servidor. Isso mesmo, tu não leu errado. Eu, Marcelo Cabral, que vivo no meio dessa loucura de IA e engenharia de software, sempre fui calejado com a dependência de APIs pra tudo que é lado. Mas essa experiência me abriu os olhos para um futuro que, até pouco tempo, parecia ficção científica. E o mais legal? A performance foi surpreendente.\nDesde que comecei a mergulhar de cabeça no mundo da Inteligência Artificial, sempre me incomodou a \"caixa preta\" que muitas vezes se torna a interação com modelos. A gente manda os dados pra lá, espera, e recebe a resposta. É prático, sim, mas e a privacidade? E a latência? E o custo, que vira uma bola de neve rapidinho? Meu lado gaúcho, que sempre busca a eficiência e a autonomia, me cutucava. Eu queria ver se era possível trazer essa inteligência para mais perto do usuário, para dentro do próprio dispositivo dele.\nFoi aí que topei com a ideia de Edge AI – a IA na ponta, no limite da rede, onde a mágica acontece sem a necessidade de um servidor intermediário. E pensei: \"Bah, se eu conseguir rodar um LLM (Large Language Model) direto no browser, a gente quebra um monte de paradigmas\". E fui lá, botei a mão na massa e o resultado tá aí pra quem quiser ver, assista no YouTube.\nA essência dessa brincadeira é simples, mas a implementação envolve umas tecnologias bem interessantes. Tradicionalmente, quando tu usa um ChatGPT da vida, tua requisição vai pra um servidor da OpenAI, ele processa, e te devolve a resposta. Tudo isso via API. Com a Edge AI no navegador, o modelo de linguagem é \"compilado\" ou \"otimizado\" para rodar diretamente no teu browser. Isso é possível graças a avanços como o WebAssembly (Wasm) e, mais recentemente, a WebGPU.\nFunciona assim: em vez de chamar uma API remota, o próprio navegador usa os recursos do teu computador – CPU e, se disponível, a GPU – pra executar o mod",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "浏览器中的ChatGPT：摆脱API依赖的终结？",
+        "summary": "一位巴西开发者成功地使用WebAssembly和WebGPU在浏览器中直接运行类ChatGPT的语言模型，无需调用远程服务器的API。这种边缘AI方法利用用户的本地CPU和GPU资源，实现了更快的响应时间、更好的隐私保护和更低的延迟。该技术展示了向去中心化AI推理范式的转变，可以降低成本和第三方依赖。"
+      }
+    }
+  },
+  {
+    "title": "We Had LLMs Hallucinating Legal URLs in Production — Here's What We Tried",
+    "slug": "llms-hallucinating-legal-urls-production",
+    "url": "https://dev.to/akshatsoni26/we-had-llms-hallucinating-legal-urls-in-production-heres-what-we-tried-2h4e",
+    "source": "DEV Community",
+    "date": "2026-06-02T19:06:21.000Z",
+    "summary": "A RAG application built over legal documents struggled with LLMs producing both invented URLs and corrupted versions of real ones through character mutations that appeared plausible but led to broken links. Traditional approaches like prompt engineering, context reduction, and batching failed to achieve acceptable error rates. The team solved the problem by replacing long, error-prone URLs with short numeric codes before LLM processing and mapping them back afterward.",
+    "content": "The Production Bug\n\n\nWe were building a RAG application over legal documents. \nThe citations are the whole point. A legal answer without a working \nThen users started reporting broken links.\nWhen I dug in, I found two distinct failure patterns:\nPattern 1 — Invented URLs. The LLM would cite a section that \n#paragraf-99 in a law \n#paragraf-67. Confident, plausible, wrong.\nPattern 2 — Half-broken URLs. The source URL was real and present \n# What we gave the LLM:\n4552013#paragraf-31.odsek-2.pismeno-a\n\n# What the LLM gave back:\n4552013#paragraf-3.odsek-2.pismeno-a   ← dropped a digit\n4552013#paragraf-31.odsek-2.pismeno-b  ← flipped last letter\n4552013#paragraf-31.odsek-2            ← truncated the path\n\nEvery mutation was plausible. None of them existed. And the links \nPrompt engineering. We tried few-shot prompting — giving the model \nignoring your examples, it genuinely cannot tell the difference \nReducing context. We cut down the number of documents we injected \nMore batches. Instead of one big LLM call with everything, we split \nNone of these got us below an acceptable error rate. Broken legal \nI was staring at one of these mutations trying to understand the \nThese URLs are long, noisy, and nearly identical to each other. \nWhat if we just... didn't give it the real URLs at all?\nThe idea: replace every URL with a short numeric code before \n# Before sending to LLM:\n[§ 31](4552013#paragraf-31.odsek-2.pismeno-a) → [§ 31](=1#1)\n[§ 65a](4552013#paragraf-65a)                  → [§ 65a](=1#2)\n[Article 5](/SK/ZZ/1964/40#article-5)          → [Article 5](=2#1)\n\n# LLM works with short codes only.\n\n# After LLM responds:\n[§ 31](=1#1)      → [§ 31](4552013#paragraf-31.odsek-2.pismeno-a) ✅\n[§ 65a](=1#2)     → [§ 65a](4552013#paragraf-65a)                 ✅\n[Article 5](=2#1) → [Article 5](/SK/ZZ/1964/40#article-5)         ✅\n\nThe = prefix makes codes visually distinct — the model treats \n=1#1 because there's nothing meaningful to mutate it into.\nImplementation is a bijective map — ba",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我们的生产环境中的大语言模型产生幻觉URL——以下是我们的尝试方法",
+        "summary": "一个建立在法律文件基础上的RAG应用程序遭遇了大语言模型产生幻觉的问题，既产生了虚构的URL，也产生了通过字符变异看起来合理但导致链接破损的真实URL的损坏版本。提示工程、上下文缩减和批处理等传统方法都未能达到可接受的错误率。该团队通过在LLM处理前将长的、容易出错的URL替换为短的数字代码，然后在之后将其映射回来，解决了这个问题。"
+      }
+    }
+  },
+  {
+    "title": "Your CLAUDE.md Files Are Fighting Each Other (And How to Fix It)",
+    "slug": "claude-md-files-fighting-each-other",
+    "url": "https://dev.to/olivia_craft/your-claudemd-files-are-fighting-each-other-and-how-to-fix-it-5635",
+    "source": "DEV Community",
+    "date": "2026-06-02T19:04:51.000Z",
+    "summary": "Claude Code loads CLAUDE.md configuration from multiple levels (global, project root, subdirectory) that can conflict, causing inconsistent agent behavior as it tries to reconcile contradictory instructions. Examples include mixed documentation styles, hybrid OOP/functional code, unpredictable permission prompts, and inconsistent indentation within the same session. Developers should establish a clear conflict resolution strategy across their CLAUDE.md hierarchy to ensure reliable agent behavior.",
+    "content": "When your Claude Code agent starts doing the wrong thing, the first suspect is always your CLAUDE.md.\nBut there's a conflict most developers miss: your global CLAUDE.md and your project-level CLAUDE.md can actively fight each other — and Claude will silently pick one, or blend both in unpredictable ways.\nHere's what that looks like in practice:\n~/.claude/CLAUDE.md          # global: \"always use TypeScript strict mode\"\n./CLAUDE.md                  # project: \"use loose types for prototyping\"\n\nYou get inconsistent behavior. Sometimes strict. Sometimes loose. The agent acts like it's having a bad day, but it's just confused by contradictory instructions.\nClaude Code loads CLAUDE.md files from multiple locations:\nGlobal (~/.claude/CLAUDE.md) — applies to every project\nProject root (./CLAUDE.md) — project-specific overrides\nSubdirectory (./src/CLAUDE.md) — scoped to that folder\nWhen these conflict, there's no explicit \"last one wins\" rule you can count on. Claude tries to reconcile them, which means sometimes it merges, sometimes it overrides, sometimes it ignores one silently.\n# Global CLAUDE.md\nAlways write concise, minimal code. No comments unless critical.\n\n# Project CLAUDE.md  \nDocument every function with JSDoc. Explain reasoning in comments.\n\nResult: Agent alternates between documented and undocumented code within the same session.\n# Global CLAUDE.md\nPrefer functional programming. Avoid classes.\n\n# Project CLAUDE.md\nThis is an OOP codebase. Use classes and inheritance patterns.\n\nResult: Agent writes hybrid code — functional methods inside classes, or breaks existing patterns.\n# ~/.claude/CLAUDE.md\nWhen in doubt, ask before making changes.\n\n# ./CLAUDE.md\nMove fast. Make the change, then explain it.\n\nResult: Agent hesitates unpredictably. Sometimes asks. Sometimes acts. No reliable behavior.\n# Global: Use 2-space indentation\n# Project: Use 4-space indentation\n\nResult: Mixed indentation across files generated in the same session.\nYour global CLAUDE.md accumulates ins",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的CLAUDE.md文件互相冲突（以及如何修复）",
+        "summary": "Claude Code从多个层级（全局、项目根目录、子目录）加载CLAUDE.md配置，这些配置可能会产生冲突，导致代理行为不一致，因为它试图协调相互矛盾的指令。例如包括混合的文档风格、混合的OOP/函数式代码、不可预测的权限提示和同一会话中的不一致缩进。开发者应该在CLAUDE.md层次结构中建立清晰的冲突解决策略，以确保代理行为的可靠性。"
+      }
+    }
+  },
+  {
+    "title": "How URL Shorteners Generate Unique Links Instantly",
+    "slug": "how-url-shorteners-generate-unique-links",
+    "url": "https://dev.to/kashafabdullah/how-url-shorteners-generate-unique-links-instantly-3h2e",
+    "source": "DEV Community",
+    "date": "2026-06-02T19:01:06.000Z",
+    "summary": "URL shorteners convert long URLs into short codes by storing the original URL in a database, assigning a unique numeric ID, and encoding that ID using Base62 compression to create user-friendly short links. Base62 encoding uses 62 characters (0-9, a-z, A-Z) to represent large numbers in fewer characters, making links shorter and more memorable than raw numeric IDs. This deterministic approach guarantees uniqueness since the database ID is already unique.",
+    "content": "How URL Shorteners Generate Unique Links\n\n\n\n\n\nEvery day, millions of people share links using services like TinyURL, Bitly, and Rebrandly. Instead of sharing a long and messy URL, these platforms convert it into a short, clean link that is easier to remember and share.\n\nBut have you ever wondered how these services generate unique short links almost instantly?\nLet's break it down.\nA URL shortener is a service that converts a long URL into a much shorter one.\nFor example:\nOriginal URL: https://example.com/blog/how-url-shorteners-generate-unique-links-instantly\nShort URL: https://short.ly/aB3xYz\nWhen someone visits the short URL, they are automatically redirected to the original destination.\nThe real challenge is ensuring that every short link is unique and generated in milliseconds.\nWhen a user submits a URL, the system first saves it in a database.\nExample:\n\n\n\nID\nLong URL\n\n\n\n\n1001\nhttps://example.com/blog/how-url-shorteners-generate-unique-links-instantly\n\n\n\nAt this point, the database has assigned a unique ID to the URL.\nMost URL shorteners don't expose database IDs directly.\nInstead, they convert the numeric ID into a shorter representation using Base62 encoding.\nBase62 uses:\nNumbers: 0–9\nLowercase letters: a–z\nUppercase letters: A–Z\nThis gives a total of 62 possible characters.\nExamples:\n\n\n\nID\nBase62 Code\n\n\n\n\n1001\ng9\n\n\n500000\n28CG\n\n\n10000000\nFXsk\n\n\n\nThe final shortened URL becomes: https://short.ly/g9\nBecause the database ID is already unique, the generated short code is automatically unique as well.\nImagine storing URLs as plain numbers: https://short.ly/1001\nThis works, but it becomes longer as IDs grow.\nBase62 compresses large numbers into fewer characters, making links shorter and more user-friendly.\n\n\n\nNumber\nBase62\n\n\n\n\n1001\ng9\n\n\n500,000\n28CG\n\n\n10,000,000\nFXsk\n\n\n\nThis is why most URL shortening services use some form of Base62 encoding.\nSome systems generate random strings instead of converting IDs.\nExample: aB3xYz\nThe system checks whether the code already",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "网址缩短器如何瞬间生成独特链接",
+        "summary": "URL缩短器通过在数据库中存储原始URL、分配唯一的数字ID并使用Base62压缩对该ID进行编码来将长URL转换为短代码，从而创建用户友好的短链接。Base62编码使用62个字符（0-9、a-z、A-Z）来用更少的字符表示大数字，使链接比原始数字ID更短、更容易记忆。这种确定性方法保证了唯一性，因为数据库ID已经是唯一的。"
+      }
+    }
+  },
+  {
+    "title": "I Built 10 Developer Tools in One Day - Here They Are (Free, Open Source)",
+    "slug": "built-10-developer-tools-one-day-free-opensource",
+    "url": "https://dev.to/bshes/i-built-10-developer-tools-in-one-day-here-they-are-free-open-source-2hfd",
+    "source": "DEV Community",
+    "date": "2026-06-02T18:58:57.000Z",
+    "summary": "A developer created DevForge, a suite of 10 free, open-source browser-based tools including JSON-to-TypeScript converters, regex testers, JWT decoders, and color converters, all running entirely client-side with zero backend dependencies. Built as single HTML files with embedded CSS and JavaScript, these tools require no frameworks or external dependencies and are hosted on GitHub Pages. The developer offers a free tier plus a paid Pro tier with additional features.",
+    "content": "Last week I had a single tool: a JSON-to-TypeScript converter. \nToday I have 10.\nI spent a day building a full suite of developer tools - all free, all client-side (nothing leaves your browser), and all open source on GitHub.\nDevForge is a collection of tools I built because I kept opening 15 different tabs every day:\nPaste JSON, get TypeScript interfaces or types. Supports nested objects, arrays, custom root names.\nBidirectional conversion with header detection and delimiter support (comma, semicolon, tab).\nLive regex testing with flags (g, i, m, s, u, y), match highlighting, and replace functionality.\nEncode text to Base64 and decode Base64 back to text. Unicode-safe.\nDecode JWT tokens into header, payload, and signature components. Read-only - no verification, no security risk.\nUppercase keywords, indentation control. Handles SELECT, JOIN, INSERT, CREATE - the common stuff.\nSide-by-side text comparison with LCS-based diff algorithm. Color-coded additions and removals.\nGenerate UUID v4 (or v1) in bulk. Copy individual or all at once.\nConvert Unix timestamps to readable dates and back. Shows seconds, milliseconds, ISO 8601, UTC, and relative time.\nConvert between HEX, RGB, HSL, and CMYK. Color picker, presets, named color support.\nZero frameworks. Zero dependencies. Zero backend.\nEvery tool is a single HTML file with embedded CSS and JavaScript. They all run entirely in the browser - no data is sent to any server.\nHosted on GitHub Pages. Free forever.\nI'm a solo developer based in Nepal. Building things that help other developers is how I learn, grow, and (hopefully) earn.\nThe suite is free, but there's a Pro tier ( one-time) that unlocks:\nFile exports\nBatch operations\nCustom naming conventions\nPriority support\nI also do freelance development. If you need a custom tool, API integration, or automation - reach out.\nUse the tools: https://bshes.github.io/json2ts/\nGitHub repo: https://github.com/Bshes/json2ts\nHire me: bishes.gr@gmail.com (Payoneer) or 9825755275 (Khalt",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我在一天内构建了10个开发者工具——它们在这里（免费、开源）",
+        "summary": "一位开发者创建了DevForge，这是一套包含10个免费开源的基于浏览器的工具，包括JSON转TypeScript转换器、正则表达式测试工具、JWT解码器和颜色转换器，所有工具都完全在客户端运行，无需后端依赖。这些工具作为单个HTML文件构建，嵌入了CSS和JavaScript，无需任何框架或外部依赖，并在GitHub Pages上托管。开发者提供免费层和包含附加功能的付费Pro层。"
+      }
+    }
+  },
+  {
+    "title": "Your AI agents are authorized by vibes. Here's how to fix that.",
+    "slug": "ai-agents-authorized-by-vibes-how-to-fix",
+    "url": "https://dev.to/pqbuilder/your-ai-agents-are-authorized-by-vibes-heres-how-to-fix-that-1l41",
+    "source": "DEV Community",
+    "date": "2026-06-02T18:58:26.000Z",
+    "summary": "Current agent frameworks lack cryptographically enforced authorization gates, relying instead on memory retrieval that can return incorrect permission claims, creating a false sense of security. The solution applies cryptographic certificates to agent dispatch, where an orchestrator issues signed certificates at runtime specifying the agent's exact scope and identity. Each tool call passes through a gate that verifies the certificate offline, making authorization tamper-proof and revocable.",
+    "content": "The AI agent security community has been converging on a problem. A researcher recently ran an experiment — feeding a memory-retrieval framework 10 scenarios involving certificate operations: signing, issuing, revoking, delegating. The system retrieved the right memory 8 out of 10 times. It matched the external authorization gate 7 out of 10.\nThe conclusion: metadata per item isn't enough. You need a separate authorization gate over the proposed operation.\nThat conclusion is correct. But I want to show what that gate actually looks like when you build it — because the primitive already exists, and it's older than LLMs.\nMost agent frameworks today invest in memory and observability. The agent can recall what it did before. You can see what tools it called. Logs, traces, dashboards.\nWhat they don't have is a cryptographically enforced answer to the question: was this agent authorized to do this, before it did it?\nThose are different problems. Retrieval tells you what the agent remembers about its permissions. Authorization tells you what it was actually granted — signed, tamper-proof, at dispatch time.\nAn agent that retrieves \"I have revocation permissions\" from memory and then revokes a certificate it shouldn't touch is not an authorization failure at the retrieval layer. It's an authorization failure at the gate layer — because there was no gate.\nA certificate is a signed declaration of what an entity is authorized to do. Issued once, verifiable offline in ~1ms, revocable instantly. We've used them for TLS, for IoT devices, for code signing. The same primitive works for agents.\nThe model is simple:\nOrchestrator issues a certificate at dispatch time\nThe certificate carries the agent's identity and its exact scope in meta\n\nEvery tool call goes through a gate that verifies the certificate offline\nOn completion — or abort, or timeout — the orchestrator revokes it\n\n\n\n\n// Orchestrator — dispatch\nconst { certificate, meta } = await pq.ca.issue({\n  subject:          `agent_",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的AI代理因\"感觉\"而获得授权。这是修复方法。",
+        "summary": "当前的代理框架缺乏加密强制的授权门户，而是依赖于可能返回不正确权限声明的内存检索，造成虚假的安全感。解决方案将密码证书应用于代理调度，其中编排器在运行时颁发签名证书，指定代理的确切范围和身份。每个工具调用都通过一个门户，该门户离线验证证书，使授权防篡改且可撤销。"
+      }
+    }
+  },
+  {
+    "title": "I checked every Universal Cart merchant. None on Magento.",
+    "slug": "checked-universal-cart-merchant-none-magento",
+    "url": "https://dev.to/webramos/i-checked-every-universal-cart-merchant-none-on-magento-5e5e",
+    "source": "DEV Community",
+    "date": "2026-06-02T18:55:12.000Z",
+    "summary": "Google's Universal Cart launched at I/O 2026 enables AI agents to complete purchases across Search, Gemini, YouTube, and Gmail, but none of the named early merchants use Magento despite it being a major e-commerce platform. The integration requires implementing four discovery and transport protocols (UCP, MCP, ACP, AP2) plus payment authorization. Magento merchants have a 30-day playbook to ship UCP support before losing traffic to agent-native competitors.",
+    "content": "Google launched Universal Cart at I/O 2026 last week. An intelligent cart that follows users across Search, Gemini, YouTube, and Gmail. ALM Corp published the list of named early checkout merchants on May 20: Nike, Sephora, Target, Ulta Beauty, Walmart, Wayfair, and Shopify brands.\nI read that list twice looking for a Magento store. None.\nThat's the article. Below: the five-protocol stack you'd otherwise have to read five different specs to understand, the one decision your existing payment processor has already made for you, and a thirty-day Magento-specific playbook to ship before agent-routed traffic starts flowing past your store.\nIf your store runs on Magento or Adobe Commerce, agent-routed traffic is going to flow past you - first in the US, then Canada and Australia \"in the coming months,\" then the UK. The agent layer isn't going to wait for Adobe Commerce to ship native UCP support. The merchants in the first cohort had thirty days of head-start. Most of that window is already gone.\nHere's what to ship before the rest of it closes.\nFour protocols define how an AI agent buys something on behalf of a user. A fifth ties payments together.\nUCP - the discovery layer. Your store publishes a manifest at /.well-known/ucp declaring its capabilities, transports, and payment handlers.\nMCP - the transport layer. Agents dispatch your commerce tool calls over MCP messages.\nACP - OpenAI and Stripe's checkout protocol. Stripe-led coalition.\nAP2 - Google's payment-authorization protocol. Sixty-plus partners signed at launch: Adyen, American Express, Mastercard, PayPal, Coinbase, Revolut, Worldpay, and more.\nMPP - Stripe's machine-payments protocol. Same family as ACP.\nBenji Fisher's synthesis post on dev.to is the sharpest framing I've read: UCP discovers, MCP transports, ACP and AP2 authorize. Read it if you haven't.\nThe UCP spec itself is densifying fast. A loyalty extension landed on May 19 (#340). A schema-validated documentation harness landed on May 21 (#359), with AP2",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我检查了每个Universal Cart商户。没有一个使用Magento。",
+        "summary": "Google在I/O 2026推出的Universal Cart使AI代理能够在Search、Gemini、YouTube和Gmail中完成购买，但尽管Magento是主要电商平台，命名的早期商户中没有一个使用Magento。该集成需要实现四个发现和传输协议（UCP、MCP、ACP、AP2）以及支付授权。Magento商户有30天的时间表来部署UCP支持，否则将失去流量到原生代理竞争者。"
+      }
+    }
+  },
+  {
+    "title": "I Revived Wrisha — the Emotional AI Companion I Left for Dead\"",
+    "slug": "revived-wrisha-emotional-ai-companion",
+    "url": "https://dev.to/jasim_edu_6c95c213e5e3bae/i-revived-wrisha-the-emotional-ai-companion-i-left-for-dead-p6f",
+    "source": "DEV Community",
+    "date": "2026-06-02T18:55:00.000Z",
+    "summary": "A developer revived an abandoned emotional AI companion project featuring webcam-based facial emotion detection, completing an incomplete v3 architecture migration and adding persistent memory and proactive personality features. The core fix involved rewiring the application to properly initialize memory and mood engine modules that were previously disconnected. The rebuilt system now includes a multi-provider brain with automatic failover across Gemini, Groq, GitHub Models, and OpenRouter.",
+    "content": "What is Wrisha?\nVision — webcam + facial-emotion detection (OpenCV / FER)\nI built the bones of it a while back, got busy, and walked away. The Finish-Up-A-Thon was the push I needed to come back to it.\nThe environment was a fossil. The project was so old it wouldn't install on a modern machine. Wrong numpy, stale dependency pins, and a Python version mismatch that sent pip trying to compile packages from source and failing. Just getting it to attempt to run took a full environment rebuild on Python 3.12.\nThe code was half-migrated and crashed on launch. I'd previously upgraded the internal modules — memory, a mood engine, a smarter brain — to a \"v3\" design, but I never finished wiring them into main.py. So the moment it tried to start, it died:\nTypeError: init() missing 2 required positional arguments: 'memory' and 'mood_engine'\n\n\nIt runs again\nThe core fix was finishing the migration: rewiring main.py to actually construct the Memory and MoodEngine, inject them into the Brain, and reference mood from the engine instead of the dead attribute it used to read. The crash is gone. Wrisha boots.\nMemory + a proactive personality\nWith the modules finally connected, Wrisha now remembers you across sessions — tell her your name, close the app, come back tomorrow, and she greets you by name. And she's no longer a passive chatbot waiting for input: after a stretch of silence, an idle timer triggers her to speak on her own. That single feature is what flips her from \"a program\" to \"a presence.\"\nA multi-provider brain that refuses to die\nThis is the upgrade I'm proudest of. The original brain depended on a single API — one key, one point of failure. (It also, embarrassingly, had an API key committed to git history once. More on that below.)\nI rebuilt the brain around a provider abstraction with automatic failover. It tries providers in order, and if one errors, times out, or hits a rate limit, it silently falls through to the next:\nGemini  →  Groq  →  GitHub Models  →  OpenRoute",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我复活了Wrisha——我曾放弃的情感AI伴侣",
+        "summary": "一名开发者复活了被遗弃的情感AI伴侣项目，该项目采用基于摄像头的面部情感检测，完成了不完整的v3架构迁移，并添加了持久化内存和主动个性化功能。核心修复涉及重新初始化之前断开连接的内存和情绪引擎模块。重建的系统现在包括一个多供应商大脑，在Gemini、Groq、GitHub Models和OpenRouter之间具有自动故障转移。"
+      }
+    }
+  },
+  {
+    "title": "phpser: a fast, secure binary serializer for PHP cache workloads",
+    "slug": "phpser-fast-secure-binary-serializer-php-cache",
+    "url": "https://dev.to/iliaa/phpser-a-fast-secure-binary-serializer-for-php-cache-workloads-4hn9",
+    "source": "DEV Community",
+    "date": "2026-06-02T18:53:39.000Z",
+    "summary": "A developer created phpser, a binary serializer optimized specifically for PHP cache operations that outperforms the widely-used igbinary library by 10-70% on encoding and 12-75% on decoding for cache-typical data shapes. The serializer builds in cryptographic signing to prevent poisoned cache entries while igbinary requires manual safety bolts, addressing both the performance asymmetry of cache workloads and the trust boundary of untrusted cache sources. This specialized design demonstrates how cache-specific optimizations can surpass general-purpose serializers.",
+    "content": "I've reached for igbinary on nearly every PHP project I've shipped in the last decade. It's smaller and faster than PHP's native serialize(), it's stable, and it has been the obvious default for so long that reaching for it stopped being a decision.\nSo phpser started as curiosity, not a complaint. igbinary is good. Could a serializer built specifically for cache workloads do better?\nI wanted two things from it. It should be fast on the shapes a cache actually holds, where a value is decoded far more often than it's encoded. And it should be safe to decode bytes from a store an attacker might reach, because unserialize() on untrusted input is one of PHP's oldest exploit primitives. igbinary gives you the speed; the safety you bolt on yourself. phpser builds in both.\nOn the shapes that matter for caches it encodes 10 to 70% faster than igbinary and decodes 12 to 75% faster, with packed numeric data also 65% smaller on the wire. Its signed mode refuses to decode any payload that wasn't produced with your key, so a poisoned cache entry never reaches the code that builds objects. The rest of this post is how it gets both.\nBecause igbinary optimizes for the general case, and a cache is not the general case, on two axes.\nThe first is the read/write asymmetry. A PHP cache pays decode cost on every single read. Encode happens once, when you write the value; decode happens every time anything reads it back. For a read-heavy cache that ratio is easily 100 to 1. igbinary, like most general serializers, balances the two sides. A cache serializer shouldn't.\n\nThe second is trust. The thing reading those bytes back is often reading from redis, memcached, a file, or a cookie, any of which an attacker may be able to write to. A general serializer treats decode as a pure data operation. A cache serializer has to treat it as a trust boundary.\nigbinary is still the right default for general use. I went looking for the specific shapes where a cache-focused design could pull ahead, and th",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "phpser：PHP缓存工作负载的快速、安全二进制序列化器",
+        "summary": "一名开发者创建了phpser，一个专门针对PHP缓存操作优化的二进制序列化器，在编码性能上比广泛使用的igbinary库快10-70%，在解码性能上快12-75%，特别是针对典型的缓存数据格式。该序列化器内置密码学签名来防止被污染的缓存条目，而igbinary需要手动安全措施，解决了缓存工作负载的性能不对称和不受信任缓存源的信任边界问题。这种专门设计展示了缓存特定优化如何能超越通用序列化器。"
+      }
+    }
+  },
+  {
+    "title": "GitHub Copilot app: The agent-native desktop experience",
+    "slug": "github-copilot-app-agent-native-desktop-experience",
+    "url": "https://github.blog/news-insights/product-news/github-copilot-app-the-agent-native-desktop-experience/",
+    "source": "GitHub Blog",
+    "date": "2026-06-02T17:30:03.000Z",
+    "summary": "Microsoft announced new GitHub Copilot tools and surfaces at Microsoft Build 2026 designed for agent-native workflows. The GitHub Copilot app provides a desktop experience optimized for agentic patterns and integration with developer workflows. This represents GitHub's move toward agent-centric tooling and enhanced developer experience.",
+    "content": "At Microsoft Build 2026, GitHub introduced new tools, updates, and surfaces so agents can work the way you already work.\nThe post GitHub Copilot app: The agent-native desktop experience appeared first on The GitHub Blog.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "GitHub Copilot应用：代理原生桌面体验",
+        "summary": "微软在Microsoft Build 2026大会上发布了为代理原生工作流设计的新GitHub Copilot工具和功能。GitHub Copilot应用提供了针对代理模式和与开发者工作流集成进行优化的桌面体验。这代表了GitHub朝向代理中心工具和增强开发者体验的转变。"
+      }
+    }
+  },
+  {
+    "title": "Please don't spam people looking for employment. It's just cruel",
+    "slug": "please-dont-spam-people-looking-employment",
+    "url": "https://news.ycombinator.com/item?id=48370330",
+    "source": "Hacker News",
+    "date": "2026-06-02T13:56:46.000Z",
+    "summary": "A recently unemployed person criticized unsolicited recruitment pitches in job-seeking forums, describing how each false glimmer of hope is emotionally crushing and compounds psychological harm. The post resonated widely, highlighting the emotional toll of automated outreach on vulnerable job seekers. It serves as a reminder to exercise empathy and consideration when reaching out to people during difficult career transitions.",
+    "content": "Earlier I posted in a “Who wants to be hired?” thread, looking for a place where I could apply my experience in hospitality, food tech and automation.\nA couple hours later I received an email:\n“Hi Ilia,\nI saw your comment on the June Who’s Hiring thread. I build production-ready TypeScript and Python systems that integrate LLMs into real workflows, with particular focus on RAG, agent orchestration, and clear blah-blah-blah”\nCome on.\nI am a forced immigrant with a wife, a cat, rent and crushing debt, who’s been unemployed for 6 months.\nI am naturally an extremely optimistic person, but boy is energy on the low by now.\nAnd every e-mail in my inbox, especially one starting with something related to my job search, is a glimmer of hope.\nJust to be crushed by what comes next.\nYes, it’s a minor cut, but those compound.\nPlease just don’t do this.\nMaybe add a skill to your Claude Code called “empathy”?\nYou can have your Claw access a “be considerate of other people’s experiences” MCP server!\nOr just ask your “Daily Grind Reminder” Telegram bot to recommend a good book of fiction from time to time. Just to develop some humanity.\nSorry for venting.\nComments URL: https://news.ycombinator.com/item?id=48370330\nPoints: 825\n# Comments: 235",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "请不要骚扰找工作的人。这很残忍",
+        "summary": "一位最近失业的人在求职论坛中批评了不请自来的招聘推销，描述了每一线虚假希望如何在情感上令人沮丧，并加重了心理伤害。这篇文章引起了广泛共鸣，突显了自动化外联对脆弱求职者的情感影响。它提醒人们在接触经历困难职业转变的人时要具有同情心和谨慎。"
+      }
+    }
+  },
+  {
+    "title": "A walking tour of surveillance infrastructure in Seattle",
+    "slug": "walking-tour-surveillance-infrastructure-seattle",
+    "url": "https://coveillance.org/a-walking-tour-of-surveillance-infrastructure-in-seattle/",
+    "source": "Hacker News",
+    "date": "2026-06-02T13:24:32.000Z",
+    "summary": "This article examines the visible surveillance infrastructure embedded in Seattle's urban environment, documenting monitoring systems and technologies deployed throughout the city. The walking tour perspective reveals how surveillance has become omnipresent in modern urban spaces. The piece raises awareness about the pervasiveness of monitoring systems and their integration into everyday city infrastructure.",
+    "content": "Article URL: https://coveillance.org/a-walking-tour-of-surveillance-infrastructure-in-seattle/\nComments URL: https://news.ycombinator.com/item?id=48369980\nPoints: 261\n# Comments: 131",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "西雅图监控基础设施漫步之旅",
+        "summary": "这篇文章考察了嵌入西雅图城市环境中的可见监控基础设施，记录了部署在整个城市的监控系统和技术。步行参观的视角揭示了监控在现代城市空间中如何变得无处不在。这篇文章提高了人们对监控系统无处不在及其与日常城市基础设施整合的认识。"
+      }
+    }
+  },
+  {
     "title": "Laravel AI SDK Sub-Agents: Turning Agents Into an Orchestration Layer",
     "slug": "laravel-ai-sdk-sub-agents-orchestration",
     "url": "https://dev.to/nazar_boyko/laravel-ai-sdk-sub-agents-turning-agents-into-an-orchestration-layer-922",
