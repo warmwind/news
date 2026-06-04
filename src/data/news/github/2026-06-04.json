@@ -1,5 +1,197 @@
 [
   {
+    "title": "Async-вызовы и Batch API в LLM: как сэкономить до 50% и ускорить обработку",
+    "slug": "async-batch-api-llm-optimization",
+    "url": "https://dev.to/promptra-team/async-vyzovy-i-batch-api-v-llm-kak-sekonomit-do-50-i-uskorit-obrabotku-3mdh",
+    "source": "DEV Community",
+    "date": "2026-06-04T07:37:05.000Z",
+    "summary": "Guide on optimizing LLM API request handling through async parallelization (50-500 RPS) and Batch API (50% discount, 24-hour SLA). Provides practical code examples and decision rules for when to use each approach based on throughput, latency, and cost requirements.",
+    "content": "Когда у вас 10 запросов в LLM — синхронный for нормально. Когда 1000 — он становится бутылочным горлышком, и пайплайн крутится часами. Когда 100 000 — обычный API становится дорогим, и расходы на токены съедают юнит-экономику. Два классических решения: async-параллельность (asyncio + aiohttp для 50–500 запросов в секунду) и Batch API (off-line режим со скидкой 50% на input/output).\nЭтот гайд — рабочий код обоих паттернов через единый шлюз Promptra (Claude Opus 4.7, GPT-5.5, Gemini 3.1 Pro, DeepSeek V4 Pro), расчёт реальной экономии на типовых сценариях, паттерны очередей и retry для production, и чёткие правила «когда что брать». оплата в рублях по договору, полный пакет закрывающих документов, цены в рублях по курсу ЦБ.\nAsync (через asyncio.gather + AsyncOpenAI):\nReal-time, ответ за секунды\nThroughput до 500 RPS на ключ\nТа же цена, что у обычного API\nКогда: UI, агенты, real-time чаты\nBatch API (через client.batches.create):\nOffline, SLA до 24 часов (обычно час-два)\nСкидка 50% на input и output\nЛимита на размер нет (миллионы запросов в одном файле)\nКогда: разметка, классификация архива, summary всей базы\nПроизводительный production-стек использует оба.\nБазовый паттерн — параллельное выполнение N запросов через asyncio.gather:\nimport asyncio\nfrom openai import AsyncOpenAI\n\nclient = AsyncOpenAI(\n    api_key=\"sk-promptra-...\",\n    base_url=\"https://api.promptra.ru/v1\",\n)\n\nasync def call_one(prompt: str) -> str:\n    response = await client.chat.completions.create(\n        model=\"claude-sonnet-4-6\",\n        messages=[{\"role\": \"user\", \"content\": prompt}],\n    )\n    return response.choices[0].message.content\n\nasync def main:\n    prompts = [f\"Расскажи короткий факт про число {i}\" for i in range(100)]\n    results = await asyncio.gather(*[call_one(p) for p in prompts])\n    for p, r in zip(prompts, results):\n        print(p, \"→\", r[:80])\n\nasyncio.run(main)\n\n100 запросов в секунду — обычно реально (упирается в rate limit ключа, не в SDK). Сравнение со синхронным циклом:\n\n\n\nСцен",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "异步调用和 Batch API 在大语言模型中的应用：如何节省 50% 并加快处理速度",
+        "summary": "关于通过异步并行化（50-500 RPS）和 Batch API（50% 折扣，24 小时 SLA）优化大语言模型 API 请求处理的指南。提供了实际代码示例和决策规则，用于根据吞吐量、延迟和成本需求确定何时使用每种方法。"
+      }
+    }
+  },
+  {
+    "title": "The Most Confusing Thing in VirtualBox: Networking Explained",
+    "slug": "virtualbox-networking-explained",
+    "url": "https://dev.to/arashad_dodhiya_0e4bdba5a/the-most-confusing-thing-in-virtualbox-networking-explained-3hn6",
+    "source": "DEV Community",
+    "date": "2026-06-04T07:36:57.000Z",
+    "summary": "Explains how a single VirtualBox Linux system displays multiple IP addresses by breaking down network interfaces (loopback, NAT, host-only networks). Clarifies why each interface serves different purposes and which addresses are accessible from external systems.",
+    "content": "If you've ever run this command in Kali Linux:\nip a\n\nyou've probably seen something like this:\nlo      127.0.0.1\neth0    10.0.2.15\neth1    192.168.56.10\ndocker0 172.17.0.1\n\nAnd then immediately asked:\nWhy does my machine have multiple IP addresses?\nWhat are eth0 and eth1?\nWhich IP should I use?\nWhy can Windows access one IP but not the other?\nYou're not alone.\nThis is probably one of the most confusing topics for beginners learning VirtualBox, Kali Linux, and networking.\nLet's fix that.\nThink of an IP address as a house address.\nIf someone wants to send you a letter, they need your address.\nThe internet works the same way.\nEvery device needs an address so other devices know where to send data.\nExample:\nYour Phone\n192.168.1.10\n\nYour Laptop\n192.168.1.20\n\nYour Router\n192.168.1.1\n\nWithout addresses, communication wouldn't be possible.\nBecause Kali has multiple network interfaces.\nThink of a computer as a building.\nA building can have:\nFront Door\nBack Door\nGarage Door\nEach door connects to a different area.\nComputers work similarly.\nEach network interface is a separate network door.\nWhen you run:\nip a\n\nLinux shows every network interface available on the system.\nExample:\nlo\neth0\neth1\ndocker0\n\nEach one serves a different purpose.\nlo\n127.0.0.1\n\nThis is called the loopback interface.\nThink of it as talking to yourself.\nVisual:\nKali\n │\n └── talks to Kali\n\nWhen you visit:\nhttp://127.0.0.1\n\nthe traffic never leaves your machine.\nIt doesn't reach:\nWindows\nYour Router\nThe Internet\nEverything happens internally.\nThis is commonly used by:\nWeb servers\nDatabases\nLocal applications\nIn my lab:\neth0\n10.0.2.15\n\nThis interface was created by VirtualBox using NAT mode.\nVisual:\nKali\n  │\n  ▼\nVirtualBox NAT\n  │\n  ▼\nWindows\n  │\n  ▼\nInternet\n\nThis interface allows Kali to:\nBrowse websites\nDownload tools\nRun apt update\nAccess the internet\nExample:\nping google.com\n\nMost likely uses eth0.\nIn my lab:\neth1\n192.168.56.10\n\nThis interface belongs to a Host-Only network.\nMy Windows machine has:\n192.168",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "VirtualBox 中最令人困惑的事：网络解释",
+        "summary": "解释单个 VirtualBox Linux 系统如何通过分解网络接口（环回、NAT、仅主机网络）显示多个 IP 地址。阐明每个接口的用途以及哪些地址可从外部系统访问。"
+      }
+    }
+  },
+  {
+    "title": "How to Install Docker Desktop on Windows 11 (Step-by-Step Guide for 2026)",
+    "slug": "install-docker-desktop-windows-11-2026",
+    "url": "https://dev.to/interdata/how-to-install-docker-desktop-on-windows-11-step-by-step-guide-for-2026-1d26",
+    "source": "DEV Community",
+    "date": "2026-06-04T07:35:49.000Z",
+    "summary": "Step-by-step guide to installing Docker Desktop on Windows 11 with WSL 2 integration for near-native Linux performance. Details Docker Engine versus Desktop application features and modern 2026 hardware requirements for containerization development.",
+    "content": "Containerization is a standard practice in modern software development. If you are developing, testing, or deploying applications, Docker is likely already a core part of your daily workflow. \nFor Windows users, Docker Desktop provides a convenient environment to build, run, and manage containerized applications. When paired with the Windows Subsystem for Linux (WSL 2), Docker Desktop achieves near-native Linux performance and seamless integration.\nThis step-by-step guide walks you through installing and configuring Docker Desktop on Windows 11, updated with the latest requirements and best practices for 2026.\n\nTo understand Docker Desktop, it helps to distinguish the core runtime engine from the desktop application itself.\n  Docker Engine: This is the core open-source containerization technology. It includes the Docker daemon (dockerd), the CLI (docker), and APIs used to interact with containers.\n  Docker Desktop: This is a comprehensive, GUI-enabled application that packages Docker Engine, Docker CLI, Docker Compose, and Kubernetes into a single installation. It adds key developer-friendly features, such as:\n\n\n  A user-friendly dashboard to manage containers, images, volumes, and networks.\n  One-click Kubernetes orchestration support.\n  Deep integration with WSL 2, allowing you to run commands naturally from both Windows terminals and Linux distributions.\n  Built-in vulnerability scanning and image analysis.\nUsing Docker Desktop on Windows 11 simplifies the complex configuration required to run Linux containers natively. In the past, running Docker on Windows meant configuring slow, resource-heavy Hyper-V virtual machines. \nToday, Docker Desktop utilizes the lightweight WSL 2 utility VM. This design results in fast startup times, lower CPU consumption, and dynamic memory allocation, allowing unused RAM to return to your host system.\nBefore launching the installation, verify that your computer meets the updated hardware and software specifications.\nDocker Desktop s",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何在 Windows 11 上安装 Docker Desktop（2026 年分步指南）",
+        "summary": "在 Windows 11 上安装 Docker Desktop 的分步指南，具有 WSL 2 集成以实现接近原生的 Linux 性能。详细介绍 Docker Engine 与 Desktop 应用程序功能和现代 2026 年硬件要求，用于容器化开发。"
+      }
+    }
+  },
+  {
+    "title": "How I Revived VoiceAssist AI: Adding Kannada & Urdu Support with GitHub Copilot",
+    "slug": "voiceassist-ai-kannada-urdu-support",
+    "url": "https://dev.to/rohan_jadhav_08594db53fa8/how-i-revived-voiceassist-ai-adding-kannada-urdu-support-with-github-copilot-1982",
+    "source": "DEV Community",
+    "date": "2026-06-04T07:35:38.000Z",
+    "summary": "Developer expanded a multilingual banking voice assistant from 6 to 8 languages by adding Kannada and Urdu support using GitHub Copilot. The AI assistant identified language gaps and generated code for non-Latin script detection and TTS fallback handling.",
+    "content": "The Project\n\n\nVoiceAssist AI is a multilingual voice assistant I built for bank branch counters during the iDEA 2.0 hackathon. It lets customers speak in their native language while bank staff respond in English — bridging the language gap in Indian banking.\nThe app supported 6 languages but was missing Kannada and Urdu — two major Indian languages covering millions of bank customers. The code also had no proper script detection for non-Latin scripts.\nI asked Copilot to analyze the repo and suggest what was missing. It identified the language gaps, then automatically created a PR adding Kannada Devanagari script detection, Urdu Persian/Arabic script detection, TTS fallback handling, and updated the frontend language list from 6 to 8 languages.\nLanguages expanded: 6 → 8\nGitHub: https://github.com/rohan-jadhav-dev/voiceassist-ai\nhttps://voiceassist-ai.vercel.app",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何用GitHub Copilot复兴VoiceAssist AI：添加卡纳达语和乌尔都语支持",
+        "summary": "开发者使用GitHub Copilot为多语言银行语音助手添加卡纳达语和乌尔都语支持，将语言数量从6种扩展到8种。该AI助手识别了语言差距并生成了非拉丁字符检测和TTS后备处理的代码。"
+      }
+    }
+  },
+  {
+    "title": "I Did the Math on GitHub Copilot's New AI Credits Billing. The 24x Price Gap Changes Everything.",
+    "slug": "github-copilot-ai-credits-pricing",
+    "url": "https://dev.to/tokenmixai/i-did-the-math-on-github-copilots-new-ai-credits-billing-the-24x-price-gap-changes-everything-5h99",
+    "source": "DEV Community",
+    "date": "2026-06-04T07:35:15.000Z",
+    "summary": "GitHub's June 2026 Copilot billing shift moved agent workflows to token-based AI Credits while keeping code completions free. Model selection creates up to 24x cost variance for identical tasks, making behavior changes—not price increases—the primary factor in billing differences.",
+    "content": "On June 1, 2026, GitHub flipped the switch on a new billing model for Copilot. The headlines that hit my Twitter feed:\n\"GitHub is charging by token now\"\n\"Copilot autocomplete is no longer free\"\n\"Your Pro $10/mo just became $30/mo\"\nTwo of those are wrong. One is partially right but completely depends on which model you pick.\nI spent an afternoon pulling the actual pricing tables out of GitHub's docs and running the math on 5 real workflows. The numbers are not what the panicked threads say.\nCode completions and next edit suggestions are still included. They do not consume AI Credits. Anyone telling you \"every autocomplete now costs money\" is wrong.\nBase plan prices did not change. Pro is still $10, Pro+ still $39, Business still $19/user, Enterprise still $39/user.\nWhat changed: agent workflows now consume AI Credits priced by input/output/cached tokens at each model's published rate.\nThe same task costs 24x more or less depending on which model you pick. Picking MAI-Code-1-Flash over GPT-5.5 for a heavy agent run costs $0.28 instead of $1.85.\nYour bill changes by behavior, not by GitHub raising prices. If you route heavy agent tasks through expensive models, costs go up. If you route them through cheap models, costs go down or stay flat.\n\n\n\nElement\nBefore June 1\nAfter June 1\n\n\n\n\nCode completions\nIncluded\nIncluded (still no Credits used)\n\n\nNext edit suggestions\nIncluded\nIncluded\n\n\nAgent workflows\nPremium Request Units\nAI Credits (token-based)\n\n\nPro price\n$10/mo\n$10/mo\n\n\nPro+ price\n$39/mo\n$39/mo\n\n\nBusiness price\n$19/user\n$19/user\n\n\nEnterprise price\n$39/user\n$39/user\n\n\n\nThe Premium Request Units regime treated every \"request\" as a unit regardless of how much actual compute it consumed. A 3-second hello-world question and a 10-minute multi-step agent both deducted 1 unit. That math broke as agents got more capable.\nToken-based billing reflects what the inference actually cost GitHub. Reasonable on the supply side. Whether it costs YOU more depends entirely on your model",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我计算了GitHub Copilot新AI额度账单。24倍价格差异改变了一切。",
+        "summary": "GitHub在2026年6月的Copilot账单变更将代理工作流转移到基于令牌的AI额度，同时保持代码补全免费。模型选择为相同任务创建了最多24倍的成本差异，使行为变化而非价格上涨成为账单差异的主要因素。"
+      }
+    }
+  },
+  {
+    "title": "How Tech Giants Build Software",
+    "slug": "how-tech-giants-build-software",
+    "url": "https://dev.to/sierrat2011/how-tech-giants-build-software-477d",
+    "source": "DEV Community",
+    "date": "2026-06-04T07:32:40.000Z",
+    "summary": "Examines how major tech companies choose their software stacks based on business goals, using Apple as a case study. Illustrates vertical integration approach combining Swift, SwiftUI, SQLite for local data, and distributed databases like FoundationDB for cloud storage.",
+    "content": "Think of a tech stack like the tools, materials, and blueprints used to build a skyscraper. Different buildings need different materials. Similarly, tech giants choose their software tools based on what they are trying to build.\nMicrosoft\nSalesforce\nApple\nApple cares about vertical integration. This means they design the computer chips, build the physical phones, and write the coding languages all at the same time. This keeps your device fast and saves battery life.\nSwift is Apple's modern programming language. It is \"compiled,\" meaning it translates straight into machine code (1s and 0s) that the iPhone chip understands instantly. This removes any middleman software, making your apps launch faster. SwiftUI is a visual tool for making layouts. Instead of manually dragging and resizing buttons for different screens, a developer writes a few lines of code describing the layout. SwiftUI automatically reshapes the app to look perfect on an Apple Watch, an iPhone, or a Mac. SQLite and Core Data are lightweight storage systems built right into your phone. They save your local app data quickly using as little battery power as possible. When your phone backs up to iCloud, your photos and messages go to giant online storage warehouses powered by FoundationDB and Cassandra database tools, which can handle billions of files at once.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "科技巨头如何构建软件",
+        "summary": "研究大型科技公司如何根据业务目标选择软件堆栈，以Apple为案例研究。展示了将Swift、SwiftUI、SQLite用于本地数据和FoundationDB等分布式数据库用于云存储的垂直整合方法。"
+      }
+    }
+  },
+  {
+    "title": "432 Hz",
+    "slug": "432-hz-programmer-story",
+    "url": "https://dev.to/zxce3/432-hz-434k",
+    "source": "DEV Community",
+    "date": "2026-06-04T07:31:52.000Z",
+    "summary": "Creative narrative about a programmer's unusual office culture and personal beliefs about 432 Hz as the universe's natural frequency. Explores workplace eccentricities and their unexpected connection to debugging production code issues.",
+    "content": "The first person Dira ever met who wore a genuine mullet, not ironically, not out of nostalgia, but because he truly believed it was the correct haircut, was a programmer named Baskoro whose office stayed at 16 degrees Celsius all year round.\nBaskoro called his air conditioning system an \"ecosystem.\"\nHe set the office temperature the way other people configured server thermostats, with unquestionable precision.\n\"The brain needs cold air to think clearly,\" he said once, sipping his third cappuccino before ten in the morning. \"Just like a CPU. It throttles because of heat, not because it's stupid.\"\nDira disagreed, but said nothing.\nShe was still new enough to the team to know when silence was the better option.\nThe strange thing wasn't the temperature.\nThe strange thing was the mousepads.\nBaskoro had three mousepads on his desk. One for the mouse. One as a coaster. The third wasn't used for anything at all. It simply sat near the edge of the desk, tilted a few degrees off-center.\nDira once asked about it.\n\"For frequency,\" Baskoro replied without looking away from his monitor.\n\"What frequency?\"\n\"432 Hz.\"\nHe finally turned around.\n\"You ever heard of it?\"\nDira hadn't.\nBaskoro explained, with an amount of enthusiasm wildly disproportionate to someone she'd only known for three weeks, that 432 Hz was the natural frequency of the universe.\nMusic tuned to 432 Hz felt different from standard 440 Hz tuning.\nWarmer.\nDeeper.\nMore human.\n\"Most reggae is basically 432,\" he said. \"Bob Marley knew. That's why the music gets into your bones, not just your ears.\"\nThen he played something through the small speaker in the corner of his desk. Heavy bass. A riddim that seemed to have its own gravitational field.\nAfter that, he went back to typing as if the conversation had concluded itself.\nDira returned to her own desk and tried to focus, but the bassline lodged itself somewhere behind her skull and refused to leave.\nTwo months later, Dira found a bug that made no sense.\nThey were buildi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "432赫兹",
+        "summary": "一个关于程序员不寻常的办公室文化和对432赫兹作为宇宙自然频率的个人信念的创意叙述。探讨工作场所的古怪之处与调试生产代码问题的意外联系。"
+      }
+    }
+  },
+  {
+    "title": "Method-Based Properties in CrabPascal | Properties por método no CrabPascal",
+    "slug": "crabpascal-method-based-properties",
+    "url": "https://dev.to/crabpascal/method-based-properties-in-crabpascal-properties-por-metodo-no-crabpascal-323o",
+    "source": "DEV Community",
+    "date": "2026-06-04T07:30:19.000Z",
+    "summary": "CrabPascal v2.20.0 adds runtime VMT dispatch for method-backed properties, enabling computed values and side effects through accessor functions. Essential for Delphi code compatibility where properties delegate to getter/setter methods rather than direct field access.",
+    "content": "Bilingual post · Post bilíngue\n\nJump to: English · Português\nDelphi properties are not just syntactic sugar for fields. Many real classes expose computed values, validate assignments, or trigger side effects through accessor methods. CrabPascal v2.20.0 (Sprint 12) closes an important gap: properties with read/write backed by methods now work in the run runtime via VMT dispatch.\nThe simplest property maps directly to a field:\ntype\n  TCounter = class\n  private\n    FCount: Integer;\n  public\n    property Count: Integer read FCount write FCount;\n  end;\n\nMethod-backed properties delegate to functions and procedures:\ntype\n  TBox = class\n  private\n    FValue: Integer;\n    function GetValue: Integer;\n    procedure SetValue(var V: Integer);\n  public\n    property Value: Integer read GetValue write SetValue;\n  end;\n\nThis pattern appears in VCL components, REST DTOs, and service layers. Without it, porting even moderate Delphi code fails early.\nTwo changes landed together:\nRuntime VMT dispatch — when you read or write B.Value, the runtime resolves GetValue / SetValue through the virtual method table, not by treating the property name as a field lookup.\n\n\nSemantic relaxation for backing fields — fields named F* referenced inside TClasse::Metodo implementations no longer trigger false errors. Accessor methods almost always touch private backing fields; blocking that broke legitimate code.\n\n\n\n\n  \n  \n  Canonical fixture\n\n\nThe repo ships a focused test program:\nfunction TBox.GetValue: Integer;\nbegin\n  Result := FValue;\nend;\n\nprocedure TBox.SetValue(var V: Integer);\nbegin\n  FValue := V;\nend;\n\nvar\n  B: TBox;\n  X: Integer;\nbegin\n  B := TBox.Create;\n  X := 42;\n  B.Value := X;\n  WriteLn(B.Value);  // prints 42\nend.\n\nRun it with:\ncrab-pascal run tests/fixtures/property_accessor_methods.pas\n\nAutomated coverage lives in tests/properties_runtime.rs.\nvar on setters\n\n\nDelphi setter procedures often take the new value as a var parameter when they swap or normalize in place. CrabPascal's current",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "CrabPascal中的方法属性",
+        "summary": "CrabPascal v2.20.0为方法支持的属性添加了运行时VMT调度，通过访问器函数实现计算值和副作用。对于Delphi代码兼容性至关重要，其中属性委托给getter/setter方法而不是直接字段访问。"
+      }
+    }
+  },
+  {
+    "title": "When a \"Simple Refresh\" Broke Our Production App: Next.js Static Export on Azure",
+    "slug": "nextjs-static-export-azure-navigation",
+    "url": "https://dev.to/suraj_thallapelli_55c6f59/when-a-simple-refresh-broke-our-production-app-nextjs-static-export-on-azure-2ano",
+    "source": "DEV Community",
+    "date": "2026-06-04T07:24:54.000Z",
+    "summary": "Next.js static export application deployed to Azure Static Web Apps experienced full page reloads on dynamic route navigation instead of soft transitions. Root cause involved soft navigation failures on static hosting falling back to hard browser navigation.",
+    "content": "We had one of those bugs that looked small from the outside, but exposed a much deeper architecture lesson.\nIn our portal web application, top-level routes worked perfectly:\n/registrations\n/messages\n/evaluations\nBut the moment users clicked into deeper routes like:\n/registrations/available/57\n/messages/123\n...the entire app reloaded.\nThe sidebar remounted.\nWhat made this incident especially valuable was the contrast:\nLocally, everything worked.\nIn production, it failed.\nThat gap turned a frustrating bug into a really useful lesson about how Next.js static export actually behaves on Azure.\nOur app was a Next.js App Router application deployed to Azure Static Web Apps using static export mode.\nThat meant:\nNo Next.js server runtime in production\nNo SSR at request time\nNo middleware execution at request time\nEverything served from generated static files\nWe chose this model intentionally for simplicity, cost, and deployment speed.\nSo this was not full server-mode Next.js.\nIt was closer to a highly structured SPA that benefits from Next.js routing, layouts, and build output.\nFrom the user's perspective:\nClicking into detail pages caused a full page refresh\nShared layout was not preserved\nSidebar reset\nApp state disappeared\nNavigation felt unstable\nFrom the engineering perspective, the real issue was this:\nSoft navigation was failing.\nThe Next.js router was falling back to hard browser navigation.\nThat distinction ended up being the key.\nAt first, this looked like a classic static hosting issue:\n\"Maybe Azure Static Web Apps cannot resolve dynamic routes.\"\nThat was the obvious explanation.\nBut it was not fully correct.\nHard deep-linking often worked because rewrite shells were already in place.\nThe real issue was more subtle:\nHard navigation often worked\nSoft navigation failed\nThat completely changed the debugging direction.\nNext.js App Router in static export mode does not only rely on generated HTML files.\nFor dynamic routes, it also depends on route payload files used du",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "当\"简单刷新\"打破了我们的生产应用：Azure上的Next.js静态导出",
+        "summary": "部署到Azure静态Web应用的Next.js静态导出应用在动态路由导航上经历了完整的页面重新加载，而不是软过渡。根本原因涉及静态托管上的软导航失败，导致回退到硬浏览器导航。"
+      }
+    }
+  },
+  {
+    "title": "Building the first Dart/Flutter client for MG/SAIC connected vehicles: where AI did more than write code",
+    "slug": "dart-flutter-mg-saic-vehicles",
+    "url": "https://dev.to/tanguymossion/building-the-first-dartflutter-client-for-mgsaic-connected-vehicles-where-ai-did-more-than-write-3anc",
+    "source": "DEV Community",
+    "date": "2026-06-04T07:24:53.000Z",
+    "summary": "Developer created the first Dart package for MG/SAIC connected vehicle APIs by combining APK reverse engineering with community-sourced documentation. Addressed a gap in mobile-first clients for controlling connected vehicles through a developer-built solution.",
+    "content": "Last weekend, I unlocked my car using my own Dart package (according to pub.dev, the first one ever built for it). I walked down to the parking lot, opened the app, tapped the button, heard the clunk. \"Worth it.\" Then I locked it again, went back upstairs, and called it a productive Sunday.\nBut let's get back a few months earlier, when I had bought a connected MG. I opened the official app, and like any developer who gets a new piece of technology, I spent about five minutes enjoying it as a normal person. Then I started wondering how it worked, what APIs were behind the app, and whether I could build something on top of it myself.\nA quick search confirmed that no Dart package existed for the SAIC iSmart API. That's how I ended up building the first one.\nMy initial approach was to decompile the official app.\nI extracted the APK directly from my phone via adb and decompiled it with apktool. The official iSmart app is a native Kotlin Android app.\nMost of the business logic is protected by ijiami encryption, so the core algorithms aren't readable statically. From the unprotected resources (strings, drawables, layout files) I was able to confirm a handful of things: undocumented features, error codes, model naming conventions. Useful context, but not enough. The actual API protocol wasn't there. It lives in the encrypted DEX (the compiled Android bytecode), and I had hit a wall.\nI wasn't the first to hit that wall. A GitHub organization called SAIC-iSmart-API has been reverse-engineering the SAIC API for years via traffic capture. They have a Python client, a Java client, a Home Assistant integration, an MQTT gateway, and even a dedicated documentation repo with real captured API responses.\nWhat wasn't covered was mobile-first development. No Dart client, no Swift client, no TypeScript package designed for mobile development. The Java client exists but is built for server-side use (Maven, MQTT gateways, Spring). A workaround exists: run the Python client on a server and",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为MG/SAIC联网汽车构建首个Dart/Flutter客户端：AI做的不仅仅是编写代码",
+        "summary": "开发者通过结合APK逆向工程和社区文档，为MG/SAIC联网汽车API创建了首个Dart包。通过开发者构建的解决方案，填补了移动优先客户端在联网汽车控制中的空白。"
+      }
+    }
+  },
+  {
+    "title": "Structs in Go",
+    "slug": "structs-in-go-tutorial",
+    "url": "https://dev.to/frihk_ian/structs-in-go-1jff",
+    "source": "DEV Community",
+    "date": "2026-06-04T07:24:29.000Z",
+    "summary": "Introductory guide to Go structs covering type definition, instance creation with struct literals, field access, and modification. Demonstrates how zero values initialize unset fields automatically in Go data structures.",
+    "content": "Let's explore structs in Go. If you know Go's basic types like string, int, and bool, structs let you handle more complex data.\nBefore using a struct, we first need to describe what it looks like. The result of defining a struct is not a piece of data, but the blueprint of data we want to store later on.\npackage main\n\nimport \"fmt\"\n\n// We use the 'type' keyword to define a new custom type.\n// We name our type 'Product' and specify that it is a 'struct'.\ntype Product struct {\n   Name    string  // Field for the product's name\n   Price   float64 // Field for the price\n   InStock bool    // Field to check if it's available\n}\n\nUsing the struct we just created, let's create a product. Using the struct blueprint to create a piece of data is referred to as creating an instance.\npackage main\n\nimport \"fmt\"\n\ntype Product struct {\n   Name    string\n   Price   float64\n   InStock bool\n}\n\nfunc main() {\n   // Creating an instance of Product using a \"struct literal.\"\n   item1 := Product{\n       Name:    \"Wireless Mouse\",\n       Price:   25.99,\n       InStock: true,\n   }\n\n   // Creating an instance but leaving fields blank\n   item2 := Product{\n       Name: \"Mousepad\",\n   }\n\n   fmt.Println(item1)\n   fmt.Println(item2)\n}\n\nExpected Output:\n{Wireless Mouse 25.99 true}\n{Mousepad 0 false}\n\nYou might be thinking Why does item2 show 0 and false when we didn’t set them?\npackage main\n\nimport \"fmt\"\n\ntype Product struct {\n   Name    string\n   Price   float64\n   InStock bool\n}\n\nfunc main() {\n   item := Product{\n       Name:    \"Keyboard\",\n       Price:   45.00,\n       InStock: true,\n   }\n\n   // Reading a field\n   fmt.Println(\"Original Price:\", item.Price)\n\n   // Modifying a field\n   item.Price = 39.99\n\n   fmt.Println(\"Discounted Price:\", item.Price)\n}\n\nExpected Output:\nOriginal Price: 45\nDiscounted Price: 39.99\n\nSometimes we want to bundle up some information for one-time use. In such a case, we don’t want to have to go through the trouble of formally defining a whole blueprint. They are particul",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Go中的结构体",
+        "summary": "Go结构体入门指南，涵盖类型定义、使用结构体字面量创建实例、字段访问和修改。演示了零值如何在Go数据结构中自动初始化未设置的字段。"
+      }
+    }
+  },
+  {
+    "title": "Brand GEO Diagnosis: How to Test What AI Thinks Your Brand Is",
+    "slug": "brand-diagnosis-ai-perception-test",
+    "url": "https://dev.to/kunpeng-ai-lab/brand-geo-diagnosis-how-to-test-what-ai-thinks-your-brand-is-2j9m",
+    "source": "DEV Community",
+    "date": "2026-06-04T07:24:01.000Z",
+    "summary": "Proposes a diagnostic workflow to assess how AI systems perceive and describe your brand without immediate content investment. Uses AI queries to identify correctly recognized attributes, misaligned labels, and missing positioning elements that need reinforcement.",
+    "content": "Search behavior is changing.\nFor many brands, the first question is no longer only \"can people find us on Google?\" A growing number of users ask an AI system first:\nWhat is this brand?\nIs this company reliable?\nIs this product worth trying?\nThat makes the AI version of your brand's first impression worth checking.\nBefore doing more GEO work, I would not start by buying tools or publishing a large amount of new content. A better first step is a simple diagnosis: does AI recognize the brand, how does it describe the brand, which sources does it rely on, and does it carry any negative or incorrect impression?\nI ran this test with our own self-media brand, Kunpeng AI Exploration Bureau, using Kimi and Qianwen on June 3, 2026. This is not a permanent ranking report. It is a repeatable diagnostic workflow.\n\nThe first prompt was direct:\nIs Kunpeng AI Exploration Bureau a hands-on, practice-oriented blogger?\nPlease give your judgment and summarize the brand with several labels.\n\nThis question tests two things:\nDoes the AI system recognize the brand at all?\nAre the labels close to the positioning the brand actually wants?\nIn this run, Kimi recognized the brand as a practical technical content brand. The labels it used included AI Agent practice, engineering loops, toolchain depth, verifiable retrospectives, and Windows / CLI troubleshooting.\nQianwen gave a similar answer. It described the brand as a hands-on technical blogger, with signals around real project loops, toolchain troubleshooting, open-source participation, and practical delivery.\nThe point is not to enjoy a flattering answer. The useful work is to split the labels into three groups:\ncorrect labels that you should reinforce;\nwrong labels that point in the wrong direction;\nmissing labels that you want AI to recognize but it does not mention yet.\nIf AI cannot answer at all, your public signal may not be strong enough. If AI recognizes the brand but describes it incorrectly, your brand information may not be consist",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "品牌诊断：如何测试AI对你品牌的认知",
+        "summary": "提出一个诊断工作流程，用于评估AI系统如何感知和描述你的品牌，无需立即投入内容。使用AI查询来识别正确识别的属性、错误对齐的标签以及需要强化的缺失定位要素。"
+      }
+    }
+  },
+  {
     "title": "Leetcode 150 | Day 2: Remove Element - Naive vs. Optimized",
     "slug": "leetcode-150-remove-element",
     "url": "https://dev.to/afuji/leetcode-150-day-2-remove-element-naive-vs-optimized-3557",
@@ -28,6 +220,22 @@
       "zh": {
         "title": "开源 CLI 代理消息层的经验教训（一周内 320 个星标）",
         "summary": "作者开源了 agmsg，一个用于让 CLI AI 代理直接通信的轻量级工具，在一周内意外增长从 5 个到 320 个 GitHub 星标。成功来自于先展示工作示例的视频演示，并清楚地阐述可相关的问题，而不是技术细节。"
+      }
+    }
+  },
+  {
+    "title": "U.S. to dismantle system tracking Atlantic currents that are at risk of collapse",
+    "slug": "us-dismantle-atlantic-currents-monitoring",
+    "url": "https://e360.yale.edu/digest/trump-ooi-amoc",
+    "source": "Hacker News",
+    "date": "2026-06-04T00:44:13.000Z",
+    "summary": "U.S. administration plans to dismantle an ocean monitoring system tracking Atlantic currents essential to global climate patterns. System faces natural collapse risk, making continued operation scientifically critical for understanding climate dynamics.",
+    "content": "Article URL: https://e360.yale.edu/digest/trump-ooi-amoc\nComments URL: https://news.ycombinator.com/item?id=48392232\nPoints: 433\n# Comments: 288",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "美国将拆除监测有崩溃风险的大西洋洋流的系统",
+        "summary": "美国政府计划拆除一个海洋监测系统，该系统追踪对全球气候模式至关重要的大西洋洋流。该系统面临自然崩溃的风险，使继续运作对于理解气候动力学在科学上至关重要。"
       }
     }
   },
