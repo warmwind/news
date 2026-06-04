@@ -1,5 +1,197 @@
 [
   {
+    "title": "Building a Low-Latency, Edge-First Image Processing Pipeline for Real-Time Satellite Data",
+    "slug": "building-low-latency-edge-first-image-processing-pipeline-satellite",
+    "url": "https://dev.to/therizwansaleem/building-a-low-latency-edge-first-image-processing-pipeline-for-real-time-satellite-data-23ed",
+    "source": "DEV Community",
+    "date": "2026-06-04T13:10:18.000Z",
+    "summary": "This article details a production edge computing architecture for processing satellite imagery in sub-300ms latency using on-device ML inference, quantized models, and lightweight protocols. The approach reduces upstream bandwidth by 40% while maintaining high availability during network disruptions, illustrating practical patterns for any high-volume real-time data pipeline.",
+    "content": "Building a Low-Latency, Edge-First Image Processing Pipeline for Real-Time Satellite Data\n\n\n\n  \n  \n  Building a Low-Latency, Edge-First Image Processing Pipeline for Real-Time Satellite Data\n\n\nEdge computing is no longer a buzzword; it’s a design constraint when you’re processing high-volume, real-time data streams. In this thought-leadership piece, I’ll walk you through a concrete project I led to design, implement, and measure a low-latency image processing pipeline that runs at the edge (near data sources) to distill actionable insights from satellite imagery. You’ll find practical architecture decisions, measurable impact, and hard-won lessons you can apply to your own edge-centric systems.\nObjective: Process high-resolution satellite images at the edge to extract geospatial features (water bodies, roads, vegetation indices) with sub-second latency, feeding downstream analytics and alerting systems.\nTech niche: Edge containers, streaming protocols, hardware-accelerated inference, and data locality.\nScope: Ingests raw image tiles, applies pre-processing, runs lightweight ML inference (on-device), post-processes results, and streams summarized metadata to a central system.\nMeasurable impact: latencies under 300 ms end-to-end at the edge, 99th percentile consistently under 400 ms, 40% reduction in upstream bandwidth, and pipeline resilience during network blips.\nEdge layer\nIngest: Local radiometric-corrected image tiles from satellite ground stations.\nPre-processing: Cloudless normalization, patching, tiling, and caching of frequently requested tiles.\nInference: On-device ML model (quantized, small footprint) for feature extraction.\nPost-processing: Spatial filtering, confidence scoring, non-maximum suppression for feature maps, and encoding results.\nTransport: Lightweight protocol (gRPC over QUIC or MQTT over TLS) for streaming summaries to the hub.\nAggregation hub\nIngest: Receives summaries, validates integrity, deduplicates.\nEnrichment: Joins with external layer",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建用于实时卫星数据的低延迟、边缘优先图像处理管道",
+        "summary": "本文详细介绍了一个生产边缘计算架构，用于在300毫秒以下延迟内处理卫星影像，采用设备端机器学习推理、量化模型和轻量级协议。该方法将上游带宽减少40%，同时在网络中断期间保持高可用性，为任何高容量实时数据管道提供实用参考。"
+      }
+    }
+  },
+  {
+    "title": "File Handling in Python: Reading, Writing, and Managing Data",
+    "slug": "file-handling-python-reading-writing-managing-data",
+    "url": "https://dev.to/nyandiatech/file-handling-in-python-reading-writing-and-managing-data-2h5j",
+    "source": "DEV Community",
+    "date": "2026-06-04T13:10:13.000Z",
+    "summary": "The article covers fundamental Python file I/O operations: writing data with context managers, reading entire files, and processing line-by-line for memory efficiency. These techniques are essential for building applications that persist and process text data, logs, and user information.",
+    "content": "Writing Files\nfilename = \"sample.txt\"\n\nwith open(filename, \"w\", encoding=\"utf-8\") as file:\n    file.write(\"Hello file handling!\\n\")\n    file.write(\"This is a second line.\\n\")\nprint(\"Wrote to\", filename)\n\n\nReading Files\nwith open(filename, \"r\", encoding=\"utf-8\") as file:\n    content = file.read()\nprint(\"File content:\")\nprint(content)\n\n\nLine‑by‑Line Reading\nwith open(filename, \"r\", encoding=\"utf-8\") as file:\n    for line in file:\n        print(\"Line:\", line.strip())\n\n\nMy take\nWrite data to files for storage.\nRead files to process information.\nHandle files line by line for efficiency.\nThis skill is essential for building applications that log activity, store user data, or process text files.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Python 文件处理：读取、写入和数据管理",
+        "summary": "本文涵盖了基本的 Python 文件 I/O 操作：使用上下文管理器写入数据、读取整个文件和逐行处理以提高内存效率。这些技术对于构建能够持久化和处理文本数据、日志和用户信息的应用程序至关重要。"
+      }
+    }
+  },
+  {
+    "title": "My cron job was silently failing on Cloudflare. The bug wasn't where I looked.",
+    "slug": "cron-job-silently-failing-cloudflare-bug-not-where-you-look",
+    "url": "https://dev.to/gitgem/my-cron-job-was-silently-failing-on-cloudflare-the-bug-wasnt-where-i-looked-31ko",
+    "source": "DEV Community",
+    "date": "2026-06-04T13:09:13.000Z",
+    "summary": "A Cloudflare cron job silently stopped updating data because a new metadata feature hit the platform's 50-subrequest limit per invocation, causing all database writes to fail. The author discovered the real culprit was an unmonitored loop fetching metadata, illustrating the importance of counting resource usage instead of optimizing what looks expensive.",
+    "content": "The deploy was green. The build passed. And my data just... stopped updating. No crash. No red. No alert. Just a table that quietly stopped getting new rows, which is the worst kind of bug, because nothing tells you it's happening. You find out when you notice the numbers look stale and think \"huh, that's weird,\" three days later.\nI had a small cron Worker running on Cloudflare. Every few hours it pulled a list of items from an external API and upserted them into Postgres. Boring. Reliable. Ran fine for weeks.\nThe next run, my upserts returned 0 rows. Every batch. Silently.\nIt took digging into the logs to find the real message, because the failure never bubbled up to anything I was watching:\nToo many subrequests by single Worker invocation.\n\nA subrequest is any outbound fetch() from your Worker.. every API call, every database round-trip, all of it. And on Cloudflare's free plan, you get 50 external subrequests per invocation. That's it. Cross the line and every subsequent fetch() throws, including the ones writing to your database.\nHere's the part I'm a little embarrassed about.\nI spent a solid hour tuning batch sizes. 25 to 15. 15 to 10. Still failing.\nBecause the batches were never the problem.\nThe new metadata feature fired one fetch per item—100 items, 100 subrequests.. and it did all of them before a single upsert ran. I'd blown the entire 50-request budget during the enrichment loop. By the time the (carefully batched, very clever) database writes started, the Worker was already over its cap. Every write failed.\nI was optimizing the visible, satisfying-to-tune loop. The real cost was a quiet for loop in a different file that I'd added without thinking of it as \"network\" at all.\nWhen you hit a resource cap, count the resource. Not the thing that looks expensive.\n\"Subrequests\" doesn't feel like a thing you count. It feels like infrastructure. But the limit is a literal integer, and the fix started the moment I stopped guessing and actually tallied every fetch(",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我的 Cloudflare cron 任务在悄悄失败。错误不在我看的地方。",
+        "summary": "一个 Cloudflare cron 任务因为新的元数据功能触及了平台每次调用的50个子请求限制而悄悄停止更新数据，导致所有数据库写入失败。作者发现真正的罪魁祸首是一个无监控的元数据获取循环，说明了计算资源使用而不是优化看起来昂贵的东西的重要性。"
+      }
+    }
+  },
+  {
+    "title": "Build a Blog with Astro, microCMS, and Vercel",
+    "slug": "build-blog-astro-microcms-vercel",
+    "url": "https://dev.to/shibe97/build-a-blog-with-astro-microcms-and-vercel-4ogb",
+    "source": "DEV Community",
+    "date": "2026-06-04T13:08:16.000Z",
+    "summary": "This tutorial walks through building a content-managed blog using Astro for static generation, microCMS as a headless CMS API, and Vercel for deployment. It demonstrates how to fetch external content, generate dynamic pages, and maintain fast performance while giving content teams an intuitive editing interface.",
+    "content": "In this tutorial, we will build a simple blog using Astro, microCMS, and Vercel.\nAstro is a modern web framework designed for fast, content-focused websites. It is especially well suited for blogs, documentation sites, landing pages, and corporate websites where most of the content can be rendered as static HTML.\nmicroCMS is a headless CMS that lets you manage content through APIs. By combining Astro with microCMS, you can keep your frontend fast while allowing editors and content teams to manage blog posts from a user-friendly CMS dashboard.\nFinally, we will deploy the blog to Vercel.\nBy the end of this guide, you will have a blog that:\nFetches blog posts from microCMS\nUses Astro Content Loader to manage external content\nDisplays a blog post list\nGenerates detail pages for each blog post\nDeploys to Vercel\nAstro is a web framework for building fast websites.\nOne of Astro’s key ideas is to send as little JavaScript to the browser as possible. Instead of turning every page into a JavaScript-heavy application, Astro renders HTML on the server by default.\nAstro is also known for its islands architecture. This allows you to keep most of the page static while adding interactivity only where it is needed. You can use UI frameworks such as React, Vue, Svelte, Preact, Solid, and others for interactive components.\nIn this article, we will use the following versions. Some features may differ slightly depending on the version.\nAstro 6.3.8\nmicrocms-js-sdk 3.4.0\nNow, let’s create an Astro project.\nOpen your terminal and run the following command.\nnpm create astro@latest\n\nFollow the prompts in your terminal.\n\nNow that the project is ready, let’s start the development server.\ncd astro-microcms-blog\nnpm run dev\n\n\nOpen http://localhost:4321/ in your browser, and you should see the Astro welcome page.\n\nNext, let’s prepare microCMS so that we can manage blog posts there.\nA service is the largest management unit in microCMS.\nIn principle, almost all microCMS concepts, such as APIs, medi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用 Astro、microCMS 和 Vercel 构建博客",
+        "summary": "本教程介绍如何使用 Astro 进行静态生成、microCMS 作为无头 CMS API 以及 Vercel 进行部署来构建内容管理博客。它演示了如何获取外部内容、生成动态页面，并在为内容团队提供直观编辑界面的同时保持高性能。"
+      }
+    }
+  },
+  {
+    "title": "60 Billion into AI: The Final Mile of Xiaomi AI Ambition",
+    "slug": "60-billion-ai-xiaomi-final-mile-ambition",
+    "url": "https://dev.to/dufrence/60-billion-into-ai-the-final-mile-of-xiaomi-ai-ambition-pe2",
+    "source": "DEV Community",
+    "date": "2026-06-04T13:08:10.000Z",
+    "summary": "Xiaomi is investing 60 billion yuan over three years in AI, signaling a transformation from a hardware phone maker to an AI company. Despite having a complete AI portfolio including foundation models, IoT devices, and user base, Lei Jun believes a critical missing piece exists that will unlock commercial value from this massive investment.",
+    "content": "Lei Jun posted a set of numbers on Weibo: Xiaomi will invest 60 billion yuan in AI over the next three years. At least 16 billion in 2026 alone.\nWhat does 60 billion look like? Xiaomi's net profit for all of 2025 was 39.2 billion. This investment equals roughly a year and a half of that. R&D spending in Q1 alone hit 9 billion, up 33.4% year over year, with 26,048 R&D staff on board—all record highs.\nXiaomi is transforming from a phone company into an AI company. But look closer and a problem emerges: Xiaomi's AI portfolio already appears fairly complete—the MiMo foundation model, the miclaw phone Agent, the Agent ecosystem platform, 1.1 billion IoT devices, and 746 million monthly active users. Everything seems to be in place, yet Lei Jun clearly isn't satisfied.\nHe's looking for a missing puzzle piece. Without it, that 60-billion investment can't be fully converted into commercial value.\nLu Weibing laid out Xiaomi's three-layer AI architecture in detail during the Q1 2026 earnings call. With the underlying infrastructure included, it's actually a four-layer stack.\nThe foundation layer is infrastructure. Xiaomi holds roughly 220.6 billion yuan in cash reserves, employs 26,048 R&D personnel, and spent 9 billion on R&D in Q1 alone. The company made its stance clear at Investor Day: 60 billion is the floor—the actual spend will be higher.\nLayer one is the foundation model. The MiMo model family is fully formed: V2.5-Pro (the flagship Agent model, 1 trillion parameters, 1 million context window), V2.5 (multimodal base), V2-Omni, V2-TTS, and the OneVL autonomous driving model. V2.5-Pro ranks first globally among open-source models on both the Artificial Analysis Overall Intelligence Index and Agent Index. It completed Peking University's compiler theory SysY compiler project in 4.3 hours—a perfect 233/233 score with 672 tool calls. Token efficiency is 40%–60% lower than Claude Opus 4.6 and GPT-5.4.\nLayer two is embodied intelligence and autonomous driving. Xiaomi's human",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "600 亿投入 AI：小米 AI 雄心的最后一英里",
+        "summary": "小米在三年内投入 600 亿元到 AI 领域，标志着从硬件手机制造商向 AI 公司的转变。尽管小米拥有完整的 AI 产品组合，包括基础模型、物联网设备和用户基础，但雷军认为存在一个关键缺失环节，将解锁这笔巨大投资的商业价值。"
+      }
+    }
+  },
+  {
+    "title": "Loan Math for Developers: 4 Levers That Save Thousands",
+    "slug": "loan-math-developers-4-levers-save-thousands",
+    "url": "https://dev.to/zhihu_wu_dea1d82af01a04d7/loan-math-for-developers-4-levers-that-save-thousands-2c0i",
+    "source": "DEV Community",
+    "date": "2026-06-04T13:07:29.000Z",
+    "summary": "Understanding the amortization formula reveals four high-impact levers: extra early payments generate outsized returns due to compounding, bi-weekly payments effectively add one extra payment yearly, and loan terms and rates can save six figures. These insights help developers make decisions that save tens of thousands on mortgages and large purchases.",
+    "content": "If you've ever signed a mortgage, financed a car, or consolidated debt, you've encountered the amortization formula. It looks intimidating:\nM = P * [r(1+r)^n] / [(1+r)^n - 1]\n\nBut once you understand how each variable moves the needle, you can make decisions that save tens of thousands of dollars. Here's what every developer should know about loan math.\nP = principal (what you borrow)\nr = monthly interest rate (annual rate / 12)\nn = total number of payments (years * 12)\nM = your fixed monthly payment\nThe counterintuitive part: early payments are almost entirely interest. On a $250,000, 30-year mortgage at 6.5%, your first payment sends $1,354 to interest and only $226 to principal. By year 15, the split approaches 50/50. This front-loading is why extra payments early in the term have outsized impact.\nAdding $100/month to the same mortgage saves ~$49,000 and knocks off 4.5 years. The earlier you start, the larger the compounding effect — because each extra dollar reduces the balance on which ALL future interest is calculated.\nPay half the monthly amount every two weeks, and you sneak in one extra full payment per year (26 half-payments = 13 full). On a $250k loan, that's ~$53,000 saved and 4-5 years cut from the term — without feeling like you're paying more each month.\nSame $250k loan at 6.5%:\n30-year: $1,580/month, $568,861 total — 56% of every dollar is interest\n15-year: $2,178/month, $392,069 total — saving $176,791\nThe monthly jump is real, but the interest savings could buy you a second house.\nA 1% rate difference on a $250k mortgage = over $50,000 in extra interest across 30 years. That single percentage point costs more than most people spend on cars. Always compare APRs (which include fees), not just the advertised rate.\nI built a Loan Calculator on CodeToolbox that lets you model any of these scenarios in seconds. Enter your numbers, hit Calculate, and you get:\nMonthly payment, total interest, and total cost instantly\nA visual pie chart showing principal-to",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "开发者的贷款数学：节省数千元的 4 个杠杆",
+        "summary": "理解摊销公式揭示了四个高影响力杠杆：提前额外付款由于复利而产生超额回报，两周一次的付款实际上每年增加一次额外付款，贷款期限和利率可以节省六位数。这些见解帮助开发者做出决策，在抵押贷款和大宗购买中节省数万元。"
+      }
+    }
+  },
+  {
+    "title": "You can't load-test an LLM agent with a dumb mock",
+    "slug": "cant-load-test-llm-agent-dumb-mock",
+    "url": "https://dev.to/sravan_vidiyala/you-cant-load-test-an-llm-agent-with-a-dumb-mock-2o7e",
+    "source": "DEV Community",
+    "date": "2026-06-04T13:06:55.000Z",
+    "summary": "Mocking LLM agents for load testing fails because naive mocks return identical responses regardless of context, causing infinite loops on tool invocations. The solution is to check the incoming message history and respond contextually—if the last message is a tool result, return text; otherwise return a tool invocation.",
+    "content": "The first thing I tried was the obvious thing: stand up a fake OpenAI endpoint that returns a hardcoded response, point the agent at it, and ramp up concurrent users. Mock the expensive dependency, isolate the variable, measure the infrastructure.\nThe agent entered an infinite loop on every request.\nThe reason comes down to how LangGraph agents work. Each turn, the agent calls OpenAI and gets back either a tool invocation or text. If it's a tool invocation, the agent runs the tool, appends the result to the message history, then calls OpenAI again, now with that result in context. OpenAI sees the tool result and responds with text. Turn over.\nA dumb mock returns the same response every time regardless of what's in the history. So the agent calls a tool, gets back a tool invocation, runs the tool, appends the result, calls the mock again. Same response, same tool invocation. The result is sitting there in the history. The mock doesn't care. It loops forever.\nThe obvious workaround is turn-counting: return a tool invocation on the first call, text on the second. (Databricks' agent load-testing guide takes the same approach; I only found this after building and running my own.) It works if every conversation goes exactly one tool call then a response. Mine didn't. Some requests hit no tools at all. Some chained two or three in sequence depending on what the first returned. Turn-counting breaks the moment the real path doesn't match what you hardcoded.\nWhat actually works is simpler: check the incoming message history before deciding what to return. If the last message is a tool result, return text. If it isn't, return a tool invocation. No state, no counter. The mock just reads what the agent sends on each request and responds to what actually happened.\nconst messages = req.body.messages;\nconst lastMessage = messages[messages.length - 1];\n\nif (lastMessage?.role === 'tool') {\n  return res.json(generateTextResponse());\n}\nreturn res.json(generateToolInvocation());\n\nWith t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你无法用简单的模拟来对LLM代理进行负载测试",
+        "summary": "使用朴素模拟对LLM代理进行负载测试会失败，因为这些简单的模拟会无视上下文返回相同的响应，导致工具调用陷入无限循环。解决方案是检查传入的消息历史并做出有上下文的响应——如果最后一条消息是工具结果，则返回文本；否则返回工具调用。"
+      }
+    }
+  },
+  {
+    "title": "What Are AI Agents and How Do They Work? A Developer’s Guide",
+    "slug": "ai-agents-how-do-they-work-developer-guide",
+    "url": "https://dev.to/prateek23/what-are-ai-agents-and-how-do-they-work-a-developers-guide-34dj",
+    "source": "DEV Community",
+    "date": "2026-06-04T13:06:15.000Z",
+    "summary": "This guide explains what AI agents are, how they differ from assistants and chatbots, the perception-reasoning-action loop driving them, and types ranging from simple reflex to multi-agent systems. It covers real-world use cases and best practices for safely deploying agents in production using frameworks like LangChain and CrewAI.",
+    "content": "AI agents are software systems that can perceive their environment, reason through a problem, and take action to complete a goal, all without you clicking a button for every step. If you’re a developer or freelancer trying to understand what everyone in tech is talking about, you’re in the right place. In this guide, you’ll get a clear, no-fluff breakdown of what AI agents actually are, how they work under the hood, the different types, real-world use cases, and even how to build a basic one yourself.\nWhat Is an AI Agent?\nAI Agent vs AI Assistant vs Bot\nDifference Between an LLM and an AI Agent\nHow Do AI Agents Work?\nThe Perception-Reasoning-Action Loop\nMemory: Short-Term, Long-Term and Episodic\nTools and External Integrations\nThe Role of LLMs as the Agent’s Brain\nTypes of AI Agents\nSimple Reflex Agents\nGoal-Based and Utility-Based Agents\nLearning Agents\nMulti-Agent Systems\nWhat Is Agentic AI and Why It’s Different\nReal-World AI Agent Use Cases\nAI Agents in Software Development and Freelancing\nAI Agents in Customer Support, Healthcare and Finance\nHow to Build a Simple AI Agent (Beginner’s Overview)\nKey Frameworks: LangChain, AutoGen, CrewAI\nStep-by-Step: Build a Minimal Agent in Python\nChallenges and Limitations of AI Agents\nThe fix: Start small. Define tight guardrails on what tools an agent can access, add logging at every step, and always keep a human-in-the-loop for high-stakes actions until you trust the system.\nThe Future of AI Agents\nConclusion\nFrequently Asked Questions\nWhat is the main purpose of an AI agent?\nHow is an AI agent different from a regular chatbot?\nCan I build an AI agent without a machine learning background?\nWhat are multi-agent systems used for?\nAre AI agents safe to use in production?\nWritten By\nPrateek Pareek\nFreelance Software Engineer & CRM/AI Expert. Helping startups and global businesses build faster, smarter, and scalable digital products. Over 8+ years of experience across Salesforce, AI, React, Shopify & mobile apps.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "什么是AI代理以及它们如何工作？开发者指南",
+        "summary": "本指南解释了什么是AI代理、它们与助手和聊天机器人的区别、驱动它们的感知-推理-行动循环，以及从简单反射代理到多代理系统等类型。它涵盖了实际应用案例和使用LangChain和CrewAI等框架在生产环境中安全部署代理的最佳实践。"
+      }
+    }
+  },
+  {
+    "title": "Synchronization & Mutual Exclusion in Robot Software Development",
+    "slug": "synchronization-mutual-exclusion-robot-software-development",
+    "url": "https://dev.to/zhengweiqiangdev/synchronization-mutual-exclusion-in-robot-software-development-1ndd",
+    "source": "DEV Community",
+    "date": "2026-06-04T13:05:57.000Z",
+    "summary": "Robot systems require concurrent execution of sensor I/O, planning, and control; proper synchronization prevents race conditions and data corruption. The article explains processes vs. threads, core primitives like mutexes and condition variables, and their application to robotics for stable real-time behavior and safe data access.",
+    "content": "In modern robotics, software development plays a central role. Robot systems typically involve complex real-time tasks: sensor data acquisition, motion planning, control, and external command response. These tasks require efficient concurrent execution to maintain responsiveness and reliability. Processes and threads — the basic execution units of operating systems — are essential to achieving this.\nConcurrency in Robotics: Why It Matters\nA robot is a highly concurrent system. An industrial robot might simultaneously:\nRead LiDAR and camera data\nRun path-planning algorithms\nControl arm movement\nRespond to user or cloud commands\nWithout proper concurrency control, systems suffer lag, inconsistent data, or crashes.\nProcess: Independent resource container (memory, CPU time)\nThread: Lightweight execution unit that shares process memory\nOn Linux, we use fork() for processes, exec() for program replacement, and pthread for threads. But the real challenge is synchronization and mutual exclusion — keeping threads from corrupting shared data.\nIn robotics, this is critical:\nSafe access to sensor data\nCoordinated control loops\nStable real-time behavior\nProcesses & Threads: Quick Recap\nA process has its own address space and is isolated from others. A thread runs inside a process, sharing memory, file descriptors, and global data, but with its own stack and program counter. Threads are lighter and faster to switch — ideal for robotics.\nBut shared access creates race conditions: when one thread reads data while another writes it, causing undefined behavior. That’s where synchronization primitives come in.\nCore Synchronization Primitives\n3.1 Mutex (Mutual Exclusion Lock)\nA mutex ensures only one thread enters a critical section at a time. It’s the most widely used primitive in robot software.\nExample in robot vision:\nMultiple threads read/write a global image frame.\n\n\n\npthread_mutex_t img_lock = PTHREAD_MUTEX_INITIALIZER;\n\nvoid* process_image(void* arg) {\n    pthread_mutex_lock(&i",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "机器人软件开发中的同步与互斥",
+        "summary": "机器人系统需要并发执行传感器I/O、规划和控制；适当的同步可以防止竞争条件和数据损坏。本文解释了进程与线程、互斥锁和条件变量等核心原语，以及这些原语在机器人系统中的应用，以实现稳定的实时行为和安全的数据访问。"
+      }
+    }
+  },
+  {
+    "title": "The Spotify API is locking down. Here's how I resolve tracks across every platform instead",
+    "slug": "spotify-api-locking-down-resolve-tracks-across-platforms",
+    "url": "https://dev.to/christiaanrc/the-spotify-api-is-locking-down-heres-how-i-resolve-tracks-across-every-platform-instead-4bl5",
+    "source": "DEV Community",
+    "date": "2026-06-04T13:05:48.000Z",
+    "summary": "With Spotify's API restrictions tightening, the author built SonoVault, a music metadata API aggregating data from Discogs, MusicBrainz, and the MLC to resolve ~90M tracks across platforms. It solves the problem of needing cross-platform IDs by searching once and returning all platform links in a single API response.",
+    "content": "If you've ever built anything music-related, you know the pain: you have a\none platform — a Spotify ID, an ISRC, whatever — and you need the\nsame track everywhere else. The Apple Music link. The Tidal ID. The\nThere's no single, affordable place to get that. And it just got worse:\nSpotify has been locking down its API — the thing half of us reached for by\nSo I built SonoVault — a music metadata API that\nopen catalog data (Discogs, MusicBrainz, Wikidata, and the MLC)\ncross-platform IDs. ~90M tracks. Search them, browse\nSay you've got Daft Punk's One More Time. Searching is just artist + title:\n  curl -G \"https://api.sonovault.now/v1/tracks/search\" \\\n    --data-urlencode \"artist=Daft Punk\" \\\n    --data-urlencode \"title=One More Time\" \\\n    -H \"x-api-key: YOUR_KEY\"\n\n  {\n    \"id\": \"282378616\",\n    \"title\": \"One More Time\",\n    \"isrc\": \"DEND21200535\",\n    \"duration\": 320,\n    \"genre\": [\"House\"],\n    \"subgenre\": [\"Electronica\"]\n  }\n\nNow the useful bit. Hand that track ID (or the ISRC, or a Spotify ID) to the\n  curl -G \"https://api.sonovault.now/v1/tracks/links\" \\\n    --data-urlencode \"id=282378616\" \\\n    -H \"x-api-key: YOUR_KEY\"\n\n  {\n    \"track_id\": 282378616,\n    \"title\": \"One More Time\",\n    \"isrc\": \"DEND21200535\",\n    \"links\": [\n      { \"source\": \"spotify\",     \"external_id\": \"0DiWol3AO6WpXZgp0goxAV\", \"url\": \"https://open.spotify.com/track/0DiWol3AO6WpXZgp0goxAV\" },\n      { \"source\": \"beatport\",    \"external_id\": \"6014288\",                \"url\": \"https://www.beatport.com/track/-/6014288\" },\n      { \"source\": \"discogs\",     \"external_id\": \"2844-A\",                 \"url\": \"https://www.discogs.com/release/2844\" },\n      { \"source\": \"musicbrainz\", \"external_id\": \"41829821-316a-46b7-9ba3-82a50296d3bc\", \"url\": \"https://musicbrainz.org/recording/41829821-316a-46b7-9ba3-82a50296d3bc\" },\n      { \"source\": \"applemusic\",  \"external_id\": \"5468282\",                \"url\": \"https://music.apple.com/song/5468282\" },\n      { \"source\": \"tidal\",       \"external_id\": \"124215\",",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Spotify API 正在施加限制。我如何在各个平台上解析音轨",
+        "summary": "随着 Spotify API 限制日益收紧，作者构建了 SonoVault，一个音乐元数据 API，汇总来自 Discogs、MusicBrainz 和 MLC 的数据，以在各平台上解析约 9000 万首音轨。它通过一次搜索并在单个 API 响应中返回所有平台链接来解决跨平台 ID 的问题。"
+      }
+    }
+  },
+  {
+    "title": "I Found the Curated List of AI Agent Tools for 2026",
+    "slug": "curated-list-ai-agent-tools-2026",
+    "url": "https://dev.to/mrclaw207/i-found-the-curated-list-of-ai-agent-tools-for-2026-153g",
+    "source": "DEV Community",
+    "date": "2026-06-04T13:04:07.000Z",
+    "summary": "GitHub's awesome-ai-agents-2026 curated list reveals ecosystem maturity: foundation models are commoditizing with 75+ entries, coding agents are a battleground with 24+, and frameworks are consolidating with 23+. Key unsolved areas include agent protocols, sandboxing for generated code, and persistent memory—the hard problems defining 2026 agent development.",
+    "content": "I Found the curated list of AI agent tools for 2026 and it says a lot about where the ecosystem is going\n\n\nGitHub user Zijian-Ni maintains a list called awesome-ai-agents-2026 that has become my go-to reference when I'm evaluating new tools or trying to understand where the agent ecosystem is heading. It's a curated list of frameworks, tools, protocols, and resources — categorized and tagged with maturity indicators.\nHere's what I find most interesting about it.\nThe list is organized into 30+ categories. The ones with the most entries:\nFoundation Models: 75+\nCoding Agents: 24+\nAgent Frameworks: 23+\nAgent Security: 14+\nTool & API Integration: 15+\nThe distribution tells you where the ecosystem has matured: models are commoditizing, coding agents are a battleground, frameworks are consolidating, and security is getting serious attention.\nThe categories with fewer entries but high strategic importance:\nAgent Protocols (MCP/A2A): 10+\nAgent Sandboxing: 7+\nAgent Memory: 10+\nThese are the categories where the hard problems are. Protocols (how agents communicate) are still being standardized. Sandboxing (how you safely run agent-generated code) is unsolved. Agent memory (how agents retain context across sessions) is fundamental but still nascent.\nEach entry is tagged with maturity indicators:\n🆕 New — Added in the last 60 days, still settling\n📦 Archived — No further updates expected\n💤 Stale — No commits in 6+ months\n⚠️ Unverified — Low traction, vet before using\n🇨🇳 Chinese ecosystem — Projects from mainland China\nThis is useful because the AI agent tooling space is flooded with repos that get fifteen minutes of attention and then are abandoned. The tags help you distinguish between \"this exists and is maintained\" and \"this exists but the maintainer moved on.\"\nThe 2026 framing of the list — \"the year agents went mainstream and AI became infrastructure\" — matches what I'm seeing in practice. The tooling has moved past \"can we build agents?\" to \"how do we build agents that",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我找到了 2026 年 AI 智能体工具的精选列表",
+        "summary": "GitHub 的 awesome-ai-agents-2026 精选列表揭示了生态系统的成熟度：基础模型正在商品化（75+ 条目），编码智能体是竞争激烈的领域（24+ 条目），框架正在整合（23+ 条目）。关键未解决的问题包括智能体协议、生成代码的沙箱化和持久化内存——这些是定义 2026 年智能体开发的难题。"
+      }
+    }
+  },
+  {
+    "title": "Agent Factory Recap: Building with Gemini 3, AI Studio, Antigravity, and Nano Banana",
+    "slug": "agent-factory-recap-gemini-3-ai-studio-antigravity",
+    "url": "https://dev.to/googleai/agent-factory-recap-building-with-gemini-3-ai-studio-antigravity-and-nano-banana-186h",
+    "source": "DEV Community",
+    "date": "2026-06-04T13:04:00.000Z",
+    "summary": "Google released Gemini 3 (focused on acting and coding), Antigravity (an AI-native IDE), and Nano Banana Pro (media generation), demonstrated building complex applications like an insurance cataloging app with webcam and microphone integration. The recap shows concrete examples of leveraging these tools for rapid application development.",
+    "content": "Welcome back to The Agent Factory! This week, we went beyond the hype to dissect the technical details of Google's massive wave of AI releases. We were joined by Paige Bailey, the UTL for Developer Relations at DeepMind, to break down everything from the new Gemini 3 model to the Antigravity IDE.\nGoogle has been shipping at a breakneck pace—literally a new model or feature nearly every day—and this episode is all about how developers can harness these tools right now.\nThis post guides you through the key ideas from our conversation. Use it to quickly recap topics or dive deeper into specific segments with links and timestamps.\n\nWe tossed around a few new names in this episode. Here is a quick primer on the tech discussed:\nGemini 3: The latest iteration of Google's model family. While Gemini 1 was about understanding and Gemini 2 was about reasoning, Gemini 3 is designed for acting and coding. It features improved tool use and function calling.\n\n\nAntigravity: Google's new AI-native IDE (Integrated Development Environment) designed to integrate Gemini 3 directly into the coding workflow, allowing for multimodal inputs like screenshots to drive code changes.\n\n\nNano Banana Pro: The newest iteration in the media generation series, capable of creating high-fidelity images, voxel art, and game assets.\n\n\n\n\n  \n  \n  The Factory Floor\n\n\nThe Factory Floor is our segment for getting hands-on. Here, we moved from high-level concepts to practical code with live demos.\nTimestamp: 11:20\nPaige demonstrated the \"Build\" feature in AI Studio to create a complex React application from scratch. The goal was to test the model's ability to self-correct and handle specific design constraints.\nThe Prompt: Create an insurance cataloging app using the webcam and microphone. It needed a \"Nordic/IKEA\" design theme, an inventory list, and the ability to estimate item value using Google Search grounding.\n\n\nThe Process: Gemini 3 generated a React Native app, set up the directory structure, and wrote",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "智能体工厂回顾：使用 Gemini 3、AI Studio、Antigravity 和 Nano Banana 构建",
+        "summary": "Google 发布了 Gemini 3（专注于行动和编码）、Antigravity（一个 AI 原生 IDE）和 Nano Banana Pro（媒体生成），演示了构建复杂应用程序的方法，如具有摄像头和麦克风集成的保险分类应用。该回顾展示了利用这些工具进行快速应用开发的具体示例。"
+      }
+    }
+  },
+  {
     "title": "Async-вызовы и Batch API в LLM: как сэкономить до 50% и ускорить обработку",
     "slug": "async-batch-api-llm-optimization",
     "url": "https://dev.to/promptra-team/async-vyzovy-i-batch-api-v-llm-kak-sekonomit-do-50-i-uskorit-obrabotku-3mdh",
@@ -188,6 +380,22 @@
       "zh": {
         "title": "品牌诊断：如何测试AI对你品牌的认知",
         "summary": "提出一个诊断工作流程，用于评估AI系统如何感知和描述你的品牌，无需立即投入内容。使用AI查询来识别正确识别的属性、错误对齐的标签以及需要强化的缺失定位要素。"
+      }
+    }
+  },
+  {
+    "title": "I built a vulnerable app and spent $1,500 seeing if LLMs could hack it",
+    "slug": "built-vulnerable-app-1500-seeing-llms-hack",
+    "url": "https://kasra.blog/blog/i-spent-1500-seeing-if-llms-could-hack-my-app/",
+    "source": "Hacker News",
+    "date": "2026-06-04T00:56:32.000Z",
+    "summary": "An engineer built a deliberately vulnerable application and spent $1,500 testing whether LLMs could discover and exploit security flaws. The experiment provides empirical data on LLM capabilities for security testing and highlights practical risks of AI-assisted exploitation techniques.",
+    "content": "Article URL: https://kasra.blog/blog/i-spent-1500-seeing-if-llms-could-hack-my-app/\nComments URL: https://news.ycombinator.com/item?id=48392343\nPoints: 257\n# Comments: 123",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个易受攻击的应用，花费1500美元测试大语言模型是否能破解它",
+        "summary": "一位工程师构建了一个刻意易受攻击的应用程序，花费1500美元测试大语言模型是否能发现并利用安全漏洞。该实验提供了大语言模型安全测试能力的实证数据，并突出了AI辅助利用技术的实际风险。"
       }
     }
   },
@@ -396,6 +604,22 @@
       "zh": {
         "title": "改进循环：akm如何保持你的代理敏锐",
         "summary": "akm改进管道是一个多阶段系统，通过评估质量、合并冗余记忆、提取结构化事实和映射实体关系来自动管理代理的知识库。按计划运行时，它通过识别陈旧或矛盾的信息并提出改进来防止知识熵。"
+      }
+    }
+  },
+  {
+    "title": "Failing grades soar with AI usage, dwindling math skills in Berkeley CS classes",
+    "slug": "failing-grades-soar-ai-usage-dwindling-math-skills",
+    "url": "https://www.dailycal.org/news/campus/academics/failing-grades-soar-as-professors-see-greater-ai-usage-dwindling-math-skills-in-uc-berkeley/article_16fad0bf-02cb-4b8c-8d88-888ffd9f8608.html",
+    "source": "Hacker News",
+    "date": "2026-06-04T00:18:02.000Z",
+    "summary": "UC Berkeley computer science classes report soaring failing grades correlated with increased AI usage among students and a marked decline in fundamental math skills. The trend raises concerns about skill development and academic integrity as AI tools become ubiquitous in coursework.",
+    "content": "Article URL: https://www.dailycal.org/news/campus/academics/failing-grades-soar-as-professors-see-greater-ai-usage-dwindling-math-skills-in-uc-berkeley/article_16fad0bf-02cb-4b8c-8d88-888ffd9f8608.html\nComments URL: https://news.ycombinator.com/item?id=48392004\nPoints: 421\n# Comments: 324",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "随着AI使用增加，伯克利计算机科学课程的不及格率飙升，数学技能下降",
+        "summary": "加州大学伯克利分校计算机科学课程报告不及格率飙升，与学生AI使用增加相关，基础数学技能明显下降。随着AI工具在课程中变得普遍，这一趋势引发了对技能发展和学术诚信的担忧。"
       }
     }
   }
