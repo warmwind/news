@@ -1,5 +1,197 @@
 [
   {
+    "title": "Shadow DOM vs iframe for browser extension tooltips: a build note",
+    "slug": "shadow-dom-vs-iframe-browser-extension-tooltips",
+    "url": "https://dev.to/palo_alto_ai/shadow-dom-vs-iframe-for-browser-extension-tooltips-a-build-note-33c5",
+    "source": "DEV Community",
+    "date": "2026-06-10T13:05:27.000Z",
+    "summary": "A developer compared iframe and Shadow DOM approaches for injecting tooltips into arbitrary web pages. Shadow DOM proved superior due to better font loading and positioning, though it requires explicit CSS declarations to prevent host-page styles from breaking the tooltip.",
+    "content": "I built rabbitholes to keep Wikipedia-style context one highlight away, inline, without opening a new tab. The hard part wasn't the API integration — it was injecting a tooltip into arbitrary host pages without the tooltip looking wrong or breaking the page.\nTwo options: iframe overlay or shadow DOM.\nIframes are isolated by design, which sounds right, but that isolation cuts both ways. Fonts loaded by the host page aren't available inside an iframe unless you explicitly load them again — and loading them again means a flash of unstyled content while they download. On a long-form article where the reading typeface is part of the experience, the tooltip snapping from system-sans to the correct font mid-render is visually jarring enough that I dropped the approach after one test.\nShadow DOM gives encapsulation without the font problem. The shadow root participates in the browser's font-loading lifecycle alongside the host document, so fonts the page already loaded are available inside the shadow tree immediately. The tooltip renders in the correct typeface on the first paint.\nPositioning is also cleaner. The shadow host element lives in the normal DOM, so I can place it with position: absolute using coordinates from Range.getBoundingClientRect() — cursor-relative, no coordinate-space translation required. With an iframe I'd have been fighting two separate viewport frames.\nThe tradeoff I accepted: shadow DOM isn't true isolation. A host page using all: initial on broad selectors can punch through in some browsers. My mitigation was to explicitly declare every CSS property on the shadow container rather than inheriting any browser defaults — verbose, but reliable across the sites I tested (Wikipedia, Substack, NYT, arXiv).\nEverything else in rabbitholes is also built with the minimal-footprint constraint: Manifest V3, no intermediary server, API keys stored in chrome.storage.sync, zero analytics. Requests go browser-direct to api.anthropic.com.\nhttps://github.com/robertn",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "浏览器扩展工具提示的Shadow DOM与iframe对比：构建笔记",
+        "summary": "开发者比较了用于向任意网页注入工具提示的iframe和Shadow DOM两种方法。Shadow DOM因具有更好的字体加载和定位能力而被证明更优越,但它需要显式的CSS声明来防止宿主页面样式破坏工具提示。"
+      }
+    }
+  },
+  {
+    "title": "I built a job application assistant. The interesting part is what it refuses to do.",
+    "slug": "job-application-assistant-ethical-design",
+    "url": "https://dev.to/kevinam99/i-built-a-job-application-assistant-the-interesting-part-is-what-it-refuses-to-do-8i2",
+    "source": "DEV Community",
+    "date": "2026-06-10T13:01:37.000Z",
+    "summary": "A developer built a job application assistant that tailors resumes and cover letters without becoming a spam tool. The system uses LangGraph checkpoints and deliberately avoids mass-apply features to maintain ethical boundaries while improving application quality.",
+    "content": "The way job applications work right now is broken in two directions.\nOn one side, the careful way. Read the JD. Tailor the resume. Write a real cover letter. Answer the same screener questions for the fifth time that day. Slow, but the only version that does not insult the recruiter on the other end.\nOn the other side, the mass apply tools. Spray thousands of generic applications, hope something sticks, annoy every recruiter in the process. Fast, but the kind of fast that breaks something. Recruiters can spot a copy paste in the first paragraph and the spam tools have made every keyword-stuffed cover letter feel poisoned by association.\nI wanted to see if there was a third option. Something that takes the careful version and makes it fast, without turning into the spam version. A single posting URL in. A tailored resume, cover letter, and screener answers out. Ready for me to review before anything is submitted.\nI built it. It works. The interesting part is not the features it has, it is the ones I refused to build.\nThis article walks through the architecture, the trust boundaries, and a handful of decisions where the right answer was to do less.\nThe agent is a LangGraph state graph. Each step in the pipeline is a node. Each node reads a validated state object and returns an updated one. Every node boundary is a checkpoint on disk, which means if a run crashes halfway, it resumes from the exact step it stopped at. No re-fetching, no re-tailoring, no double LLM bill.\nLangGraph also gives a clean way to pause the graph for human input, which I lean on heavily later.\nThe default pipeline does seven things, in this order:\nfetch → load profile → analyse JD → match\n                                      ├── tailor resume ──────┐\n                                      ├── draft cover letter ─┤→ render\n                                      └── answer questions ───┘\n\nThe fanout matters. The tailored resume, the cover letter, and the screener answers all read the same job analy",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个求职申请助手。有趣的部分是它拒绝做什么。",
+        "summary": "开发者构建了一个求职申请助手,可以定制简历和求职信,但不会成为垃圾邮件工具。该系统使用LangGraph检查点,并刻意避免批量申请功能,以保持道德界限同时提高申请质量。"
+      }
+    }
+  },
+  {
+    "title": "Generation-Side Tooling Outpaces Validation-Side Tooling",
+    "slug": "cuda-kernel-generation-validation-gap",
+    "url": "https://dev.to/ingero/generation-side-tooling-outpaces-validation-side-tooling-2553",
+    "source": "DEV Community",
+    "date": "2026-06-10T13:00:00.000Z",
+    "summary": "Auto-generation frameworks for CUDA kernels have advanced rapidly, but validation infrastructure hasn't kept pace. eBPF traces can measure post-launch performance metrics like p99 latency to verify generated kernels don't regress production workloads.",
+    "content": "The generation side is shipping fast (TileGym, AutoKernel, KernelEvolve). The validation-side surface for “what the kernel actually did at runtime” has not kept pace.\nIn the past nine months, three significant releases have landed for auto-generation of CUDA kernels: NVIDIA TileGym, RightNow AutoKernel, and Meta’s KernelEvolve. Each ships training infrastructure for kernel generation. Validation infrastructure (what the generated kernel actually did at runtime, on a real workload, in a production-shaped environment) has not kept the same pace. eBPF traces are the ground-truth layer that closes the gap.\nTwo distinct validation surfaces:\nPre-launch: the generated CUDA C compiles, the PTX assembles, the kernel passes a numerical-equivalence test against a reference. Standard compiler / unit-test territory. Generation frameworks ship this themselves.\nPost-launch: the kernel ran, returned, took N microseconds, used M registers per thread, hit X cache miss rate, and did or did not serialize the rest of the stream behind it. This is the layer that an eBPF trace plus standard CUDA driver counters can answer for any kernel, generated or hand-written.\nAuto-generation pipelines do not by default close the post-launch loop. They demonstrate “the kernel works in our test setup”. They do not demonstrate “the kernel does not regress p99 latency on production inference traffic”.\nOnce a generated kernel is in a real workload, the same trace surface used for any CUDA kernel applies: launch latency from cudaLaunchKernel, sync stalls from cudaStreamSynchronize, host-side overhead from the dispatcher, host scheduling preemption while the GPU is busy. None of those signals are visible to a generation framework that evaluates kernels in isolation.\n-- post-launch validation: did the new generated kernel regress p99?\nSELECT kernel_name,\n       COUNT(*)                  AS launches,\n       AVG(duration_ns)/1e3      AS avg_us,\n       quantile(duration_ns,0.99)/1e3 AS p99_us\n  FROM cuda_events",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "生成端工具超过验证端工具",
+        "summary": "CUDA内核的自动生成框架已快速发展,但验证基础设施跟不上步伐。eBPF跟踪可以测量发布后的性能指标(如p99延迟),以验证生成的内核不会导致生产工作负载性能下降。"
+      }
+    }
+  },
+  {
+    "title": "git bisect: find the commit that broke production in minutes, not days",
+    "slug": "git-bisect-find-breaking-commit",
+    "url": "https://dev.to/mdenda/git-bisect-find-the-commit-that-broke-production-in-minutes-not-days-32em",
+    "source": "DEV Community",
+    "date": "2026-06-10T13:00:00.000Z",
+    "summary": "Git bisect performs binary search across commit history to identify breaking changes in minutes rather than hours. The tool narrows down which commit introduced a bug by iteratively testing commits midway between known good and bad points.",
+    "content": "Your CI was green last Friday. Today, the payments test is failing. Somewhere between Friday's merge and now, 47 commits landed on main. Which one broke it?\nMost developers answer this the wrong way: they scroll through git log, check out suspicious commits one by one, and run the test manually. An hour later, they're still guessing.\nThere's a command built for this exact problem. It's called git bisect, and once you learn it, you'll never debug regressions the old way again.\ngit bisect is a binary search across your commit history. You tell Git two things:\nA good commit (a known point where the bug didn't exist)\nA bad commit (a known point where the bug exists — usually HEAD)\nGit then checks out the commit halfway between them. You test. You mark it as good or bad. Git narrows the range by half. Repeat.\n\nWith 47 commits between \"good\" and \"bad\", it takes at most 6 steps (log₂ 47) to find the exact commit that introduced the bug. Versus checking every commit manually, that's the difference between 5 minutes and an hour.\n# Start a bisect session\n$ git bisect start\n\n# Mark the current state (HEAD) as bad\n$ git bisect bad\n\n# Mark a known-good commit\n$ git bisect good a3f1d22\n\n# Bisecting: 23 revisions left to test after this (roughly 5 steps)\n# [7e4b9c1] refactor: extract payment validator\n\n# Git has checked out a commit in the middle. Run your test.\n$ npm test -- --grep \"payments\"\n\n# Test passed — mark this commit as good\n$ git bisect good\n\n# Bisecting: 11 revisions left to test after this (roughly 4 steps)\n# [b2d8e11] feat: add retry logic to payment API\n\n# Test failed — mark this commit as bad\n$ git bisect bad\n\n# ... continue until Git announces the first bad commit:\n# b2d8e11 is the first bad commit\n# commit b2d8e11\n# Author: leo@company.com\n# Date:   Tue Apr 15 11:42:03\n#     feat: add retry logic to payment API\n\n# Done — reset to where you started\n$ git bisect reset\n\nIn 6 commands, you know exactly which commit broke the tests. No guessing. No archaeology through",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "git bisect：几分钟内找到破坏生产的提交，而不是几天",
+        "summary": "Git bisect通过在提交历史中进行二分搜索来在几分钟内识别破坏性变更，而不是几小时。该工具通过在已知良好和不良提交之间的中点进行迭代测试，来确定哪个提交引入了错误。"
+      }
+    }
+  },
+  {
+    "title": "What Does Google Actually Look For During the 14-Day Closed Test?",
+    "slug": "google-play-closed-testing-requirements",
+    "url": "https://dev.to/codignia/what-does-google-actually-look-for-during-the-14-day-closed-test-j36",
+    "source": "DEV Community",
+    "date": "2026-06-10T13:00:00.000Z",
+    "summary": "Google's 14-day closed testing requirement monitors continuous engagement through background device pings and daily app usage, not just download metrics. Developers who treat it as a static checklist often face rejection during production access review.",
+    "content": "You’ve spent weeks, maybe months, tracking down bugs, optimizing your user interface, and wrestling with backend security rules. You compile your native release build or run your final production compilations, thinking the hardest part of the journey is officially behind you. Then you open the Google Play Console, and you’re hit with the ultimate indie developer roadblock: the mandatory 12-tester and 14-day closed testing requirement.\nMany independent creators view this process as a simple download checklist. You might think, \"I'll just find 12 people to download the app, leave it on their phones for two weeks, and wait it out.\" However, treating the testing phase as a static metric is the fastest way to get rejected during the final production access review. \nSo, what is Google actually tracking in the background during these two weeks? Let’s take a deep dive into the core algorithmic requirement that determines your success: Continuous Engagement.\nGoogle Play policies are not designed as a simple box-checking exercise. The underlying goal of the algorithm is to verify if your application is genuinely functional, stable, and being tested by an organic user base before it reaches millions of production users. \nTo enforce this, Google's advanced systems actively monitor the devices connected to your closed test track over the 14-day timeline:\nBackground Device Pings: Google Play Services regularly collects background automated signals (ping logs) from the devices where your test build is active.\nReal User Interaction: Leaving an app to rot in an application drawer without ever opening it is instantly flagged by the algorithm. Google measures whether the app is actively opened daily and tracks active interaction metrics within the build.\nFeedback Loops: The system monitors whether your test community is utilizing the internal testing channel on the Play Store to send private developer feedback and crash reports.\nThe most critical mistake developers make is assuming th",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Google在14天闭合测试中实际上在寻找什么？",
+        "summary": "Google的14天闭合测试要求通过后台设备ping和日常应用使用来监控持续参与度，而非仅仅依赖下载指标。将其视为静态检查清单的开发者在生产访问审查时往往面临拒绝。"
+      }
+    }
+  },
+  {
+    "title": "Token-Based Pricing Doesn't Survive Adoption Curves",
+    "slug": "token-based-pricing-adoption-unsustainable",
+    "url": "https://dev.to/arthurpro/token-based-pricing-doesnt-survive-adoption-curves-2j3o",
+    "source": "DEV Community",
+    "date": "2026-06-10T13:00:00.000Z",
+    "summary": "Enterprise AI tools priced per-token diverge from per-seat models at scale, as shown by Uber's 84% Claude Code adoption consuming their entire 2026 AI budget by April. Token consumption accelerates with adoption, making this pricing model unsustainable for high-engagement tools.",
+    "content": "Uber's CTO told the world this month that the company spent its entire 2026 AI allocation by April. The story has been reported in a handful of outlets, hit the front page of Hacker News for 397 points and 469 comments, and is mostly being read as a cost-of-AI-tools story. It is one. It is also, on a closer reading of the numbers, a pricing-model story — and the structural fact that almost none of the coverage has emphasized is the one that determines whether this is a one-company anomaly or the beginning of an industry-wide budgetary crisis.\nThe structural fact is that Claude Code, like most enterprise AI tooling in 2026, is priced on token consumption, not per-seat licensing. Token-based pricing scales with how aggressively the tool is used. Per-seat enterprise SaaS pricing — the model corporate IT budgets are built around — scales with how many people have access to it. Those two cost curves diverge in exactly the territory where productivity tools are designed to operate: high-engagement, daily-use, gradually-deepening workflows. The Uber data is the first public-facing version of a math problem most enterprise IT departments are about to discover privately.\nUber CTO Praveen Neppalli Naga, named in Yahoo Finance's and Benzinga's coverage, said publicly that Uber is \"back to the drawing board\" on AI budgeting after the surge in Claude Code use blew through internal projections. The specific numbers, as reported across the multiple outlets covering the story:\nClaude Code adoption inside Uber's ~5,000-engineer organization went from 32% to 84% over four months.\n70% of committed code at Uber is now AI-originated.\n11% of live backend updates are \"being written by AI agents built primarily with Claude Code,\" per the reporting.\nPer-engineer monthly API costs: $500 to $2,000.\n\nUber's annual R&D spend is around $3.4 billion, of which the AI tooling line was a much larger fraction than expected.\nCursor adoption plateaued; Claude Code dominated.\nThese are extraordinary num",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "基于令牌的定价在采用曲线中无法存活",
+        "summary": "企业AI工具的按令牌定价与按座位定价模式在规模扩展时出现分化，正如Uber 84%的Claude Code采用在4月就消耗了整个2026年AI预算一样。令牌消耗随着采用而加速，使得该定价模式对于高参与度工具来说不可持续。"
+      }
+    }
+  },
+  {
+    "title": "Let your n8n template ask for the user's API key",
+    "slug": "n8n-workflow-user-api-key-form",
+    "url": "https://dev.to/hidekimori/let-your-n8n-template-ask-for-the-users-api-key-54n9",
+    "source": "DEV Community",
+    "date": "2026-06-10T13:00:00.000Z",
+    "summary": "N8n workflow templates can collect user API keys through form inputs and route them to credentials without exposing developer keys. The pattern uses Form Triggers with Bearer Auth credentials to streamline setup while maintaining security.",
+    "content": "You built a workflow worth sharing — and it works perfectly. Until someone else imports it.\nThe bottleneck is the API key. Use yours, and every user is billed against your account. Use theirs, and they each have to find the credential UI, paste their key, and reconnect every time. Both are friction. The cleaner option is to let the workflow ask for the key on the form, then thread it through to the HTTP nodes that need it. It's simpler than it sounds.\nThis post walks through the pattern with a working credential setup, an alternative for single-node simple cases, the gotchas, and a note on what this enables for custom node authors.\nThe screenshots below come from n8n's built-in Bearer Auth credential and from the n8n-nodes-ldxhub package's own credential schema. The technique itself is generic — what's shown here works for any HTTP-node workflow and any custom node that supports expression-mode credentials.\nThe simplest case: a Form Trigger collects an API key, then an HTTP node hits an authenticated endpoint with that key. Two nodes, one bridge between them — but the bridge isn't a direct expression. It runs through a credential.\nThe flow:\nForm Trigger collects api_key (use the Password element type for masking)\nA Bearer Auth credential references that form input via expression\nHTTP node picks the credential\nThe Form Trigger is straightforward. Add one field:\nForm Trigger\n  Form Fields:\n    - Label: API Key\n    - Element Type: Password\n    - Custom Field Name: api_key\n    - Required Field: yes\n\nElement type matters. Use Password instead of Text and the input gets masked on screen — the key isn't readable to someone glancing at the browser.\nHere's the rendered form a user sees when they open the workflow URL:\n\nFor a Bearer token (which is what most modern APIs use), create a new credential of type Bearer Auth — a generic credential built into n8n that's purpose-built for Authorization: Bearer ... headers. It has a single field:\nBearer Token: YOUR_API_KEY\n\nClick the",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "让你的n8n模板向用户请求API密钥",
+        "summary": "N8n工作流模板可以通过表单输入收集用户API密钥，并将其路由到凭据，而不会暴露开发人员密钥。该模式使用表单触发器和Bearer Auth凭据来简化设置，同时保持安全性。"
+      }
+    }
+  },
+  {
+    "title": "Anthropic's strongest model is free until June 22 — and two more shifts for builders",
+    "slug": "anthropic-fable-5-free-june-22",
+    "url": "https://dev.to/danio_dev/anthropics-strongest-model-is-free-until-june-22-and-two-more-shifts-for-builders-1eff",
+    "source": "DEV Community",
+    "date": "2026-06-10T13:00:00.000Z",
+    "summary": "Claude Fable 5, Anthropic's most capable model, is free through June 22, while Apple Foundation Models offer free on-device inference and support for third-party models like Claude. Developers can benchmark real-world performance on complex tasks before pricing takes effect.",
+    "content": "Anthropic's strongest model is free until June 22 — and two more shifts for builders\n\n\nThree things landed for builders at once: the best model got cheaper (free, actually), free inference showed up on Apple's stack, and one still photo now becomes a talking video. Two of them you can act on right now.\nHere's the 90-second video version if you want the quick pass first:\n  \n  \n\n\n\n  \n  \n  1. Claude Fable 5 is public — and free on your plan until June 22\n\n\nAnthropic released Claude Fable 5, the first publicly available version of its Mythos-class model. It's state-of-the-art on nearly every benchmark Anthropic tests — software engineering, knowledge work, vision, and scientific research.\nIt's free on Pro, Max, Team, and Enterprise plans through June 22; after that it's 10 dollars per million input tokens and 50 per million output.\nIn high-risk areas (cyber, bio, chem) it refuses and falls back to Claude Opus 4.8 — about 95% of Fable sessions run entirely on Fable.\nThis dropped just days after Anthropic publicly warned that AI was getting too dangerous.\nWhy it matters: the strongest Claude is free to try on your existing plan for a two-week window. Run your hardest real task on it now and benchmark it before June 22 — the kind of jump that's worth re-checking your evals against.\nAt WWDC 2026, Apple gave developers in the App Store Small Business Program (apps under 2 million first-time downloads) free access to the next generation of Apple Foundation Models running on Private Cloud Compute — removing inference cost as a barrier.\nThe Foundation Models framework now supports image input.\nA single Swift API can also call third-party models like Claude and Gemini, server-side.\nA new Dynamic Profiles system supports multi-agent workflows, and Apple will open-source the framework later this summer.\nWhy it matters: you can ship AI features into an app without an inference bill. Prototype on Apple's free on-device models, and route the hard calls out to Claude or Gemini through",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Anthropic最强大的模型免费至6月22日——以及对开发者的两项更新",
+        "summary": "Claude Fable 5是Anthropic最强大的模型，免费至6月22日，而Apple Foundation Models提供免费的设备上推理和对第三方模型（如Claude）的支持。开发者可以在定价生效之前对复杂任务的真实性能进行基准测试。"
+      }
+    }
+  },
+  {
+    "title": "The Free Trial Trap: Why Enterprise AI Tool Trials Are Almost Always Misleading",
+    "slug": "enterprise-ai-free-trial-misleading",
+    "url": "https://dev.to/faiso0ole/the-free-trial-trap-why-enterprise-ai-tool-trials-are-almost-always-misleading-4460",
+    "source": "DEV Community",
+    "date": "2026-06-10T12:52:23.000Z",
+    "summary": "Enterprise AI tool free trials showcase premium tiers but customers deploy on cheaper tiers with less capable models, making trial performance unrepresentative. Clean data in trials also differs from real enterprise data accumulated over 18 months of production use.",
+    "content": "Free trials for enterprise software have been a standard sales mechanism for decades. You try it, it works, you buy it. The trial is the best version of the sales process — no pressure, real experience, honest evaluation.\nFor enterprise AI tools specifically, this mental model is broken in ways that matter. The free trial is not the honest evaluation it presents itself as. It is, in most cases, an engineered experience designed to maximize the probability that you buy.\nUnderstanding what is engineered — and what that means for your real-world experience after purchase — is the most important evaluation skill that most enterprise buyers are not currently applying.\nWhy AI Tool Trials Are Structurally Misleading\nThe free trial of an enterprise AI tool typically provides access to the best tier of capability: the most capable model, the highest performance tier, generous token limits, premium support. The pricing page shows what you pay for each tier, but the trial gives you the top.\nAfter purchase, at the pricing tier your budget actually supports, you may have access to a less capable model, lower rate limits, and standard support. The experience you evaluated is not the experience you bought.\nThis is not unique to AI tools — it is a common SaaS trial mechanic. But for AI tools, the capability difference between tiers is more significant than for most software categories. The difference between GPT-4o and GPT-3.5 in a RAG system is not a UI enhancement — it is a fundamental capability difference that affects the quality of answers on complex queries. Evaluating on the premium model and deploying on the standard model is evaluating a different product.\nThe Clean Data Problem\nEnterprise AI tool trials give you a blank slate. You connect your data, index it, and query it. But the trial happens with your data in its initial state — before it's been through 18 months of production use where it accumulates inconsistency, duplication, and staleness.\nThe trial also happens be",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "免费试用陷阱：为什么企业AI工具试用几乎总是具有误导性",
+        "summary": "企业AI工具免费试用展示高级功能，但客户实际部署在功能较弱模型的廉价版本上，使得试用性能缺乏代表性。试用中的干净数据也不同于企业在18个月生产使用中积累的真实数据。"
+      }
+    }
+  },
+  {
+    "title": "I stitched three tools together to know if my side project was down. So I built one.",
+    "slug": "cronaut-unified-monitoring-status-page",
+    "url": "https://dev.to/cronaut/i-stitched-three-tools-together-to-know-if-my-side-project-was-down-so-i-built-one-1jel",
+    "source": "DEV Community",
+    "date": "2026-06-10T12:51:53.000Z",
+    "summary": "Cronaut consolidates uptime monitoring, cron job tracking, and status page management into one tool where failed checks automatically open incidents on a public status page. The unified platform eliminates the complexity of managing three separate tools and accounts.",
+    "content": "If you run a micro-SaaS or a couple of side projects, you know the setup. UptimeRobot pings your homepage. Healthchecks.io watches your nightly cron. Instatus or a Notion page pretends to be a status page. Three logins, three bills, three places to check, and they still do not talk to each other.\nI got tired of it. So I built Cronaut.\nCronaut does the three things every small product actually needs, and nothing it does not.\nUptime monitoring. Point it at a URL. It checks the status code, an optional keyword in the body, and SSL certificate expiry. When something breaks, you get an alert by email, Slack, Discord, or webhook.\nCron and heartbeat monitoring. Your backup job, your billing sync, your cleanup task. They fail silently, which is the worst kind of failure. Cronaut expects a ping on a schedule you set with a plain cron expression. No ping inside the grace window, you hear about it.\nA public status page that posts itself. This is the part I care about most.\nEvery other setup I tried had the same gap. A check fails, you get paged, and then you still have to log into a separate tool and type out an incident so your users know what is going on. At 3am that does not happen, and your status page quietly becomes a lie.\nIn Cronaut a failed check is one event, and that one event does two things at once. It logs the state change, and it opens the incident on your public status page automatically. When the check recovers, the incident closes itself. No second login, no copy and paste, no stale page.\nYou can see it running on Cronaut’s own status page right now: status.cronaut.dev. That page is not a mockup. It is the same product, watching the same service you would be signing up for, posting its own incidents the moment anything goes sideways.\nCronaut is not trying to be Datadog. There is no APM, no log pipeline, no metrics explorer, no dashboard you need a training session to read. If you want a wall of graphs, this is the wrong tool and I will happily point you elsewh",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我把三个工具拼在一起来检测副项目是否宕机。所以我自己构建了一个。",
+        "summary": "Cronaut 将正常运行时间监控、定时任务跟踪和状态页管理整合到一个工具中，失败的检查会自动在公共状态页上开启事件。统一的平台消除了管理三个单独工具和账户的复杂性。"
+      }
+    }
+  },
+  {
+    "title": "The Anatomy of Catastrophic Forgetting",
+    "slug": "catastrophic-forgetting-neural-networks",
+    "url": "https://dev.to/saptarshisarkar/the-anatomy-of-catastrophic-forgetting-2e0i",
+    "source": "DEV Community",
+    "date": "2026-06-10T12:51:26.000Z",
+    "summary": "Catastrophic forgetting occurs when fine-tuning a model on a new task erases performance on previously learned tasks because shared weights optimize for the current task. The phenomenon stems from gradient descent's stateless nature and the distance between task optima in weight space.",
+    "content": "We train a model on handwritten digit classification. 99% accuracy. Then we train the same model on a new task — say, fashion item recognition. We go back and test it on digits. 34% accuracy. It has completely forgotten. Not gradually, not partially — almost entirely.\n\nWe trained a CNN on MNIST digits — 99.2% accuracy. After fine‑tuning on Fashion MNIST, it reached 91.1% accuracy. But when re‑evaluated on MNIST, accuracy collapsed to 33.9%. This collapse is catastrophic forgetting: the model’s weights shifted to optimize for the new task, erasing the old solution.\nWhy did training on more data make the model worse at something it already knew?\nMNIST is handwritten digits (0–9). Fashion MNIST is clothing items like shirts and shoes. Both are 28×28 grayscale images, but the tasks are distinct.\nThe core issue is that the model relies on the same set of weights for both tasks. There is no separation or dedicated memory; every parameter is shared. When training shifts from Task A (MNIST digits) to Task B (Fashion MNIST), gradient descent simply minimizes the loss on the data it sees at that moment. It has no awareness that Task A ever existed.\n\n\nIn the loss landscape, imagine two parabolic bowls: one for Task A and one for Task B. The optimum for Task A lies at \n\n\n  θA∗​\n\n, while Task B's optimum is at \n\n  θB∗​\n\n. As training on Task B progresses, the weights \n\n  θ\n\n move towards \n\n  θB∗​\n\n. This movement inevitably raises the loss for Task A because its minimum is left behind.\n\nThe root cause is the shared weight space. Gradient descent is a stateless optimizer; it only follows the current gradient signal. Since the minima for Task A and Task B are far apart, there is no single configuration of \n\n  θ\n\n that satisfies both tasks simultaneously. This is why catastrophic forgetting occurs.\nWeight space can be visualized as an N-dimensional space, where each axis corresponds to one parameter. Every point in this space represents a full set of weights i.e., a complete model.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "灾难性遗忘的剖析",
+        "summary": "灾难性遗忘发生在对新任务微调模型时，会抹除对先前学习任务的性能，因为共享权重为当前任务优化。该现象源于梯度下降的无状态特性以及权重空间中任务最优值之间的距离。"
+      }
+    }
+  },
+  {
+    "title": "Claude Fable 5 vs Every Other Frontier Model: The Developer Benchmark That Actually Matters [2026]",
+    "slug": "claude-fable-5-developer-benchmark-comparison",
+    "url": "https://dev.to/kunal_d6a8fea2309e1571ee7/claude-fable-5-vs-every-other-frontier-model-the-developer-benchmark-that-actually-matters-2026-4o48",
+    "source": "DEV Community",
+    "date": "2026-06-10T12:51:22.000Z",
+    "summary": "Claude Fable 5 is the most capable publicly available LLM with particular strength on complex multi-file tasks where its advantage compounds with complexity. The model can reason autonomously for up to 12 hours on detailed specifications, significantly outperforming GPT-4.1 and Gemini 2.5 Pro.",
+    "content": "Anthropic dropped Claude Fable 5 on June 9, 2026, and within hours it had 2,300+ points on Hacker News with nearly 2,000 comments. Every developer I know is asking the same question: is this worth switching to from GPT-4.1 or Gemini 2.5 Pro? After spending real time with the model and digging through the benchmarks, pricing, and — critically — the model card's fine print, here's the Claude Fable 5 vs every other frontier model breakdown that actually matters for working engineers.\nThe short answer: Fable 5 is genuinely the most capable publicly available model right now. But capability isn't the only variable in this equation.\nLet's start with what Anthropic is claiming. According to their official announcement, Fable 5 is \"state-of-the-art on nearly all tested benchmarks of AI capability\" across software engineering, knowledge work, vision, scientific research, and more. The key finding from their evaluation: the longer and more complex the task, the larger Fable 5's lead over competing models.\nThat last point matters enormously for developers. Most of us aren't asking LLMs to write a single function. We're asking them to reason through multi-file refactors, debug distributed systems, and generate entire feature implementations. If Fable 5's advantage compounds with task complexity, that's exactly the performance profile you want.\nEthan Mollick, Professor at The Wharton School at the University of Pennsylvania, got early access and wrote that Fable 5 \"represents a very real leap over every model I have used before.\" He tested it across dozens of experiments and found it capable of working autonomously for up to 12 hours executing on multi-page specifications. He created a full academic social science paper from a single prompt plus one piece of feedback. His words: using it felt \"somewhere between delightful and unnerving.\"\nSimon Willison, co-creator of Django and creator of Datasette, called it \"a beast\" on Hacker News. He used Fable 5 in the standard Claude.ai ch",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Claude Fable 5 对比其他前沿模型：真正重要的开发者基准测试 [2026]",
+        "summary": "Claude Fable 5 是最强大的公开可用大语言模型，在复杂多文件任务上具有特殊优势，其优势随复杂性增加而增强。该模型可以在详细规范上自主推理长达12小时，显著超过 GPT-4.1 和 Gemini 2.5 Pro。"
+      }
+    }
+  },
+  {
     "title": "Top 7 Best Writers in DEV - Episode 1",
     "slug": "top-7-best-writers-in-dev-episode-1",
     "url": "https://dev.to/lazy_girl_8abd83745dc/top-7-best-writers-in-dev-episode-1-5h38",
