@@ -1,0 +1,194 @@
+[
+  {
+    "title": "The Ralph Loop Is Not Enough",
+    "slug": "ralph-loop-is-not-enough",
+    "url": "https://dev.to/lizziepika/the-ralph-loop-is-not-enough-2kc9",
+    "source": "DEV Community",
+    "date": "2026-06-11T00:48:08.000Z",
+    "summary": "The \"Ralph Loop\"—a simple infinite loop calling an LLM—lacks the state management needed for reliable agents. Agents should implement explicit state machines with defined stages (planning, implementing, reviewing) and transitions to avoid infinite loops, context overflow, and goal drift.",
+    "content": "\"I don't prompt Claude anymore. My job is to write loops.\"\n— Boris Cherny, Claude Code creator\nThough I see where he's coming from, I'd put it differently.\nA developer's job isn't to write loops. It's to design state machines.\nEvery major agent framework — Claude Code, Codex, Cursor, LangGraph — does the same thing under the hood. A while loop calls an LLM, checks if it wants to use a tool, runs the tool, repeats until done. The loop isn't just a solved problem. It's a boring problem.\nThe hard part is everything around it.\nA loop has no idea what state the work is in. It just keeps going until something breaks or you run out of tokens. That's the Ralph Loop — named after the Simpsons kid who put a crayon in his nose. Agent, infinite loop, go. The Ralph Loop works, is famous, and has zero memory of where it is in the job. Like Ralph, it keeps going without knowing why.\nThink about the NBA Finals. The Spurs and the Knicks aren't improvising — every possession has a state. Fast break. Inbound play. Half court set. Each one has specific reads and triggers for what happens next. Point guard De'Aaron Fox isn't making it up as he goes. The system tells him what situation he's in, and the situation tells him what to do.\nYour agent works the same way. You define the stages — planning, implementing, reviewing, error handling — and you define what triggers each transition. The agent doesn't orchestrate. It executes. One focused job per state.\nWhen agents break, it's almost always one of three things:\nInfinite loops — one system repeated the same answer 58 times before anyone noticed.\nContext overflow — the history gets so long the model starts quietly forgetting things.\nGoal drift — 70 turns in, \"don't touch auth\" has completely evaporated.\nState machines fix all three. The loop runs until the list is empty, not until you run out of tokens. The goal lives in the transition logic, not in the context getting squeezed. And failures don't spiral — they transition to an error state",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Ralph 循环还不够",
+        "summary": "\"Ralph 循环\"是一个简单的无限循环调用大语言模型，但缺乏可靠代理所需的状态管理。代理应该实现具有定义阶段（规划、实现、审查）的显式状态机，通过状态转换避免无限循环、上下文溢出和目标偏移。"
+      }
+    }
+  },
+  {
+    "title": "I built a distributed compute grid where your idle laptop runs ML jobs — the orchestrator behind it",
+    "slug": "distributed-compute-orchestrator-ml-jobs",
+    "url": "https://dev.to/aman_sachan_126d19c4a2773/i-built-a-distributed-compute-grid-where-your-idle-laptop-runs-ml-jobs-the-orchestrator-behind-it-4eco",
+    "source": "DEV Community",
+    "date": "2026-06-11T00:40:14.000Z",
+    "summary": "A distributed compute grid orchestrator connects GPU-equipped home PCs and gaming rigs to an ML job hub via FastAPI, using a scoring function, async locks, and heartbeat monitoring. The system prevents race conditions where concurrent submissions could double-allocate nodes, ensuring reliable job distribution across the mesh.",
+    "content": "I built a distributed compute grid where your idle laptop runs ML jobs — the orchestrator behind it\n\n\nThe pitch: a single FastAPI hub takes compute jobs from ML researchers, and a fleet of home PCs and gaming rigs (RTX 4090s, M2 MacBooks, anything with a GPU and a Python interpreter) polls in, picks up work, and ships results back. A 20% platform fee funds the hub. An interactive dashboard shows the mesh in real time.\nI have been living inside this codebase for a few weeks. This post is about the part that actually determines whether the thing works or does not — the orchestrator. No frontend, no marketing — just the brain.\nLive dashboard: man44.zo.space/compute-pool\nRepo: github.com/AmSach/ComputePool-Grid\nThe first version of ComputeOrchestrator had a one-line bug that took down a 12-node stress test. Two jobs hit the hub at the same millisecond. Both saw the same node as idle. Both wrote busy to the same row. One node ended up double-allocated, the other starved, and the test logs looked like a hostage negotiation.\nThe fix had to be three things at once:\nA scoring function that picks the right node, not just the first idle one.\nAn async lock so concurrent submissions cannot race on a single node.\nA heartbeat monitor that reclaims nodes that ghosted.\nHere is what it looks like now.\ndef _calculate_score(self, capacity: Dict[str, Any], requirements: Dict[str, Any]) -> float:\n    \"\"\"Heuristic for node-task matching.\"\"\"\n    score = 0.0\n    if capacity.get(\"gpu_vram\", 0) >= requirements.get(\"min_vram\", 0):\n        score += 10.0\n    if capacity.get(\"cpu_cores\", 0) >= requirements.get(\"min_cores\", 0):\n        score += 5.0\n    return score\n\nThe weights are deliberately lopsided. A node that satisfies a job's VRAM requirement gets a 2x bonus over a node that just barely has enough cores. The intuition: GPU work is the long pole. If you cannot fit the model in VRAM, nothing else matters, no matter how many cores you have. A job that needs 24GB on a 16GB GPU gets scored as a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个分布式计算网格，让你的闲置笔记本运行ML任务——背后的编排系统",
+        "summary": "分布式计算网格编排器通过 FastAPI 将配备 GPU 的家用电脑和游戏机连接到 ML 任务中心，使用评分函数、异步锁和心跳监控。该系统防止竞态条件（并发提交可能导致节点双重分配），确保在整个网格中可靠地分配任务。"
+      }
+    }
+  },
+  {
+    "title": "Go Packages and Modules explained",
+    "slug": "go-packages-modules-explained",
+    "url": "https://dev.to/ferztyle/go-packages-and-modules-explained-4j4c",
+    "source": "DEV Community",
+    "date": "2026-06-11T00:37:56.000Z",
+    "summary": "Go organizes code through packages—directories of related .go files that share a namespace and determine export visibility through capitalization. Modules bundle packages together with dependency management via go.mod, forming the complete project structure.",
+    "content": "What is a package?\n\n\nIn Go, every Go program is made up of packages. A package is a directory of .go files that share the same package declaration. The primary purpose of packages is to help you isolate and reuse code.\nmyapp/\n├── main.go       ← package main\n└── math/\n    ├── add.go    ← package math\n    └── sub.go    ← package math\n\n\nBoth add.go and sub.go declare package math. They can call each other's functions directly, no import needed within the same package.\nInside a package, every .go file should begin with a package {name} statement which indicates the name of the package that the file is a part of. Every exported identifier (capitalized name) in that directory is accessible to anyone who imports the package.\nHere's what that looks like in practice:\n// math/add.go\npackage math\n\n// pi is an unexported variable.\nvar pi = 3.14159\n\n// Add returns the sum of two integers.\n// Exported — starts with a capital letter.\nfunc Add(a, b int) int {\n    return a + b\n}\n\n// math/sub.go\npackage math\n\n// Exported — starts with a capital letter.\nfunc Subtract(a, b int) int {\n\n    return a-b\n}\n\n// main.go\npackage main\n\nimport (\n    \"fmt\"\n    \"github.com/yourname/myapp/math\"\n)\n\nfunc main() {\n    fmt.Println(math.Add(3, 4))      // 7\n    fmt.Println(math.Subtract(10, 3)) // 7\n    // fmt.Println(math.pi) — compile error: unexported\n}\n\nTwo rules to remember:\nCapital letter = exported (public). Lowercase = unexported (private to the package).\nOne package per directory. One directory per package.\nIf a package is a folder, a module is the whole project, a tree of packages with a name, a Go version requirement, and a list of external dependencies.\nWhen you start a Go project, you create a module, and inside that module, there will be packages.\nEvery Go project has exactly one go.mod file at its root. That file defines the module. Here's what a real one looks like:\nmodule github.com/yourname/weather-cli\n\ngo 1.21\n\nrequire (\n    github.com/aws/aws-sdk-go-v2 v1.24.0\n    github.com/aws/aws",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Go 包和模块详解",
+        "summary": "Go 通过包来组织代码——相关 .go 文件的目录，共享命名空间，通过大小写确定导出可见性。模块通过 go.mod 将包捆绑在一起，进行依赖管理，形成完整的项目结构。"
+      }
+    }
+  },
+  {
+    "title": "InfiniteWP's Strengths and Who It Fits — An Honest Review from a Competing Tool Builder",
+    "slug": "infinitewp-strengths-competing-review",
+    "url": "https://dev.to/susumun/infinitewps-strengths-and-who-it-fits-an-honest-review-from-a-competing-tool-builder-276k",
+    "source": "DEV Community",
+    "date": "2026-06-11T00:22:25.000Z",
+    "summary": "InfiniteWP brings a decade of operational stability as a self-hosted WordPress maintenance tool trusted by agencies with established workflows. Its self-hosted architecture and backward compatibility appeal to organizations with strict data privacy requirements, despite competition from newer alternatives.",
+    "content": "Among WordPress maintenance tools, InfiniteWP is one of the most established names. Released by Revmakx in 2011, the tool has been operated continuously for over a decade. It enjoys deep loyalty from agencies that have invested years building operational know-how around it.\nWe at WP Maintenance Manager take a different approach, and our comparison pages outline where the two diverge. But before talking about differences, the strengths of InfiniteWP deserve to be stated honestly.\nHere are the five points where InfiniteWP fits an agency particularly well.\nInfiniteWP's biggest structural advantage is trust built across more than a decade of continuous operation.\nReleased in 2011 — one of the oldest tools in the space\nA large base of long-time English-speaking users with shared operational patterns\nWell-defined upgrade paths from older versions\nBackward compatibility with existing workflows and scripts has been maintained for years\nFor agencies already invested in InfiniteWP, switching tools means more than \"migration work\" — it means rebuilding the operational know-how accumulated over years. Continuing to use a tool with proven track record is, in itself, a strength that long-running platforms have.\nThe temporal depth that newer tools simply cannot replicate is a meaningful selection reason for conservative industries — those reluctant to substantially change established workflows.\nInfiniteWP is self-hosted by default, letting you place the dashboard on your own server (a cloud-hosted version is available separately).\nHost on infrastructure you own\nComplete data ownership\nNo dependency on external SaaS\nArbitrary customization possible\nWhen the constraint is \"client data must not sit in a third-party SaaS\" or \"our security policy doesn't permit SaaS,\" InfiniteWP's self-hosted architecture is a direct answer. If your team has experience operating PHP / WordPress infrastructure, the operational overhead is manageable.\nThe cloud-hosted version is also available, so \"start",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "InfiniteWP的优势及其适用人群——来自竞争对手工具开发者的诚实评价",
+        "summary": "InfiniteWP作为一款自托管式WordPress维护工具，拥有十年的运营稳定性，受到具有既定工作流程的机构的信任。其自托管架构和向后兼容性对有严格数据隐私要求的组织很有吸引力，尽管面临来自较新替代方案的竞争。"
+      }
+    }
+  },
+  {
+    "title": "The End of Vibe Coding: Why I Switched to Structured AI Workflows",
+    "slug": "end-vibe-coding-structured-ai-workflows",
+    "url": "https://dev.to/pizza_cat/the-end-of-vibe-coding-why-i-switched-to-structured-ai-workflows-38j6",
+    "source": "DEV Community",
+    "date": "2026-06-11T00:19:51.000Z",
+    "summary": "\"Vibe coding\" with AI leads to inconsistent code patterns and poor error handling; structured workflows with clear design, state management, and security reviews reduce rework and improve delivered code quality.",
+    "content": "The End of Vibe Coding: Why I Switched to Structured AI Workflows\n\n\n\nI spent 3 months \"vibe coding\" my SaaS. Then I realized I was spending more time fixing AI's mistakes than if I'd written it myself. Here's the system that changed everything.\nIn early June 2026, two HN threads with a combined ~1,300 comments told me something had shifted.\nThread 1 (~1,100 comments): \"What was your 'oh shit' moment with GenAI?\"\nThread 2 (~230 comments): \"What tools have you made for yourself since AI?\"\nBoth threads had the same pattern: people started with unfiltered excitement (\"I built a whole app in one weekend!\"), then hit a wall (\"I'm spending more time fixing its bugs than writing code from scratch\").\nI know the feeling. I lived it.\nWhen I started building MultiPost — an AI-powered cross-platform content tool — I was deep in \"vibe coding\" mode:\nMe: \"Make it look better\"\nAI: *adds Tailwind, restyles everything*\nMe: \"Add a filter by date\"\nAI: *adds a date picker, breaks the layout*\nMe: \"Fix that bug where posts don't show\"\nAI: *fixes the filter, introduces a null pointer*\nMe: \"Okay now add a dark mode toggle\"\nAI: *regenerates half the component from scratch*\n\nThree weeks later I had a working feature and zero understanding\nof how any of it actually held together.\n\nThis was my daily rhythm for weeks. Fast output, slow cleanup. The ratio kept getting worse as the codebase grew.\nI was optimizing for speed of generation instead of speed of delivery.\nIt came when I reviewed a feature I'd built entirely through unstructured AI sessions. The feature worked. But:\nThe code had 3 different patterns for the same thing (Auth0 token handling in one place, hardcoded keys in another)\nError handling was inconsistent — some functions returned null, others threw, others returned Result types\nDatabase queries were scattered across the codebase instead of in a repository layer\nA security reviewer would have cried\nThe AI didn't do this maliciously. It did this because I asked it to \"fix this\" and \"",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "编码直觉的终结：我为什么转向结构化的AI工作流",
+        "summary": "使用AI进行\"直觉编码\"会导致代码模式不一致和错误处理不当；具有清晰设计、状态管理和安全审查的结构化工作流能减少返工并提高交付的代码质量。"
+      }
+    }
+  },
+  {
+    "title": "Zero Data Leakage: Running Llama-3 Locally on iPhone with MLX-Swift for Ultra-Private Health Logs",
+    "slug": "llama3-iphone-local-private-health-logs",
+    "url": "https://dev.to/beck_moulton/zero-data-leakage-running-llama-3-locally-on-iphone-with-mlx-swift-for-ultra-private-health-logs-f6n",
+    "source": "DEV Community",
+    "date": "2026-06-11T00:19:00.000Z",
+    "summary": "Using MLX-Swift and Llama-3 (4-bit quantized), developers can build privacy-preserving health logs that run entirely on-device on iPhone 15 Pro. The unified memory and GPU acceleration of Apple Silicon enable real inference without sending sensitive medical data to cloud servers, achieving zero data leakage.",
+    "content": "Your health data is probably the most sensitive information you own. Yet, most \"AI Health Assistants\" today require you to ship your symptoms, moods, and medical history to a cloud server. In the era of Edge AI and Privacy-preserving machine learning, this is no longer a trade-off we have to make. \nBy leveraging the MLX Framework and Apple Silicon's unified memory, we can now run on-device LLMs like Llama-3-8B directly on an iPhone. This tutorial explores how to build a 100% offline, local health journal that summarizes your daily wellness without a single byte leaving your device. If you're looking for more production-ready patterns for secure AI, definitely check out the advanced guides over at Wellally Tech Blog.\nApple's MLX is a NumPy-like array framework designed specifically for Apple Silicon. When brought into the Swift ecosystem via mlx-swift, it allows us to tap into the GPU and Neural Engine with incredible efficiency.\nUnlike traditional CoreML conversions that can be rigid, MLX allows for dynamic graph execution. Here is how the data flows from your typed notes to a structured health summary:\ngraph TD\n    A[User Input: Health Notes] --> B[SwiftUI View]\n    B --> C{Privacy Layer}\n    C -->|Local Only| D[MLX-Swift Engine]\n    D --> E[Llama-3-8B Quantized Model]\n    E --> F[Unified Memory / GPU]\n    F --> G[Local Inference]\n    G --> H[Markdown Health Summary]\n    H --> B\n    style C fill:#f9f,stroke:#333,stroke-width:4px\n    style E fill:#00ff0022,stroke:#333\n\nDevice: iPhone 15 Pro or later (8GB RAM is highly recommended for Llama-3-8B).\nSoftware: Xcode 15.3+, iOS 17.4+.\nTech Stack: MLX Framework, SwiftUI, Llama-3-8B (4-bit quantized).\nFirst, we need to integrate the mlx-swift package. In your Package.swift, add:\n.package(url: \"https://github.com/ml-explore/mlx-swift-chat\", branch: \"main\")\n\nNow, let's initialize the model. Because we are on a mobile device, we must use a quantized version (4-bit) of Llama-3 to fit within the memory constraints.\nimport MLX\ni",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "零数据泄露：在iPhone上使用MLX-Swift本地运行Llama-3进行超私密健康日志",
+        "summary": "使用MLX-Swift和Llama-3（4位量化），开发人员可以构建完全在iPhone 15 Pro设备上运行的隐私保护健康日志。Apple Silicon的统一内存和GPU加速实现了真正的推理，无需将敏感医疗数据发送到云服务器，实现零数据泄露。"
+      }
+    }
+  },
+  {
+    "title": "Everything that breaks when you mirror a Webflow site (and the fixes)",
+    "slug": "webflow-mirroring-wget-fixes",
+    "url": "https://dev.to/stevysmith/everything-that-breaks-when-you-mirror-a-webflow-site-and-the-fixes-1c65",
+    "source": "DEV Community",
+    "date": "2026-06-11T00:13:09.000Z",
+    "summary": "Using wget --mirror to export Webflow sites works mechanically but breaks styling due to SRI hash mismatches and missing features; a five-step fix addresses integrity attributes, asset rewrites, and dynamic content.",
+    "content": "Webflow's code export has two problems. It is only available on paid Workspace plans, and even when you pay, it does not include your CMS content: collection lists export as empty states, collection pages export with nothing in them. If your site has a blog, the export gives you a site without a blog. Forms and search are disabled in exported code too, per Webflow's own docs.\nMeanwhile, the published site is sitting on a CDN, fully rendered. Every CMS page is real HTML. wget --mirror will happily fetch all of it.\nWhat wget gives you, though, is not deployable. I migrated a production Webflow site this way and hit the same five breakages everyone hits, so I turned the fixes into a Claude Code skill that runs the whole workflow. This post is the five breakages, because they are useful whether or not you use the skill, and they apply to Framer, Squarespace, and friends with different domain names.\nThe one wget incantation that matters, because Webflow serves assets from a separate CDN domain and you have to tell wget to follow it:\nwget --mirror --convert-links --adjust-extension \\\n  --page-requisites --span-hosts \\\n  --domains=yourdomain.com,cdn.prod.website-files.com \\\n  --no-parent https://yourdomain.com/\n\nThis downloads every page plus the CSS, JS, images, and fonts they reference, and rewrites URLs to relative paths. It looks complete. It is about 90% complete, and the missing 10% is invisible until the page renders blank.\nThe symptom: your mirrored page shows raw unstyled text or nothing at all, and the console says Failed to find a valid digest in the 'integrity' attribute.\nThe cause is subtle. Webflow ships its <link> and <script> tags with SHA-384 SRI hashes. wget's --convert-links rewrites URLs inside the downloaded CSS files, which changes their bytes, which means the SRI hash no longer matches, which means the browser silently refuses to apply the stylesheet. The file is right there. The browser will not touch it.\nThe fix is to strip the integrity attributes",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "镜像Webflow网站时会损坏的所有内容(及其修复)",
+        "summary": "使用wget --mirror导出Webflow网站在机制上可行,但由于SRI哈希不匹配和功能缺失而导致样式损坏;五步修复方案解决了完整性属性、资源重写和动态内容问题。"
+      }
+    }
+  },
+  {
+    "title": "AI Agent Memory Is Not Chat History",
+    "slug": "ai-agent-memory-not-chat-history",
+    "url": "https://dev.to/glendel/ai-agent-memory-is-not-chat-history-4jjb",
+    "source": "DEV Community",
+    "date": "2026-06-11T00:12:05.000Z",
+    "summary": "True agent memory means determining what should influence future behavior, not just storing chat history; conflating different memory types (user preferences, workflow state, policies) in one context causes unreliability and goal drift.",
+    "content": "Most AI agent systems start with a simple idea:\n\"Let's give the Agent Memory\".\nAt first, this usually means saving previous messages, retrieving similar chunks, and injecting them back into the prompt.\nThat works for demos.\nIt does not work reliably for real organizational workflows.\nBecause chat history is not memory.\nA vector database is not memory.\nA bigger context window is not memory.\nThose are storage and retrieval mechanisms. Useful, yes. But memory in an AI Agent System is not just about remembering more information.\nIt is about deciding what should influence future behavior.\nAnd that is a much harder problem.\nThe Simple Version\n\n\nWhen people say \"Agent Memory\", they often mix together very different things:\nConversation history\nUser preferences\nWorkflow state\nPrevious tool results\nRetrieved documents\nTask summaries\nBusiness rules\nApproved policies\nModel-generated assumptions\nEvidence of completed actions\nBut these should not all be treated the same way.\nA user saying \"I usually prefer short answers\" is not the same kind of memory as \"invoice #123 was paid\".\nA model saying \"the client is probably interested\" is not the same as a CRM record.\nA previous chat message is not the same as a runtime audit log.\nAn approved company policy is not the same as a generated summary.\nWhen all of these are thrown into the same context window, the agent may look smarter for a while.\nThen it slowly becomes unreliable.\nMore Context Can Make Agents Worse\n\n\nA common instinct is to give the agent more context.\nMore history.\nMore documents.\nMore summaries.\nMore retrieved chunks.\nMore memory.\nBut more context does not automatically mean better reasoning.\nSometimes it means more noise.\nSometimes it means stale information.\nSometimes it means private information leaking into the wrong task.\nSometimes it means the model starts treating old assumptions as current facts.\nSometimes it means low-authority memory overrides high-authority evidence.\nThis is one of the strange things about AI",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI代理的记忆不等于聊天历史",
+        "summary": "真正的代理记忆是指决定什么应该影响未来的行为,而不仅仅是存储聊天历史;将不同的记忆类型(用户偏好、工作流状态、策略)混合在一个上下文中会导致不可靠性和目标偏离。"
+      }
+    }
+  },
+  {
+    "title": "Your vector memory database remembers everything. That’s exactly the issue.",
+    "slug": "vector-memory-curation-importance-decay",
+    "url": "https://dev.to/vektor_memory_43f51a32376/your-vector-memory-database-remembers-everything-thats-exactly-the-issue-bk1",
+    "source": "DEV Community",
+    "date": "2026-06-11T00:11:46.000Z",
+    "summary": "Vector memory databases accumulate low-value data that degrades performance over time; a curation layer scoring importance (0-1) allows 17% high-signal memories to dominate recall while deprioritizing redundant entries. The VEKTOR system reduced effective memory pool from 1,413 entries to 60 critical ones, preventing slow drift toward stale information.",
+    "content": "There is a design assumption baked into almost every vector database and AI memory implementation that sounds reasonable until you watch it grow nodes in production: that remembering more is always better.\n\nThrough testing and refining our AUDN code, that is not exactly correct.\nAfter running VEKTOR Slipstream against real development sessions for 99 days, the database held 1,413 stored memories across four namespaces. Looking at the importance score distribution, 83 percent of those memories sat below 0.25 out of 1.0, what the system considers the noise floor. The remaining 17 percent, just 60 memories out of 1,413, sat above 0.75 and dominated every recall result.\nThis is exactly what a curation layer is supposed to produce.\nThose 1,154 low-scored memories are accurate. They are not deleted. They are retrievable by direct query. What they are not is important enough to compete with the 60 high-signal entries every time the agent needs context.\nAUDN penalised them gradually over hundreds of writes because similar, more specific, or more frequently reinforced memories covered the same ground better. The system created a hierarchy. Without curation, all 1,413 memories would compete equally for every recall slot — and the agent would consistently surface redundant, lower-value context alongside the things that actually matter.\nThat is what standard vector memory looks like without a curation layer. A slow, invisible degradation that nobody notices until the agent starts confidently giving you answers that are three months out of date.\nEvery memory node in Vektor carries an importance score between 0 & 1.\nWhen a memory is first stored, it receives a score based on the content’s estimated significance. That score is not fixed. Every time a new memory arrives that is semantically related but not directly contradictory, the compatible verdict for that existing memory takes a small redundancy penalty.\nThe penalty is intentionally modest: a factor based on how similar the i",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的向量内存数据库记得一切。这正是问题所在。",
+        "summary": "向量内存数据库会积累低价值数据,随时间推移导致性能下降;一个对重要性进行评分(0-1)的策展层允许17%的高信号记忆主导召回,同时降低冗余条目的优先级。VEKTOR系统将有效内存池从1,413个条目减少到60个关键条目,防止了向过时信息的缓慢漂移。"
+      }
+    }
+  },
+  {
+    "title": "What is Data Encryption? A Complete 2026 Guide for Developers & Security Teams",
+    "slug": "data-encryption-guide-developers-security",
+    "url": "https://dev.to/andrewll/what-is-data-encryption-a-complete-2026-guide-for-developers-security-teams-578p",
+    "source": "DEV Community",
+    "date": "2026-06-11T00:07:02.000Z",
+    "summary": "Data encryption converts plaintext to ciphertext using mathematical algorithms and secret keys, providing confidentiality (authorized access only), authentication (origin verification), and integrity (tamper detection). The guide covers symmetric and asymmetric methods across data at rest, in transit, and in use, alongside compliance standards and post-quantum developments.",
+    "content": "Imagine you lose your work laptop on a commute. It holds 3 years of customer PII, internal product roadmaps, and access keys to your company's cloud infrastructure. Without full disk encryption enabled, anyone who finds the device can access every file in 10 minutes or less with a free bootable USB tool. With encryption enabled? They'll never access your data, even if they brute-force the password for decades.\nPer IBM's 2025 Cost of a Data Breach Report, organizations that use encryption save significantly on breach costs compared to teams that skip encryption. As cyber threats grow more sophisticated, and quantum computing edges closer to breaking legacy cryptographic standards, encryption is no longer an optional add-on—it's a core requirement for every digital system.\nThis guide breaks down everything you need to know about data encryption, from core concepts to 2026's latest post-quantum developments, with actionable best practices for teams of all sizes.\nCore Concepts of Data Encryption\nHow Does Data Encryption Work?\nKey Data Encryption Algorithms (2026 Approved & Deprecated)\nEncryption for All 3 Data States: At Rest, In Transit, In Use\nReal-World Data Encryption Use Cases\nEncryption Standards & Compliance Regulations\nData Encryption Best Practices\nCommon Encryption Mistakes to Avoid\n2024-2026 Encryption Trends & Future Developments\nConclusion & Key Takeaways\nReferences\nData encryption is a cryptographic process that converts human-readable plaintext into unreadable scrambled ciphertext using mathematical algorithms and secret keys. Only authorized parties with the correct decryption key can reverse the process to recover the original plaintext.\nEncryption provides three non-negotiable security properties:\nConfidentiality: Only authorized users can access sensitive data\nAuthentication: Verifies the origin of encrypted data\nIntegrity: Confirms encrypted data has not been tampered with in transit or storage\n\n\n\nFeature\nSymmetric Encryption\nAsymmetric Encryption",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "什么是数据加密？2026年开发者和安全团队完整指南",
+        "summary": "数据加密使用数学算法和密钥将明文转换为密文，提供机密性（仅授权访问）、身份验证（来源验证）和完整性（篡改检测）。该指南涵盖对称和非对称方法，适用于静止数据、传输中数据和使用中的数据，以及合规标准和后量子开发。"
+      }
+    }
+  },
+  {
+    "title": "Diagnose Node.js CommonJS vs ESM Errors with Claude: A Copy-Paste Prompt Kit (ERR_REQUIRE_ESM, ERR_MODULE_NOT_FOUND)",
+    "slug": "node-js-esm-commonjs-errors-claude",
+    "url": "https://dev.to/_7fb6011b57d383122b5a/diagnose-nodejs-commonjs-vs-esm-errors-with-claude-a-copy-paste-prompt-kit-errrequireesm-2fcd",
+    "source": "DEV Community",
+    "date": "2026-06-11T00:06:57.000Z",
+    "summary": "Node.js module errors stem from config scattered across package.json, tsconfig.json, and dependency exports; diagnosing them requires feeding Claude the full configuration context, not just the stack trace, to avoid destructive refactors.",
+    "content": "By the end of this article you'll have a small Node.js script that pipes a module-resolution error (ERR_REQUIRE_ESM, ERR_MODULE_NOT_FOUND, Cannot use import statement outside a module) plus the surrounding config into Claude and gets back a specific fix — not a Stack Overflow lecture. You'll also have four hardened prompts you can paste straight into claude.ai, and a script that auto-detects whether your project is CJS or ESM before you even ask. Everything below runs on Node 18+.\nThe reason these errors waste so much time is that the failing line is almost never where the problem lives. You see this:\nError [ERR_REQUIRE_ESM]: require() of ES Module /app/node_modules/node-fetch/src/index.js\nfrom /app/server.js not supported.\n\nand your instinct is to edit server.js. But the actual decision is made by four things you can't see from the traceback: the \"type\" field in your package.json, the \"type\" (or \"exports\" map) in the dependency's package.json, your file extension (.js vs .mjs vs .cjs), and — if you use TypeScript — the module and moduleResolution fields in tsconfig.json. node-fetch v3 went ESM-only; that's why require('node-fetch') blows up while v2 was fine. The traceback tells you none of that.\nThis is exactly the shape of problem an LLM is good at: lots of small context scattered across files, one correct answer, and a human who keeps pattern-matching on the wrong line. The trick is to feed Claude the config alongside the error, not the error alone. A prompt that only gets the stack trace will confidently tell you to \"convert your project to ESM,\" which is often the most destructive possible fix.\nThe failure mode of asking an AI to \"fix my module error\" is that it jumps to a rewrite. The fix is to make it classify first. Paste this into claude.ai, filling the three blocks:\nYou are debugging a Node.js module resolution error. Do NOT suggest converting\nthe whole project between CommonJS and ESM unless you prove it is the only option.\n\nFirst, classify the root caus",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用Claude诊断Node.js CommonJS vs ESM错误：复制粘贴提示工具包（ERR_REQUIRE_ESM、ERR_MODULE_NOT_FOUND）",
+        "summary": "Node.js模块错误源于散落在package.json、tsconfig.json和依赖项导出中的配置；诊断这些错误需要向Claude提供完整的配置上下文，而不仅仅是堆栈跟踪，以避免破坏性的重构。"
+      }
+    }
+  },
+  {
+    "title": "I Had 6 Side Projects Open in One Browser Window. Here's What That Was Costing Me.",
+    "slug": "side-projects-tabs-context-switching-cost",
+    "url": "https://dev.to/stackfolo/i-had-6-side-projects-open-in-one-browser-window-heres-what-that-was-costing-me-5a8d",
+    "source": "DEV Community",
+    "date": "2026-06-11T00:06:06.000Z",
+    "summary": "A tab manager preserves browser state but loses project context—task deadlines, saved references, subscriptions—forcing five to ten minutes of reconstruction per session; proper project tools should track state beyond URLs.",
+    "content": "I Had 6 Side Projects Open in One Browser Window. Here's What That Was Costing Me.\n\n\nI counted once, on a normal Tuesday. 41 tabs, one window, six different side projects. A repo here, a localhost there, a Stripe dashboard, two Notion pages, a half-read Stack Overflow thread I was scared to close.\nI was using a tab manager to hold it all together. Save the session, restore it later, feel organized. It worked, in the sense that nothing got lost. But something was off, and it took me a while to name it.\nThe tab manager was keeping my tabs. It was not keeping my projects. And the gap between those two things was quietly costing me.\nI did a rough audit of one week. Every time I sat down to work on a project, I had to reconstruct where I was. Which task was next? When was that thing due? Where did I save that reference last month? The tabs were there, but the answers were not in the tabs.\nI timed it loosely. Five to ten minutes of \"wait, where was I\" at the start of every session, multiplied across six projects, multiplied across a week. Call it an hour, maybe more, spent just getting back to the surface before any real work started.\nAn hour a week is not a catastrophe. But it was an hour spent doing something a tool should do for me, and the friction was enough that I started avoiding the projects with the most tabs. The cost was not really the time. It was that the heaviest projects felt the worst to open, so I opened them least.\nHere is the thing I had to admit. A tab manager is excellent at one job: saving and restoring tabs. It is not built to know anything about the project those tabs belong to.\nA tab is a URL. A project is a URL plus:\nA task that is due Friday\nA reference I saved three weeks ago and need again now\nA subscription renewing on the 14th\nA sense of what I actually shipped last time I worked on it\nWhen all of that lives outside the tab manager, in a to-do app, a notes file, my memory, restoring the tabs only gets me halfway back. I still have to reassem",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我在一个浏览器窗口中打开了6个副项目。以下是这对我的成本。",
+        "summary": "标签页管理器保留浏览器状态但丢失项目上下文——任务截止日期、保存的参考资料、订阅——每个会话强制需要5到10分钟的重构；适当的项目工具应该跟踪超越URL的状态。"
+      }
+    }
+  }
+]
