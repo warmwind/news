@@ -1,0 +1,194 @@
+[
+  {
+    "title": "One Agent Identity Per Customer: Multi-Tenant Email",
+    "slug": "one-agent-identity-per-customer-multi-tenant-email",
+    "url": "https://dev.to/qasim157/one-agent-identity-per-customer-multi-tenant-email-2m4m",
+    "source": "DEV Community",
+    "date": "2026-06-12T00:53:32.000Z",
+    "summary": "Nylas Agent Accounts enable SaaS platforms to provision isolated email identities for each customer—scheduling@customer-a.com, scheduling@customer-b.com—each with independent send quotas and sender reputation, eliminating cross-customer email contamination. The setup requires just one API call with no OAuth flow, and addresses can use either Nylas trial domains or the customer's own verified domain.",
+    "content": "Provisioning a tenant-scoped email identity for your SaaS is one POST:\ncurl --request POST \\\n  --url \"https://api.us.nylas.com/v3/connect/custom\" \\\n  --header \"Authorization: Bearer <NYLAS_API_KEY>\" \\\n  --header \"Content-Type: application/json\" \\\n  --data '{\n    \"provider\": \"nylas\",\n    \"workspace_id\": \"<WORKSPACE_ID>\",\n    \"settings\": {\n      \"email\": \"scheduling@customer-a.com\"\n    }\n  }'\n\nNo OAuth dance, no refresh token — just an address on a registered domain. The response comes back already valid:\n{\n  \"request_id\": \"5967ca40-a2d8-4ee0-a0e0-6f18ace39a90\",\n  \"data\": {\n    \"id\": \"b1c2d3e4-5678-4abc-9def-0123456789ab\",\n    \"provider\": \"nylas\",\n    \"grant_status\": \"valid\",\n    \"email\": \"scheduling@customer-a.com\",\n    \"scope\": [],\n    \"created_at\": 1742932766\n  }\n}\n\nThe data.id is a grant_id that works with every existing Nylas endpoint, and the account is live immediately. That's the primitive behind a multi-tenant pattern worth knowing: one Agent Account per customer, on each customer's own verified domain, all managed from a single application. (Agent Accounts are in beta, so the surface may shift before GA.)\nYour app runs scheduling@customer-a.com, scheduling@customer-b.com, and so on — same code path, different identities. Each account has its own policy, its own send quota, and its own sender reputation. A single application can manage accounts across an unlimited number of registered domains, so tenant count is a billing question, not an architectural one. Customer A's deliverability problems stay Customer A's; nothing they do contaminates Customer B's mail.\nThe provisioning docs lay out two domain strategies you can mix freely in one application:\n\n\n\nStrategy\nAddress format\nSetup\n\n\n\n\nTrial domain\nalias@<your-application>.nylas.email\nNone — instant\n\n\nYour own domain\nalias@yourdomain.com\nMX + TXT records at the DNS provider\n\n\n\nFor the per-customer pattern, each tenant brings their domain. You register it once per organization (picking the US or EU data center",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "每个客户一个代理身份：多租户邮件",
+        "summary": "Nylas Agent Accounts 让 SaaS 平台能够为每个客户配置隔离的电子邮件身份——scheduling@customer-a.com、scheduling@customer-b.com——每个都具有独立的发送配额和发件人信誉，消除跨客户的电子邮件污染。设置只需一个 API 调用，无需 OAuth 流程，地址可以使用 Nylas 试用域或客户自己的已验证域。"
+      }
+    }
+  },
+  {
+    "title": "Voice Agents That Follow Up by Email",
+    "slug": "voice-agents-that-follow-up-by-email",
+    "url": "https://dev.to/qasim157/voice-agents-that-follow-up-by-email-5ej6",
+    "source": "DEV Community",
+    "date": "2026-06-12T00:53:25.000Z",
+    "summary": "Voice agents handling customer support calls need their own email address to send follow-up documents and instructions directly from the call context, rather than routing through a generic no-reply address and losing threaded conversation history. Nylas Agent Accounts solve this by giving voice agents a dedicated mailbox that receives replies and maintains unified email-phone conversation threads.",
+    "content": "Last sprint, a team I talked to demoed a voice agent that handled support calls impressively — right up until a caller asked \"can you email me those instructions?\" and the room went quiet. The agent could talk about the docs. It had no address to send them from. The workaround on the whiteboard afterwards was grim: relay through a shared noreply@, lose the replies, reconcile threads manually in the ticketing system.\nVoice agents hit this wall constantly, because phone calls generate follow-up artifacts — reset instructions, documents, meeting recaps — and email is how callers expect to receive them. The clean fix is the same one that works for text agents: the voice agent gets its own mailbox.\nA Nylas Agent Account is a hosted mailbox you create through the API — Agent Accounts are in beta — and the voice use case from the product docs is exactly the scenario above: a voice agent taking support calls sends documents, reset instructions, or meeting recaps from its own voice-agent@yourcompany.com address the moment the caller asks. The part that makes it more than a send pipe: when the caller replies, the reply returns through the same account, so the full conversation is one thread in one mailbox. The phone call and its written follow-ups stop living in separate systems.\nEach account is a real grant with a grant_id that works against the existing Messages, Threads, and Webhooks endpoints, ships with six system folders, and sends up to 200 messages per account per day on the free plan.\nThe voice agents recipe covers how the runtime actually calls email tools. The flow is the same regardless of vendor:\nspeech → STT → LLM (function-calling) → subprocess(nylas …) → JSON → LLM → TTS → speech\n\nThe LLM decides on a tool, the runtime spawns a Nylas CLI subprocess with --json, the result comes back, and the model composes a spoken response. On LiveKit, a tool is just a decorated function:\nfrom livekit.agents import function_tool\nimport subprocess\n\n@function_tool()\nasync def l",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "通过电子邮件跟进的语音代理",
+        "summary": "处理客户支持电话的语音代理需要自己的电子邮件地址，以直接从通话上下文发送后续文件和说明，而不是通过通用的无回复地址路由并丢失线程化的对话历史。Nylas Agent Accounts 通过为语音代理提供接收回复的专用邮箱，并保持统一的电子邮件-语音对话线程来解决这个问题。"
+      }
+    }
+  },
+  {
+    "title": "How an AI Agent Can Sign Up for a Service on Its Own",
+    "slug": "how-ai-agent-can-sign-up-for-service-on-its-own",
+    "url": "https://dev.to/qasim157/how-an-ai-agent-can-sign-up-for-a-service-on-its-own-53eb",
+    "source": "DEV Community",
+    "date": "2026-06-12T00:53:20.000Z",
+    "summary": "AI agents traditionally fail at signup flows when they can't receive verification emails sent to human inboxes, but Nylas Agent Accounts eliminate this bottleneck by giving agents their own mailbox to catch verification emails via webhook and complete autonomous onboarding. This enables research agents, QA agents, and purchasing agents to independently register for services without human intervention.",
+    "content": "An AI agent that can't receive email can't finish a signup form. That one limitation quietly rules out a huge class of autonomous workflows — the research agent that needs a developer account on a data source, the QA agent that registers for a SaaS on every test run, the purchasing agent that needs a buyer profile on a marketplace. Every one of them dies at \"we've sent you a verification email.\"\nThe blocker was never the form. Headless browsers fill forms fine. The blocker is that verification emails traditionally route to a human inbox, which puts a human back in a loop that was supposed to have none.\nAgent Accounts remove that dependency. The agent gets its own hosted mailbox (the feature is in beta), signs up with that address, catches the verification email via webhook, and completes onboarding by itself. Here's the whole flow, condensed from the cookbook recipe.\nThree setup moves. First, create the mailbox — one CLI command, or POST /v3/connect/custom with \"provider\": \"nylas\" if you'd rather hit the API:\nnylas agent account create signup-agent@agents.yourdomain.com\n\nThe API version is the same Bring Your Own Authentication endpoint other providers use — no OAuth refresh token involved:\ncurl --request POST \\\n  --url \"https://api.us.nylas.com/v3/connect/custom\" \\\n  --header \"Authorization: Bearer <NYLAS_API_KEY>\" \\\n  --header \"Content-Type: application/json\" \\\n  --data '{\n    \"provider\": \"nylas\",\n    \"settings\": {\n      \"email\": \"signup-agent@agents.yourdomain.com\"\n    }\n  }'\n\nSave the grant ID it prints. Second, subscribe to inbound mail:\nnylas webhook create \\\n  --url https://youragent.example.com/webhooks/signup \\\n  --triggers message.created\n\nThe message.created event fires within a second or two of mail arriving, carrying the message's summary fields. The webhook URL has to be publicly reachable over HTTPS; for local development, the recipe recommends VS Code port forwarding or Hookdeck to expose your dev server.\nThird, submit the target service's signup for",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI 代理如何独立注册服务",
+        "summary": "AI 代理传统上在无法接收发送到人类收件箱的验证电子邮件时会在注册流程中失败，但 Nylas Agent Accounts 通过为代理提供自己的邮箱来消除这个瓶颈，使其能够通过 webhook 捕获验证电子邮件并完成自主注册。这使研究代理、QA 代理和采购代理能够在没有人工干预的情况下独立注册服务。"
+      }
+    }
+  },
+  {
+    "title": "Extract OTP Codes From Email, Automatically",
+    "slug": "extract-otp-codes-from-email-automatically",
+    "url": "https://dev.to/qasim157/extract-otp-codes-from-email-automatically-17l9",
+    "source": "DEV Community",
+    "date": "2026-06-12T00:53:15.000Z",
+    "summary": "Automating login flows that require one-time password codes traditionally requires manual inbox checking, but agents with Nylas Agent Accounts can automatically extract OTP codes from incoming emails via webhook triggers and regex pattern matching on sender domain and subject line. The pattern-based extraction covers the vast majority of OTP email formats without requiring OCR or human intervention.",
+    "content": "What does your automation do when the login flow it's driving sends a six-digit code instead of a confirmation link? For most teams the honest answer is \"a human goes and checks a shared inbox,\" which is a strange bottleneck to leave in the middle of an otherwise fully automated pipeline.\nThere's a cleaner shape: the agent owns the mailbox the code lands in. With a Nylas Agent Account — a hosted mailbox controlled entirely through the API, currently in beta — the OTP email arrives, a webhook fires, your handler extracts the code, and whatever orchestrates the login gets it back. No human, no inbox-checking Slack message, no screen-scraping Gmail.\nA message.created webhook fires on every inbound message, so the first job is filtering down to the one that actually carries the code. The recipe uses two signals together — sender domain and a subject heuristic:\napp.post(\"/webhooks/otp\", async (req, res) => {\n  res.status(200).end();\n\n  const event = req.body;\n  if (event.type !== \"message.created\") return;\n\n  const msg = event.data.object;\n  if (msg.grant_id !== AGENT_GRANT_ID) return;\n\n  const sender = msg.from?.[0]?.email ?? \"\";\n  const subject = msg.subject ?? \"\";\n\n  const senderMatches = sender.endsWith(\"@no-reply.example.com\");\n  const subjectLooksRight = /code|verif|one.?time|passcode/i.test(subject);\n  if (!senderMatches || !subjectLooksRight) return;\n\n  await handleOtp(msg.id);\n});\n\nNeither check alone is enough. Sender-only matching trips on welcome emails from the same domain; subject-only matching trips on anything that mentions \"verification.\"\nMost OTP emails follow one of a few shapes: a standalone 4–8 digit number, or a code after a label like \"Your code is:\". Three patterns, tried in order from most to least specific, cover the vast majority of services:\nconst patterns = [\n  /(?:code|passcode|one[\\s-]?time)[^\\d]{0,20}(\\d{4,8})/i, // \"Your code is: 123456\"\n  /\\b(\\d{6})\\b/,        // bare 6-digit\n  /\\b(\\d{4,8})\\b/,      // bare 4–8 digit (last resort)\n];\n\nOn",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "自动从电子邮件中提取一次性密码代码",
+        "summary": "需要一次性密码代码的登录流程传统上需要手动检查收件箱,但具有Nylas代理账户的代理可以通过webhook触发器和发件人域和主题行上的正则表达式模式匹配从传入的电子邮件中自动提取OTP代码。基于模式的提取涵盖了绝大多数OTP电子邮件格式,无需OCR或人工干预。"
+      }
+    }
+  },
+  {
+    "title": "Ephemeral Inboxes: Spin Up a Mailbox Per Test Run",
+    "slug": "ephemeral-inboxes-spin-up-mailbox-per-test-run",
+    "url": "https://dev.to/qasim157/ephemeral-inboxes-spin-up-a-mailbox-per-test-run-48cc",
+    "source": "DEV Community",
+    "date": "2026-06-12T00:53:10.000Z",
+    "summary": "Shared test inboxes cause E2E test flakiness when parallel CI workers accidentally consume each other's verification emails, but ephemeral mailboxes—one per test run using wildcard patterns like e2e-*@yourapp.nylas.email—eliminate the race condition while requiring zero per-address provisioning or DNS configuration. Each test gets a unique address that's created and destroyed with the test, making email-dependent automation deterministic.",
+    "content": "Two CI workers kick off at the same moment. Both sign up a test user, both poll the shared QA Gmail account for \"the\" verification email, and worker #7 grabs the message that belonged to worker #12. The test passes. The wrong test. You spend an afternoon staring at a green build that should've been red.\nShared inboxes are the single biggest source of flakiness in email-dependent E2E tests, and every workaround — catch-all forwarding rules, label rules scoped per PR, OAuth tokens living on the runner — adds another moving part that breaks on its own schedule. The fix is structural: every test gets its own address, on infrastructure your suite provisions and destroys.\nThe E2E email testing recipe sets this up with one CLI command:\nnylas inbound create e2e\n\nYou get back an inbox ID and a wildcard pattern shaped like e2e-*@yourapp.nylas.email. From there, each test mints a unique address under the wildcard — e2e-<uuid>@yourapp.nylas.email — and there's nothing to provision per address. You don't pay or configure per address either; the wildcard is just a convention, so burn UUIDs freely. Mail flows through MX records hosted on the Nylas side, which means zero DNS work in your own zone (the tradeoff: addresses live under *.nylas.email).\nThe Playwright fixture is two pieces — an address minter and a poller:\nexport const test = base.extend<Fixtures>({\n  testEmail: async ({}, use) => {\n    await use(`e2e-${randomUUID()}@yourapp.nylas.email`);\n  },\n\n  pollInbox: async ({ testEmail }, use) => {\n    const poll = async (timeoutMs = 30_000) => {\n      const deadline = Date.now() + timeoutMs;\n      while (Date.now() < deadline) {\n        const out = execSync(\n          `nylas inbound messages ${process.env.INBOX_ID} --json --limit 50`,\n        ).toString();\n        const match = JSON.parse(out).find((m) =>\n          m.to.some((t) => t.email === testEmail),\n        );\n        if (match) return match;\n        await new Promise((r) => setTimeout(r, 1500));\n      }\n      throw new Er",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "临时收件箱:为每次测试运行生成邮箱",
+        "summary": "当并行CI工作者意外消耗彼此的验证电子邮件时,共享测试收件箱会导致E2E测试不稳定,但临时邮箱(每次测试运行使用通配符模式,如e2e-*@yourapp.nylas.email)消除了竞态条件,同时不需要每个地址的配置或DNS配置。每个测试都获得一个唯一的地址,在测试创建和销毁时创建和销毁,使电子邮件相关的自动化具有确定性。"
+      }
+    }
+  },
+  {
+    "title": "Give Your Scheduling Bot Its Own Calendar",
+    "slug": "give-your-scheduling-bot-its-own-calendar",
+    "url": "https://dev.to/qasim157/give-your-scheduling-bot-its-own-calendar-45b1",
+    "source": "DEV Community",
+    "date": "2026-06-12T00:53:06.000Z",
+    "summary": "Scheduling agents with their own Nylas-hosted calendar can accept meeting requests, check free/busy slots, propose times, and create calendar invites that appear as legitimate meetings in Google Calendar, Microsoft 365, and Apple Calendar—all without delegating calendar permissions from a human account. The setup requires just one API call to provision the agent account with its primary calendar automatically included.",
+    "content": "A scheduling link makes the human do the work; a scheduling agent with its own calendar does the negotiating. Booking pages outsource the back-and-forth to a UI. The agent model keeps it where it already happens — in email — and answers from a real address with a real calendar behind it.\nThe setup: meeting requests land at scheduling@agents.yourcompany.com, an LLM parses intent, the agent checks availability against its own free/busy, proposes slots, and creates events that show up as normal invitations in Google Calendar, Microsoft 365, and Apple Calendar. No human mailbox in the loop, no delegation permissions, no calendar borrowed from whoever set the bot up.\nThis runs on a Nylas Agent Account — a hosted mailbox-plus-calendar you provision through the API. Agent Accounts are in beta, so expect some movement before GA.\nOne CLI command or one API call:\nnylas agent account create scheduling@agents.yourcompany.com\n\nThe primary calendar is provisioned automatically — no extra call before you can create events on it. The API equivalent is POST /v3/connect/custom with \"provider\": \"nylas\" and the email address in settings; no OAuth refresh token involved. Save the grant ID, then subscribe a webhook to four triggers: message.created, event.created, event.updated, and event.deleted. When Nylas sends the challenge GET to your endpoint, respond with the challenge value within 10 seconds to activate it.\nThe full tutorial wires this end to end, but the shape is:\nHuman emails the agent. message.created fires; the webhook only carries summary fields, so the handler fetches the full body.\nThe LLM extracts duration, timezone, and urgency.\nThe agent queries /calendars/free-busy against its own primary calendar and replies with 3 candidate slots.\nThe human picks one; another message.created fires; the agent creates the event with notify_participants=true.\nThe availability check is the part people overcomplicate. Free/busy returns busy blocks over a window; the agent generates candid",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "给你的日程机器人一个自己的日历",
+        "summary": "具有自己的Nylas托管日历的日程代理可以接受会议请求、检查空闲时间、提议时间并创建日历邀请,这些邀请在Google日历、Microsoft 365和Apple日历中显示为合法会议—所有这些都无需从人工账户委派日历权限。该设置只需要一个API调用来配置代理账户并自动包括其主日历。"
+      }
+    }
+  },
+  {
+    "title": "A Sales Outreach Agent That Owns Its Email Address",
+    "slug": "sales-outreach-agent-that-owns-its-email-address",
+    "url": "https://dev.to/qasim157/a-sales-outreach-agent-that-owns-its-email-address-2a8c",
+    "source": "DEV Community",
+    "date": "2026-06-12T00:53:01.000Z",
+    "summary": "Sales outreach agents with their own Nylas Agent Account can send campaigns, receive and classify replies via LLM, and book meetings on their own calendar—all within a single grant—while the 200-message-per-day free-plan ceiling naturally enforces pacing that prevents cold email from becoming spam. This consolidates outreach, follow-up, and meeting scheduling into one address rather than distributing work across multiple tools and rep mailboxes.",
+    "content": "200 messages per account per day. That's the free-plan send ceiling on a Nylas Agent Account, and it's a surprisingly useful number to design an outreach agent around — it forces the kind of pacing that keeps cold email from becoming spam, and paid plans drop the daily cap by default when you outgrow it.\nThe bigger idea: instead of sending campaigns through a rep's mailbox or a send-only API, the agent gets its own address. sales-agent@yourcompany.com is a real mailbox — it sends, it receives replies, it owns a calendar. Agent Accounts are in beta, but the model is straightforward: each account is just another grant, so the Messages, Threads, Events, and Webhooks endpoints you'd use for a connected Gmail account work unchanged.\nThe sales-outreach pattern from the product docs runs in three stages, all on one grant_id:\nSend the campaign through the standard send endpoint.\nClassify replies with an LLM into interested / not now / unsubscribe, threading every exchange through the Messages API.\nBook the meeting — when a prospect says yes, the same grant creates an event on the agent's own calendar and sends the invite.\nNo CRM hand-offs between three tools, no rep mailbox cluttered with sequence noise.\nInbound mail fires message.created, and the payload looks exactly like it does for any other grant. One subscription covers your whole application:\ncurl --request POST \\\n  --url 'https://api.us.nylas.com/v3/webhooks/' \\\n  --header 'Content-Type: application/json' \\\n  --header 'Authorization: Bearer <NYLAS_API_KEY>' \\\n  --data-raw '{\n    \"trigger_types\": [\"message.created\", \"event.created\", \"event.updated\"],\n    \"description\": \"Outreach agent\",\n    \"webhook_url\": \"https://your-app.example.com/webhooks/nylas\",\n    \"notification_email_addresses\": [\"dev-team@your-company.com\"]\n  }'\n\nYour endpoint gets a GET with a challenge query parameter first — echo it back in a 200 and deliveries start flowing as POSTs. The payload's data.object carries sender, recipients, subject, snippet,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "拥有自己电子邮件地址的销售外展代理",
+        "summary": "拥有自己Nylas Agent Account的销售外展代理可以发送活动、通过LLM接收和分类回复，以及在自己的日历上预订会议——所有这些都在单个授权范围内——而200条消息/天的免费计划上限自然强制执行节奏，防止冷邮件变成垃圾邮件。这将外展、跟进和会议安排整合到一个地址中，而不是将工作分散到多个工具和代表邮箱中。"
+      }
+    }
+  },
+  {
+    "title": "Build an Email Support Triage Agent With Its Own Inbox",
+    "slug": "build-email-support-triage-agent-with-its-own-inbox",
+    "url": "https://dev.to/qasim157/build-an-email-support-triage-agent-with-its-own-inbox-3c10",
+    "source": "DEV Community",
+    "date": "2026-06-12T00:52:55.000Z",
+    "summary": "Support triage agents with their own Nylas mailbox can automatically classify incoming support emails into four categories (URGENT, ACTION, FYI, NOISE) using LLM classification at temperature=0, achieving over 90% accuracy on sender, subject, and snippet alone without processing full message bodies. This eliminates manual triage bottlenecks and unread message pileups in shared support inboxes.",
+    "content": "Every shared support inbox eventually becomes a triage problem: 80 unread messages, no agreement on what \"urgent\" means, and the one person who knows which customer is about to churn is on PTO. Teams keep solving this with labels and heroics. It's a better fit for an LLM — as long as the LLM has somewhere safe to live.\nThat's the case for giving the triage agent its own mailbox. Nylas Agent Accounts (currently in beta) are hosted mailboxes you create entirely through the API. A support@yourcompany.com Agent Account receives every inbound support email, gets six system folders out of the box (inbox, sent, drafts, trash, junk, archive), and exposes the same grant_id-based endpoints as any connected Gmail or Outlook account.\nCreating one is a single request:\ncurl --request POST \\\n  --url \"https://api.us.nylas.com/v3/connect/custom\" \\\n  --header \"Authorization: Bearer $NYLAS_API_KEY\" \\\n  --header \"Content-Type: application/json\" \\\n  --data '{\n    \"provider\": \"nylas\",\n    \"settings\": { \"email\": \"support@yourcompany.com\" }\n  }'\n\nSave the grant_id from the response — every other call hangs off it.\nThe classification scheme from the email triage agent recipe sorts mail into exactly four categories:\n\n\n\nBucket\nMeaning\nAction\n\n\n\n\nURGENT\nProduction incident, executive ask\nDraft a reply within the hour\n\n\nACTION\nCode review, meeting follow-up\nDraft a reply same-day\n\n\nFYI\nStatus update\nLeave it alone\n\n\nNOISE\nNewsletter, automated alert\nArchive\n\n\n\nFour is deliberate. Three loses fidelity — everything collapses into \"important.\" Five and the model starts confusing adjacent categories.\nThe prompt runs with temperature=0 and max_tokens=10, and the model only sees sender + subject + a 200-character snippet, not the full body. That's enough for over 90% accuracy. Here's the prompt verbatim from the recipe:\nYou triage email into one of four categories:\n\nURGENT  — production incidents, executive requests; reply within 1 hour\nACTION  — code reviews, meeting follow-ups; reply same day\nFYI",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用自己收件箱构建电子邮件支持分类代理",
+        "summary": "拥有自己Nylas邮箱的支持分类代理可以使用temperature=0的LLM分类自动将传入的支持电子邮件分为四个类别（紧急、行动、信息、噪音），仅基于发件人、主题和摘要即可达到超过90%的准确性，无需处理完整邮件正文。这消除了手动分类瓶颈和共享支持收件箱中未读邮件的堆积。"
+      }
+    }
+  },
+  {
+    "title": "Give Your AI Agent Its Own Email Address (Not Access to Yours)",
+    "slug": "give-your-ai-agent-its-own-email-address-not-access-to-yours",
+    "url": "https://dev.to/qasim157/give-your-ai-agent-its-own-email-address-not-access-to-yours-18ja",
+    "source": "DEV Community",
+    "date": "2026-06-12T00:52:40.000Z",
+    "summary": "Nylas Agent Accounts provide AI agents with dedicated, first-class email identities (not OAuth access to human inboxes), enabling use cases like system mailboxes (sales@, support@), ephemeral test inboxes, per-customer identities in multi-tenant apps, and scheduling agents with independent calendars. Each Agent Account is implemented as a standard grant that works with all existing Nylas endpoints for messages, drafts, calendars, and webhooks.",
+    "content": "Most \"AI agent + email\" tutorials start the same way: connect the agent to a human's inbox over OAuth, hope the token doesn't expire mid-run, and pray the agent never replies to the wrong thread on someone's behalf.\nThere's a different model: give the agent its own email address. Nylas recently shipped Agent Accounts (currently in beta) — fully functional, Nylas-hosted mailboxes you create and control entirely through the API. Each one is a real name@company.com address that sends, receives, hosts calendar events, and RSVPs to invitations. To anyone interacting with it, it's indistinguishable from a human-operated account.\nI work on the docs at Nylas, so I've spent a lot of time with this API. Here's a tour of what it does and how to get a mailbox running in a few minutes.\nYou can — that's what OAuth grants are for, and they're the right tool when the agent works on behalf of a person. But a lot of agent workflows want a first-class identity instead:\nSystem mailboxes (sales@, support@, scheduling@) that your app owns end-to-end. No OAuth consent screen, no user offboarding breaking your integration.\nEphemeral inboxes for test automation — provision a fresh address per run, sign up for a service, grab the OTP from the verification email, tear it down.\nPer-customer identities in multi-tenant apps: scheduling@customer-a.com, scheduling@customer-b.com, each with its own send quota and sender reputation, all in one Nylas application.\nA scheduling bot with its own calendar that proposes slots, sends invites, and shows up as a normal participant in Google Calendar, Microsoft 365, and Apple Calendar.\nThe key design decision: an Agent Account is just another grant. It gets a grant_id that works with every existing Nylas endpoint — Messages, Drafts, Threads, Folders, Attachments, Calendars, Events, Webhooks. If you've already built against connected accounts, nothing new to learn.\nEvery Agent Account lives on a domain — either a Nylas-provided *.nylas.email trial subdomain (i",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "给你的AI代理自己的电子邮件地址（而不是访问你的）",
+        "summary": "Nylas Agent Accounts为AI代理提供专属的一级电子邮件身份（而不是对人类收件箱的OAuth访问），支持系统邮箱（sales@、support@）、临时测试收件箱、多租户应用中的按客户身份和具有独立日历的调度代理等用例。每个Agent Account都被实现为标准授权，可与所有现有Nylas端点（用于消息、草稿、日历和webhook）配合使用。"
+      }
+    }
+  },
+  {
+    "title": "Build Your Own AI Medical Assistant: Automating Health Report Analysis with AutoGPT & OpenAI",
+    "slug": "build-your-own-ai-medical-assistant-automating-health-report-analysis",
+    "url": "https://dev.to/beck_moulton/build-your-own-ai-medical-assistant-automating-health-report-analysis-with-autogpt-openai-1h0n",
+    "source": "DEV Community",
+    "date": "2026-06-12T00:45:00.000Z",
+    "summary": "An autonomous AI physician assistant using the AutoGPT protocol can parse medical exam reports, cross-reference medical databases via SerpApi, and suggest appropriate hospital departments for follow-up while using Pydantic to validate data integrity and prevent hallucinations about vital signs. The agent operates in a Perception → Reasoning → Action → Observation loop rather than simple single-turn prompting.",
+    "content": "Ever stared at a physical examination report and felt like you were reading ancient hieroglyphics? \"Elevated Serum Triglycerides\"? \"Hypoechoic nodule\"? The immediate urge is to Google it, only to be convinced by WebMD that you have three days to live. \nIn the world of AI Agents and Healthcare Automation, we can do better. Today, we are building an AI Physician Assistant using the AutoGPT protocol. This isn't just a chatbot; it’s an autonomous agent capable of parsing complex medical data, searching verified medical encyclopedias via SerpApi, and even cross-referencing hospital schedules to suggest the right department for a follow-up. By leveraging the OpenAI API and Pydantic for structured data validation, we are moving from \"chatting\" to \"doing.\"\nIf you're looking for more production-ready patterns or advanced AI implementation strategies in healthcare, definitely check out the deep-dive articles at *WellAlly Tech Blog*.\nUnlike a standard LLM call, an autonomous agent operates in a loop: Perception -> Reasoning -> Action -> Observation. Here is how our AI Assistant handles a medical report:\ngraph TD\n    A[User Uploads Report/Text] --> B{Pydantic Parser}\n    B -->|Structured Data| C[AutoGPT Agent Core]\n    C --> D[Search Tool: SerpApi]\n    D -->|Medical Context| C\n    C --> E[Reasoning: Match Symptoms to Dept]\n    E --> F[Tool: Hospital Schedule API]\n    F -->|Availability| G[Final Recommendation & Appointment Plan]\n    G --> H[User Notification]\n\nTo follow this advanced tutorial, you’ll need:\nPython 3.10+\nOpenAI API Key (GPT-4o recommended for reasoning)\nSerpApi Key (to search Google Scholar/Medical Databases)\nPydantic for data modeling\nThe biggest challenge in medical automation is data integrity. We cannot allow the AI to hallucinate vital signs. We use Pydantic to ensure the agent only proceeds if the data matches our schema.\nfrom pydantic import BaseModel, Field\nfrom typing import List, Optional\n\nclass MedicalFinding(BaseModel):\n    term: str = Field(..., desc",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建您自己的AI医疗助手：使用AutoGPT和OpenAI自动化健康报告分析",
+        "summary": "使用AutoGPT协议的自主AI医生助手可以解析医学检查报告，通过SerpApi交叉引用医学数据库，建议适当的医院部门进行后续治疗，同时使用Pydantic验证数据完整性并防止关于生命体征的幻觉。该代理在感知→推理→行动→观察循环中运行，而不是简单的单轮提示。"
+      }
+    }
+  },
+  {
+    "title": "Building a Real-Time Collaborative Kanban Board with React, TypeScript, and WebSockets",
+    "slug": "building-real-time-collaborative-kanban-board-react-typescript-websockets",
+    "url": "https://dev.to/gaeldan/building-a-real-time-collaborative-kanban-board-with-react-typescript-and-websockets-3gdj",
+    "source": "DEV Community",
+    "date": "2026-06-12T00:44:52.000Z",
+    "summary": "A real-time Kanban board built with React, TypeScript, and WebSockets eliminates polling inefficiencies by maintaining persistent connections that push updates instantly when tasks move between columns, supporting drag-and-drop, optimistic UI updates, and concurrent multi-user changes. The architecture uses Zustand for state management, Socket.IO for real-time sync, and feature-based folder organization for scalability.",
+    "content": "Modern teams expect software to update instantly. Nobody wants to refresh a page every few seconds to see whether a task has moved from \"In Progress\" to \"Done.\" Applications like Trello, Jira, and Linear have trained users to expect real-time collaboration.\nIn this tutorial, we'll build a simplified real-time Kanban board using React, TypeScript, and WebSockets. Along the way, we'll cover project structure, state management, optimistic UI updates, and handling concurrent changes from multiple users.\nOur application will support:\nCreating tasks\nDrag-and-drop task movement\nReal-time synchronization between users\nOptimistic updates\nType-safe frontend architecture\nFrontend\nReact\nTypeScript\nVite\nReact DnD\nZustand\nBackend\nNode.js\nExpress\nSocket.IO\nDatabase\nPostgreSQL\nMany developers start with polling:\nsetInterval(() => {\n  fetch(\"/tasks\");\n}, 5000);\n\nThis works, but it's inefficient.\nProblems include:\nUnnecessary network requests\nDelayed updates\nIncreased server load\nPoor user experience\nWebSockets maintain a persistent connection between client and server.\nInstead of asking:\n\"Any updates yet?\"\nthe server simply says:\n\"Here's an update.\"\nThe result is lower latency and fewer network requests.\nA scalable React project should avoid putting everything into a single components folder.\nHere's a structure that works well:\nsrc/\n├── api/\n├── components/\n├── features/\n│   ├── board/\n│   ├── columns/\n│   └── tasks/\n├── hooks/\n├── store/\n├── services/\n├── types/\n└── utils/\n\nThis feature-based organization scales much better than organizing solely by file type.\nCreate the project:\nnpm create vite@latest kanban-board\ncd kanban-board\nnpm install\n\nInstall dependencies:\nnpm install zustand socket.io-client react-dnd react-dnd-html5-backend\n\nType safety becomes increasingly valuable as applications grow.\nexport interface Task {\n  id: string;\n  title: string;\n  description: string;\n  status: \"todo\" | \"in-progress\" | \"done\";\n  createdAt: string;\n}\n\nUsing TypeScript prevents many runtime bu",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用React、TypeScript和WebSockets构建实时协作看板",
+        "summary": "使用React、TypeScript和WebSockets构建的实时看板通过维护持久连接来消除轮询低效，当任务在列之间移动时即时推送更新，支持拖放、乐观UI更新和并发多用户更改。架构使用Zustand进行状态管理，Socket.IO进行实时同步，以及基于功能的文件夹组织以提高可扩展性。"
+      }
+    }
+  },
+  {
+    "title": "Datadog and AWS Shipped Ops Agents on the Same Day. What Are They Fighting Over?",
+    "slug": "datadog-and-aws-shipped-ops-agents-same-day-what-fighting-over",
+    "url": "https://dev.to/aws-builders/datadog-and-aws-shipped-ops-agents-on-the-same-day-what-are-they-fighting-over-29p6",
+    "source": "DEV Community",
+    "date": "2026-06-12T00:34:47.000Z",
+    "summary": "Datadog expanded its Bits AI family with over ten agents (Detection, Investigation, Remediation, Infrastructure, Code, Testing, etc.) while AWS simultaneously announced FinOps Agent for cost analysis and DevOps Agent for incident response, putting both companies in direct competition for the operational automation space despite different entry points. The simultaneous releases reveal both vendors targeting the same territory with overlapping feature sets.",
+    "content": "On June 9, 2026 (US time), two big announcements landed on the same day.\nAt the keynote of Datadog's annual event DASH 2026 in New York, the Bits AI family expanded significantly: Detection, Investigation, Remediation, Infrastructure, Code, Release, Testing, Data Analysis, Chat, Memories, and Evals. Counting by agent, that is more than ten, with over 100 new features announced together. The full picture is laid out in the keynote roundup.\nhttps://www.datadoghq.com/blog/dash-2026-new-feature-roundup-keynote/\nThe same day, AWS announced FinOps Agent as a public preview. It bundles four data sources, Cost Explorer, Cost Anomaly Detection, Cost Optimization Hub, and Compute Optimizer, and delivers automated cost-anomaly investigation, natural-language cost questions, periodic cost reports, and aggregated optimization opportunities straight into Slack and Jira. The details are in the AWS blog.\nhttps://aws.amazon.com/blogs/aws-cloud-financial-management/aws-finops-agent-is-now-public-preview/\nAWS DevOps Agent had already gone GA in March, handling incident response. With FinOps Agent now added, AWS-built standard agents line up across the main operational domains. That said, DevOps Agent also covers multicloud and on-premises environments, so its scope differs from FinOps Agent, which targets AWS cost data.\nhttps://aws.amazon.com/blogs/mt/announcing-general-availability-of-aws-devops-agent/\nOn the surface, this looks like two separate stories: Datadog the monitoring platform, AWS the cloud provider. But read the two announcements side by side, and you see both reaching for the same territory, Ops, through different entrances. Line up their features and most of them overlap, so a surface spec comparison won't show the difference. This article sorts out the same-day releases by the two companies' positioning, asks what these very similar agent lineups are actually fighting over, and goes as far as the axes for telling them apart and the predictions that follow.\nThis is writ",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Datadog和AWS在同一天发布Ops代理。他们在争夺什么？",
+        "summary": "Datadog扩展了其Bits AI家族，推出了十多个代理（检测、调查、修复、基础设施、代码、测试等），而AWS同时宣布推出FinOps Agent用于成本分析和DevOps Agent用于事件响应。尽管入场点不同，但两家公司在运营自动化领域进行直接竞争，这些同时发布的产品表明两家供应商都在针对相同领域，具有重叠的功能集。"
+      }
+    }
+  }
+]
