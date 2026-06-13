@@ -1,0 +1,194 @@
+[
+  {
+    "title": "Tauri v2 Cheatsheet — The Commands I Use on Every Project",
+    "slug": "tauri-v2-cheatsheet-commands",
+    "url": "https://dev.to/hiyoyok/tauri-v2-cheatsheet-the-commands-i-use-on-every-project-2o88",
+    "source": "DEV Community",
+    "date": "2026-06-13T00:55:47.000Z",
+    "summary": "The author shares frequently-used Tauri CLI commands and configuration patterns learned from shipping seven desktop apps, serving as a quick reference for common development tasks. The guide covers project setup, development modes, builds, plugin installation, and permission configuration—practical knowledge for developers building cross-platform applications.",
+    "content": "All tests run on an 8-year-old MacBook Air. All results from shipping 7 Mac apps as a solo developer. No sponsored opinion.\nAfter 7 Tauri apps, I type the same commands constantly. Here's the reference I wish existed when I started.\n# New project\nnpm create tauri-app@latest\n\n# Add to existing project\nnpm install --save-dev @tauri-apps/cli\nnpx tauri init\n\n# Dev mode (hot reload)\nnpm run tauri dev\n\n# Dev with specific log level\nRUST_LOG=debug npm run tauri dev\n\n# Dev with backend logs visible\nnpm run tauri dev 2>&1 | grep -v \"^$\"\n\n# Standard build\nnpm run tauri build\n\n# Universal binary (Intel + Apple Silicon)\nnpm run tauri build -- --target universal-apple-darwin\n\n# Debug build (faster, no optimization)\nnpm run tauri build -- --debug\n\nnpm run tauri add global-shortcut\nnpm run tauri add fs\nnpm run tauri add shell\nnpm run tauri add notification\n\nThis updates both Cargo.toml and the plugin registration. Faster than doing it manually.\n{\n  \"app\": {\n    \"security\": {\n      \"capabilities\": [\n        {\n          \"identifier\": \"main-capability\",\n          \"description\": \"Main window capabilities\",\n          \"windows\": [\"main\"],\n          \"permissions\": [\n            \"fs:read-all\",\n            \"fs:write-all\",\n            \"shell:execute\",\n            \"global-shortcut:allow-register\"\n          ]\n        }\n      ]\n    }\n  }\n}\n\nTauri v2 requires explicit permission declarations. If a command silently does nothing, check permissions first.\n// Get app data directory\nlet data_dir = app.path().app_data_dir().unwrap();\n\n// Emit event to frontend\napp_handle.emit(\"event-name\", payload).ok();\n\n// Get window\nlet window = app.get_webview_window(\"main\").unwrap();\n\n// App state\napp.manage(MyState::new());\nlet state = app.state::<MyState>();\n\n# Submit for notarization\nxcrun notarytool submit app.dmg \\\n  --apple-id YOUR_APPLE_ID \\\n  --team-id YOUR_TEAM_ID \\\n  --password YOUR_APP_PASSWORD \\\n  --wait\n\n# Staple after notarization\nxcrun stapler staple app.dmg\n\n# Check what's in the bundle\nunzip -l",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Tauri v2 速查表 — 我在每个项目中使用的命令",
+        "summary": "作者分享了从发布七个桌面应用程序中学到的常用 Tauri CLI 命令和配置模式，作为常见开发任务的快速参考。该指南涵盖项目设置、开发模式、构建、插件安装和权限配置——这是开发人员构建跨平台应用程序的实用知识。"
+      }
+    }
+  },
+  {
+    "title": "No Suggest - distraction-free YouTube client",
+    "slug": "no-suggest-distraction-free-youtube-client",
+    "url": "https://dev.to/vj_2_108/no-suggest-distraction-free-youtube-client-9p7",
+    "source": "DEV Community",
+    "date": "2026-06-13T00:52:30.000Z",
+    "summary": "NoSuggest is a minimal YouTube client that eliminates engagement-focused features like recommendations, watch history, and dark patterns in favor of serving user intent. Available as a PWA installable on any device without app store access, it demonstrates how thoughtful design can prioritize user goals over engagement metrics.",
+    "content": "I have been frustrated with YouTube for a while. Not the content, but the everything around it. The homepage full of bait, the auto-play into things I didn't ask for, the Shorts that hijack your scroll, the recommendations that somehow know exactly what will keep you there longest.\nSo I built NoSuggest.\nWhat it is\nIt lives at nosuggest.com and installs as a PWA on any device — iPhone, Android, desktop — straight from the browser. No app store.\nThe interesting technical constraint: one HTML file\nNo search history. No watch history. No \"you might also like.\" No trending section. No notification badges designed to create anxiety. No dark patterns anywhere.\nEvery time I was tempted to add something convenient, I asked: does this serve the user's intention, or does it serve engagement? If it was the latter, it didn't make the cut.\nTry it\nnosuggest.com — Source Available here, free forever.\nCurious what others think about this as useful.\nThank you.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "No Suggest - 无干扰 YouTube 客户端",
+        "summary": "NoSuggest 是一个极简 YouTube 客户端，它消除了推荐、观看历史和暗黑模式等以参与度为中心的功能，转而优先考虑用户意图。作为可在任何设备上安装的 PWA，无需通过应用商店，它展示了深思熟虑的设计如何能够优先考虑用户目标而不是参与度指标。"
+      }
+    }
+  },
+  {
+    "title": "Your Voice Agent Is Slow. Here Are 5 Tricks to Hide It.",
+    "slug": "voice-agent-latency-perception-tricks",
+    "url": "https://dev.to/kenimo49/your-voice-agent-is-slow-here-are-5-tricks-to-hide-it-3pcb",
+    "source": "DEV Community",
+    "date": "2026-06-13T00:46:21.000Z",
+    "summary": "This article reveals techniques to reduce perceived latency of voice AI agents without necessarily improving actual response times. By understanding human perception thresholds and providing intermediate feedback, developers can create voice agents that feel responsive even when backend processing takes 600+ milliseconds.",
+    "content": "My voice agent took 1.2 seconds. Users hated it. So I made it lie.\n\n\nA while back I shipped a voice agent that took roughly 1,200ms to respond. Not catastrophic on paper. Pretty bad in practice. Users would ask a question, get a beat of silence, and start over. Some thought the mic had cut out. One tester told me, with a straight face, that my agent was \"thinking too hard.\"\nI tried everything legitimate first. Smaller LLM. Streaming TTS. Region-pinned endpoints. I shaved off about 200ms and felt clever for a week. Then I measured again and realized I was still on the wrong side of every latency threshold that matters.\nSo I gave up on being faster and started working on being a better liar.\nThis is the playbook I wish I had when I started: five perception tricks that reduce felt latency without touching the actual numbers. They're the voice-AI equivalent of a magician's misdirection. Your right hand waves at the audience. Your left hand swaps the card.\nIn a previous article I broke down the three latency cliffs for voice AI. The short version:\nAround 200ms: the brain starts to register the pause as \"slow.\" This is the conversational baseline humans use with each other.\nAround 500ms: the conversation breaks. The user starts to wonder if they need to repeat themselves.\nAround 800ms: they've quietly given up. Even if your answer arrives, the trust is gone.\nIf your stack is doing STT plus LLM plus TTS plus network, hitting 200ms end-to-end is, frankly, a fantasy for most teams. You can chase it. You can throw money at it. You can cache and prefetch and stream. At some point you bottom out.\nThat's where perception work begins. The user can't measure your p99 latency. They can only measure how the agent feels. Those are two different problems and they have two different solutions.\nWhat it is: A short, instant utterance played the moment the user finishes speaking, before any LLM work begins.\nWhy it works: Silence is the worst possible feedback. Even 400ms of nothing feels",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的语音代理很慢。这是 5 个隐藏延迟的技巧。",
+        "summary": "本文揭示了在不一定改进实际响应时间的情况下减少语音 AI 代理感知延迟的技术。通过理解人类感知阈值并提供中间反馈，开发人员可以创建即使后端处理需要 600 毫秒以上也能感到响应迅速的语音代理。"
+      }
+    }
+  },
+  {
+    "title": "Switch an old script from Rhino to the V8 runtime",
+    "slug": "migrate-apps-script-rhino-to-v8-runtime",
+    "url": "https://dev.to/bulldo_gs/switch-an-old-script-from-rhino-to-the-v8-runtime-4oej",
+    "source": "DEV Community",
+    "date": "2026-06-13T00:40:25.000Z",
+    "summary": "Migrating Google Apps Script from the deprecated Rhino runtime to V8 enables modern JavaScript but requires careful attention to syntax changes and permission declarations. The guide explains the parse-time failure model of V8 and common breaking patterns, helping teams avoid silent deployment failures.",
+    "content": "Originally written for bulldo.gs — republished here with the canonical link pointing home.\nI want to enable the V8 runtime on an existing Apps Script project so I can use modern JavaScript, but I am worried about breaking things that are already working.\n// appsscript.json — set runtimeVersion to enable V8\n// Rollback: change V8 back to DEPRECATED_ES5\n{\n  \"timeZone\": \"America/New_York\",\n  \"dependencies\": {},\n  \"exceptionLogging\": \"STACKDRIVER\",\n  \"runtimeVersion\": \"V8\"\n}\n\n// Code.gs — safe V8-compatible replacement for a common Rhino pattern\n// Rhino allowed: for each (var item in collection) {}\n// V8 requires standard for...of instead\nfunction listSheetNames() {\n  var ss = SpreadsheetApp.getActiveSpreadsheet();\n  var names = [];\n  var sheets = ss.getSheets();\n  for (var i = 0; i < sheets.length; i++) {\n    names.push(sheets[i].getName());\n  }\n  Logger.log(names.join(', '));\n}\n\nOpen the Apps Script editor, click Project Settings (the gear icon), and check \"Show appsscript.json manifest file in editor.\" Then open that file and change \"runtimeVersion\": \"DEPRECATED_ES5\" to \"runtimeVersion\": \"V8\". Save. That is the entire migration from a settings standpoint.\nWhat catches people off guard is the failure mode. V8 parses every .gs file in the project as a unit before running anything. One Rhino-only statement — a for each loop, a __iterator__ method, a Date.prototype.getYear call in an otherwise untouched utility file — causes a syntax or runtime error that prevents the whole script from initializing. Not just the file that contains the bad line. Every function, every trigger, the entire project goes dark.\nThe first time I hit this it took me twenty minutes to figure out why a completely unrelated trigger had stopped firing. The error message pointed at the Rhino syntax in a helper file I had not touched in two years. V8 does not isolate the damage; it fails at parse time, before any execution happens.\nThe three patterns that break most often under V8 are: for each (var x",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "将旧脚本从Rhino迁移到V8运行时",
+        "summary": "将Google Apps Script从已弃用的Rhino运行时迁移到V8可以使用现代JavaScript，但需要仔细关注语法更改和权限声明。该指南说明了V8的解析时间失败模型和常见的破坏性模式，帮助团队避免无声部署失败。"
+      }
+    }
+  },
+  {
+    "title": "Fix \"Exceeded maximum execution time\" in Apps Script",
+    "slug": "fix-apps-script-execution-time-limit",
+    "url": "https://dev.to/bulldo_gs/fix-exceeded-maximum-execution-time-in-apps-script-4ki3",
+    "source": "DEV Community",
+    "date": "2026-06-13T00:40:19.000Z",
+    "summary": "Google Apps Script enforces a hard 6-minute execution limit per function run; exceeding it fails the entire operation regardless of completion progress. The checkpoint-resume pattern using PropertiesService lets developers split long-running jobs across multiple executions, circumventing the time limit by persisting progress between runs.",
+    "content": "Originally written for bulldo.gs — republished here with the canonical link pointing home.\nI'm running a script that processes a large spreadsheet and it keeps dying with \"Exceeded maximum execution time\" before it finishes.\n// Checkpoint-resume pattern for long-running sheet jobs\nfunction processInBatches() {\n  var props = PropertiesService.getScriptProperties();\n  var startRow = parseInt(props.getProperty('lastRow') || '2', 10);\n  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();\n  var lastDataRow = sheet.getLastRow();\n  var BATCH = 200;\n  var SAFE_MS = 5 * 60 * 1000;\n  var started = Date.now();\n\n  var endRow = Math.min(startRow + BATCH - 1, lastDataRow);\n  var data = sheet.getRange(startRow, 1, endRow - startRow + 1, 5).getValues();\n\n  for (var i = 0; i < data.length; i++) {\n    if (Date.now() - started > SAFE_MS) {\n      props.setProperty('lastRow', String(startRow + i));\n      return;\n    }\n    // process data[i] here\n  }\n\n  if (endRow >= lastDataRow) {\n    props.deleteProperty('lastRow');\n    deleteTrigger_();\n  } else {\n    props.setProperty('lastRow', String(endRow + 1));\n  }\n}\n\nApps Script enforces a hard 6-minute execution time limit per run, regardless of whether you're on a free account or a Workspace account (which bumps the limit to 30 minutes, but the same cliff exists). The error doesn't mean your logic is wrong; it means one continuous call to your function took too long. The fix is to stop thinking of your job as a single execution and start thinking of it as a pipeline of short runs.\nThe first time I hit this, I wasted an afternoon trying to speed up the loop. Marginal gains didn't move the needle because the data volume was the real problem — 4,000 rows at one Sheets API call per row will always breach 6 minutes. The correct frame is: how do I save where I stopped and pick up there next run?\nPropertiesService.getScriptProperties() gives you a small key-value store that persists between executions (up to 9 KB total, 500 bytes per",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "修复Apps Script中的\"超出最大执行时间\"错误",
+        "summary": "Google Apps Script对每次函数运行强制执行6分钟的硬性执行限制；超过此限制会导致整个操作失败，无论已完成的进度如何。开发人员可以使用基于PropertiesService的检查点-恢复模式将长时间运行的作业分割为多个执行，通过在运行之间持久化进度来绕过时间限制。"
+      }
+    }
+  },
+  {
+    "title": "Coding-Agent Misalignment: Turn Failure Taxonomies into QA Checks",
+    "slug": "coding-agent-misalignment-qa-checks",
+    "url": "https://dev.to/jangwook_kim_e31e7291ad98/coding-agent-misalignment-turn-failure-taxonomies-into-qa-checks-5b1n",
+    "source": "DEV Community",
+    "date": "2026-06-13T00:39:05.000Z",
+    "summary": "Based on research into 20,000+ coding-agent sessions, this article identifies seven recurring failure modes where agents misalign with developer intent. It proposes QA checks (diff-scope validation, evidence-before-edit, verification requirements) to catch these failures before changes reach production.",
+    "content": "Coding agents are no longer just autocomplete with a longer prompt. GitHub describes Copilot cloud agent as software that can research a repository, create an implementation plan, make code changes on a branch, run in an ephemeral GitHub Actions-powered environment, and let a developer review or create a pull request afterward. OpenAI's Codex GitHub integration similarly positions code review as a repository-aware review pass that follows AGENTS.md guidance and focuses comments on serious issues.\nThat shift changes the buyer question. The useful question is not \"does the agent usually write code?\" It is \"can the team detect when the agent drifts away from the developer's intent before the change reaches production?\"\nA May 2026 arXiv paper, \"How Coding Agents Fail Their Users\", gives teams a better vocabulary for that review. The authors studied 20,574 real IDE and CLI coding-agent sessions across 1,639 repositories and define misalignment as a breakdown that becomes visible through developer correction or pushback. The paper reports seven recurring symptom categories: wrong project diagnosis, misread developer intent, developer constraint violation, self-initiated overreach, faulty implementation, operational execution error, and inaccurate self-reporting.\nEffloow Lab also ran a bounded OpenAI API check using three synthetic, non-confidential coding-agent transcript snippets. The run did not measure real-world incidence, compare vendors, or reproduce the paper. It produced a small rubric that maps visible symptoms to review gates such as diff-scope checks, evidence-before-edit checks, acceptance-criteria coverage, and verification-output requirements. The public lab note is available at /lab-runs/coding-agent-misalignment-failure-taxonomy-poc-2026.\nThis guide turns that research and lab output into a practical QA checklist for teams buying, piloting, or packaging coding-agent workflows.\nCoding-agent procurement often starts with productivity promises: more issues cl",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "编码智能体错位：将故障分类转化为QA检查",
+        "summary": "基于对20,000多个编码智能体会话的研究，本文确定了七种代理与开发者意图不对齐的常见故障模式。它提出了QA检查措施（差异范围验证、编辑前证据、验证要求），以在更改到达生产环境之前捕捉这些故障。"
+      }
+    }
+  },
+  {
+    "title": "Merge multiple docs into one in Google Docs",
+    "slug": "merge-multiple-google-docs-preserving-format",
+    "url": "https://dev.to/bulldo_gs/merge-multiple-docs-into-one-in-google-docs-3o10",
+    "source": "DEV Community",
+    "date": "2026-06-13T00:35:08.000Z",
+    "summary": "Merging multiple Google Docs programmatically requires handling different element types (paragraphs, tables, lists) with type-specific append methods rather than a generic handler. The approach preserves formatting while avoiding silent failures that occur when the API receives an unexpected element type.",
+    "content": "Originally written for bulldo.gs — republished here with the canonical link pointing home.\nI want to programmatically combine several Google Docs into one file without losing tables or list formatting.\n// Merges all source docs into destDocId, in order.\n// Run from the Apps Script editor; no triggers needed.\nfunction mergeDocs() {\n  var sourceIds = [\n    'DOC_ID_ONE',\n    'DOC_ID_TWO',\n    'DOC_ID_THREE'\n  ];\n  var dest = DocumentApp.openById('DEST_DOC_ID').getBody();\n  for (var i = 0; i < sourceIds.length; i++) {\n    var srcBody = DocumentApp.openById(sourceIds[i]).getBody();\n    var total = srcBody.getNumChildren();\n    for (var j = 0; j < total; j++) {\n      var el = srcBody.getChild(j);\n      var type = el.getType();\n      if (type === DocumentApp.ElementType.PARAGRAPH) {\n        dest.appendParagraph(el.asParagraph().copy());\n      } else if (type === DocumentApp.ElementType.TABLE) {\n        dest.appendTable(el.asTable().copy());\n      } else if (type === DocumentApp.ElementType.LIST_ITEM) {\n        dest.appendListItem(el.asListItem().copy());\n      }\n    }\n  }\n}\n\nThe Document service in Apps Script does not expose a generic appendElement method on Body. Every element type has its own typed append method: appendParagraph, appendTable, appendListItem, and so on. That means a merge loop that ignores element types will throw TypeError: el.copy is not a function the moment it hits a table, because you would be passing an Element where the API expects a Table.\nThe fix is to call getType() on each child element and switch on DocumentApp.ElementType. The type enum values are strings like PARAGRAPH, TABLE, LIST_ITEM, INLINE_IMAGE, and HORIZONTAL_RULE. In practice the first three account for almost all real document content. The code above handles those three and silently skips anything else (images, rules) rather than crashing the entire merge.\nThe ID for any Google Doc is the long string between /d/ and /edit in its URL. Paste those into the sourceIds array and put the",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在 Google Docs 中将多个文档合并为一个",
+        "summary": "以编程方式合并多个 Google Docs 需要使用特定于类型的附加方法处理不同的元素类型（段落、表格、列表），而不是通用处理程序。这种方法可以保留格式，同时避免当 API 接收到意外元素类型时发生的无声失败。"
+      }
+    }
+  },
+  {
+    "title": "Import JSON from an API in Google Sheets",
+    "slug": "import-json-api-google-sheets",
+    "url": "https://dev.to/bulldo_gs/import-json-from-an-api-in-google-sheets-nm2",
+    "source": "DEV Community",
+    "date": "2026-06-13T00:35:02.000Z",
+    "summary": "Google Sheets can pull live JSON data directly from API endpoints using Apps Script's UrlFetchApp and JSON parsing, without add-ons or complex setup. The guide covers common pitfalls like forgetting to call getContentText() on HTTP responses and mapping nested JSON objects into a consistent 2D array format.",
+    "content": "Originally written for bulldo.gs — republished here with the canonical link pointing home.\nI want to pull live JSON data from an API endpoint directly into a Google Sheet without installing an add-on.\n// Fetch JSON from an API and write it to the active sheet\n// Adjust API_URL and the field list to match your endpoint\nfunction importJsonFromApi() {\n  var API_URL = 'https://jsonplaceholder.typicode.com/users';\n  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();\n\n  var response = UrlFetchApp.fetch(API_URL);\n  var raw = response.getContentText();\n  var data = JSON.parse(raw);\n\n  var headers = ['id', 'name', 'username', 'email', 'phone'];\n  var rows = data.map(function(obj) {\n    return headers.map(function(key) { return obj[key] || ''; });\n  });\n\n  sheet.clearContents();\n  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);\n  sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);\n}\n\nUrlFetchApp.fetch() returns an HTTPResponse object, not a string. The first time I skipped getContentText() and passed the response object directly to JSON.parse(), it silently parsed to null and the sheet wrote nothing. You need raw = response.getContentText() to get the actual body as a string, then JSON.parse(raw) turns it into a JavaScript object or array.\nThe URL must be publicly accessible or accept an API key via a query parameter or Authorization header. Add headers like this: UrlFetchApp.fetch(url, { headers: { Authorization: 'Bearer ' + token } }). Apps Script's UrlFetchApp quota is 20,000 calls per day on a free Google account, 100,000 on Workspace.\nsetValues() is strict: it requires a 2D array where every row has the same number of columns. If you hand it an array of plain JSON objects, it throws 'The number of rows or columns in the range does not match the number of rows or columns in the data.' The fix is to map each object to an array of values in a consistent column order, which is exactly what the headers.map() call inside data.map()",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在 Google Sheets 中从 API 导入 JSON",
+        "summary": "Google Sheets 可以使用 Apps Script 的 UrlFetchApp 和 JSON 解析直接从 API 端点拉取实时 JSON 数据，无需附加组件或复杂设置。本指南涵盖常见的陷阱，例如忘记在 HTTP 响应上调用 getContentText()，以及将嵌套的 JSON 对象映射到一致的 2D 数组格式。"
+      }
+    }
+  },
+  {
+    "title": "Unpacking Manifest V3: Chrome’s Big Extension Shakeup! 🛠️",
+    "slug": "chrome-manifest-v3-extension-changes",
+    "url": "https://dev.to/tene/unpacking-manifest-v3-chromes-big-extension-shakeup-15n5",
+    "source": "DEV Community",
+    "date": "2026-06-13T00:30:00.000Z",
+    "summary": "Manifest V3 is Chrome's architectural overhaul of browser extensions, enforcing stronger security and privacy through changes like replacing background pages with service workers and restricting network interception. The migration fundamentally alters how extensions work, particularly affecting tools like ad blockers that manipulate network requests.",
+    "content": "Hey tech family! 👋 If you’ve noticed your favorite Chrome extensions acting a bit differently lately or if you're a developer currently sweating over a massive codebase rewrite you are experiencing the era of Manifest V3 (MV3). 🤖 \nGoogle has officially pushed the web ecosystem forward by deprecating Manifest V2, making MV3 the absolute standard for how browser extensions behave. But why is this happening, what actually changed, and why is the internet so divided over it? Let’s break it all down in plain English! 👇\nThink of a \"Manifest\" as the blueprint file (manifest.json) that tells the browser exactly what an extension is, what files it uses, and what permissions it needs to run.\nManifest V3 is Google's major architectural overhaul of this system. Its core mission sounds great on paper: improve user privacy, beef up security, and boost browser performance. However, achieving those goals meant rewriting the core rules of how extensions interact with your browser.\nMV3 isn't just a small patch; it fundamentally alters the underlying extension engine. Here are the headline shifts:\nGoodbye Background Pages, Hello Service Workers! 💤\n\n\nThe Ad-Blocker Shakeup: webRequest vs. declarativeNetRequest 🛑\nuBlock Origin used the webRequest API to intercept, read, and block network requests in real-time using complex code. MV3 replaces the blocking version of this with declarativeNetRequest. Instead of letting the extension intercept the data, the extension must now hand Chrome a pre-defined list of rules, and Chrome does the blocking itself. 🧑‍⚖️\n\n\nZero Remotely Hosted Code Allowed 🚫\n\n\nPromise-Based APIs 🤝\n\n\n\n\n  \n  \n  🔄 The Migration Path: Moving from V2 to V3\n\n\nFor developers, migrating is less of a smooth path and more of a complete structural redesign. 🏗️ The typical migration workflow looks like this:\nUpdate the Manifest Version: Change \"manifest_version\": 2 to 3.\nRefactor Background Scripts: Transition your code from a DOM-dependent background page to a completely",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "解包 Manifest V3：Chrome 的浏览器扩展大改革！🛠️",
+        "summary": "Manifest V3 是 Chrome 对浏览器扩展的架构改革，通过用 Service Workers 替换后台页面和限制网络拦截等更改来加强安全性和隐私。这次迁移从根本上改变了扩展的工作方式，特别是影响操纵网络请求的广告拦截器等工具。"
+      }
+    }
+  },
+  {
+    "title": "Send personalized emails from a sheet in Gmail",
+    "slug": "mail-merge-personalized-emails-apps-script",
+    "url": "https://dev.to/bulldo_gs/send-personalized-emails-from-a-sheet-in-gmail-44j3",
+    "source": "DEV Community",
+    "date": "2026-06-13T00:22:40.000Z",
+    "summary": "This mail merge pattern uses Google Apps Script to send personalized emails from Gmail based on spreadsheet data, handling daily quotas and authorization scopes without third-party tools. It demonstrates how to track sent status and safely resume if quota limits are hit.",
+    "content": "Originally written for bulldo.gs — republished here with the canonical link pointing home.\nI have a spreadsheet of names and email addresses and I want to send each person a personalized message from my Gmail account without copy-pasting or using a paid tool.\n// Mail merge: Sheet cols A=Name, B=Email, C=Sent\n// Run from Apps Script; authorize Gmail + Sheets scopes\nfunction sendMerge() {\n  var sheet = SpreadsheetApp.getActiveSheet();\n  var rows = sheet.getDataRange().getValues();\n  var quota = MailApp.getRemainingDailyQuota();\n  var sent = 0;\n  for (var i = 1; i < rows.length; i++) {\n    if (rows[i][2] === 'Sent') continue;\n    if (sent >= quota) {\n      Logger.log('Quota reached at row ' + (i + 1));\n      break;\n    }\n    var name = rows[i][0];\n    var email = rows[i][1];\n    var subject = 'Hey ' + name + ', here is your update';\n    var body = 'Hi ' + name + ',\\n\\nYour personalized content goes here.\\n\\nThanks';\n    MailApp.sendEmail(email, subject, body);\n    sheet.getRange(i + 1, 3).setValue('Sent');\n    sent++;\n  }\n}\n\nPut names in column A, email addresses in column B, and leave column C blank — the script writes 'Sent' there as it goes. Header row in row 1 is assumed; the loop starts at index 1 (row 2) to skip it. Open the script editor from Extensions > Apps Script, paste the function, and save.\nThe first time you run sendMerge() Google will ask you to authorize two scopes: Sheets (read/write the active spreadsheet) and Gmail (send mail on your behalf). Both are required. If you only see a Sheets prompt, delete the file and re-paste — a cached partial authorization sometimes skips the Gmail scope on older script files.\nConsumer Google accounts cap at roughly 100 outgoing recipients per 24-hour rolling window via MailApp. If your list has 200 rows and you run the script at 11 pm, it will send 100 and log 'Quota reached at row 101'. Without the Sent check, a second run the next morning resends rows 1-100 to people who already heard from you.\nThe guard is two lin",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "从Gmail中的工作表发送个性化电子邮件",
+        "summary": "这种邮件合并模式使用Google Apps Script根据电子表格数据从Gmail发送个性化电子邮件，无需第三方工具即可处理每日配额和授权范围。它演示了如何跟踪发送状态以及在达到配额限制时安全地恢复。"
+      }
+    }
+  },
+  {
+    "title": "I Turned Off AI Coding Tools for a Week. Here's What I Learned.",
+    "slug": "turned-off-ai-coding-tools-week-learnings",
+    "url": "https://dev.to/tyson_cung/i-turned-off-ai-coding-tools-for-a-week-heres-what-i-learned-2201",
+    "source": "DEV Community",
+    "date": "2026-06-13T00:22:36.000Z",
+    "summary": "After disabling AI coding tools for a week, the author discovered that the friction of manual coding led to better understanding and simpler designs, while AI often over-engineers solutions with defensive complexity developers don't need. This experience suggests that outsourcing cognitive struggle to AI comes at the cost of learning and design intuition.",
+    "content": "I've been writing about AI coding tools for months here on Dev.to. Comparisons, benchmarks, tutorials on how to squeeze the most out of Claude Code, Cursor, and the rest. And I do use them. Every single day.\nBut last week I tried something that surprised even me.\nI turned them off completely.\nFor an entire week, no AI-generated code, no autocomplete suggestions, no \"explain this function\" prompts. Just me, my editor, and a blinking cursor.\nHere's what actually happened.\nDay one was humbling. My output dropped by maybe half. What normally took 15 minutes stretched to 40. I found myself reaching for the Cmd+K shortcut out of muscle memory half a dozen times.\nBut somewhere around day three, something shifted.\nI started reading source code instead of asking for summaries. I traced through execution paths instead of having the LLM walk me through them. I caught a subtle race condition that Claude Code had confidently dismissed as \"not an issue\" in the same codebase two weeks prior.\nThat moment stuck with me.\nHere's the part I didn't expect. By day five, my code was noticeably simpler. Not because an LLM optimized it, but because I actually understood the problem well enough to keep it simple.\nAI-generated code often over-engineers. It adds abstractions for scenarios that don't exist. It writes defensive checks for edge cases that don't apply to your use case. It looks professional but carries unnecessary complexity.\nWhen you write it yourself, you stop at the simplest working solution because you know when you're done. An LLM doesn't know when you're done. It just keeps going until the context window runs out.\nThis is the part I've been thinking about most.\nAI tools remove friction. That's their superpower. But friction isn't always bad. The struggle of debugging your own code is how you learn a codebase. The effort of designing an API is how you develop taste for what makes a good one.\nIf you outsource those moments to an LLM, you get the output but not the learning.\nI'",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我关闭了AI编码工具一周。以下是我学到的东西。",
+        "summary": "在禁用AI编码工具一周后，作者发现手工编码的摩擦力导致更好的理解和更简单的设计，而AI通常会用开发人员不需要的防守复杂性过度设计解决方案。这个经验表明，将认知斗争外包给AI是以学习和设计直觉为代价的。"
+      }
+    }
+  },
+  {
+    "title": "Remove duplicate rows in Google Sheets",
+    "slug": "remove-duplicate-rows-google-sheets",
+    "url": "https://dev.to/bulldo_gs/remove-duplicate-rows-in-google-sheets-42jb",
+    "source": "DEV Community",
+    "date": "2026-06-13T00:22:22.000Z",
+    "summary": "Deduplicating large Google Sheets efficiently requires reading all data once and writing the result back, rather than deleting rows one at a time which causes index shifts and performance cliffs. A JavaScript Set-based pattern reduces a 10,000-row dedup from six-minute timeouts to two-second completion.",
+    "content": "Originally written for bulldo.gs — republished here with the canonical link pointing home.\nI have a Google Sheet with duplicate rows and I want to remove them programmatically, either on demand or on a schedule, without destroying the rest of my data.\n// removeDuplicates.gs — dedup active sheet, keep first occurrence\n// Run from Extensions > Apps Script, or bind to a trigger.\nfunction removeDuplicateRows() {\n  var sheet = SpreadsheetApp.getActiveSheet();\n  var data = sheet.getDataRange().getValues();\n  var seen = new Set();\n  var unique = [];\n  for (var i = 0; i < data.length; i++) {\n    var key = data[i].join('|');\n    if (!seen.has(key)) {\n      seen.add(key);\n      unique.push(data[i]);\n    }\n  }\n  sheet.clearContents();\n  sheet.getRange(1, 1, unique.length, unique[0].length).setValues(unique);\n}\n\nThe instinct when deduplicating is to loop through the sheet and call deleteRow on each duplicate. That works, but it has a sharp edge: every call to deleteRow shifts all rows below it up by one. If you delete row 3, what was row 4 is now row 3, and your loop index is already pointing at the new row 4. The safe workaround people reach for is iterating bottom-to-top, which works but means holding the full duplicate set in memory anyway, making one API call per deleted row.\nThe approach here sidesteps the problem entirely. Read everything once with getDataRange().getValues() — a single API call that returns a 2D array. Build the deduplicated array in JavaScript using a Set to track which row fingerprints you have already seen. Then clear the sheet and write the result back with one setValues call. Two API calls total, regardless of how many duplicates you had. For a 10,000-row sheet, this is the difference between a script that finishes in two seconds and one that times out at the six-minute Apps Script execution limit.\nThe row key is built with data[i].join('|'). The pipe character works as a separator in practice; if your data actually contains pipe characters in every",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "删除Google Sheets中的重复行",
+        "summary": "有效地重复删除大型Google Sheets需要一次性读取所有数据并写回结果，而不是逐个删除行，这会导致索引移位和性能下降。基于JavaScript Set的模式将10,000行重复删除从六分钟超时减少到两秒完成。"
+      }
+    }
+  }
+]
