@@ -1,5 +1,197 @@
 [
   {
+    "title": "The Pentester’s Guide to Finding CBC Bit Flipping Vulnerabilities",
+    "slug": "cbc-bit-flipping-vulnerabilities",
+    "url": "https://dev.to/arashad_dodhiya_0e4bdba5a/the-pentesters-guide-to-finding-cbc-bit-flipping-vulnerabilities-50n3",
+    "source": "DEV Community",
+    "date": "2026-06-17T07:36:33.000Z",
+    "summary": "CBC bit flipping testing exploits missing integrity checks in CBC-mode encrypted cookies by intercepting traffic, decoding the ciphertext, and intentionally corrupting 16-byte blocks to observe backend behavior. This vulnerability class only applies to proprietary encrypted strings—not JWTs or other formats with built-in signatures. The methodology reveals encryption weaknesses without cracking keys, making it a critical skill for penetration testers.",
+    "content": "If you spend enough time poking at web applications, you’ll eventually run into a target that handles session management poorly. You’ll intercept a request, look at the cookie, and see a massive, encrypted string.\nFor a lot of testers, encrypted state data is a dead end. If you can’t read it, you move on.\nBut if that application is relying on CBC (Cipher Block Chaining) mode without implementing an integrity check (like a MAC), that encrypted cookie isn't a dead end. It’s an attack vector.\nHere is a practical, step-by-step methodology for testing web applications for CBC bit flipping vulnerabilities safely and effectively.\nTesting for this flaw requires a mix of cryptography knowledge and standard web manipulation. You aren't trying to crack the encryption key; you are intentionally corrupting the ciphertext in transit to see how the backend application reacts to the resulting corrupted plaintext.\nFirst, you need to isolate the target data. Route your traffic through an intercepting proxy like Burp Suite or OWASP ZAP. Look for session identifiers, auth tokens, or state parameters that look like encrypted blobs.\nHint: If the application uses a recognizable format like JWT, this attack likely doesn't apply (JWTs have built-in signature verification). You are looking for opaque, proprietary encrypted strings.\nCiphertext is raw binary, which doesn't travel well over HTTP. Developers almost always encode it. Before you can manipulate the blocks, you need to strip away the transport encoding.\nIs it Base64 encoded? (Look for == padding at the end).\nIs it Hex encoded? (Look for strings of 0-9 and A-F).\nIs it URL encoded? (Look for % symbols).\nDecode the string down to its raw bytes. If you try to flip bits on a Base64 string directly, you'll break the encoding itself, not the underlying ciphertext.\nAES operates on strict 16-byte (128-bit) blocks. Once you have the raw ciphertext, conceptually divide it into 16-byte chunks.\nIf the cookie is exactly 32 bytes, you have two blo",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "渗透测试人员找到CBC比特翻转漏洞的指南",
+        "summary": "CBC比特翻转测试通过拦截流量、解码密文和故意破坏16字节块来利用CBC模式加密cookie中缺失的完整性检查，从而观察后端行为。这类漏洞仅适用于专有加密字符串，不适用于JWT或其他具有内置签名的格式。该方法无需破解密钥即可揭示加密弱点，是渗透测试人员的关键技能。"
+      }
+    }
+  },
+  {
+    "title": "I open-sourced every Binance and OKX 2026 fee tier as JSON (+ a calculator)",
+    "slug": "binance-okx-fee-tiers-json",
+    "url": "https://dev.to/jacktrader/i-open-sourced-every-binance-and-okx-2026-fee-tier-as-json-a-calculator-fnj",
+    "source": "DEV Community",
+    "date": "2026-06-17T07:36:15.000Z",
+    "summary": "An open-source project publishes comprehensive fee tier data for Binance and OKX exchanges as JSON, eliminating manual hardcoding and the risk of stale exchange rates in backtests. The repository includes VIP tier qualification rules and a CLI calculator modeling the full fee stack—base rates, token discounts, and rebates. This addresses a persistent pain point where silently outdated rates cause live PnL discrepancies.",
+    "content": "If you've ever written a backtest or a fee-aware order router for Binance or OKX, you've hit this wall: the exchanges publish their fee schedules as HTML tables that change without notice, and there's no clean machine-readable source. So you end up hardcoding 0.0004 somewhere and forgetting about it until your live PnL doesn't match your sim.\nI got tired of that, so I open-sourced the whole thing.\ngithub.com/jack0752168/crypto-exchange-fee-data (MIT)\nEvery VIP tier for Binance (spot + USD-M futures) and OKX (futures), maker/taker, as JSON — plus the qualification rules and a small CLI calculator. No dependencies, stdlib only.\n{\n  \"tier\": \"VIP 2\",\n  \"futures_vol_min_usd\": 75000000,\n  \"maker\": 0.0140,\n  \"taker\": 0.0350\n}\n\nRates are in percent (so 0.0140 means 0.014%, i.e. 1.4 bps), which is the unit the exchanges themselves print. Pick whichever convention you want, just be consistent — mixing percent and fraction is the #1 fee bug I see.\nYour real per-trade cost isn't one number. It's a stack:\neffective_fee = base_rate(VIP tier) x token_discount x (1 - rebate_share)\n\nThree independent levers:\nVIP tier sets the base rate. On Binance it's gated on 30-day volume plus a BNB-balance floor, recalculated daily at 00:00 UTC on a rolling window — so your tier can silently drop overnight. On OKX it's the better of 30-day volume or assets held, which means a high-balance/low-frequency account can sit at a tier it would never reach on volume alone.\nToken discount — paying fees in BNB knocks 25% off spot / 10% off futures. OKB is woven into OKX's tier qualification instead of a flat toggle.\nRebate — an affiliate/sub-broker partner can pass back a slice of the fee. This one is multiplicative on top of the other two and most people leave it on the table.\nThe calculator models all three:\npython3 calculator.py --exchange binance --market futures \\\n    --volume 10_000_000 --maker-share 0.7 --rebate 0.4\n\nBinance futures — tier Regular (maker 0.02% / taker 0.05%)\nBlended rate: 0.0290%\nG",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我开源了币安和OKX 2026年所有交易费等级的JSON数据（附计算器）",
+        "summary": "一个开源项目将币安和OKX交易所的全面费用等级数据发布为JSON格式，消除了手动硬编码和回测中交易费率陈旧的风险。该仓库包括VIP等级资格规则和CLI计算器，可以模拟完整的费用堆栈——基础费率、代币折扣和返利。这解决了一个长期问题，即过期的费率会导致实时损益差异。"
+      }
+    }
+  },
+  {
+    "title": "Weekly roundup: Password strength, self-serve BAA, and AI updates",
+    "slug": "appwrite-updates-password-strength-baa",
+    "url": "https://dev.to/appwrite/weekly-roundup-password-strength-self-serve-baa-and-ai-updates-20hk",
+    "source": "DEV Community",
+    "date": "2026-06-17T07:35:01.000Z",
+    "summary": "Appwrite released password strength enforcement in Auth, self-serve BAA acceptance for compliant Pro organizations, and analysis of Anthropic's latest Claude models. The self-serve BAA removes a major compliance blocker for healthcare applications handling protected health information. May releases also included the Presences API, Rust runtime, and database relationship features.",
+    "content": "This week on the Appwrite blog, we shipped new Auth controls, made BAA acceptance self-serve for Pro organizations, covered Anthropic’s latest Claude models, and shared a full breakdown of everything that landed in May.\nHere’s everything that went live this week.\nAppwrite Auth now lets you enforce password strength with minimum length and character requirements.\nYou can set the smallest number of characters a password must have, and require character types such as uppercase letters, lowercase letters, numbers, and special characters.\nThis gives teams more control over password rules at sign-up and password change, without building custom validation logic from scratch.\nRead the announcement: https://appwrite.io/blog/post/announcing-password-strength\nPro organizations can now accept a Business Associate Agreement directly from the Appwrite Console.\nUntil now, getting a BAA with Appwrite required contacting the team and completing a signing process. With self-serve BAA, eligible Pro organizations can move faster without waiting on a sales or legal cycle.\nFor teams building healthcare applications that store or process PHI, this removes a major operational blocker from the compliance workflow.\nRead the announcement: https://appwrite.io/blog/post/announcing-self-serve-baa\nAnthropic launched Claude Fable 5 and Claude Mythos 5, its first Mythos-class models.\nWe covered what changed, how the models compare, and what developers should know about benchmarks, safeguards, pricing, and agent workflows.\nThe post breaks down where these models fit in the current AI developer ecosystem and what they could mean for teams building with coding assistants and agents.\nRead more: https://appwrite.io/blog/post/anthropic-just-launched-claude-fable-5-and-claude-mythos-5\nMay was packed with releases across Appwrite, including:\n→ Presences API\n→ Rust runtime\n→ Database relationships\n→ BigInt columns\n→ 7x faster Storage uploads\n→ Git deployment triggers\n→ Deployment retention\n→ Email policies",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "周刊总结：密码强度、自助BAA和AI更新",
+        "summary": "Appwrite在Auth中发布了密码强度强制执行、符合条件的Pro组织的自助BAA接受，以及对Anthropic最新Claude模型的分析。自助BAA消除了处理受保护健康信息的医疗应用的主要合规障碍。5月版本还包括Presences API、Rust运行时和数据库关系功能。"
+      }
+    }
+  },
+  {
+    "title": "rdev-go-api-template: Production-ready Go API Scaffolder & CLI Generator",
+    "slug": "rdev-go-api-template-cli-generator",
+    "url": "https://dev.to/xaiphyr/rdev-go-api-template-production-ready-go-api-scaffolder-cli-generator-9fb",
+    "source": "DEV Community",
+    "date": "2026-06-17T07:34:35.000Z",
+    "summary": "This unified Go scaffolder provides both a production-ready API template and a CLI generator for automated feature development, using Gin routing and Bun ORM to prioritize performance and type safety. The tool addresses repetitive bootstrap friction and architecture drift by providing a compiled, self-contained utility for both initial setup and dynamic code generation. It emphasizes SQL-first design and includes Docker configuration and path-traversal security guards.",
+    "content": "rdev-go-api-template\n\n\n\n  \n  \n  🚀 The Concept\n\n\nA unified Go development utility that functions simultaneously as a production-ready architectural blueprint and an automation tool. Tailored specifically for high-performance Go-Gin HTTP routing and Bun ORM data layers, it builds a secure backend foundation and automates continuous vertical-slice feature generation.\nManual backend bootstrapping and database layer setup introduce repetitive friction, architecture drift, and security vulnerabilities. This project was built to solve those challenges by providing a highly optimized stack out of the box, offering a major evolutionary leap over our previous rdev-go-ddgen utility:\nFrom rdev-go-ddgen to rdev-go-api-template: The old iteration was a loose, single-purpose domain code generator. This new variation elevates the entire workflow by introducing a unified sub-command engine that handles both initial repository creation and domain generation, backed by explicit path traversal safety guards.\nModern Stack Integration: Replaces generic database setups with an efficient, SQL-first workflow using Bun ORM alongside the ultra-fast Go-Gin web framework.\nA compiled, self-contained CLI tool that handles two distinct lifecycle phases:\ninit: Scaffolds a complete API directory tree pre-configured with Gin routers, Bun connection abstractions, Docker environments, and hidden workspace management.\ngenerate: Dynamically injects architectural domain components (handlers, services, repositories) cleanly into your existing codebase.\nInstall the compiled utility globally:\ngo install github.com/XaiPhyr/rdev-go-api-template@v1.0.0\n\nrdev-go-api-template init github.com/username/project\n\nrdev-go-api-template generate -d orders\n\nrdev-go-api-template generate -d orders -f handler\n\nSQL-First Performance vs. Heavy Abstraction: Utilizing Bun ORM yields raw SQL performance and type-safe query compilation without the bloated runtime overhead of heavier ORMs. The trade-off is that developers must w",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "rdev-go-api-template: 生产级 Go API 脚手架和 CLI 生成器",
+        "summary": "这个统一的 Go 脚手架提供了生产级 API 模板和 CLI 生成器，用于自动化功能开发，使用 Gin 路由和 Bun ORM 来优先考虑性能和类型安全。该工具通过提供编译的、独立的实用程序来解决重复的引导摩擦和架构漂移问题，可用于初始设置和动态代码生成。它强调 SQL 优先的设计，并包含 Docker 配置和路径遍历安全防护。"
+      }
+    }
+  },
+  {
+    "title": "Kinesis Data Firehose Is Not a Silver Bullet: How Undocumented Partition Key Limits Broke Our Real-Time Analytics Pipeline",
+    "slug": "kinesis-firehose-partition-key-limits",
+    "url": "https://dev.to/dineshgowtham/kinesis-data-firehose-is-not-a-silver-bullet-how-undocumented-partition-key-limits-broke-our-5f77",
+    "source": "DEV Community",
+    "date": "2026-06-17T07:33:58.000Z",
+    "summary": "An undocumented partition key limit in AWS Kinesis Data Firehose caused mysterious throughput failures manifesting as an ambiguous 'InternalFailure' error, independent of shard capacity constraints. The issue went undetected for a month because it remained hidden within aggregate metrics, only surfacing when analyzed by distance bins. This case study highlights how managed services can have hidden constraints poorly communicated by vendors.",
+    "content": "Our real-time data pipeline was failing due to mysterious throughput limits. The culprit? A little-known Kinesis Data Firehose limitation that has nothing to do with shards or provisioned throughput. In this scenario, we expose the undocumented partition key limit that nobody talks about.\nKinesis Data Firehose is a fully managed service that captures, transforms, and loads data into Amazon S3, Amazon Redshift, Amazon Elasticsearch, and Splunk. It's commonly used for real-time data processing and analytics.\nimport { PutRecordCommand } from '@aws-sdk/client-kinesis';\nimport { KinesisClient } from '@aws-sdk/client-kinesis';\n\nconst kinesisClient = new KinesisClient({ region: 'us-west-2' });\nconst command = new PutRecordCommand({\n  StreamName: 'my-stream',\n  Records: [\n    {\n      Data: Buffer.from('Hello World'),\n      PartitionKey: 'pk-1',\n    },\n  ],\n});\n\nkinesisClient.send(command).then((data) => {\n  console.log(data);\n}).catch((err) => {\n  console.error(err);\n});\n\nBe aware that Kinesis shard limits (1MB/s write, 2MB/s read) can catch teams off-guard at scale. For example, the following error may occur:\nProvisionedThroughputExceededException: Rate exceeded for shard id ... in stream ... under account ...\nWe were experiencing a throughput limit in our real-time analytics pipeline, but it wasn't related to the Kinesis shard limits. The error message was InternalFailure: Internal server error, which wasn't very informative.\nimport { PutRecordCommand } from '@aws-sdk/client-kinesis';\nimport { KinesisClient } from '@aws-sdk/client-kinesis';\n\nconst kinesisClient = new KinesisClient({ region: 'us-west-2' });\nconst command = new PutRecordCommand({\n  StreamName: 'my-stream',\n  Records: [\n    {\n      Data: Buffer.from('Hello World'),\n      PartitionKey: 'pk-1',\n    },\n  ],\n});\n\nkinesisClient.send(command).then((data) => {\n  console.log(data);\n}).catch((err) => {\n  console.error(err);\n  if (err.name === 'InternalFailure') {\n    console.log('Internal server error occurred');\n  }",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Kinesis Data Firehose 并非灵丹妙药：未文档化的分区密钥限制如何破坏了我们的实时分析管道",
+        "summary": "AWS Kinesis Data Firehose 中未文档化的分区密钥限制导致了神秘的吞吐量故障，表现为模糊的\"InternalFailure\"错误，与分片容量约束无关。该问题隐藏在聚合指标中，一个月未被发现，只有在按距离箱进行分析时才浮现。这个案例研究凸显了托管服务如何可能存在隐藏约束，而供应商沟通不足。"
+      }
+    }
+  },
+  {
+    "title": "You Already Know What Your First AI Rule Should Be. You Just Have Not Written It Down Yet.",
+    "slug": "write-down-ai-rules",
+    "url": "https://dev.to/avery_code/you-already-know-what-your-first-ai-rule-should-be-you-just-have-not-written-it-down-yet-i9",
+    "source": "DEV Community",
+    "date": "2026-06-17T07:33:00.000Z",
+    "summary": "Developers working with AI accumulate consistent corrections across sessions—component structure, naming patterns, state placement—that represent unwritten rules the AI cannot follow without explicit documentation. The approach is to identify the single most-corrected issue and document it once, visible to the AI before the next session, without needing a comprehensive system from the start. This incremental method scales because the most-corrected issues fall into predictable categories across technologies.",
+    "content": "Every developer who works with AI regularly has a list of corrections they make.\nNot a written list. A mental one. The things they fix after every session. The patterns the AI gets wrong consistently. The naming that never quite matches. The component that always ends up doing too much. The state that keeps ending up in the wrong place.\nThose corrections are not random. They are consistent. And consistent corrections are rules that have not been written down yet.\nYou already know what your first rule should be. You have been communicating it to the AI through corrections for months. You just have not written it down where the AI can follow it before it makes the mistake.\nStarting a rule system feels like a big decision.\nWhere do the rules live? How many do you need? What format should they be in? Do you need a whole system before you start? Do you need to cover every case before the rules are useful?\nThe answer to all of those questions is the same. You do not need to answer them before you write the first rule.\nThe first rule does not need to be part of a system. It does not need a format. It does not need to be comprehensive. It just needs to exist somewhere the AI can see it before the session starts.\nOne rule. The thing you correct most often. Written down. Given to the AI before the next session.\nThat is the entire starting point.\nThe first rule is almost always the same category of thing across different developers.\nIt is the correction that happens in nearly every session. The one that takes two minutes to fix but has been taking two minutes every session for six months. The one that feels too obvious to write down because surely the AI should just know.\nIt does not just know. It cannot. It has no memory of the last correction. It has no definition of what the standard is. It generates based on what it receives and then you correct what it got wrong.\nFor most React developers the first rule falls into one of three categories. Component boundaries. State place",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你已经知道你的第一条 AI 规则应该是什么。你只是还没有把它写下来。",
+        "summary": "与 AI 合作的开发人员在不同会话中积累了一致的纠正——组件结构、命名模式、状态放置——这些代表了 AI 无法在没有明确文档的情况下遵循的未成文规则。该方法是识别单一最常被纠正的问题并将其记录一次，在下一个会话之前使 AI 可见，无需从一开始就建立全面的系统。这种增量方法是可扩展的，因为最常被纠正的问题在各种技术中形成可预测的模式。"
+      }
+    }
+  },
+  {
+    "title": "How to write a project brief that actually helps you hire a Next.js developer",
+    "slug": "nextjs-project-brief-hiring",
+    "url": "https://dev.to/nayankyada/how-to-write-a-project-brief-that-actually-helps-you-hire-a-nextjs-developer-2b45",
+    "source": "DEV Community",
+    "date": "2026-06-17T07:25:27.000Z",
+    "summary": "A well-written project brief is the primary factor determining whether Next.js projects land on time, more so than developer skill level. Critical elements include agreed content models before development, clear performance objectives, and explicit staging environment expectations for headless CMS projects. Briefs lacking these details result in either expensive rework of generic solutions or unplanned waiting periods.",
+    "content": "Writing a good brief before you hire a Next.js developer is the single thing that separates projects that land on time from ones that drift for months. After working through 15+ headless builds — some I briefed myself, many I was handed — the pattern is consistent: the brief determines the outcome more than the developer does.\n'Just like our current site, but faster.' This shows up verbatim more than you'd expect. It tells a developer nothing about what 'faster' means to you (sub-2-second load? better Google scores? reduced bounce?), and it implicitly asks them to replicate a structure that probably needs rethinking. Developers will fill the gaps with their own assumptions. Those assumptions will be wrong, and you'll pay to fix them.\nStarting dev before the content model is agreed. A headless CMS like Sanity structures your content into types — a blog post is different from a case study, which is different from a team member profile. If your developer starts building while you are still deciding what content you have, one of two things happens: they build a generic schema that needs expensive rework, or they pause and wait while you figure it out. Neither is cheap. Content modelling is a design decision, not a dev task. It needs to happen before the first line of code.\nNo staging environment expectation. It surprises clients when I ask: 'Where do you want to review work in progress?' The answer is almost always 'Oh, can't you just show me screenshots?' A headless build needs a staging URL — ideally a Vercel preview deployment tied to a branch — where you can click through real pages, test forms, and check the CMS editor before anything goes live. If this is not written into the brief, it either gets skipped or gets added as a change request.\nA Figma file with no copy. Handing over a design with placeholder text ('Lorem ipsum' or 'Headline goes here') means your developer will build components that have never been tested with real content. Headlines will be too short",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何撰写一份真正有助于雇佣Next.js开发者的项目简报",
+        "summary": "一份编写良好的项目简报是决定Next.js项目是否按时完成的主要因素,甚至比开发者的技能水平还要重要。关键元素包括在开发前达成一致的内容模型、明确的性能目标,以及对无头CMS项目明确的测试环境期望。缺乏这些细节的简报会导致要么进行昂贵的通用解决方案返工,要么产生计划外的等待时间。"
+      }
+    }
+  },
+  {
+    "title": "I Failed a Python Interview Because I Could Write Code But Not Read It",
+    "slug": "python-interview-reading-code",
+    "url": "https://dev.to/ameer_abdullah_68d48c8496/i-failed-a-python-interview-because-i-could-write-code-but-not-read-it-57k5",
+    "source": "DEV Community",
+    "date": "2026-06-17T07:23:39.000Z",
+    "summary": "An interviewer's code-reading question exposed the gap between writing code—where you control variables—and reading code, where you must trace execution mentally under pressure. The candidate failed despite three months of LeetCode preparation, revealing that interview readiness requires simulating interpreter behavior without a terminal. This skill gap directly measures understanding depth in ways writing practice cannot.",
+    "content": "I want to tell you about the most embarrassing 45 minutes of my developer career.\nI had been practicing LeetCode for three months. Easy problems, done. Most mediums, done. I felt ready.\nThe interviewer shared their screen and showed me this:\nx = [1, 2, 3, 4, 5]\ny = x\ny += [6, 7]\n\nprint(x)\nprint(y)\n\n\nI panicked. Not because the code was complex. Because I had never practiced reading code without running it. I always had a terminal open. I always just hit enter and saw the answer.\nI guessed wrong. The interview ended shortly after.\nWriting code and reading code are two completely different skills.\nWhen you write code, you control every variable. You know what you intended. You can iterate, adjust, and run it to verify.\nWhen you read code, you have to reverse engineer someone else's intentions. You have to simulate the interpreter in your head. You have to track every state change without making a single mistake.\nInterviewers test reading specifically because it reveals genuine understanding. Anyone can memorize a sorting algorithm. Not everyone can trace through 15 lines of code under pressure and predict the exact output.\nBy the way, the output is:\n[1, 2, 3, 4, 5, 6, 7]\n[1, 2, 3, 4, 5, 6, 7]\n\n\nBoth variables print the same thing because y = x does not create a copy. Both names point to the same list object. The += operator on a list calls __iadd__ which extends the list in place rather than creating a new one.\nIf the interviewer had used y = y + [6, 7] instead of y += [6, 7], the result would be different. That distinction is exactly what they were testing.\nThe method is simple and slightly boring, which is why most people skip it.\nTake any Python snippet from a blog post, a Stack Overflow answer, or a tutorial. Before running it, write down on paper what you think it outputs. Track every variable in a small table. Then run it and compare.\nIf you were right, move to something harder. If you were wrong, find the exact line where your prediction diverged from reality a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我因为能写代码但不会读代码而失败了Python面试",
+        "summary": "面试官的代码阅读问题暴露了编写代码(你可以控制变量)和阅读代码(你必须在压力下心理追踪执行过程)之间的差距。该候选人尽管进行了三个月的LeetCode准备仍然失败了,这揭示了面试准备需要在没有终端的情况下模拟解释器的行为。这个技能差距直接衡量了理解深度,而编写代码练习无法做到这一点。"
+      }
+    }
+  },
+  {
+    "title": "Winograd convolutions cost us 2 mAP and we didn't notice for a month",
+    "slug": "winograd-convolutions-accuracy-loss",
+    "url": "https://dev.to/marcorinaldi_ai/winograd-convolutions-cost-us-2-map-and-we-didnt-notice-for-a-month-1b3e",
+    "source": "DEV Community",
+    "date": "2026-06-17T07:22:23.000Z",
+    "summary": "Enabling Winograd convolution optimization reduced latency by 18% on a pedestrian detector but caused a silent 2.1 mAP accuracy drop from F(4,3) transform overflow in fp16 precision. The accuracy loss remained hidden for a month because it fell within normal training variance in aggregate metrics, surfacing only when broken down by object size. This case demonstrates how optimization-induced failures can hide inside high-level performance dashboards.",
+    "content": "TL;DR: We turned on Winograd convolution to shave latency off a pedestrian detector running on a Cortex-A53, got a clean 18% speedup, and silently lost 2.1 mAP because the F(4,3) transform overflowed in fp16. The accuracy drop hid inside our aggregate metric for almost a month before a per-distance breakdown caught it.\nSo, the thing is, Winograd convolution is one of those optimisations that looks free. You replace the direct 3x3 convolution with a set of input transforms, elementwise multiplies, and an output transform, and the arithmetic count drops. For F(4,3), the standard tiling, you go from 36 multiplies per output tile down to 16. On paper that's a 2.25x reduction in MACs for your 3x3 layers, and 3x3 is most of a modern backbone.\nWe run a small detector on a Cortex-A53 board for an indoor people-counting product, MobileNetV3 backbone, roughly 4.2M params after pruning. The team is three CV engineers and one firmware person. We had a 41ms inference budget and were sitting at 39ms, which is the kind of margin that keeps you up at night.\nOur runtime exposes Winograd as a per-layer flag. We flipped it on for every 3x3 stride-1 layer, rebuilt, and measured.\n# before\n./bench --model det_v3.onnx --conv-algo direct\n# mean 39.1ms  p99 44.0ms\n\n# after\n./bench --model det_v3.onnx --conv-algo winograd-f43 --precision fp16\n# mean 32.0ms  p99 35.8ms\n\n18% off the mean, p99 comfortably under budget. We shipped it. Espresso, done, on to the next ticket.\nThe detector's overall mAP on our validation set moved from 0.612 to 0.608. Four thousandths. That's inside the noise we normally see between training runs, so nobody blinked. We pin our eval against a fixed 3,800-image set and a 0.004 wobble is genuinely not signal most days.\nThe problem only showed up when a customer reported that the counter undercounted in a large open atrium. People far from the camera, small in the frame, were getting dropped. When we broke mAP down by object size instead of looking at the single number,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Winograd卷积让我们损失了2个mAP,我们一个月都没发现",
+        "summary": "启用Winograd卷积优化使行人检测器的延迟降低了18%,但由于fp16精度下F(4,3)变换溢出导致了2.1 mAP精度的无声下降。精度损失隐藏了一个月,因为它落在总体指标中的正常训练方差范围内,只有在按对象大小分解时才会浮现。这个案例展示了优化引起的故障如何隐藏在高级性能仪表板内。"
+      }
+    }
+  },
+  {
+    "title": "Building a static repository for print-perfect PDFs",
+    "slug": "printablecove-static-pdf-repository",
+    "url": "https://dev.to/lyyluca/building-a-static-repository-for-print-perfect-pdfs-27p8",
+    "source": "DEV Community",
+    "date": "2026-06-17T07:20:28.000Z",
+    "summary": "PrintableCove is a lightweight static site built with Astro and Tailwind that serves print-perfect PDF templates with instant global loading under 200ms and pixel-accurate rendering at 300 DPI. Vector-based PDF exports and CSS print media rules ensure millimeter precision across Letter and A4 sizes without database overhead. The architecture demonstrates how static generation enables both extreme performance and perfect print fidelity.",
+    "content": "Most print-ready websites are slow, bloated, and covered in ads. I wanted to build a clean directory for paper templates that loads instantly and prints perfectly.\nI built PrintableCove to solve this. \nThe tech stack is lightweight: Astro for generating static pages and Tailwind CSS for styling. The major technical challenge was ensuring that the PDF files and print stylesheets rendered exactly to scale. When dealing with graph paper or lined paper, a millimeter deviation on screen can ruin the physical print grid. \nTo solve this, I designed the PDF templates directly using vector exports to guarantee clean scaling at 300 DPI on standard Letter and A4 sizes. I also implemented CSS @media print rules on the web previews to hide layout grids and menus, allowing users to print directly from the browser window if they choose not to download the PDF. \nHosting static assets on a global CDN means the site loads in under 200ms anywhere in the world. No databases, no dynamic server lag, just clean vector resources ready for the physical world.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建用于打印完美 PDF 的静态仓库",
+        "summary": "PrintableCove 是一个用 Astro 和 Tailwind 构建的轻量级静态网站，可提供打印完美的 PDF 模板，全球加载时间不到 200 毫秒，支持 300 DPI 像素精确渲染。基于矢量的 PDF 导出和 CSS 打印媒体规则可确保在 Letter 和 A4 尺寸上实现毫米级精度，无需数据库开销。该架构展示了静态生成如何同时实现极高性能和完美打印保真度。"
+      }
+    }
+  },
+  {
+    "title": "Why I stopped using cloud-based JSON and XML formatters (And what I built instead)",
+    "slug": "freeclienttoolbox-browser-formatters",
+    "url": "https://dev.to/ajay_kumar_a1b062d94e22dc/why-i-stopped-using-cloud-based-json-and-xml-formatters-and-what-i-built-instead-4k6l",
+    "source": "DEV Community",
+    "date": "2026-06-17T07:18:17.000Z",
+    "summary": "FreeClientToolbox provides 180+ browser-based utilities for JSON, XML, and data formatting that process all data locally via JavaScript and WebAssembly, eliminating privacy concerns from pasting PII into cloud services. The approach handles massive files without network latency or backend processing and remains functional offline after initial load. This directly addresses compliance risks inherent in using third-party online tools for sensitive data.",
+    "content": "As developers, we constantly copy-paste data into online formatters, decoders, and tools. But have you ever stopped to think where that data goes? If you're pasting an API response with PII (Personally Identifiable Information) into a random cloud formatter, you might be violating compliance rules.\nThat’s why I created FreeClientToolbox. It’s a suite of over 180 utilities where all processing happens directly in the browser via JavaScript and WebAssembly. \nZero Latency: No waiting for network requests.\nInfinite File Sizes: Our XML Viewer & Formatter handles massive files without crashing because it doesn't need to POST the data to a backend.\nAbsolute Privacy: Unplug your internet after loading the page, and the tools still work!\nI built this for the community. Try it out and let me know your thoughts!\n(If you have 10 seconds, test the XML formatter with a huge file and let me know if it lags for you!)",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我为什么停止使用基于云的 JSON 和 XML 格式化工具（以及我构建的替代方案）",
+        "summary": "FreeClientToolbox 提供了 180 多个基于浏览器的 JSON、XML 和数据格式化工具，通过 JavaScript 和 WebAssembly 在本地处理所有数据，消除了将个人身份信息粘贴到云服务的隐私顾虑。该方法可处理大型文件而无需网络延迟或后端处理，并在初始加载后保持离线功能。这直接解决了使用第三方在线工具处理敏感数据固有的合规风险。"
+      }
+    }
+  },
+  {
+    "title": "The Biggest Challenges Software Developers Are Facing in 2026",
+    "slug": "software-developer-challenges-2026",
+    "url": "https://dev.to/subhajit_das_7a6bc5db0602/the-biggest-challenges-software-developers-are-facing-in-2026-26hl",
+    "source": "DEV Community",
+    "date": "2026-06-17T07:16:38.000Z",
+    "summary": "Software developers in 2026 face converging challenges including AI tool integration, rapidly evolving technologies, technical debt accumulation, cybersecurity threats, and burnout from competing priorities. Success requires developers to combine continuous learning, security awareness, and collaboration skills beyond pure coding ability. The trend suggests adaptability and lifelong learning are becoming as essential as technical expertise.",
+    "content": "Software development is evolving faster than ever, but developers are facing several new challenges:\n🔹 Keeping Up with AI Tools\n🔹 Rapidly Changing Technologies\n🔹 Technical Debt\n🔹 Cybersecurity Threats\n🔹 Burnout and Workload Pressure\n🔹 Balancing Speed vs. Quality\n🔹 Remote Collaboration Challenges\n💡 The Way Forward\nSuccessful developers today are not just coders—they are continuous learners, problem solvers, security-conscious engineers, and effective collaborators.\nThe future belongs to developers who can combine technical expertise with adaptability and lifelong learning.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "2026 年软件开发人员面临的最大挑战",
+        "summary": "2026 年软件开发人员面临着汇聚的挑战，包括 AI 工具集成、快速演变的技术、技术债积累、网络安全威胁和竞争优先级导致的倦怠。成功需要开发人员结合持续学习、安全意识和协作技能，而不仅仅是纯粹的编码能力。这一趋势表明适应性和终身学习正在变得与技术专业知识一样重要。"
+      }
+    }
+  },
+  {
     "title": "The Data Refinery: How JSON Quietly Became the Language AI Agents Speak",
     "slug": "json-serialization-ai-agents",
     "url": "https://dev.to/genildocs/the-data-refinery-how-json-quietly-became-the-language-ai-agents-speak-mc1",
