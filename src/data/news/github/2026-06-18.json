@@ -1,5 +1,197 @@
 [
   {
+    "title": "Your LLM shouldn't be handling if/else logic. Here's a smarter way.",
+    "slug": "llm-shouldnt-handle-if-else-logic",
+    "url": "https://dev.to/tbilaszewski/your-llm-shouldnt-be-handling-ifelse-logic-heres-a-smarter-way-5d4p",
+    "source": "DEV Community",
+    "date": "2026-06-18T13:06:14.000Z",
+    "summary": "Article argues for hybrid AI architecture that uses deterministic rules for known cases while routing only genuinely unknown scenarios to LLMs. This approach eliminates unnecessary inference costs while preserving LLM value for edge cases. The author discusses problems with both pure if/elif chains and all-LLM approaches, proposing a rules engine as the solution.",
+    "content": "I. The Expensive if/else Statement\n\n\nLLMs are remarkably good at handling the unknown. Give them an edge case you've never anticipated, and they'll reason through it correctly. That's genuine value.\nThe problem is that most of your traffic isn't unknown. A payment that failed on the third retry, a VIP customer with a disputed charge, an order flagged at 0.9 risk score — you already know what to do with these. But if your architecture routes everything through the LLM, it pays full inference cost regardless:\nfrom pydantic_ai import Agent\nfrom enum import Enum\n\nclass Action(Enum):\n    FLAG_FRAUD = \"flag_fraud\"\n    OPEN_DISPUTE = \"open_dispute\"\n    SCHEDULE_RETRY = \"schedule_retry\"\n    ALERT_ACCOUNT_MANAGER = \"alert_account_manager\"\n    STANDARD_PROCESSING = \"standard_processing\"\n\nagent = Agent(\n    \"openai:gpt-4o-mini\",\n    output_type=Action,\n    system_prompt=\"Decide what action to take on this order event.\",\n)\n\nasync def handle(event: dict) -> Action:\n    result = await agent.run(str(event))\n    return result.output\n\nThis works. It also pays LLM prices for decisions that — in a large portion of cases — are already fully determined by the input data.\nThe obvious fix — an if/elif pre-filter — creates a different problem. It works until you have 15 conditions, three engineers with conflicting opinions, a silent ordering bug, and tests that only verify outputs, not the logic structure itself. The spaghetti grows fast.\nWhat you actually need is a layer that:\ncodifies what you already know as explicit, deterministic rules — zero API cost, microsecond latency\nroutes only the genuinely unknown cases to the LLM\nstays auditable, testable, and readable as it grows\nThat's exactly what airules is built for. By the end of this article you'll have a working hybrid system that reserves the LLM for what it's actually good at — and handles everything else for free.\nThe problem with raw if/elif chains isn't just readability. event[\"risk_score\"] is untyped — a missing key silently rai",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的LLM不应该处理if/else逻辑。这是一个更聪明的方法。",
+        "summary": "文章主张采用混合AI架构，对已知情况使用确定性规则，仅将真正未知的情况路由给LLM。这种方法消除了不必要的推理成本，同时保留了LLM在边界情况中的价值。作者讨论了纯if/elif链和全LLM方法的问题，提出规则引擎作为解决方案。"
+      }
+    }
+  },
+  {
+    "title": "You posted once, got silence, and moved on. Here's what I built instead.",
+    "slug": "marketing-pipeline-social-posting",
+    "url": "https://dev.to/palo_alto_ai/you-posted-once-got-silence-and-moved-on-heres-what-i-built-instead-5c08",
+    "source": "DEV Community",
+    "date": "2026-06-18T13:05:38.000Z",
+    "summary": "Developer built a marketing automation tool that rotates content across social platforms daily, using Claude to generate project angles during onboarding. The system includes safeguards against low-quality marketing language and routes submissions to platform-specific directories. It maintains consistent visibility for tools without solving cold-start distribution.",
+    "content": "The pattern is consistent: ship something, post to Hacker News or a subreddit, get a small spike, then nothing. Not because the tool isn't useful — because staying visible requires showing up every few days across Bluesky, Mastodon, Dev.to, Hashnode, and a half-dozen directories. That's repetitive work that doesn't compound the way code does, and I kept skipping it.\nSo I built marketing-pipeline: a daily cron that rotates content across four social platforms and submits to type-specific directories, configured once per project.\nOnboarding a new project is one command:\nmarketing onboard --name my-tool --repo owner/repo --kind mcp-server\n\nThat fetches the README, sends it to Claude, and writes the project's problem statement, facts, and rotation angles to projects.yml. From that point the daily GitHub Actions job at 14:00 UTC picks up the project, selects the least-recently-used angle, generates platform-appropriate copy, and posts it — Bluesky at 300 chars, X at 280, Mastodon and Dev.to/Hashnode at their respective limits.\nThe part I spent the most time on was an anti-slop gate in pipeline/antislop.py that hard-rejects specific tokens before anything goes out: excited, game-changer, unlock, empower, AI-powered, emoji, hashtags, and exclamation points. The generated posts read like a practitioner wrote them or they don't go out.\nDirectory routing is based on the kind field. An mcp-server gets submitted to the MCP Registry, Smithery, Glama, and PulseMCP. A claude-skill hits awesome-claude-code (payload generated, but their rules require a human to submit via their GitHub issue form — that one can't be automated). A browser-extension goes to Chrome Web Store, Firefox AMO, and Edge Add-ons.\nWhat this doesn't solve: cold starts. If nobody knows your project exists, the pipeline just keeps posting into the void at a consistent cadence. It's distribution maintenance, not distribution creation. But for tools that got one spike and then faded, consistent presence compounds ov",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你发布了一次，得到了沉默，然后放弃了。这是我构建的东西。",
+        "summary": "开发者构建了一个营销自动化工具，每天在社交平台间轮换内容，在入职期间使用Claude生成项目角度。该系统包括针对低质量营销语言的防护措施，并将提交内容路由到特定平台目录。它为工具维持一致的可见性，但没有解决冷启动分发问题。"
+      }
+    }
+  },
+  {
+    "title": "Surviving the Antigravity 2.0 Update: How Google Broke My Workflow (And How to Fix It)",
+    "slug": "surviving-antigravity-2-0-update",
+    "url": "https://dev.to/aviperera/surviving-the-antigravity-20-update-how-google-broke-my-workflow-and-how-to-fix-it-409l",
+    "source": "DEV Community",
+    "date": "2026-06-18T13:05:03.000Z",
+    "summary": "Google's Antigravity 2.0 update split a monolithic IDE into separate orchestration, editor, CLI, and SDK components while removing direct code editing from the main app. The redesign reflects Google's philosophy that developers should direct AI agents rather than edit manually. The article explains changes and recovery steps for users needing traditional workflows.",
+    "content": "I was right in the middle of a serious coding session when, without warning, my entire development environment was hijacked. My familiar code editor, file tree, and integrated terminal vanished, instantly replaced by a blank, chat-only “Agent Manager” dashboard.\nAs someone who relies almost entirely on the classic IDE to get actual development work done, having my productivity shattered by an unprompted, forced update was incredibly annoying. I lost hours of work just trying to figure out where my code went and how to revert my system back to a functional state.\nIf you were similarly flashbanged by the Antigravity 2.0 update, here is a complete breakdown of what Google changed, the data behind the new features, why it broke our setups, and the exact steps I used to repair my workspace.\nThe Big Split: Separation of the IDE\nGoogle’s underlying philosophy with the 2.0 release is that developers shouldn’t be editing code line-by-line anymore; they should be directing AI agents to do it for them.\nBecause of this, Google completely transformed Antigravity from a single IDE into a four-part platform:\nAntigravity 2.0 (Desktop App): A standalone orchestration hub for managing multiple agents. It completely removes the built-in code editor.\nAntigravity IDE: The original VS Code fork we know and love, which has now been sidelined into a separate program.\nAntigravity CLI: A terminal-native interface.\nAntigravity SDK: For self-hosting agent infrastructure.\nThe Data: Antigravity 1.0 vs. Antigravity 2.0\nIf you are wondering what actually changed under the hood, here is a breakdown of the differences between the classic workflow and the new platform:\n\n\nFeature\nAntigravity 1.x (Classic IDE)\nAntigravity 2.0 (New Platform)\n\n\nArchitecture\nA single VS Code fork\nSplit into Desktop App, IDE, CLI, and SDK\n\n\nCode Editor\nBuilt-in and central to the UI\n\nRemoved entirely from the main app\n\n\nAI Engine\nGemini 3.1 Pro/Flash\nGemini 3.5 Flash (12x faster)\n\n\nAgent Execution\nSingle, sequential agent",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "生存反重力2.0更新：谷歌如何破坏了我的工作流程（以及如何修复）",
+        "summary": "谷歌的反重力2.0更新将单一IDE拆分为单独的编排、编辑器、CLI和SDK组件，同时从主应用中删除了直接代码编辑。该设计变更反映了谷歌的哲学，即开发者应该指导AI代理而不是手动编辑。文章解释了变更和为需要传统工作流程的用户提供的恢复步骤。"
+      }
+    }
+  },
+  {
+    "title": "Gym Badges of Agentic Engineering (Part 1): Measuring Agent Success",
+    "slug": "gym-badges-measuring-agent-success",
+    "url": "https://dev.to/mrclaw207/gym-badges-of-agentic-engineering-part-1-measuring-agent-success-3nlp",
+    "source": "DEV Community",
+    "date": "2026-06-18T13:04:30.000Z",
+    "summary": "Article proposes measuring agent success with operational badges—Safety Guard for prompt-injection resistance, Sandbox Master for code containment, Transparency for audit logging, and Efficiency for token budgets. These metrics capture behavioral nuance beyond latency and cost. Each represents an independent production-readiness criterion.",
+    "content": "If you’ve ever played a video game, you know the thrill of earning a badge for mastering a skill.  In the world of AI agents, the same principle applies: we need concrete ways to measure how well an agent does its job.\nBadges give us three things:\nA clear goal – the agent knows what “success” looks like.\nImmediate feedback – just like a game HUD, the agent can see when it’s earned or missed.\nA shared language – engineers and product teams can talk about “badge X” instead of vague “accuracy” prose.\nIn production today, most teams rely on raw metrics (latency, cost, error rate).  Those numbers are useful, but they don’t capture behavioural nuance: does the agent keep the user in the loop? Does it avoid unsafe actions? Does it recover gracefully from failures?\nBelow are four badges that map directly to the patterns we see working on DEV.to this week – security checklists, sandbox execution, and prompt‑injection resilience.\n🛡️ Safety Guard Badge – The agent refuses to execute any tool call that matches a prompt‑injection signature.  Implementation: a regex whitelist plus a sandbox‑escape detector.  When the guard fires, the badge is awarded for zero unsafe calls over a 24‑hour window.\n⚙️ Sandbox Master Badge – The agent runs all external code inside a dedicated MCP sandbox with strict resource caps.  Success is logged when no sandbox‑escape events are recorded.\n🔍 Transparency Badge – Every tool invocation is logged to a human‑readable audit trail, and the agent includes a short explanation in its response.  The badge is earned when the audit log contains at least one entry per user request for a day.\n🚀 Efficiency Badge – The agent stays under a configurable token‑budget (e.g., 1 k tokens per request) while maintaining a minimum 80 % success‑rate on task completion.  The badge is given when the budget is respected for 100 consecutive calls.\nThese badges are orthogonal: you can earn any subset.  Together they describe a robust, production‑ready agent.\nAdd a thin wrappe",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "智能体工程的体操徽章（第1部分）：衡量智能体的成功",
+        "summary": "文章提议用操作徽章来衡量智能体的成功——安全卫士用于提示注入抵抗，沙箱主人用于代码隔离，透明度用于审计日志，效率用于令牌预算。这些指标捕捉了超越延迟和成本的行为细微差别。每一个都代表一个独立的生产就绪标准。"
+      }
+    }
+  },
+  {
+    "title": "We scanned 12 popular MCP servers. The most interesting finding was our own false positives.",
+    "slug": "scanned-12-popular-mcp-servers",
+    "url": "https://dev.to/mcpcustoms/we-scanned-12-popular-mcp-servers-the-most-interesting-finding-was-our-own-false-positives-kcf",
+    "source": "DEV Community",
+    "date": "2026-06-18T13:04:26.000Z",
+    "summary": "Security scan of 12 popular MCP servers exposed false positives in automated scanning, which couldn't distinguish test code from runtime code. Two high-profile servers appeared critically vulnerable but had zero actual issues when test fixtures were excluded. The real finding: current heuristic scanners need refinement to avoid flagging development code.",
+    "content": "We built mcp-customs, a free, offline CLI that checks an MCP server for\nnpm audit, but\nWe pulled the current top MCP-related repos on GitHub by star count and\n\n\n\nServer\nStars\nScore\nStamp\n\n\n\n\ngithub/github-mcp-server\n30.8k\n97/100\nCLEARED\n\n\nBeehiveInnovations/pal-mcp-server\n11.6k\n0/100\nFLAGGED*\n\n\nfirecrawl/firecrawl-mcp-server\n6.6k\n97/100\nCLEARED\n\n\nexa-labs/exa-mcp-server\n4.6k\n97/100\nCLEARED\n\n\nmakenotion/notion-mcp-server\n4.4k\n29/100\nFLAGGED\n\n\nantvis/mcp-server-chart\n4.2k\n94/100\nCLEARED\n\n\nharis-musa/excel-mcp-server\n3.9k\n97/100\nCLEARED\n\n\ncloudflare/mcp-server-cloudflare\n3.9k\n0/100\nFLAGGED\n\n\nbrowserbase/mcp-server-browserbase\n3.4k\n22/100\nFLAGGED\n\n\nblazickjp/arxiv-mcp-server\n2.9k\n94/100\nCLEARED\n\n\nJpisnice/shadcn-ui-mcp-server\n2.8k\n0/100\nFLAGGED*\n\n\nstickerdaniel/linkedin-mcp-server\n2.4k\n94/100\nCLEARED\n\n\n\n*see below — these two scores don't mean what they look like they mean.\nEleven of twelve servers had zero permission or scope declaration in\nBefore publishing anything, we split every finding into \"runtime code\"\nsubprocess.run(shell=True) in a\npal-mcp-server scored 0/100 with 13 findings. Every single one was\nin tests/ or simulator_tests/ — fake API keys used to test a PII\nsanitizer, and a shell=True call in a test for a security-audit\nfeature. Runtime-code findings: zero.\nshadcn-ui-mcp-server also scored 0/100. Two of its three findings\nwere execSync() calls in a release-versioning script\n(scripts/bump-version.js) — not reachable by an agent, just a\nmaintainer running npm version.\nWe also caught our own bug mid-process: the scanner initially\nflagged a commented-out eval() call in notion-mcp-server as critical.\nIt was inside a // comment. We fixed comment-stripping before\nre-running anything in this post — an earlier draft of this table\nwould have been wrong.\nA heuristic scanner that can't tell test code from runtime code, or a\nAfter filtering out test/dev noise, two real-code patterns remained that\ncloudflare/mcp-server-cloudflare, sandbox.container.app.ts: a\nfile read",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我们扫描了12个流行的MCP服务器。最有趣的发现是我们自己的误报。",
+        "summary": "对12个流行MCP服务器的安全扫描暴露了自动扫描中的误报问题，该扫描无法区分测试代码和运行时代码。两个高调的服务器在排除测试夹具时显得严重易受攻击，但实际上没有任何问题。真正的发现：当前的启发式扫描器需要改进以避免标记开发代码。"
+      }
+    }
+  },
+  {
+    "title": "My Cloud Journey Begins: Starting My AWS Learning Path 🚀",
+    "slug": "my-cloud-journey-begins-aws",
+    "url": "https://dev.to/akash_s_08/my-cloud-journey-begins-starting-my-aws-learning-path-41ja",
+    "source": "DEV Community",
+    "date": "2026-06-18T13:04:12.000Z",
+    "summary": "College student documents AWS learning journey, planning certifications, cloud projects, and community engagement across EC2, S3, IAM, and networking topics. The post emphasizes learning in public to maintain motivation and connect with other developers. It captures foundational cloud infrastructure concepts essential for modern application deployment.",
+    "content": "My Cloud Journey Begins 🚀\n\n\nHello everyone!\nMy name is Akash, and I am a college student passionate about technology, cloud computing, and software development.\nToday marks the beginning of my AWS learning journey. I have decided to explore cloud computing because it powers many of the applications and services we use every day.\nAWS is one of the leading cloud platforms in the world. Learning AWS will help me understand:\nCloud fundamentals\nStorage and databases\nNetworking concepts\nSecurity best practices\nScalable application deployment\nOver the next few months, I plan to:\n✅ Complete AWS Skill Builder courses\n✅ Earn AWS certifications\n✅ Build cloud-based projects\n✅ Share my learning publicly\n✅ Connect with the AWS community\nI am currently focusing on:\nCloud Computing Basics\nAWS Global Infrastructure\nAmazon EC2\nAmazon S3\nAWS IAM\nI believe learning in public helps us stay motivated and connect with like-minded people.\nThis is my first post, and I'll be sharing my progress, projects, challenges, and lessons learned along the way.\nThank you for reading!\nLet's build and learn together. ☁️\n\n\n  \n  \n  AWS #CloudComputing #LearningInPublic #Students #DeveloperJourney",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我的云之旅开始了：开启我的AWS学习之路 🚀",
+        "summary": "大学生记录AWS学习之旅，计划跨EC2、S3、IAM和网络主题的认证、云项目和社区参与。该帖子强调在公众场合学习以保持动力并与其他开发人员联系。它捕捉了对现代应用程序部署至关重要的基础云基础设施概念。"
+      }
+    }
+  },
+  {
+    "title": "AI News Top 3 — ChatGPT runs on a schedule, your phone makes AI video, and SpaceX buys Cursor",
+    "slug": "ai-news-chatgpt-gemini-spacex",
+    "url": "https://dev.to/danio_dev/ai-news-top-3-chatgpt-runs-on-a-schedule-your-phone-makes-ai-video-and-spacex-buys-cursor-2pbg",
+    "source": "DEV Community",
+    "date": "2026-06-18T13:00:00.000Z",
+    "summary": "Three recent AI developments: OpenAI added scheduled job execution to ChatGPT, Google released on-device video and music generation, and SpaceX acquired Cursor. These moves signal shifts from on-demand assistance to background automation and accelerating consolidation of AI code editors under major tech companies. Most code editors now operate within corporate infrastructure.",
+    "content": "Three moves worth a builder's attention today.\nOpenAI added a Scheduled page: create, track, pause, resume, edit, and delete reminders, recurring jobs, and monitoring tasks. It shifts ChatGPT from answering-on-demand to running jobs and watching conditions on its own.\nPractical move: wire up one recurring check you keep doing by hand (a daily digest, a status poll) and let it run.\nSource: https://help.openai.com/en/articles/6825453-chatgpt-release-notes\nGemini Omni creates and edits video from a text prompt.\nLyria 3 generates custom music with your own vocals and tempo.\nConversational Photos editing expands to more devices.\nThe desktop app is no longer the gatekeeper for generation — a lot of \"make me a clip/track\" now happens on-device.\nSource: https://9to5google.com/2026/06/16/june-2026-pixel-feature-drop/\nElon Musk's SpaceX signed an all-stock deal to buy Anysphere (Cursor) to feed its Grok model and Colossus datacenter. Cursor's market share had slipped to ~26% from ~41%.\nThe bigger picture for devs: nearly every major AI code editor — Copilot, Claude Code, Codex/Windsurf, Grok Build, Cursor — now sits inside a tech giant. Tabnine is one of the few still independent. Worth thinking about lock-in and where your daily editor's incentives point.\nSource: https://www.cnbc.com/2026/06/16/spacex-spcx-cursor-acquisition-ipo.html\nWatch the 2-minute version: https://www.youtube.com/shorts/ahqxHExCSSw\nFiltered for builders — daily. Follow for the next one.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI 新闻 Top 3——ChatGPT 支持定时运行，你的手机能生成 AI 视频，SpaceX 收购 Cursor",
+        "summary": "三个最近的 AI 发展：OpenAI 为 ChatGPT 添加了定时任务执行功能，Google 发布了设备端视频和音乐生成，SpaceX 收购了 Cursor。这些举动表明从按需协助向后台自动化的转变，以及 AI 代码编辑器在大科技公司下加速整合。大多数代码编辑器现在都在企业基础设施内运行。"
+      }
+    }
+  },
+  {
+    "title": "Ninety-one percent accurate is not what it sounds like",
+    "slug": "ninety-percent-accurate-ai-overviews",
+    "url": "https://dev.to/arthurpro/ninety-one-percent-accurate-is-not-what-it-sounds-like-3ji7",
+    "source": "DEV Community",
+    "date": "2026-06-18T13:00:00.000Z",
+    "summary": "Google's AI Overviews report 91% accuracy but deeper analysis found 56% of answers lack grounding in cited sources, with citation fidelity declining even as raw accuracy improved. This structural pattern reveals a tension between optimization for accuracy and faithfulness to actual sources. The finding directly affects how much trust users should place in AI-summarized search.",
+    "content": "The April 2026 New York Times commission of Oumi to test Google's AI Overviews against the SimpleQA benchmark produced two numbers that were widely reported and one that mostly was not. The widely reported numbers: 85% accuracy on Gemini 2 in the AI Overview slot, 91% on Gemini 3. Roughly one in ten answers wrong, in headlines from TechSpot, Futurism, Newsweek, BigGo, TechRepublic, Breitbart, Computing.co.uk, Newsbytes, Algorythmic, and DigitalToday. The number that mostly didn't make the headlines, but should have: among the answers the benchmark scored as correct, Oumi tracked how often the AI Overview's stated claim was actually supported by the source it cited, and the un-supported rate grew between the model upgrades — 37% of correct answers ungrounded on Gemini 2, 56% on Gemini 3. The model got more accurate; its summaries got less faithful to what their citations actually said.\nThat is the part of the story that I want to spend most of this essay on, because once you sit with it for a moment it stops looking like a quirk of one analysis and starts looking like the shape of the entire AI-search class of product. The 9% error number is interesting; the source-claim divergence is structural; and the trust-budget the interface establishes against either of them is the thing that determines whether your week of casually reading AI-summarised search results was useful or actively misleading.\nThe arithmetic is unkind. SimpleQA is OpenAI's 4,326-question benchmark of short fact-seeking questions, each constructed to have a single time-stable answer that two independent annotators agreed on, and each filtered through a third annotator on a thousand-question subset for additional QA. It is a clean benchmark — almost cruelly so. The questions are not the kind of thing your laptop's AI search receives in a normal day. SimpleQA asks \"Who was the second-place finisher in the 1992 IOC presidential election?\" and your laptop is asked to compare two pairs of trail-running sho",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "百分之九十一的准确率不是看起来那样",
+        "summary": "Google 的 AI Overviews 声称准确率为 91%，但更深入的分析发现 56% 的答案缺乏引用来源的基础，且即使原始准确率有所提高，引用保真度反而在下降。这种结构性模式揭示了准确性优化与对实际来源忠实度之间的矛盾。这一发现直接影响用户应该对 AI 摘要搜索给予多少信任。"
+      }
+    }
+  },
+  {
+    "title": "🔥 Claude Code Is (Seriously) Burning Me Out",
+    "slug": "claude-code-productivity-burnout",
+    "url": "https://dev.to/alextongme/claude-code-is-seriously-burning-me-out-276b",
+    "source": "DEV Community",
+    "date": "2026-06-18T13:00:00.000Z",
+    "summary": "Developer describes how Claude Code increased productivity while accelerating burnout, as faster feedback loops reveal an endless backlog of possible projects. Each shipped feature exposes the next opportunity, creating a psychological trap where everything feels achievable. The productivity gain reveals rather than solves the infinite backlog problem.",
+    "content": "Claude Gave Me a Productivity Problem\n\n\nI'm more productive than I've ever been in my life, full stop.\nI'm also more burned out than I've ever been in my life, full stop.\nThose two things are not a coincidence. That's the whole point of this article.\nHere's what actually happens when Claude Code starts working for you:\nYou ship something fast. Like, embarrassingly fast. You see results. You see what's NEXT. You build that too. You see what's next after that. You build that too.\nShip fast → see results fast → see MORE to build → say yes to all of it → repeat.\n📊 See the diagram on alextong.me →\nIt's not a bug. It's the design. Faster feedback loops make the backlog feel shrinkable. The backlog is never shrinkable. It's infinite. You just have a better view of it now.\nI call it the Catch-22 of AI productivity. Claude Code doesn't give you more time. It gives you more visibility into everything you could build. And the gap between \"what exists\" and \"what's possible\" is bottomless.\nLet me be specific, because vague burnout talk is useless. In the last few months I have:\nFully shipped Count Tongula's Eye Break — my free macOS app that enforces the 20-20-20 rule (Eye health is so important!)\nCompletely rebuilt my personal portfolio website from scratch\nSetup my first OpenClaw\nStarted creating my own soda\nCompletely rebuilt 7 web development portfolio projects from half a decade ago\nFinished producing my next dance track — drops April 3rd\nThat's not a side project list. That's a whole creative life that Claude Code made feel simultaneously possible. Every single one of those things felt easy-ish. Low activation energy. Just spin up a session and go.\nThat's the trap.\nWhen everything feels small and easy, you say yes to everything. And then you wake up and you're maintaining five projects, you have a 40-hour day job, and you haven't slept more than 4-5 hours a night in two weeks.\nSteve Yegge — former engineer at Google and Amazon — wrote about what he called \"sleep attacks.\"",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "🔥 Claude Code 让我（严重）过度疲劳",
+        "summary": "开发者描述了 Claude Code 如何在增加生产力的同时加速倦怠，因为更快的反馈循环暴露了无尽的项目待办事项。每个已发布的功能都揭示了下一个机会，形成了一个心理陷阱，使一切都显得可以实现。生产力的提升揭示而非解决了无限待办事项的问题。"
+      }
+    }
+  },
+  {
+    "title": "I've been doing Dependency Injection in Node.js without decorators for 9 years. Here's why I still think it's the right call.",
+    "slug": "dependency-injection-without-decorators",
+    "url": "https://dev.to/zazoomauro/ive-been-doing-dependency-injection-in-nodejs-without-decorators-for-9-years-heres-why-i-still-5388",
+    "source": "DEV Community",
+    "date": "2026-06-18T12:55:47.000Z",
+    "summary": "Decorator-based dependency injection couples domain logic to framework infrastructure, violating separation of concerns and making services harder to move or test independently. External configuration files keep services framework-agnostic while enabling context-based injection. This approach mirrors Symfony's design and maintains cleaner domain boundaries.",
+    "content": "Ok so first, let me be honest. This post is partly me venting.\nI've been maintaining node-dependency-injection for about 9 years now. 300 stars on GitHub. Not exactly viral. And every time I look at InversifyJS or tsyringe climbing in popularity I think \"yeah, but at what cost\".\nSo let me explain my problem with decorators.\nWhen you write this:\n@Injectable()\nexport class UserService {\n  constructor(@Inject(MAILER_TOKEN) private mailer: IMailer) {}\n}\n\nWhere does that @Injectable() live? In your DI framework. Which means your UserService — which is domain logic, business rules, the thing that should outlive any framework decision — now has a direct dependency on your IoC container library.\nYour domain knows about your infrastructure. That's the wrong direction.\nI know, I know. \"It's just a decorator, it doesn't do anything\". But it's still an import. It's still coupling. And if you ever want to swap the container, or move that service somewhere else, or just test it without spinning up the whole container — you now have to think about it.\nWith NDI, your service is just a class:\nexport class UserService {\n  constructor(private mailer: IMailer) {}\n}\n\nThat's it. No imports from my library. No decorators. No metadata. The service doesn't know it's being injected. The wiring lives completely outside — in a YAML file or in a bootstrap file. Your domain stays clean.\nSymfony doesn't use decorators in services actually. The DI config is external — YAML, XML, PHP config files. Your service is just a PHP class. That's literally what inspired NDI from the beginning.\nQuick example. You have two payment providers and you want to inject the right one based on context:\nservices:\n  payment.stripe:\n    class: 'payments/StripePayment'\n    keyed:\n      group: payment\n      key: stripe\n      default: true\n\n  payment.paypal:\n    class: 'payments/PaypalPayment'\n    keyed:\n      group: payment\n      key: paypal\n\n  checkout.service:\n    class: 'CheckoutService'\n    arguments: ['@keyed(payment",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我坚持9年不用装饰器做Node.js依赖注入，这就是原因",
+        "summary": "基于装饰器的依赖注入将领域逻辑与框架基础设施耦合，违反关注点分离原则，使服务难以独立移动或测试。外部配置文件保持服务框架无关性，同时支持上下文注入。这种方法借鉴了Symfony的设计，维持了更清晰的领域边界。"
+      }
+    }
+  },
+  {
+    "title": "Generative AI vs Agentic AI vs AI Agents [2026 Compared]",
+    "slug": "generative-ai-vs-agentic-ai-2026",
+    "url": "https://dev.to/kunal_d6a8fea2309e1571ee7/generative-ai-vs-agentic-ai-vs-ai-agents-2026-compared-4o77",
+    "source": "DEV Community",
+    "date": "2026-06-18T12:55:41.000Z",
+    "summary": "Three concepts are often conflated but have distinct meanings: generative AI produces content from prompts, AI agents add planning and tool use, agentic AI orchestrates multi-agent systems. These differences carry profound architectural and cost implications—teams building autonomous systems when prompt-engineering pipelines would suffice. Correct categorization is essential for production decisions.",
+    "content": "Originally published at kunalganglani.com — read it there for inline code, hero image, and live links.\nGenerative AI vs agentic AI vs AI agents. Three terms, used interchangeably by people who should know better, burning engineering budgets across the industry in 2026. Generative AI refers to models that produce new content — text, images, code — from a prompt. AI agents are software systems that wrap those models with planning, memory, and tool use to pursue goals autonomously. Agentic AI is the broader paradigm: orchestrated systems of agents, workflows, and decision-making that operate with minimal human oversight. Getting these distinctions wrong doesn't just lose you a Twitter argument. It determines whether your production system costs $500/month or $50,000.\nEvery quarter, someone on a leadership team says \"we need to go agentic.\" What they usually mean is one of three completely different things. And the architecture you pick for each one has wildly different implications for cost, latency, reliability, and maintenance burden. I've watched teams burn entire quarters building autonomous agent systems when a well-tuned prompt engineering pipeline would have shipped in a week. That's not a hypothetical. I watched it happen twice in 2025.\nThis post cuts through the buzzword soup. I'll define all three paradigms with concrete technical distinctions, show you how they map to real production architectures, and give you a decision framework for picking the right one.\nGenerative AI is the foundation layer. It's a large language model (or image model, or audio model) that takes an input and produces new output. GPT-4, Claude, Gemini, Llama — these are all generative AI. You send a prompt, you get a completion. That's it.\nThe critical thing to understand: generative AI is stateless by default. Each API call is independent. The model doesn't remember what you asked five minutes ago. It doesn't plan a sequence of steps. It doesn't decide to go look something up. It produc",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "生成式AI vs Agentic AI vs AI代理 [2026对比]",
+        "summary": "三个概念经常被混淆但有不同的含义：生成式AI从提示生成内容，AI代理添加规划和工具使用，Agentic AI编排多代理系统。这些差异带来深刻的架构和成本影响——团队在提示工程管道足够时还在构建自主系统。正确的分类对生产决策至关重要。"
+      }
+    }
+  },
+  {
+    "title": "Fencing a node that doesn't know it's dead: pgrac build log #2",
+    "slug": "fencing-node-doesnt-know-dead",
+    "url": "https://dev.to/sqlrush/fencing-a-node-that-doesnt-know-its-dead-pgrac-build-log-2-4i81",
+    "source": "DEV Community",
+    "date": "2026-06-18T12:55:13.000Z",
+    "summary": "PostgreSQL-based RAC implementation must prevent silent corruption when a failed node rejoins believing it still owns shared resources. pgrac's initial defense uses cooperative in-process write-fencing via quorum-backed voting disks. This layer sits above hardware-level I/O fencing and protects against node disagreement without requiring hardware-level STONITH.",
+    "content": "pgrac is an open attempt to rebuild Oracle RAC's core machinery (shared-everything storage, multiple active nodes all writing one database, a cluster-wide change number) on top of PostgreSQL 16. Build log #1 laid out the four problems that fight back. This one is about the problem that turns a node failure into silent data corruption, and the first, deliberately modest, layer pgrac ships against it.\nIn a shared-nothing cluster an evicted node is mostly harmless: it owns its own disks, so the cluster routes around it. In a shared-everything cluster the same event is dangerous, because every node writes the same storage. Picture the classic split: node 2 misses heartbeats, the cluster declares it dead and remasters its work elsewhere, but node 2 is not actually dead. It is frozen on a long GC pause, or its interconnect NIC flaked, and it is about to wake up and finish the write it started. Now two nodes believe they own the same blocks, and shared storage will accept both writes. That is not a crash. It is corruption you find three days later.\nOracle RAC's answer is I/O fencing: before remastering a dead node's resources, you make certain it can no longer touch the storage, with STONITH, SCSI-3 persistent reservations, or a hardware watchdog. The node is fenced at a layer below its own software, because the whole point is that you cannot trust the dead node's software to behave.\nThat hardware layer is real work, and it is not what pgrac built first. What it built first is the layer above it: an in-process cooperative write-fence, now default-ON. The rest of this is precise about what that does and does not buy you, because \"we have fencing\" is the kind of claim that is worth less than nothing if it is overstated.\nYou cannot fence on local opinion, because the whole problem is that the dead node disagrees about being dead. Authority has to live on durable, shared, quorum-backed storage.\npgrac writes a small fence marker into the cluster's voting disks, the same disks u",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "隔离一个不知道自己已宕机的节点：pgrac构建日志#2",
+        "summary": "基于PostgreSQL的RAC实现必须防止当故障节点重新加入时仍然认为自己拥有共享资源而导致的静默损坏。pgrac的初始防御使用通过仲裁支持的投票磁盘进行协作的进程内写入隔离。此层位于硬件级I/O隔离之上，在不需要硬件级STONITH的情况下防止节点分歧。"
+      }
+    }
+  },
+  {
     "title": "CRDT vs OT: Choosing the Right Collaboration Algorithm",
     "slug": "crdt-vs-ot-collaboration-algorithm",
     "url": "https://dev.to/beefedai/crdt-vs-ot-choosing-the-right-collaboration-algorithm-50io",
@@ -188,6 +380,22 @@
       "zh": {
         "title": "ClickHouse合并和变更在生产环境中为何难以追踪",
         "summary": "ClickHouse的后台操作——合并数据部分和执行异步DELETE与UPDATE的变更——对查询性能至关重要，但在缺乏适当监测工具的情况下基本上是不可见的。这些操作可能悄无声息地成为性能瓶颈，减慢查询执行并延迟数据处理，但对其进行监控很困难，因为它们缺乏标准的可观测性集成。虽然system.merges和system.mutations等系统表提供了可见性，但团队需要主动监控来防止生产环境受到影响。"
+      }
+    }
+  },
+  {
+    "title": "Local Qwen isn't a worse Opus, it's a different tool",
+    "slug": "local-qwen-different-tool",
+    "url": "https://blog.alexellis.io/local-ai-is-not-opus/",
+    "source": "Hacker News",
+    "date": "2026-06-18T03:04:20.000Z",
+    "summary": "Local open-source LLMs like Qwen serve different use cases than proprietary cloud models rather than replacing them wholesale. Local models offer privacy, latency, and cost advantages despite lower raw capability. Tool selection should frame around specific requirements rather than pure capability hierarchy.",
+    "content": "Article URL: https://blog.alexellis.io/local-ai-is-not-opus/\nComments URL: https://news.ycombinator.com/item?id=48580209\nPoints: 287\n# Comments: 151",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "本地Qwen不是更差的Opus，而是一个不同的工具",
+        "summary": "本地开源大语言模型（如Qwen）满足不同的使用场景，而不是完全取代专有云模型。本地模型提供隐私、低延迟和成本优势，尽管原始能力较低。工具选择应围绕具体需求而非纯能力层级。"
       }
     }
   },
