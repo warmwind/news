@@ -1,5 +1,229 @@
 [
   {
+    "title": "Cosmic as Agent Memory: Structured, Versioned, and Queryable",
+    "slug": "cosmic-agent-memory-structured-versioned-queryable",
+    "url": "https://dev.to/tonyspiro/cosmic-as-agent-memory-structured-versioned-and-queryable-2ng",
+    "source": "DEV Community",
+    "date": "2026-06-18T18:43:45.000Z",
+    "summary": "AI agents improve significantly with persistent, structured memory that tracks interactions across sessions. The article explores memory architecture with four tiers—working, episodic, semantic, and procedural—and shows how queryable, versioned API-accessible storage enables better agent performance and human oversight.",
+    "content": "AI agents get better the more they run. Every conversation turn, every task completed, every prompt refined adds to a growing body of context that shapes the next output. The compounding effect is real: an agent with 100 turns of memory and a versioned prompt history behaves meaningfully differently from one starting cold.\nThis post walks through using a structured, versioned, API-accessible store as the memory layer for AI agents, with TypeScript examples. Agent messages, system prompts, findings, and instructions are all stored as structured, versioned, API-accessible Objects. Each new turn adds to the record. Each prompt edit is tracked.\nThe compounding loop only works if the memory layer has the right properties. Most agent frameworks handle working memory well. The gap is episodic and semantic memory: what the agent learned, did, and produced across sessions.\nResearchers at Elastic recently published a breakdown of agent memory tiers: working memory (in-context), episodic memory (past interactions), semantic memory (knowledge), and procedural memory (learned behaviors). Good persistent agent memory needs four properties:\nStructured: queryable by type, status, date, or custom field, not just full-text search\nVersioned: you need to know what the agent wrote at each point in time, not just the latest state\nAPI-accessible: any model, any framework, any language should be able to read and write it\nHuman-reviewable: agents make mistakes; a human needs to inspect and correct outputs without touching a database\nWhen an agent produces output, storing it as a structured Object gives you a queryable record with typed fields, a draft/published workflow so a human can review before promoting to production, a full audit trail of every change, REST API access from any runtime, and a dashboard UI where non-technical team members can inspect, edit, or approve agent outputs.\nHere's a simple research agent that stores its findings as Cosmic Objects:\nimport { createBucketClient }",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "宇宙作为代理记忆：结构化、版本化和可查询的",
+        "summary": "AI代理通过持久、结构化的记忆能够显著改进，该记忆跟踪多个会话中的交互。本文探讨了具有四个层级（工作、情节、语义和程序性）的记忆架构，并展示了可查询、版本化的API可访问存储如何能够实现更好的代理性能和人工监督。"
+      }
+    }
+  },
+  {
+    "title": "Kotlin Compiler Plugin Cuts Android Startup Time by 30% in Expo SDK 56",
+    "slug": "kotlin-compiler-plugin-android-startup-expo-sdk-56",
+    "url": "https://dev.to/expo/kotlin-compiler-plugin-cuts-android-startup-time-by-30-in-expo-sdk-56-2nje",
+    "source": "DEV Community",
+    "date": "2026-06-18T18:37:38.000Z",
+    "summary": "Expo SDK 56 introduces a Kotlin compiler plugin that eliminates reflection from Expo Modules, resulting in 70% faster module initialization and 30% reduction in startup time. The plugin delivers these gains automatically at compile-time without requiring code changes from developers.",
+    "content": "Expo SDK 56 ships with a custom Kotlin compiler plugin that eliminates reflection from Expo Modules on Android. The result: 70% faster module initialization and a 30% reduction in time to first render.\nThe plugin runs during compilation, so app developers get these performance gains automatically without changing any code. Module authors can unlock even bigger wins with a single annotation.\nThis post walks through how we built it and why this approach succeeded where previous attempts failed. For the Swift side where we now talk to JSI directly, check out our companion post Talking to JSI in Swift.\nBefore Expo Modules, we had Unimodules. They worked like old React Native bridge modules: you'd sprinkle annotations across methods you wanted to expose, and the runtime would discover everything through reflection.\nclass ClipboardModule(context: Context) : ExportedModule(context) {\n  override fun getName() = \"ExpoClipboard\"\n\n  @ExpoMethod\n  fun getStringAsync(promise: Promise) {\n    val clip = clipboardManager.primaryClip?.getItemAt(0)\n    promise.resolve(clip?.text?.toString() ?: \"\")\n  }\n\n  @ExpoMethod\n  fun setStringAsync(content: String, promise: Promise) {\n    clipboardManager.setPrimaryClip(ClipData.newPlainText(null, content))\n    promise.resolve(true)\n  }\n}\n\nReflection made sense when we needed metadata about our own code. What methods does this module export? What arguments do they accept? The JVM could answer those questions. But reflection costs time, and on Android that time comes straight out of your startup budget. Every module the runtime introspects adds milliseconds before users see your app.\nBuilding the Expo Modules API gave us a chance to fix this. We wanted better ergonomics and less reflection. The Kotlin DSL delivered both in one move, removing most reflection while making modules easier to write. But we couldn't eliminate all of it. Type information for function arguments and Record properties still required runtime reflection calls like typeOf<T>(",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Kotlin编译器插件在Expo SDK 56中将Android启动时间减少30%",
+        "summary": "Expo SDK 56推出了一个Kotlin编译器插件，该插件消除了Expo模块中的反射，使模块初始化快70%，启动时间减少30%。该插件在编译时自动提供这些优势，无需开发人员进行代码更改。"
+      }
+    }
+  },
+  {
+    "title": "The stock-analysis API you don't have to build",
+    "slug": "stock-analysis-api-no-build",
+    "url": "https://dev.to/marras0914/the-stock-analysis-api-you-dont-have-to-build-2jcc",
+    "source": "DEV Community",
+    "date": "2026-06-18T18:37:01.000Z",
+    "summary": "A developer created an AI-powered stock analysis API that synthesizes fundamentals from multiple data providers into readable, structured insights—eliminating the need to wire multiple APIs, normalize data, and tune prompts manually. The service returns bull/bear verdicts with reasoning in a single HTTP call.",
+    "content": "I was building a feature that needed to say something useful about a stock — not just print its P/E, but actually read the situation: is this cheap or expensive, what's the bull case, is the insider buying real or routine. I went looking for an API.\nEvery finance API I found sold me raw data. Alpha Vantage, Twelve Data, Yahoo Finance, FMP — they'll hand you fundamentals, prices, filings, all of it. Great. Now I get to write the part that turns 40 metrics into \"this looks expensive but the moat is widening.\" That's the part that's actually hard, and the part I didn't want to own forever.\nSo I'd be wiring three data providers, normalizing their conflicting field names, writing and tuning the LLM prompts, handling the rate limits and the caching, and then maintaining all of it as the upstreams change. For a feature, not a product.\nA single endpoint. Ticker in, analysis out — already synthesized, already structured.\nThat's what I ended up building for myself and then put on RapidAPI: Agent Toolbelt — AI Stock Research API. It pulls live fundamentals from Polygon, Finnhub, and Financial Modeling Prep, then returns a Motley-Fool-style read as typed JSON. The numbers are in there too, but the point is the verdict and the reasoning.\nHere's a real stock-thesis response:\n{\n  \"verdict\": \"bullish\",\n  \"oneLiner\": \"Nvidia owns the essential infrastructure for the AI revolution with a defensible software moat.\",\n  \"keyStrengths\": [\n    \"~80%+ data center GPU market share\",\n    \"CUDA moat creates switching costs\",\n    \"42 buy / 5 hold / 1 sell analyst consensus\"\n  ],\n  \"keyRisks\": [\n    \"36.9x P/E leaves no margin for error\",\n    \"Competition from AMD and custom silicon\"\n  ],\n  \"insiderRead\": \"Two executives bought ~47k shares each — meaningful open-market purchases, not routine grants.\",\n  \"dataSnapshot\": { \"currentPrice\": 180.4, \"peRatio\": 36.9, \"marketCapBillions\": 4452.2 }\n}\n\nThat's one HTTP call. No data-provider accounts, no prompt engineering, no normalization layer.\nAll POS",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "您不需要构建的股票分析API",
+        "summary": "一位开发人员创建了一个AI驱动的股票分析API，它将来自多个数据提供商的基本信息综合成可读的结构化见解——无需连接多个API、规范化数据和手动调整提示。该服务在单个HTTP调用中返回看涨/看跌预测及其推理。"
+      }
+    }
+  },
+  {
+    "title": "After 12 Years of Programming, I Realized I Don’t Love Coding",
+    "slug": "12-years-programming-realized-dont-love-coding",
+    "url": "https://dev.to/ismail9k/after-12-years-of-programming-i-realized-i-dont-love-coding-38cd",
+    "source": "DEV Community",
+    "date": "2026-06-18T18:35:17.000Z",
+    "summary": "A software engineer with 12 years of experience reflects on how AI tools revealed that they love building products and solving problems rather than writing code itself. AI's ability to accelerate implementation reshapes how they think about their career and opens possibilities beyond traditional software development.",
+    "content": "I’ve been a software engineer for more than 12 years.\nAnd like many developers, I’ve been watching AI improve at an incredible speed.\nEvery new model seems smarter than the one before it. Tasks that used to take hours can now be done in minutes. Problems that required deep research can often be solved with a simple prompt.\nA few years ago, we used to say:\nThink of AI as a junior developer.\n\nThat made sense at the time.\nBut today, I don’t think that’s true anymore.\nAI still makes mistakes. Sometimes very obvious ones.\nBut it also comes up with solutions that surprise me. Sometimes it finds an approach I wouldn’t have thought of immediately. Sometimes it helps me solve a problem much faster than I could on my own.\nAnd honestly, that’s both exciting and a little scary.\nBut the biggest thing AI changed wasn’t how I write software.\nIt changed how I think about my work.\nFor most of my career, I thought I loved writing code.\nI spent years doing it. At work, on side projects, and whenever I had free time.\nThen AI became part of my daily workflow.\nIn the last month, I’ve built more projects than I normally would in an entire year.\nIdeas that had been sitting in my notes for years suddenly became possible.\nAnd that’s when I realized something important:\nI don’t actually love writing code.\nI love building things.\nI love taking an idea and turning it into something real.\nI love creating products, solving problems, and seeing something that only existed in my head become something people can use.\nCode was simply the tool I used to do that.\nAnd now AI is another tool.\nThat’s why I don’t hate it.\nIn many ways, AI has helped me build more than ever before.\nIt helped me revisit old ideas that I never had time to work on.\nIt helped me experiment faster.\nIt even encouraged me to explore areas outside software development, like animation and content creation.\nAnd this isn’t just happening to programmers.\nAI is changing design.\nIt’s changing writing.\nIt’s changing marketing.\nIt’s changi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "编程12年后，我意识到我不热爱编码",
+        "summary": "一位拥有12年经验的软件工程师反思了AI工具如何让他意识到自己热爱的是构建产品和解决问题，而不是编写代码本身。AI加速实现的能力重新塑造了他对职业的认识，并为传统软件开发之外的可能性敞开了大门。"
+      }
+    }
+  },
+  {
+    "title": "Building a Kubernetes Cluster on Red Hat Enterprise Linux 10: A kubeadm Guide",
+    "slug": "kubernetes-cluster-rhel-10-kubeadm-guide",
+    "url": "https://dev.to/vilan011/building-a-kubernetes-cluster-on-red-hat-enterprise-linux-10-a-kubeadm-guide-1jpe",
+    "source": "DEV Community",
+    "date": "2026-06-18T18:22:11.000Z",
+    "summary": "This guide walks through deploying a production-ready Kubernetes cluster on Red Hat Enterprise Linux 10 using kubeadm, adapted from Certified Kubernetes Administrator training. It covers infrastructure setup, node preparation, and cluster deployment specific to RHEL 10's ecosystem.",
+    "content": "Introduction\n\n\nIn this post, I'll walk you through deploying a production-ready Kubernetes cluster on Red Hat Enterprise Linux 10 using kubeadm. This lab was inspired by Anthony E. Nocentino's excellent Certified Kubernetes Administrator (CKA): Using kubadm to Install a Basic Cluster training course, which is part of the official Certified Kubernetes Administrator (CKA) path on Pluralsight.\n⭐ Shout-out: Anthony is a fantastic trainer! His course uses Ubuntu 22.04 as the base OS. I adapted his approach to work on RHEL 10, adding some additional considerations specific to Red Hat's ecosystem.\nOne intentional decision in this setup: I deployed Kubernetes v1.35 and CRI-O v1.35, which wasn't the latest version available at installation time. \nThis was purposeful. Anthony's course includes a dedicated section on upgrading clusters, and using a slightly older baseline makes that learning path clearer. \nThe upgrade procedures (not covered here) are what really solidify your understanding of cluster lifecycle management.\n\n\n\nNode\nRole\nRAM\nvCPUs\nIP Address\n\n\n\n\nrh-cp1\nControl Plane\n12 GiB\n2\n192.168.110.120\n\n\nrh-node1\nWorker\n6 GiB\n2\n192.168.110.121\n\n\nrh-node2\nWorker\n6 GiB\n2\n192.168.110.122\n\n\nrh-node3\nWorker\n6 GiB\n2\n192.168.110.123\n\n\n\nNote: The IP address schema is just an example and what was more convenient for me.\nA dedicated utilities VM (also RHEL 10) provides essential services:\nDNS (BIND/named)\nNTP (chrony)\nHTTP (Apache/httpd)\nDHCP (Kea)\nThis centralized infrastructure simplifies name resolution across all cluster nodes. But this is not essential for this project. You can, instead, ensure the nodes are able to reach each other updating the file /etc/hosts on all nodes.\nBefore diving into Kubernetes, we need consistent node preparation across all machines.\n$ sudo subscription-manager register --username <username> --password <password>\n$ sudo dnf update redhat-release\n$ sudo dnf upgrade\n$ sudo reboot\n\nEdit /etc/fstab to comment out swap entries:\nUUID=xxxxxxxx-xxx-xxxx-xxxx-",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在Red Hat Enterprise Linux 10上构建Kubernetes集群：kubeadm指南",
+        "summary": "本指南详细介绍了如何在Red Hat Enterprise Linux 10上使用kubeadm部署生产级Kubernetes集群，改编自认证Kubernetes管理员培训课程。涵盖基础设施设置、节点准备以及针对RHEL 10生态系统的集群部署。"
+      }
+    }
+  },
+  {
+    "title": "Swift VSX Support, Biome Type Inference, Agent Guardrails",
+    "slug": "swift-vsx-biome-type-inference-agent-guardrails",
+    "url": "https://dev.to/devsignal/swift-vsx-support-biome-type-inference-agent-guardrails-en5",
+    "source": "DEV Community",
+    "date": "2026-06-18T18:21:42.000Z",
+    "summary": "Swift's official extension now publishes to Open VSX Registry for editor compatibility, Biome v2 ships type inference independent of TypeScript compiler, and a 1990s algorithm outperforms GPT-4 at detecting lying agents. These changes reduce setup friction, eliminate dependencies, and improve AI system safety.",
+    "content": "This week's tooling news clusters around a recurring theme: removing dependencies that were never really necessary. Biome ditches the TypeScript compiler for type-aware linting. Swift developers stop caring which editor they're in. And the most interesting finding of the week is that a 1990s text-retrieval algorithm outperforms GPT-4 at catching lying agents. Here's what's worth your attention.\nThe official Swift extension is now published to the Open VSX Registry, which means Cursor, VSCodium, AWS Kiro, and any other LSP-compatible editor that doesn't use the proprietary VS Code Marketplace can now auto-install it without you doing anything. Code completion, debugging, and the test explorer just work.\nThis matters because the Swift toolchain has always been Xcode-or-fight. Any serious cross-platform Swift work meant manually tracking down extensions, pinning versions, and hoping nothing broke when someone cloned the repo on a different machine. Agentic IDEs that provision their own extensions automatically—like Cursor and Kiro—now get Swift support without intervention.\nVerdict: Ship. If you're already in an Open VSX-compatible editor, there's nothing to configure. Zero blocking concerns; this is a pure reduction in setup friction.\nBiome v2 ships its own type inference engine, decoupling type-aware linting rules from the TypeScript compiler entirely. The headline number is 75% detection parity on floating promise rules compared to typescript-eslint—lower recall, but at meaningfully lower install weight and CI overhead. Multi-file analysis also lands in v2, unlocking rules that require cross-module context that were structurally impossible in v1.\nThe real value proposition isn't feature parity—it's dependency elimination. Pulling TypeScript out of your lint pipeline reduces cold-start times in CI and removes a whole class of version-mismatch bugs between typescript, @typescript-eslint/parser, and tsconfig.json. For teams already using Biome for formatting, this remo",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Swift VSX支持、Biome类型推断、Agent安全保护",
+        "summary": "Swift官方扩展现已发布到Open VSX Registry以提高编辑器兼容性，Biome v2实现了独立于TypeScript编译器的类型推断，而一个1990年代的算法在检测虚假AI代理方面的表现超过了GPT-4。这些变化减少了设置摩擦、消除了依赖关系，并改进了AI系统安全性。"
+      }
+    }
+  },
+  {
+    "title": "AI Can Write the Code. Who Gives It the Context?",
+    "slug": "ai-code-who-gives-context",
+    "url": "https://dev.to/icetique/ai-can-write-the-code-who-gives-it-the-context-2l1b",
+    "source": "DEV Community",
+    "date": "2026-06-18T18:21:05.000Z",
+    "summary": "While AI can generate syntactically correct code, successful adoption requires 'context engineering'—providing AI with architectural knowledge, constraints, and feedback to generate code that fits the broader system. Without proper context, AI code may compile and pass tests but diverge from established patterns and operational constraints.",
+    "content": "When you talk to ChatGPT about a subject you understand well, you quickly notice something.\nThe first answer is rarely the final answer.\nYou add context.\nYou correct an assumption.\nYou explain what has already been tried.\nYou point out that one proposed solution conflicts with another part of the system.\nAfter a few iterations, the answer becomes useful.\nThe same thing happens when AI writes code for real products.\nThe difference is that a slightly incorrect explanation in a chat is usually harmless. Slightly incorrect code can become part of your product, pass a superficial review, and remain there for years.\nThis is why successful AI adoption in software engineering is not primarily about generating more code.\nIt is about context engineering: giving AI enough context, constraints, and feedback to generate code that belongs in your system.\nAI coding tools are very good at producing plausible solutions.\nThat word matters: plausible.\nThe code may compile.\nThe tests may pass.\nThe implementation may even look clean when reviewed in isolation.\nBut software does not exist in isolation.\nA change must fit the broader system architecture:\nthe current architecture\nexisting domain rules\nsecurity requirements\noperational constraints\nestablished conventions\nprevious technical decisions\nfuture product direction\nAn AI assistant does not automatically understand those things.\nIt knows the code it can see and the engineering context you provide. Everything outside that window must be inferred.\nAnd inference is where divergence begins.\nIf you trust the first response without validating its assumptions, you are usually not accelerating engineering.\nYou are accelerating uncertainty.\nOne of the first visible effects is duplication.\nAI does not necessarily know that your application already has:\na validation helper for the same domain rule\nan established authorization pattern\na shared API client\na retry mechanism\nan error hierarchy\nan existing abstraction for the same operation\nWithout",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI 能写代码。谁来提供背景？",
+        "summary": "虽然 AI 可以生成语法正确的代码，但成功应用需要\"上下文工程\"——向 AI 提供架构知识、约束条件和反馈，以生成符合更广泛系统的代码。没有适当的上下文，AI 代码可能会编译成功并通过测试，但会偏离既定的模式和运营约束。"
+      }
+    }
+  },
+  {
+    "title": "uv 0.11.19 + CPython 3.15, Spring AI 2.0, and the RAG Poisoning Problem",
+    "slug": "uv-cpython-3-15-spring-ai-rag-poisoning",
+    "url": "https://dev.to/devsignal/uv-01119-cpython-315-spring-ai-20-and-the-rag-poisoning-problem-3gjf",
+    "source": "DEV Community",
+    "date": "2026-06-18T18:21:02.000Z",
+    "summary": "uv now always computes SHA256 checksums for supply chain hardening, Spring AI 2.0 ships with critical CVEs requiring audits, and research reveals fundamental assumptions in RAG systems are invalid. GitLab adds group-level review instructions and Secrets Manager for enterprise teams managing complex AI infrastructure.",
+    "content": "This week's releases split neatly into two categories: useful incremental hardening (uv, GitLab, Copilot) and things that should change how you architect systems today (Spring CVEs, pg_durable, and a Cornell paper that quietly invalidates a lot of RAG assumptions). The Spring security cluster alone is enough to justify a dependency audit before the weekend.\nuv now always computes SHA256 checksums for remote distributions—previously this was situational—and adds PyEmscripten platform support per PEP 783, which formalizes Python packaging for browser and WASM targets. CPython 3.15.0b2 is available as a managed runtime, and a cross-platform installation edge case on Windows hosts has been resolved.\nThe SHA256 change is the one worth noting for security posture. Making verification unconditional rather than optional closes a gap where distribution integrity could go unchecked depending on resolver path. The PyEmscripten addition matters if you're packaging Python for browser runtimes—previously you were working around the absence of a formal platform tag; now you're not.\nVerdict: Ship. Drop-in upgrade, no breaking changes. If you manage Python distributions or target WASM, update now. Everyone else should still update—supply-chain hardening by default is worth the two minutes.\nGitLab 19.0 ships two meaningful additions for teams: group-level custom review instructions for Duo code review, configured via .gitlab/duo/mr-review-instructions.yaml with cascading inheritance across projects, and a Secrets Manager that exits closed beta for Premium and Ultimate tiers.\nGroup-level review instructions solve a real annoyance—if you've been maintaining per-project AI review configuration across a monorepo organization, you can now centralize that and let projects inherit or override. It's the kind of change that sounds minor until you've had to sync a guideline update across fifteen repos manually.\nThe Secrets Manager is more interesting longer-term: native secrets storage reduces",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "uv 0.11.19 + CPython 3.15、Spring AI 2.0 和 RAG 中毒问题",
+        "summary": "uv 现在始终计算 SHA256 校验和以加强供应链安全，Spring AI 2.0 附带需要审计的关键 CVE，研究表明 RAG 系统中的基本假设是无效的。GitLab 为管理复杂 AI 基础设施的企业团队添加了组级审查说明和机密管理器。"
+      }
+    }
+  },
+  {
+    "title": "The Cheaper API Was 2.5x Cheaper. It Cost 1.6x More.",
+    "slug": "cheaper-api-2-5x-cost-1-6x-more",
+    "url": "https://dev.to/0012303/the-cheaper-api-was-25x-cheaper-it-cost-16x-more-5b7c",
+    "source": "DEV Community",
+    "date": "2026-06-18T18:20:52.000Z",
+    "summary": "API pricing that appears cheaper per-call can actually cost more per successful task when accounting for failure rates and retries. The true cost formula—(price_per_attempt × attempts ÷ successes)—can dramatically flip which API option is more economical for production workloads.",
+    "content": "AI-disclosure: AI-assisted draft, human-reviewed. The demo numbers are the verbatim stdout of a deterministic, stdlib-only Python script included in full below — re-run it and you get the same bytes. The attempt counts in that script are a SYNTHETIC fixture I chose to exercise the accounting mechanism, calibrated to the retry skew I see in my own scraper logs (run counts from my Apify history). It is NOT a benchmark of any named vendor's API or prices. The one external claim (the cost-per-successful-task formula) is attributed and linked.\nThe cheaper API was 2.5x cheaper per call. The monthly bill came in higher anyway.\nNot by a rounding error. The \"cheap\" option cost 1.63x more per successful task than the one with the bigger sticker price. Same workload. The price page never showed me that number, because the price page doesn't know your success rate. You do — after you've already paid.\nThis is the arithmetic the per-call price hides. And it's a decision you make before you spend, not a cap you bolt on after.\nYou compare two API tiers by per-call (or per-token) price and pick the cheaper one. That ranking can be wrong.\nYou pay for every attempt — success or fail. The denominator that pays the bills is successful tasks, not calls.\nTrue cost = price_per_attempt × attempts ÷ successes. A cheap tier with a low success rate burns its discount on retries.\nIn the run below: cheap tier $0.0020/call but $0.0096/success; robust tier $0.0050/call but $0.0059/success. The sticker winner loses.\nFor anyone choosing an API, model, or tier for an agent: log attempts and successes for a week, divide, then decide. A 70-line script is at the bottom — drop in your numbers.\nHere's the trap, stated plainly. The number on the pricing page is per call. The number on your invoice is per call too — but the value you got is per successful task. Those are different denominators, and the gap between them is exactly the work that failed.\nEvery attempt is billed. The one that timed out and got",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "更便宜的 API 便宜 2.5 倍。但成本高 1.6 倍。",
+        "summary": "看似每次调用成本更低的 API 定价，当考虑到失败率和重试时，每个成功任务的成本可能实际上更高。真实成本公式——(单次尝试价格 × 尝试次数 ÷ 成功次数)——可能会大幅改变哪个 API 选项对生产工作负载更经济。"
+      }
+    }
+  },
+  {
+    "title": "Workflow SDK AbortController + Claude Fable 5: Issue #38",
+    "slug": "workflow-sdk-abortcontroller-claude-fable-5",
+    "url": "https://dev.to/devsignal/workflow-sdk-abortcontroller-claude-fable-5-issue-38-527d",
+    "source": "DEV Community",
+    "date": "2026-06-18T18:20:22.000Z",
+    "summary": "The Workflow SDK now supports AbortController for cooperative cancellation in long-running workflows, eliminating custom timeout and cleanup logic. Alongside this, Anthropic released Fable 5 and Managed Agents updates with practical guidance for running multi-turn agents in production.",
+    "content": "This week's AI tooling news splits cleanly between infrastructure you can ship today and capability bets that require more careful evaluation. Anthropic dropped two significant releases—Fable 5 and Managed Agents updates—while the Workflow SDK landed a cancellation primitive that eliminates entire categories of homegrown plumbing. Underneath all of it, a sharp incident review from Anthropic is the most practically useful thing published this week if you're running multi-turn agents in production.\nThe Workflow SDK now threads AbortSignal through workflow steps, using the same web-standard API you already use with fetch. Pass an AbortSignal into your workflow, inspect it inside steps, and you get cooperative cancellation that survives durable suspension and replay.\nThis matters because cancellation in long-running workflows has historically required custom infrastructure—timeout flags passed through context, manual cleanup hooks, bespoke race logic. That's not interesting code to write or maintain. With AbortController support, you get timeout steps, request racing, and parallel work cancellation with patterns your team already knows.\nTwo important caveats: this requires workflow@beta, and cancellation is cooperative. The runtime won't forcibly terminate a step—your step code needs to inspect the signal and respond. If you have steps with opaque third-party calls that don't accept signals, you're still writing wrapper logic.\nVerdict: Ship. If you're on Workflow SDK 5 and running long-horizon workflows with timeout or race requirements, upgrade and wire this in now. The pattern is standard, the boilerplate reduction is real, and there's no meaningful downside if your steps are already structured around explicit control flow.\nTwo distinct additions here. Outcomes let you define explicit success criteria enforced by a separate grader agent—replacing manual prompt tuning with a structured feedback loop. Dreaming adds scheduled memory review processes where agents extract",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Workflow SDK AbortController + Claude Fable 5：Issue #38",
+        "summary": "Workflow SDK 现已支持 AbortController，用于长运行工作流的协作取消，无需自定义超时和清理逻辑。同时，Anthropic 发布了 Fable 5 和托管代理更新，提供了在生产环境中运行多轮代理的实用指导。"
+      }
+    }
+  },
+  {
+    "title": "Hyperpb Parser Matches Generated Code Speed",
+    "slug": "hyperpb-parser-protobuf-generated-code-speed",
+    "url": "https://dev.to/devsignal/hyperpb-parser-matches-generated-code-speed-33n0",
+    "source": "DEV Community",
+    "date": "2026-06-18T18:19:38.000Z",
+    "summary": "hyperpb, a runtime-compiled Protobuf parser for Go, achieves 3x faster parsing than generated code and 10x faster than reflection-based approaches, making it suitable for broker-side validation at scale. Quickwit was acquired by Datadog and relicensed to Apache 2.0, expanding open-source infrastructure options.",
+    "content": "This week's tooling news splits cleanly between performance and compliance: a Go Protobuf parser that closes the gap between reflection and generated code, and a GitLab update that finally makes air-gapped AI deployments practical. Layered in are a forced AWS migration, a cost-pressure move in reasoning model pricing, and an Elasticsearch alternative picking up serious enterprise backing. Here's what's worth your attention.\nhyperpb is a runtime-compiled Protobuf parser for Go. You feed it a schema at startup, it runs an optimization pass, and the result is a compiled message type you can reuse across requests. Benchmarks show 10x faster parsing than dynamicpb and roughly 3x faster than hand-written generated code.\nThe implication for generic Protobuf services—brokers, validators, schema registries—is significant. If you're doing broker-side validation today with dynamicpb, you're likely throttling throughput or skipping validation under load. hyperpb removes that tradeoff. The catch is that compiled types require caching (the optimization pass is slow and should not run per-request) and field access remains reflection-only—you're not getting struct field ergonomics.\nVerdict: Ship. If your validation pipeline is hitting dynamicpb throughput limits, this is a drop-in replacement for the hot path. Cache your compiled message types at initialization, and profile field access patterns before assuming it fits your read-heavy workloads.\nQuickwit, the Rust-based petabyte-scale log search engine, has been acquired by Datadog and relicensed from AGPL to Apache 2.0. Development continues as open source. Distributed ingest and cardinality aggregations are on the near-term roadmap.\nThe production credibility is already there—Binance runs 1.6PB/day through it, Mezmo has petabyte-scale logs in production. The Apache 2.0 relicense removes the corporate control concern that kept some operators off AGPL-licensed infrastructure. Datadog's distribution reach will accelerate adoption, b",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Hyperpb 解析器匹配生成代码速度",
+        "summary": "hyperpb 是 Go 的运行时编译 Protobuf 解析器，相比生成的代码快 3 倍，相比基于反射的方法快 10 倍，适合大规模代理端验证。Quickwit 被 Datadog 收购并重新以 Apache 2.0 许可证发布，扩展了开源基础设施选项。"
+      }
+    }
+  },
+  {
+    "title": "Linux 7.1, tRPC's Query Overhaul, and Biome 2.0 Beta: What Developers Need to Know",
+    "slug": "linux-7-1-trpc-biome-2-0-beta",
+    "url": "https://dev.to/devsignal/linux-71-trpcs-query-overhaul-and-biome-20-beta-what-developers-need-to-know-3hh8",
+    "source": "DEV Community",
+    "date": "2026-06-18T18:18:58.000Z",
+    "summary": "Linux 7.1 maintenance release patches heap overflows and memory leaks in USB and networking drivers, tRPC exposes native TanStack Query interfaces reducing context-switching, and Biome 2.0 beta advances ESLint replacement viability. These changes reflect how AI workloads reshape infrastructure at scale.",
+    "content": "This week's tooling landscape is quieter on the AI-native side but dense with infrastructure moves that affect how AI-driven workloads actually run in production. Cloudflare's Workflows scaling overhaul is the clearest signal: agent-triggered execution is now an assumed pattern, not a novelty, and platforms are rearchitecting accordingly. The rest of the week rounds out with a kernel maintenance drop, a meaningful abstraction removal in tRPC, and a Biome beta that's finally making ESLint replacement feel plausible.\n7.1 is a maintenance release. No architectural changes, no new subsystems—just patches you should care about if you're running affected hardware or kernel-adjacent tooling.\nThe two fixes worth flagging are heap overflows in the USB serial io_ti driver (get_manuf_info() and build_i2c_fw_hdr()), plus memory leak corrections scattered across drivers and networking subsystems. Trace tooling also gets updates, which matters if you're doing kernel-level performance analysis on production systems.\nOne operational note: Torvalds is traveling, so merge window latency may be irregular. If you're tracking pull request timelines for custom kernel builds, plan for slippage.\nVerdict: Ship — if you're on 7.0 and running USB serial hardware or affected networking paths, upgrade on your normal kernel cycle. No breaking changes, no new dependencies, nothing to validate beyond your existing regression suite.\nThis is the kind of change that looks small in a changelog and feels large in daily development. The new tRPC client exposes native TanStack Query interfaces—QueryOptions and MutationOptions—directly, rather than wrapping them in tRPC-specific hooks.\nThe practical effect: if you're already using TanStack Query elsewhere in your app, you stop context-switching between two similar-but-different mental models. You call .queryOptions() and .mutationOptions() factories and pass the results straight into useQuery and useMutation. Same patterns, no tRPC-specific hook API to me",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Linux 7.1、tRPC 查询改进和 Biome 2.0 测试版：开发者需要知道的事项",
+        "summary": "Linux 7.1 维护版本修复了 USB 和网络驱动程序中的堆溢出和内存泄漏，tRPC 暴露了原生 TanStack Query 接口以减少上下文切换，Biome 2.0 测试版推进了 ESLint 替代品的可行性。这些变化反映了 AI 工作负载如何在大规模基础设施中重塑。"
+      }
+    }
+  },
+  {
+    "title": "How pull request limits are cutting down the noise",
+    "slug": "pull-request-limits-cutting-down-noise",
+    "url": "https://github.blog/open-source/maintainers/how-pull-request-limits-are-cutting-down-the-noise/",
+    "source": "GitHub Blog",
+    "date": "2026-06-18T16:00:00.000Z",
+    "summary": "GitHub introduces pull request limits to help repository maintainers manage contribution volume and reduce noise in their repositories. The feature provides configurable thresholds on concurrent pull requests to control workflow disruption.",
+    "content": "Learn how pull request limits can help manage contribution volume in your repositories, and see what’s next on the roadmap.\nThe post How pull request limits are cutting down the noise appeared first on The GitHub Blog.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "拉取请求限制如何减少噪声",
+        "summary": "GitHub 推出了拉取请求限制，帮助代码库维护者管理贡献量并减少其代码库中的噪声。该功能为并发拉取请求提供可配置的阈值，以控制工作流中断。"
+      }
+    }
+  },
+  {
+    "title": "Swiss parliament lifts ban on new nuclear power plants",
+    "slug": "swiss-parliament-lifts-ban-nuclear-power-plants",
+    "url": "https://www.bluewin.ch/en/news/switzerland/parliament-lifts-ban-on-new-nuclear-power-plants-3257535.html",
+    "source": "Hacker News",
+    "date": "2026-06-18T14:17:07.000Z",
+    "summary": "Switzerland's parliament voted to lift the ban on constructing new nuclear power plants, reversing decades-old policy established in the 1980s. The decision represents a significant shift in the country's energy strategy as it reconsiders nuclear's role in achieving decarbonization goals.",
+    "content": "Article URL: https://www.bluewin.ch/en/news/switzerland/parliament-lifts-ban-on-new-nuclear-power-plants-3257535.html\nComments URL: https://news.ycombinator.com/item?id=48585746\nPoints: 365\n# Comments: 222",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "瑞士议会解除对新核电厂的禁令",
+        "summary": "瑞士议会投票解除对建设新核电厂的禁令，推翻了 1980 年代建立的数十年政策。这项决定代表了该国能源战略的重大转变，因为它重新考虑了核能在实现脱碳目标中的作用。"
+      }
+    }
+  },
+  {
     "title": "Your LLM shouldn't be handling if/else logic. Here's a smarter way.",
     "slug": "llm-shouldnt-handle-if-else-logic",
     "url": "https://dev.to/tbilaszewski/your-llm-shouldnt-be-handling-ifelse-logic-heres-a-smarter-way-5d4p",
@@ -188,6 +412,22 @@
       "zh": {
         "title": "隔离一个不知道自己已宕机的节点：pgrac构建日志#2",
         "summary": "基于PostgreSQL的RAC实现必须防止当故障节点重新加入时仍然认为自己拥有共享资源而导致的静默损坏。pgrac的初始防御使用通过仲裁支持的投票磁盘进行协作的进程内写入隔离。此层位于硬件级I/O隔离之上，在不需要硬件级STONITH的情况下防止节点分歧。"
+      }
+    }
+  },
+  {
+    "title": "Microsoft new Outlook takes 10 seconds to do what Outlook Classic does instantly",
+    "slug": "microsoft-new-outlook-10-seconds-outlook-classic",
+    "url": "https://www.windowslatest.com/2026/06/15/microsofts-new-outlook-takes-10-seconds-to-do-what-outlook-classic-does-instantly-on-windows/",
+    "source": "Hacker News",
+    "date": "2026-06-18T12:19:05.000Z",
+    "summary": "Microsoft's new Outlook client has a significant performance regression, taking 10 seconds to complete operations that Outlook Classic handles instantly on Windows. The issue highlights challenges in the company's modernization effort and growing user frustration with degraded email client performance.",
+    "content": "Article URL: https://www.windowslatest.com/2026/06/15/microsofts-new-outlook-takes-10-seconds-to-do-what-outlook-classic-does-instantly-on-windows/\nComments URL: https://news.ycombinator.com/item?id=48584207\nPoints: 398\n# Comments: 279",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "微软新 Outlook 需要 10 秒完成 Outlook Classic 瞬间完成的工作",
+        "summary": "微软新 Outlook 客户端存在重大性能下降，完成 Outlook Classic 在 Windows 上瞬间处理的操作需要 10 秒。这一问题突显了该公司现代化工作中的挑战，以及用户对电子邮件客户端性能下降的不断增长的不满。"
       }
     }
   },
