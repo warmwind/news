@@ -1,5 +1,197 @@
 [
   {
+    "title": "Your Agent Demo Works. Your Agent Doesn't.",
+    "slug": "agent-demo-works-agent-doesnt",
+    "url": "https://dev.to/archit_aggarwal_5310522d5/your-agent-demo-works-your-agent-doesnt-88l",
+    "source": "DEV Community",
+    "date": "2026-06-20T07:19:05.000Z",
+    "summary": "Most production agent systems are stateless, reconstructing context from scratch on each interaction and losing prior reasoning chains. Google Cloud researchers identified five patterns to fix this: checkpoint-and-resume for long-running tasks, delegated approval for human-in-the-loop workflows, and memory-layered context combining long-term and working memory. These patterns enable agents to handle real multi-step workflows like processing insurance claims or running sales sequences.",
+    "content": "Most agent architectures are quietly broken. They look great in a demo — single turn, clean task, instant response — and then fall apart the moment you ask them to do anything real. Like process a week of insurance claims. Or run a multi-day sales sequence. Or reconcile data across systems that don't share a clock.\nThe reason is simple, and nobody talks about it: most agents are stateless under the hood. They reconstruct context from scratch on every interaction. The reasoning chain that made the last decision make sense? Gone. The soft signals, the confidence gradients, the partial progress? All gone. You get a polite LLM that pretends to know what's going on.\nAddy Osmani and Shubham Saboo from Google Cloud just published five patterns for fixing this. I read the whole thing. Here's what actually matters.\n1. Checkpoint-and-Resume. Treat your agent like a long-running server, not a request handler. Checkpoint progress every N units of work — not every unit (wasteful), not just at the end (risky). If your agent dies on document 201 of 1,000, you resume at 201, not at zero. The code sample in the article checkpoints every 50 docs, which is a reasonable default. Adjust based on how expensive each unit is.\n2. Delegated Approval (HITL that doesn't suck). Most human-in-the-loop setups are awful. You serialize state to JSON, fire a webhook, and pray someone checks the inbox. When they respond hours later, the agent has to deserialize and re-establish context from scratch — which defeats the entire point. The fix: pause the agent in place. Keep the full execution state intact. Zero compute while waiting. Sub-second cold start when it resumes. Also: build a unified approval queue. Not Slack. Not email. A structured inbox with \"Needs input,\" \"Errors,\" \"Completed.\"\n3. Memory-Layered Context. Long-term memory plus working memory, kept distinct. Long-term is the knowledge base that accumulates across sessions. Working memory is low-latency, high-accuracy, right-now. This is the",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的 AI 代理演示有效，但生产环境中却不行",
+        "summary": "大多数生产级代理系统是无状态的，每次交互时从零重建上下文，导致之前的推理链丢失。Google Cloud 研究人员确定了五种修复模式：用于长期任务的检查点恢复、用于人工审批工作流的委托批准，以及结合长期和工作记忆的分层内存。这些模式使代理能够处理实际的多步工作流，如处理保险索赔或执行销售序列。"
+      }
+    }
+  },
+  {
+    "title": "The Deadlock That Only Showed Up Under Load: Debugging DB2 SQLCODE -811 in Production",
+    "slug": "db2-sqlcode-811-production-deadlock",
+    "url": "https://dev.to/prashantsasalatti/the-deadlock-that-only-showed-up-under-load-debugging-db2-sqlcode-811-in-production-32ol",
+    "source": "DEV Community",
+    "date": "2026-06-20T07:08:09.000Z",
+    "summary": "A production payroll system experienced intermittent database crashes with DB2 SQLCODE -811 under concurrent load, caused by a subquery expecting one row but receiving two during a transient window when two processes were writing simultaneously. The error highlighted a subtle concurrency trap where unique constraints assumed by scalar queries can be violated mid-flight during heavy load. Understanding that -811 signals 'non-scalar answer in scalar context' rather than locking issues is crucial for debugging production concurrency bugs.",
+    "content": "A real production incident, what the error actually meant, and the fix that stopped it from happening again.\n\nPhoto by Chris Ried on Unsplash\nSome bugs are polite. They fail the same way every time, on your machine, with a clean stack trace pointing at the exact line. You fix them before lunch.\nThis was not one of those bugs.\nThis one only appeared in production, only under concurrent load, and only sometimes. The error code, DB2 SQLCODE -811, is one of those messages that looks like it's telling you something useful while telling you almost nothing. Here's how we tracked it down on a payroll system processing timecards for a large workforce, and what it taught me about writing code that survives concurrency.\nThe application is a Java EE enterprise system backed by DB2. During peak processing windows, a batch job that reconciled timecard records started throwing:\nSQLCODE = -811, SQLSTATE = 21000\n\nIntermittently. Not every run. Not reproducible on demand. The kind of failure that makes you stare at logs at 3 AM wondering if you imagined it.\nThe job would succeed nine times out of ten. The tenth time, it blew up, and because this was payroll, blowing up one time in ten is not something you get to shrug off.\n\nTwo paths writing to the same place. Photo by Jordan Harrison on Unsplash.\nHere's the part the error message hides. SQLCODE -811 is not a deadlock. It's not a lock timeout. It's this: a subquery, embedded SELECT, or SELECT INTO returned more than one row where the code expected exactly one.\nThat's it. A scalar context got a non-scalar answer.\nSo why was it intermittent? Because the duplicate row only existed transiently, during a window where two processes were both writing to the same logical record before either had committed. Under light load, the timing never lined up. Under heavy concurrent load, it did, and a query that assumed uniqueness suddenly found two rows mid-flight.\nThis is the trap with -811: the error points at the SELECT, but the SELECT isn't the",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "仅在负载下出现的死锁：生产环境中 DB2 SQLCODE -811 的调试",
+        "summary": "一个生产薪资系统在并发负载下遭遇间歇性数据库崩溃，错误代码为 DB2 SQLCODE -811，原因是子查询在两个进程同时写入的瞬间窗口期间预期收到一行但实际收到两行。该错误揭示了一个微妙的并发陷阱，即标量查询所假设的唯一约束在重负载期间可能被打破。理解 -811 表示\"标量上下文中的非标量结果\"而非锁定问题，对调试生产并发错误至关重要。"
+      }
+    }
+  },
+  {
+    "title": "AI Agents Explained: the Thought-Action-Observation Loop",
+    "slug": "ai-agents-thought-action-observation-loop",
+    "url": "https://dev.to/dev48v/ai-agents-explained-the-thought-action-observation-loop-3mgb",
+    "source": "DEV Community",
+    "date": "2026-06-20T07:07:51.000Z",
+    "summary": "AI agents differ from chatbots by operating in a Thought-Action-Observation loop, where the model plans a step, calls a tool, receives the real result, and iterates until the task completes. Tools address the model's weak spots—unreliable arithmetic, lack of current data—by letting it decide when and how to invoke them. Proper safeguards include iteration caps, input validation, and approval gates for risky actions.",
+    "content": "A chatbot answers in one shot. An AI agent runs in a loop, uses tools, and acts — Thought → Action → Observation → repeat — until the job's done. Watch one solve a multi-step task by calling a calculator and a search.\n🤖 Run the agent: https://dev48v.infy.uk/ai/days/day11-agents.html\nYou describe tools to the model (name, purpose, arguments). It can't divide big numbers reliably or know today's data — but it CAN decide \"call the calculator with this expression\". Tools cover the model's weak spots.\nwhile (true) {\n  const step = await llm(history);            // model emits a Thought + Action\n  if (step.type === \"answer\") return step.text;\n  const result = tools[step.tool](step.args); // run the tool\n  history += `Observation: ${result}`;         // feed the real result back\n}\n\nThe model writes a Thought (plan), emits an Action (tool + args), your code runs it and returns an Observation, which goes back into context. Then it thinks again.\nEach observation is REAL, fed back before the next decision — so it's not guessing the tip amount, it sees 126 from the calculator. And it plans the steps itself: \"population of France's capital, doubled\" becomes search → then calculator, chained because the model worked out the dependency.\nCap iterations (no infinite loops), validate tool inputs, gate risky actions (email, payments) behind approval. Autonomy is the point; limits make it safe.\nRun a task and watch the Thought→Action→Observation trace build.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI 代理详解：思考-行动-观察循环",
+        "summary": "AI 代理与聊天机器人的区别在于其运作机制为思考-行动-观察循环，其中模型计划一个步骤、调用工具、接收真实结果，然后迭代直到任务完成。工具通过让模型决定何时以及如何调用它们来弥补模型的弱点——不可靠的算术和缺乏最新数据。适当的防护措施包括迭代次数上限、输入验证和对高风险操作的批准门。"
+      }
+    }
+  },
+  {
+    "title": "Temperature and Sampling: the LLM Creativity Dial",
+    "slug": "temperature-sampling-llm-creativity-dial",
+    "url": "https://dev.to/dev48v/temperature-and-sampling-the-llm-creativity-dial-975",
+    "source": "DEV Community",
+    "date": "2026-06-20T07:06:26.000Z",
+    "summary": "Temperature is a hyperparameter that reshapes the probability distribution of next-word choices in LLMs, with lower values (near 0) producing repetitive, deterministic output and higher values (>1) enabling creativity at the cost of accuracy. Sampling strategies like top-k and nucleus sampling prevent pathological outputs while preserving diversity. Matching temperature to task—near-zero for facts and code, 0.7–1.0 for brainstorming—is essential for reliable LLM output.",
+    "content": "Why does the same prompt give different answers? Temperature. One number turns an LLM from \"safe and repetitive\" to \"creative and risky\" by reshaping the next-word odds before it picks. Drag the dial and watch.\n🌡️ Reshape + sample: https://dev48v.infy.uk/ai/days/day9-temperature.html\nAt each step it produces a probability for every possible next word — \"weather is ___\" → 46% sunny, 22% cloudy, 14% rainy, plus a long tail. Choosing one is a separate step called sampling.\np = Math.pow(p, 1 / temperature);  // then renormalise\n\nT → 0: sharpens to the top word (near-greedy, deterministic, repetitive).\nT ≈ 1: as-is.\nT > 1: flattens — rare words get a real shot (creative, error-prone).\nThen it samples weighted by the reshaped probabilities, so two runs differ at higher T.\nPure temperature can still pick something absurd from the tail. top-k keeps only the k likeliest words; top-p (nucleus) keeps the smallest set summing to p (e.g. 0.9). Both cut the weird tail while keeping variety.\nFacts, code, extraction → temperature ≈ 0 (reproducible). Brainstorming, copy, fiction → 0.7–1.0. Set temperature OR top-p, not both hard.\nDrag the dial — low = same word every time, high = scattered.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "温度和采样：LLM创意拨盘",
+        "summary": "温度是一个超参数，它重塑LLM中下一个词选择的概率分布，较低值（接近0）产生重复性的确定性输出，较高值（>1）增强创意但降低准确性。top-k和核采样等采样策略可防止病态输出同时保留多样性。根据任务调整温度——事实和代码使用接近零，头脑风暴使用0.7–1.0——对可靠的LLM输出至关重要。"
+      }
+    }
+  },
+  {
+    "title": "The Context Window: an LLM's Short-Term Memory, Explained",
+    "slug": "context-window-llm-short-term-memory",
+    "url": "https://dev.to/dev48v/the-context-window-an-llms-short-term-memory-explained-c8c",
+    "source": "DEV Community",
+    "date": "2026-06-20T07:05:43.000Z",
+    "summary": "LLM chatbots have no persistent memory; they are stateless systems that reconstruct context by resending the entire conversation history on each request up to a fixed token limit. As conversations grow, older messages fall off the context window and become permanently inaccessible to the model, creating the illusion of amnesia. Understanding context windows explains why models 'forget' older details and why strategies like summarization, selective retention, and RAG fetching are necessary for long-running conversations.",
+    "content": "A chatbot feels like it remembers you. It doesn't — it's stateless. Everything it \"knows\" is just text resent each call, up to a fixed limit: the context window. When the box fills, the oldest messages fall off the edge and are genuinely gone.\n🪟 Watch tokens fall off: https://dev48v.infy.uk/ai/days/day8-context-window.html\nreply = model(allMessagesSoFar);  // the app resends the whole history every turn\n\n\"Memory\" is just text you keep pasting back in.\nPrompt + conversation + pasted docs + the reply must all fit inside a fixed number of tokens. When the chat grows past it, the oldest messages get dropped — in the demo, faded messages have scrolled OUT and the model literally can't see them. Ask about something dropped and it truly has no idea.\nYou're billed per token in the window, every call. Pasting a whole book each turn is slow and expensive — so you don't just CAN'T fit unlimited text, you don't WANT to.\nEven within the limit, models attend best to the START and END; facts buried in the middle of a huge context can be overlooked. Bigger isn't automatically better.\nSummarise old turns + keep recent ones verbatim + use RAG to fetch only the relevant chunks instead of pasting everything. Understanding the window explains chatbot \"amnesia\" and most prompt-engineering tactics.\nFill the box.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "上下文窗口：LLM的短期记忆解析",
+        "summary": "LLM聊天机器人没有持久记忆；它们是无状态系统，通过在每次请求中重新发送整个对话历史来重建上下文，直到达到固定的令牌限制。随着对话增长，旧消息从上下文窗口中消失，对模型永久无法访问，造成遗忘的假象。理解上下文窗口解释了模型为什么\"忘记\"旧细节，以及为什么摘要、选择性保留和RAG检索等策略对长时间对话至关重要。"
+      }
+    }
+  },
+  {
+    "title": "Pooling in CNNs: Shrink the Map, Keep What Matters",
+    "slug": "pooling-cnn-shrink-map-keep-matters",
+    "url": "https://dev.to/dev48v/pooling-in-cnns-shrink-the-map-keep-what-matters-1p74",
+    "source": "DEV Community",
+    "date": "2026-06-20T07:02:56.000Z",
+    "summary": "Pooling reduces feature maps in CNNs by aggregating fixed windows (typically 2×2) into single values via max or average operations, halving spatial dimensions while preserving signal. Max pooling captures whether a feature exists anywhere in a region, providing translation invariance that helps CNNs recognize objects regardless of position. Pooling requires zero learnable parameters and is often replaced by strided convolutions in modern architectures.",
+    "content": "After a few conv layers you're drowning in feature maps — too big and slow. Pooling shrinks them while keeping the signal, and it has zero parameters. Four numbers in, one out.\n🪟 Max vs average pooling: https://dev48v.infy.uk/dl/day9-pooling.html\nfor (let y = 0; y < h; y += 2)        // stride 2: hop, don't slide\n  for (let x = 0; x < w; x += 2) {\n    const win = [img[y][x], img[y][x+1], img[y+1][x], img[y+1][x+1]];\n    out[y/2][x/2] = reduce(win);       // 2×2 → 1 value, halves both dims\n  }\n\nconst reduce = (w) => Math.max(...w);\n\nA feature detector asks \"is this feature here?\" — max pooling answers \"yes, somewhere in this region it fired\", keeping the feature's presence while discarding its exact location.\nconst reduce = (w) => w.reduce((a,b)=>a+b) / w.length;\n\nCommon at the end of a network (global average pooling) to summarise each map before the classifier.\nBecause pooling reports \"feature present in region\", shifting the input a pixel barely changes the output. That invariance is why a CNN recognises a cat whether it's top-left or centre.\nAnd it's free — no learnable weights. (Modern nets sometimes use strided convolutions instead, but the intent is identical.)\nHop in 2×2s, keep the max → smaller maps, position-tolerant, zero params. Pool a grid.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "CNN中的池化：缩小映射，保留关键信息",
+        "summary": "池化通过将固定窗口（通常为2×2）聚合为单一值（通过最大值或平均值操作）来减少CNN中的特征图，在保留信号的同时将空间维度减半。最大池化捕捉特征在某区域是否存在，提供平移不变性，帮助CNN识别不受位置影响的物体。池化无需可学习参数，在现代架构中常被步长卷积取代。"
+      }
+    }
+  },
+  {
+    "title": "My Test-Selection Tool Skipped 73% of the Suite. That Number Was the Bug.",
+    "slug": "test-selection-tool-73-percent-bug",
+    "url": "https://dev.to/breadmsa/my-test-selection-tool-skipped-73-of-the-suite-that-number-was-the-bug-49m2",
+    "source": "DEV Community",
+    "date": "2026-06-20T06:57:06.000Z",
+    "summary": "Test Impact Analysis tools promise to skip tests unaffected by code changes, but the author's tool showed a suspicious 73% skip rate on Flask's test suite, which led to discovering a coverage.py bug rather than a breakthrough optimization. The issue: Python 3.12's new sysmon measurement core recorded only the first test to hit each line, silently dropping other test coverage, causing test-selection to skip tests that actually needed to run. The finding illustrates the importance of validating surprising benchmark results rather than accepting them at face value.",
+    "content": "Test Impact Analysis is a simple promise: don't re-run the tests your change couldn't possibly have broken. Record which tests touch which code once, then use your git diff to run only the affected subset. Google and Meta do it internally; pytest-testmon does a local-dev version. I built an open-source one for pytest called tia — and the most important thing I learned had nothing to do with the algorithm.\nIt was this: the first time my benchmark looked great, it was lying to me.\nTo prove tia actually saved time, I avoided the trap of a toy demo where every test hits a unique function — that's rigged to look good. I pointed it at Flask, a real third-party suite, and replayed its last 15 real commits. For each one: record the impact map on the parent commit, then measure how much of the 483-test suite tia would skip for that change.\nThe result came back: median skip rate 73%. I almost wrote it down and moved on.\n73% felt too good. Flask is small and tightly coupled — a lot of its tests funnel through the same request-handling core. If I changed that core, a correct selector should pull in most of the suite, not skip three-quarters of it. A number that good, on a codebase that coupled, wasn't a win. It was a symptom.\nSo I dug in instead of celebrating. The bug was upstream of my own code, in coverage.py.\ntia records which test touches which line using coverage.py's \"dynamic contexts\": it switches the active context to each test's id, so the coverage data knows which test executed which line. On Python 3.12+, coverage.py defaults to a fast new measurement core called sysmon (built on sys.monitoring). sysmon, at the time, recorded only the FIRST context to hit each line and dropped the rest.\nRead that again in the context of test selection. If test_a and test_b both call a shared helper, sysmon recorded that the helper's lines belonged to test_a — and silently forgot test_b. So when I later changed that helper, tia \"knew\" only test_a touched it, and skipped test_b.\nThat'",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我的测试选择工具跳过了73%的测试套件。这个数字正是问题所在。",
+        "summary": "测试影响分析工具承诺跳过不受代码变化影响的测试，但作者的工具在Flask测试套件上显示了可疑的73%跳过率，这导致发现了coverage.py的一个bug，而不是突破性优化。问题在于：Python 3.12新的sysmon测量核心只记录每行代码第一个测试的覆盖情况，悄悄地丢弃了其他测试的覆盖数据，导致测试筛选工具跳过了实际需要运行的测试。这个发现说明了验证令人惊讶的基准测试结果的重要性，而不是盲目接受它们。"
+      }
+    }
+  },
+  {
+    "title": "I'm started to build the Endgame: an IDE, term and text-editor color theme engineered based on eye biomechanics, science-baked data and other factors",
+    "slug": "endgame-ide-color-theme-eye-biomechanics",
+    "url": "https://dev.to/canbesolved/we-are-looking-at-screens-for-8-12-hours-a-day-but-we-pick-our-ide-themes-based-on-vibes-410o",
+    "source": "DEV Community",
+    "date": "2026-06-20T06:55:33.000Z",
+    "summary": "A developer is building a scientifically-engineered IDE and text-editor color theme based on eye biomechanics and evidence-based design principles rather than subjective aesthetic preference. The project aims to improve screen viewing experience for developers spending 8–12 hours daily in front of IDEs. Development is in early stages with community support available.",
+    "content": "Hello Dev.to community\nWe are looking at screens for 8-12 hours a day, but we pick our IDE themes based on \"vibes\". So today is Day 1 of building the Endgame.\nBehind the idea\nYour contribution is helpful and important\nAnd if you love the idea and want to support the development, you can currently do so via Patreon.♥️ (Open Collective and GitHub Sponsors are awaiting approval.)",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我开始构建Endgame：一款基于眼睛生物力学和科学数据工程设计的IDE、终端和文本编辑器配色主题",
+        "summary": "一位开发者正在构建一个科学工程设计的IDE和文本编辑器配色主题，基于眼睛生物力学和循证设计原则，而非主观审美偏好。该项目旨在改善每天在IDE前花费8至12小时的开发者的屏幕观看体验。开发处于早期阶段，并获得社区支持。"
+      }
+    }
+  },
+  {
+    "title": "I Built Pac-Man in ~150 Lines of Vanilla JavaScript",
+    "slug": "pac-man-150-lines-vanilla-javascript",
+    "url": "https://dev.to/dev48v/i-built-pac-man-in-150-lines-of-vanilla-javascript-39a0",
+    "source": "DEV Community",
+    "date": "2026-06-20T06:54:35.000Z",
+    "summary": "Pac-Man can be implemented in roughly 150 lines of vanilla JavaScript using a text-based maze grid, grid-based movement, and greedy ghost AI that pathfinds toward the player. The implementation treats collision detection, pellet collection, and ghost behavior as grid lookups rather than physics calculations, proving that the arcade classic requires no specialized game engine or complex AI. The minimal codebase is fully playable and easily extensible by editing the maze definition string.",
+    "content": "Pac-Man looks like it needs serious AI and a physics engine. It needs neither — a maze stored as text, grid movement, and ghosts that just step toward you. About 150 lines of vanilla JavaScript.\n🟡 Play it: https://dev48v.infy.uk/game/day11-pacman.html\nconst MAZE = [\"#####\",\"#...#\",\"#.#.#\"];  // # = wall, . = pellet\n\nEverything — movement, collision, pellets, ghost moves — is a lookup into this grid. The whole level is data you can edit by typing.\nif (MAZE[pac.y+dy][pac.x+dx] !== \"#\") { pac.x += dx; pac.y += dy; }\n\nThat one check IS your collision system. No pixel math.\nStore a wanted direction separately; switch to it when that way opens. That tiny buffer is the difference between responsive and stiff controls.\nif (grid[y][x] === \".\") { grid[y][x] = \" \"; score += 10; pellets--; }\n\nWhen pellets hits 0, the maze is cleared.\nFrom a ghost's legal moves, pick the one closest to Pac-Man (plus a little randomness so you can escape). Greedy distance-minimising is surprisingly menacing.\nA text maze + grid steps + greedy ghosts = the whole arcade icon. Play it — the \"Understand\" tab walks each step.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我用约150行原生JavaScript编写了吃豆人游戏",
+        "summary": "吃豆人可以通过使用文本网格迷宫、基于网格的移动和向玩家寻路的贪心鬼怪AI，用大约150行原生JavaScript代码实现。该实现将碰撞检测、食丸收集和鬼怪行为视为网格查询而非物理计算，证明了这款经典街机游戏无需专门的游戏引擎或复杂的AI。最小化代码库完全可玩，且通过编辑迷宫定义字符串可轻松扩展。"
+      }
+    }
+  },
+  {
+    "title": "Stop Ignoring Monitor Contention: Debugging Virtual Thread Latency in the JEP 491 Post-Pinning Era",
+    "slug": "virtual-thread-latency-jep-491-monitor-contention",
+    "url": "https://dev.to/machinecodingmaster/stop-ignoring-monitor-contention-debugging-virtual-thread-latency-in-the-jep-491-post-pinning-era-4fgb",
+    "source": "DEV Community",
+    "date": "2026-06-20T06:48:02.000Z",
+    "summary": "JEP 491 resolved virtual thread pinning during synchronized blocks in Java, but many engineers missed that this shift masked a new latency bottleneck: monitor contention and carrier thread scheduler queuing overhead. Traditional metrics for detecting pinned threads are now silent, leaving engineers blind to where virtual threads park and causing unmapped latency spikes. Engineers must shift observability strategies to track jdk.JavaMonitorEnter events, carrier pool queue depth, and optimize synchronized block scope.",
+    "content": "Stop Ignoring Monitor Contention: Debugging Virtual Thread Latency in the JEP 491 Post-Pinning Era\n\n\nWith JEP 491 finally resolving virtual thread pinning during synchronized blocks, many engineers assumed their concurrency bottlenecks were gone. They were wrong; instead, we are seeing a massive rise in silent latency spikes caused by monitor contention and carrier thread scheduler queuing overhead.\n  Relying on dead metrics: Looking for jdk.VirtualThreadPinned JFR events, which are now silent because virtual threads cleanly unmount instead of pinning.\n  Ignoring scheduling overhead: Forgetting that unmounting and rescheduling thousands of virtual threads on a limited ForkJoinPool carrier pool creates massive queuing latency.\n  Assuming zero-cost synchronization: Thinking that because synchronized blocks no longer block the carrier thread, they can be used without performance penalties.\nYou must shift your observability strategy from detecting pinned threads to measuring monitor wait times and scheduler queue delays.\n  Track jdk.JavaMonitorEnter: Enable this JFR event with a low threshold (e.g., >10ms) to pinpoint exactly where virtual threads are parking.\n  Monitor Carrier Queue Depth: Watch the ForkJoinPool's submission queue size to identify when the scheduler is saturated.\n  Optimize Critical Sections: Treat synchronized blocks as hot paths; minimize their scope or migrate to non-blocking structures where contention is high.\nI built javalld.com while prepping for senior roles — complete LLD problems with execution traces, not just theory.\npublic class PostPinningBottleneck {\n    private final Object monitor = new Object();\n\n    public void handleRequest() {\n        // JEP 491 unmounts the virtual thread here instead of pinning,\n        // but heavy contention causes massive scheduler queuing overhead.\n        synchronized (monitor) {\n            executeDatabaseQuery(); // Silent killer\n        }\n    }\n}\n\n  JEP 491 fixes carrier thread pinning, but it does not ma",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "停止忽视监视器争用：在JEP 491后固定时代调试虚拟线程延迟",
+        "summary": "JEP 491解决了Java同步块中的虚拟线程固定问题，但许多工程师没有注意到这个转变掩盖了新的延迟瓶颈：监视器争用和运载线程调度器队列开销。传统的固定线程检测指标现在沉默，使工程师无法看到虚拟线程停驻的位置，导致延迟峰值无法映射。工程师必须转变可观察性策略，跟踪jdk.JavaMonitorEnter事件、运载池队列深度，并优化同步块作用域。"
+      }
+    }
+  },
+  {
+    "title": "Hackthebox: Forgotten Writeup",
+    "slug": "hackthebox-forgotten-writeup",
+    "url": "https://dev.to/exploitnotes/hackthebox-forgotten-writeup-4kj6",
+    "source": "DEV Community",
+    "date": "2026-06-20T06:44:01.000Z",
+    "summary": "HackTheBox's 'Forgotten' machine exploits an improperly secured LimeSurvey installer endpoint by spinning up a rogue MySQL server to hijack the installation process and create an admin account. From there, a known RCE vulnerability in plugin uploads grants code execution; extracted environment variables enable SSH lateral movement to the host; and a mounted Docker volume allows privilege escalation to root via SUID bash. The challenge demonstrates the cascade of risk from leaving installers accessible post-deployment.",
+    "content": "Summary\n\n\nForgotten is a HckTheBox machine centered around an exposed LimeSurvey installer endpoint that was never properly secured post-deployment. By spinning up a rogue MySQL server, an attacker can hijack the installation process to create a fresh admin account on the target's LimeSurvey instance. From there, a known RCE vulnerability (CVE-2021-44967) in LimeSurvey's plugin upload feature grants a foothold inside a Docker container. Environment variable leakage exposes the container user's password, allowing lateral movement to the host OS via SSH. Finally, a mounted Docker volume shared between the container and the host enables a classic SUID bash privilege escalation to achieve root on the underlying system.\nnmap -sC -sV -A <MACHINE-IP> -oA nmap\n\nOpen ports:\n\n\n\nPort\nService\nVersion\n\n\n\n\n22\nSSH\nOpenSSH 8.9p1 (Ubuntu)\n\n\n80\nHTTP\nApache 2.4.56 (Debian)\n\n\n\nThe HTTP root returns a 403 Forbidden. The Server header leaks Apache/2.4.56 (Debian) and the nmap host info reveals the internal Docker IP 172.17.0.2, hinting at a containerized web application.\nffuf -u http://forgotten.vl/FUZZ -w /usr/share/wordlists/dirbuster/directory-list-lowercase-2.3-medium.txt\n\nKey finding:\nsurvey    [Status: 301]\n\nBrowsing to http://forgotten.vl/survey reveals a LimeSurvey application.\nNavigating to http://forgotten.vl/survey/index.php?r=installer/precheck showed that the LimeSurvey installer was still accessible and had not been removed after deployment — a critical misconfiguration.\nPre-installation check (Step 3) leaked the version:\nLimeSurvey 6.3.7\n\nA quick search revealed CVE-2021-44967 — an authenticated RCE via plugin upload in LimeSurvey. The catch: admin access is required. The installer gave a path to create our own admin account.\nThe installer's Step 4 (Database Configuration) asks for a database host. Since we control what host the target application connects to, we stood up our own MySQL server:\ndocker run -p 3306:3306 --rm --name evil-mysql \\\n  -e MYSQL_ROOT_PASSWORD=pass12",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Hackthebox: Forgotten 解题",
+        "summary": "HackTheBox的'Forgotten'机器通过启动恶意MySQL服务器来利用不当保护的LimeSurvey安装程序端点，从而劫持安装过程并创建管理员账户。从那里，插件上传中的已知RCE漏洞授予代码执行权限；提取的环境变量支持对主机的SSH横向移动；而挂载的Docker卷允许通过SUID bash进行特权提升至root。该挑战演示了部署后保持安装程序可访问性带来的级联安全风险。"
+      }
+    }
+  },
+  {
+    "title": "7 AI Models Are Quietly Running Your Workflow. Do You Know Which One Should Be?",
+    "slug": "7-ai-models-choose-right-workflow",
+    "url": "https://dev.to/venu_varma/7-ai-models-are-quietly-running-your-workflow-do-you-know-which-one-should-be-3plh",
+    "source": "DEV Community",
+    "date": "2026-06-20T06:39:14.000Z",
+    "summary": "Different AI models excel at different tasks—Claude for complex reasoning and large codebases, ChatGPT for general use, Gemini for research—yet developers often default to a single model for all purposes. Matching the model to the task yields better results than using one 'universal' solution. Practitioners who treat AI as a toolbox outperform those locked into a single model's quirks.",
+    "content": "Here's an uncomfortable truth: most developers pick one AI model, fall in love with it, and then use it for everything — debugging, writing docs, brainstorming, research, even creative work. That's like using a hammer to turn a screw. It works, technically. It's just not optimal.\nChatGPT (OpenAI)\nClaude (Anthropic)\nGemini (Google DeepMind)\nDeepSeek\nMixtral (Mistral AI)\nLlama (Meta)\nGrok (xAI)\nLong, complex reasoning or large codebases → Claude\nAI is moving fast, and the developers who get the most out of it aren't the ones who memorized one model's quirks — they're the ones who treat these tools like a toolbox and match the model to the moment.\nOver to you\nWhich model is doing the heavy lifting in your stack right now — and where do you think it's falling short? Drop it in the comments. I'm always curious whether people's real-world usage matches the \"official\" strengths of each model.****",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "7个AI模型在悄悄运行你的工作流。你知道应该选择哪一个吗？",
+        "summary": "不同的AI模型擅长不同任务——Claude擅长复杂推理和大型代码库，ChatGPT适合通用用途，Gemini适合研究——但开发者往往默认对所有目的使用单一模型。将模型与任务相匹配比使用一个\"通用\"解决方案产生更好的结果。将AI视为工具箱的从业者表现优于仅限于单一模型特性的人。"
+      }
+    }
+  },
+  {
     "title": "How AI Will Shape the Technology Industry in 2027",
     "slug": "how-ai-will-shape-technology-industry-2027",
     "url": "https://dev.to/netops76/how-ai-will-shape-the-technology-industry-in-2027-3eko",
