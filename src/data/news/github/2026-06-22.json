@@ -1,0 +1,194 @@
+[
+  {
+    "title": "여러 에이전트가 협업하는 업무 자동화 시스템 설계 방법",
+    "slug": "multi-agent-collaboration-automation-system-design",
+    "url": "https://dev.to/treesoop_537fb02f65507c5e/yeoreo-eijeonteuga-hyeobeobhaneun-eobmu-jadonghwa-siseutem-seolgye-bangbeob-hik",
+    "source": "DEV Community",
+    "date": "2026-06-22T00:53:17.000Z",
+    "summary": "Single agents hit context and execution limits; the orchestrator-worker pattern delegates tasks to specialized agents with clear boundaries, enabling parallel execution and isolated error handling. This design pattern is documented by Anthropic and improves scalability for complex automation pipelines.",
+    "content": "업무 자동화 시스템을 만들 때 가장 먼저 드는 질문이 있다. \"에이전트 하나면 안 되나?\" 단일 에이전트로 시작하면 구조가 단순하고 디버깅도 쉽다. 그런데 실제 업무 맥락에서는 단일 에이전트가 빠르게 벽에 부딪힌다. 이 글은 왜 여러 에이전트가 협업하는 구조가 필요한지, 그리고 그 구조를 실제로 어떻게 설계하는지를 기술적으로 짚는다.\n단일 에이전트가 실패하는 지점은 복잡한 기능 탓이 아니라 컨텍스트 길이와 직렬 실행의 구조적 한계 때문이다.\nLLM 기반 에이전트에 하나의 긴 작업을 맡기면 세 가지 문제가 동시에 발생한다. 첫째, 컨텍스트 창이 소진된다. 데이터 수집, 변환, 검증, 발행을 하나의 루프에서 처리하면 중간 상태가 프롬프트에 누적되고, 모델은 앞부분 지시를 잊는다. 둘째, 직렬 실행은 병목을 만든다. API 호출이 5개 있고 각각 2초라면, 단일 에이전트는 10초를 기다린다. 셋째, 에러 격리가 불가능하다. 한 단계가 실패하면 전체 루프를 재시작해야 한다.\n반면 여러 에이전트가 협업하는 구조에서는 각 에이전트가 명확한 책임 경계를 갖는다. 한 에이전트가 데이터를 수집하고, 다른 에이전트가 변환하고, 또 다른 에이전트가 검증한다. 에러는 해당 에이전트 범위 안에서 처리되고, 독립된 작업은 병렬로 돌린다.\n나무숲이 실제 자동화 프로젝트에서 가져가는 구조는 오케스트레이터-워커(Orchestrator-Worker) 패턴이다. 이 패턴은 Anthropic이 공개한 에이전트 설계 가이드라인에서도 다루는 구조로, 책임 분리가 명확하다는 점이 핵심이다.\n\n\n\n역할\n책임 범위\n주요 판단\n\n\n\n\n오케스트레이터\n전체 작업 계획, 워커 배정\n어떤 워커를 호출할지, 순서와 병렬 여부\n\n\n워커 에이전트\n단일 도메인 작업 실행\n도구 호출, 결과 반환\n\n\n검증 에이전트\n출력 품질 검사\n재시도 요청 또는 다음 단계 진행\n\n\n상태 관리\n에이전트 간 공유 컨텍스트 보존\n어떤 정보가 다음 에이전트에 전달되는지\n\n\n\n예를 들어 콘텐츠 자동 발행 파이프라인이라면, 오케스트레이터가 \"오늘 발행할 항목 목록\"을 받아 수집 워커, 요약 워커, 포맷 워커를 순서대로 호출한다. 검증 에이전트는 포맷 워커 출력을 보고 발행 가능 여부를 판단한다.\n오케스트레이터는 각 워커를 직접 호출하고, 그 결과를 다음 워커의 입력으로 넘긴다. 이때 중요한 설계 결정이 두 가지다.\n메시지 구조를 명시적으로 정의한다. 에이전트 간 데이터는 자유형 텍스트가 아니라 스키마가 있는 구조로 전달해야 한다. JSON 스키마나 Pydantic 모델을 쓰면 에이전트 출력이 다음 에이전트의 입력 형식을 충족하는지 런타임 전에 검사할 수 있다.\n오케스트레이터는 작업의 의미를 이해하지 않는다. 좋은 오케스트레이터는 라우터에 가깝다. \"이 입력은 A 워커에게, 그 결과는 B 워커에게\"를 결정할 뿐, 각 작업의 도메인 로직에 관여하지 않는다. 이 원칙을 지키면 워커를 교체하거나 추가할 때 오케스트레이터 코드를 손댈 필요가 없다.\n간단한 파이썬 예시로 구조를 보면 이렇다:\nfrom anthropic import Anthropic\nfrom pydantic import BaseModel\n\nclient = Anthropic()\n\nclass WorkerOutput(BaseModel):\n    status: str       # \"success\" | \"retry\" | \"failed\"\n    payload: dict\n    error_message: str | None = None\n\ndef call_worker(system_prompt: str, user_input: str) -> WorkerOutput:\n    response = client.messages.create(\n        model=\"claude-opus-4-5\",\n        max_tokens=1024,\n        system=system_prompt,\n        messages=[{\"role\": \"user\", \"content\": user_input}],\n    )\n    # 실제 구현에서는 tool_use 결과를 파싱",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "多代理协作的业务自动化系统设计方法",
+        "summary": "单个代理会遇到上下文和执行限制；编排器-工作者模式将任务委派给具有清晰边界的专业代理，实现并行执行和隔离的错误处理。这种设计模式由Anthropic记录，提高了复杂自动化管道的可扩展性。"
+      }
+    }
+  },
+  {
+    "title": "[Gemini API Hands-on]",
+    "slug": "memefinder-semantic-meme-search-mac",
+    "url": "https://dev.to/evanlin/gemini-api-hands-on-59dc",
+    "source": "DEV Community",
+    "date": "2026-06-22T00:41:17.000Z",
+    "summary": "MemeFinder is a native Mac app that uses semantic search with embeddings to find locally-stored memes by content description, addressing the problem of undiscoverable auto-named image files. The development process transforms a research-oriented Python project into an everyday tool with a menu bar interface and global hotkey support.",
+    "content": "Every heavy chat user has a bunch of memes saved on their phone and computer, but when they actually need one—halfway through a conversation, wanting to send a \"Thanks, let's keep in touch\" or \"I'm just bad\"—they can never find it. The filename is IMG_4821.jpg, albums are not categorized, and searching is impossible.\nI first came across a great open-source project ShiQu1218/MemeTalk, which uses Python + Streamlit + SQLite to build a local meme semantic search system. It scans your local meme folder, creates an index using OCR and vector embeddings, and then performs multi-way retrieval. It's fully functional but research-oriented and requires running Streamlit in a browser.\nWhat I wanted was something closer to an \"everyday handy tool\":\nA native Mac App, a search box, where I type what I'm looking for, relevant memes pop up, and a single click copies it directly to the clipboard.\nThus MemeFinder was born. This article documents its development process from scratch to \"menu bar resident + global hotkey",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "[Gemini API实战]",
+        "summary": "MemeFinder是一个原生Mac应用，使用语义搜索和嵌入向量在本地存储的表情包中进行内容描述搜索，解决自动命名图像文件难以发现的问题。开发过程将面向研究的Python项目转变为具有菜单栏界面和全局快捷键支持的日常工具。"
+      }
+    }
+  },
+  {
+    "title": "Defender flujos de agentes contra el OWASP LLM Top 10",
+    "slug": "owasp-llm-top-10-agent-security",
+    "url": "https://dev.to/aws-builders/defender-flujos-de-agentes-contra-el-owasp-llm-top-10-lo-que-implemente-y-lo-que-no-3mk3",
+    "source": "DEV Community",
+    "date": "2026-06-22T00:29:45.000Z",
+    "summary": "This article covers practical security implementations for LLM-powered agent pipelines against OWASP LLM Top 10 risks, emphasizing read-only design patterns and API rate limiting. The author documents which controls are fully implemented, partially defended, or outstanding for their production agents running on Bedrock.",
+    "content": "Corro varios agentes respaldados por Bedrock en producción: análisis de documentos, emparejamiento de contenido, búsqueda en registros, búsqueda semántica. \nEsta es una pasada honesta sobre el OWASP Top 10\n desde el lado de la implementación: el código de verdad que defiende cada riesgo y, igual de importante, las categorías donde mi respuesta es \"parcial\" o \"todavía no\".  \nUn flujo de agentes es un pipeline: entrada no confiable → prompt →\n¿qué puede HACER de verdad un agente si el modelo está completamente manipulado? Mi respuesta dio forma a todo lo de abajo. \nmayormente-de-lectura: llaman a un modelo, leen filas acotadas de la base de datos, y escriben resultados de análisis con llave del usuario que pide. Sin shell, sin SQL arbitrario, sin llamada a herramientas. El radio de impacto es chico por construcción, que es el control más barato que existe.\n\n\n\nOWASP LLM\nMi estatus\nEl control\n\n\n\n\nLLM10 Consumo sin límite\nFuerte\nLímite de tasa + cortacircuitos de costo mensual + topes de tokens por modelo\n\n\nLLM06 Agencia excesiva\nFuerte (por diseño)\nSin llamada a herramientas; mayormente-de-lectura; escrituras acotadas a quien llama\n\n\nLLM01 Inyección de prompt\nParcial\nContenido del usuario enmarcado como DATOS (delimitadores + preámbulo anti-inyección)\n\n\nLLM02 Divulgación de info sensible\nParcial\nLimpieza de PII por regex antes del modelo; exclusiones auditadas\n\n\nLLM05 Manejo inadecuado de salida\nParcial\nValidación de esquema + chequeos de fundamentación + sanear-antes-de-renderizar\n\n\nLLM07 Fuga del system prompt\nParcial\nRegistro versionado de prompts + regla anti-eco\n\n\nLLM08 Vector/Embedding\nN/A (todavía no construido)\n(nada)\n\n\nAuthN/Z + interruptor de apagado\nFuerte\nLlave interna, gateo por cuota/gama, deshabilitado por agente\n\n\n\nLa forma más fácil de lastimar un producto de IA no es un jailbreak\nfor. Tres límites independientes, ninguno de\n1. Límite de tasa por usuario, por agente. Con llave de\n(agent, user_id), no de IP, para que un solo usuario no pueda drenar el pr",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "防御代理流程免受OWASP LLM Top 10威胁",
+        "summary": "本文介绍了针对OWASP LLM Top 10风险的LLM驱动代理管道的实际安全实现，强调只读设计模式和API速率限制。作者记录了其在Bedrock上运行的生产代理中哪些控制措施已完全实施、部分防御或待处理。"
+      }
+    }
+  },
+  {
+    "title": "Why Your Agent's Search Results Look Right and Are Wrong: The Index Distribution Problem",
+    "slug": "agent-search-index-distribution-problem",
+    "url": "https://dev.to/aloya/why-your-agents-search-results-look-right-and-are-wrong-the-index-distribution-problem-mfo",
+    "source": "DEV Community",
+    "date": "2026-06-22T00:23:47.000Z",
+    "summary": "AI agent search tools fail not from hallucination but from index bias—search indexes encode historical relevance judgments that don't represent semantic truth. Even with plausible-looking results, agents inherit structural errors from the underlying index's assumptions about what matters, a problem no prompt engineering can fix.",
+    "content": "Why Your Agent's Search Results Look Right and Are Wrong: The Index Distribution Problem\n\n\nYou've built an agent. It has a search tool. You query it with something reasonable — a factual question, a comparison, a technical lookup — and it returns results. The results look right. The sources are real. The snippets are plausible. The agent synthesizes them into a confident answer.\nAnd the answer is wrong. Not obviously wrong. Not hallucinated-in-a-hallucinatory-way wrong. Structurally wrong — wrong in a way that passes every surface-level check because the error is baked into the retrieval layer before the model ever sees the context.\nThis isn't a prompt engineering problem. It isn't a context window problem. It's a distribution problem, and it has a structural ceiling that no amount of better prompting will fix.\nHere's the thing most agent builders don't internalize: a search index is not a neutral representation of knowledge. It's a frozen set of decisions about what matters and what doesn't.\nEvery index — whether it's a BM25 inverted index, a dense vector store, or a commercial web search API — encodes a distribution shaped by past relevance judgments. Someone, at some point, decided which documents were \"relevant\" to which queries. That could be explicit (human raters labeling search results) or implicit (click logs, dwell time, link graphs). Either way, the index now encodes a probability distribution over what the system considers a good answer to a given query.\nThat distribution is not semantic truth. It's past relevance consensus.\nConsider what happens when you embed a corpus and build a vector index. Your embedding model was trained on data that reflects certain assumptions about what concepts are close to each other. Your chunking strategy encodes assumptions about what granularity of information is useful. Your ranking model — whether it's cross-encoder reranking or a learned relevance model — was trained on labeled data that reflects someone's judgment abo",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么你的代理的搜索结果看起来正确但实际上是错的：索引分布问题",
+        "summary": "AI代理搜索工具的失败不是来自幻觉，而是来自索引偏差——搜索索引编码了不代表语义真实性的历史相关性判断。即使搜索结果看起来合理，代理也会从底层索引关于什么重要的假设中继承结构性错误，这是任何提示工程都无法修复的问题。"
+      }
+    }
+  },
+  {
+    "title": "Imagen 3 & 4 Shut Down June 24: Migrate to Gemini Image (2026)",
+    "slug": "imagen-shutdown-gemini-migration-2026",
+    "url": "https://dev.to/akaranjkar08/imagen-3-4-shut-down-june-24-migrate-to-gemini-image-2026-1h87",
+    "source": "DEV Community",
+    "date": "2026-06-22T00:23:41.000Z",
+    "summary": "Google is shutting down all Imagen models on Firebase AI Logic by June 24, 2026, requiring migration to Gemini Image models with straightforward API changes but no replacement for mask-based editing capability. Vertex AI users have until August 17, making Firebase the tighter deadline.",
+    "content": "June 24, 2026. That is the shutdown date for every Imagen model on Firebase AI Logic — imagen-3.0-generate-002, imagen-4.0-generate-001, imagen-4.0-ultra-generate-001, imagen-4.0-fast-generate-001. All of them. If you have been putting off this migration, you have run out of runway.\nThe replacement is Google's Gemini Image models — internally called \"Nano Banana,\" publicly named gemini-2.5-flash-image. The migration is mostly a one-function rename and a response structure update, around 90 minutes of work for most codebases. The catch: one Imagen capability, mask-based editing, has no replacement at all. That separate deadline hits June 30.\nFirebase AI Logic's migration documentation confirms these shutdown dates:\nimagen-3.0-generate-002 — June 24, 2026\n\n\nimagen-4.0-generate-001 — June 24, 2026\n\n\nimagen-4.0-ultra-generate-001 — June 24, 2026\n\n\nimagen-4.0-fast-generate-001 — June 24, 2026\n\n\nimagen-3.0-capability-001 (mask editing: inpainting, outpainting, object removal) — June 30, 2026\n\n\n\nVertex AI runs on a slightly different clock — Google recommends migrating before June 30, with a hard shutdown date of August 17 for Vertex AI users on legacy Imagen endpoints. Firebase AI Logic is the shorter deadline. Don't assume extra time if your app uses the Firebase SDK.\nThree things change simultaneously: the method name, the model identifier, and the response structure. All three break if you miss any one of them.\nBefore (Imagen):\nimport google.generativeai as genai\n\nclient = genai.Client(api_key=\"YOUR_KEY\")\n\nresponse = client.models.generate_images(\n    model=\"imagen-4.0-generate-001\",\n    prompt=\"A red fox running through snow\",\n    config={\"number_of_images\": 1, \"output_mime_type\": \"image/jpeg\"}\n)\n\nimage_bytes = response.generated_images[0].image.image_bytes\n\nAfter (Gemini Image):\nimport google.generativeai as genai\n\nclient = genai.Client(api_key=\"YOUR_KEY\")\n\nresponse = client.models.generate_content(\n    model=\"gemini-2.5-flash-image\",\n    contents=\"A red fox running",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Imagen 3 & 4 于6月24日关闭：迁移到Gemini Image（2026年）",
+        "summary": "谷歌将在2026年6月24日前关闭Firebase AI Logic上的所有Imagen模型，需要迁移到Gemini Image模型，虽然API更改很直接，但没有基于掩码的编辑功能的替代品。Vertex AI用户有到8月17日的时间，这使Firebase的截止日期更紧张。"
+      }
+    }
+  },
+  {
+    "title": "Stop Telling Your AI to \"Be Careful Next Time.\" It Has No Memory of Yesterday.",
+    "slug": "ai-agent-stateless-design-memory",
+    "url": "https://dev.to/nomurasan/stop-telling-your-ai-to-be-careful-next-time-it-has-no-memory-of-yesterday-i6c",
+    "source": "DEV Community",
+    "date": "2026-06-22T00:23:29.000Z",
+    "summary": "Stateless LLM agents don't retain corrections between runs, making rule-based guardrails ineffective as long-term training mechanisms. The author found that over-specifying rules harmed performance; designing systems for structural reliability rather than instructional compliance works better.",
+    "content": "This is an adapted English version of an article I first wrote in Japanese. I work with AI to shape and review my drafts, but the argument and the field observations are my own. The numbers are cited from public surveys (linked at the end).\nI built an aggressive prompt-injection block to stop my AI agent from repeating the same mistakes. It worked, so I kept adding rules. By the time I noticed, the file had ballooned to 56,000 characters — and the agent had quietly stopped functioning. Too much context, attention spread too thin to act on any of it. I gutted it back to under 1,200 characters, and here's the part that still stings: it behaved better with fewer rules.\nThat was the day I learned my whole mental model was backwards.\nThis isn't a post about making your AI more accurate. It's about designing so that accuracy stops being the thing you depend on.\nMy agent kept skipping the same step in a workflow. So I did what every engineer does on instinct: I added a rule. \"Don't skip this step.\" Then it did something else dumb, so I added another rule. Then another.\nI was treating the rules file like a conversation with a colleague — as if the agent would remember yesterday's correction and carry it forward. It doesn't. Every run starts cold. \"Be careful next time\" assumes a next time that shares state with this time. For a stateless model, there is no continuity to appeal to. You are talking to a counterparty with no memory of the conversation you think you're having.\nSo the rules pile up, because each correction feels like progress. And for a while the numbers even improve. But adding rules has a ceiling, and I blew straight through it: at 56,000 characters the agent wasn't reasoning over my guardrails anymore — it was drowning in them.\nHere's the distinction that took me far too long to see.\nPutting a rule in the context window means the model knows the rule. It does not mean the model will stop at that rule in the middle of a workflow, when it's three tool-calls dee",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "停止告诉你的AI\"下次要小心\"。它对昨天没有记忆。",
+        "summary": "无状态LLM代理在运行之间不保留纠正，使基于规则的护栏作为长期培训机制效率低下。作者发现过度指定规则会损害性能；针对结构可靠性而非指令合规性设计系统效果更好。"
+      }
+    }
+  },
+  {
+    "title": "Predicting Your Burnout: Building an HRV Stress Tracker with TCNs and Oura Ring Data",
+    "slug": "hrv-stress-prediction-tcn-oura-ring",
+    "url": "https://dev.to/beck_moulton/predicting-your-burnout-building-an-hrv-stress-tracker-with-tcns-and-oura-ring-data-4e3e",
+    "source": "DEV Community",
+    "date": "2026-06-22T00:23:00.000Z",
+    "summary": "This tutorial builds a 24-hour stress prediction system using Temporal Convolutional Networks on Oura Ring HRV data, leveraging dilated causal convolutions to capture long-term dependencies faster than RNNs. It bridges biometric time series analysis with production-ready deep learning patterns.",
+    "content": "We’ve all been there: waking up feeling like a zombie despite getting eight hours of sleep. While wearables give us data, they often fail to give us foresight. What if you could predict your stress levels 24 hours in advance? 🚀\nIn this tutorial, we are going to tackle HRV prediction (Heart Rate Variability) using a state-of-the-art Temporal Convolutional Network (TCN). By leveraging the Oura Ring API and deep learning, we’ll transform non-stationary biometric time series into actionable insights. Whether you're into time series forecasting or building the next big health-tech app, mastering Temporal Convolutional Networks (TCN) is a game-changer for handling long-term dependencies without the vanishing gradient headaches of traditional RNNs.\nFor those looking for more production-ready examples and advanced biometric signal processing patterns, I highly recommend checking out the deep-dives at WellAlly Blog, which served as a major inspiration for this architecture.\nTraditional LSTMs are great, but they process data sequentially, making them slow and prone to memory loss over long sequences. TCNs, however, use Dilated Causal Convolutions, allowing the model to look back exponentially further into the past with fewer layers.\ngraph TD\n    A[Oura Cloud API] -->|Raw JSON| B(Pandas Preprocessing)\n    B -->|Cleaned HRV/Activity| C{Feature Engineering}\n    C -->|Sliding Windows| D[TCN Model Training]\n    D -->|Dilated Convolutions| E[Stress Trend Prediction]\n    E -->|24h Forecast| F[Dashboard/Alerts]\n    style D fill:#f9f,stroke:#333,stroke-width:2px\n\nTo follow along, you'll need:\n  Tech Stack: Python, TensorFlow/Keras, Pandas, Scikit-learn.\n  Data: An Oura Cloud Personal Access Token (or use the mock data generator provided).\n  Difficulty: Advanced (Buckle up! 🏎️).\nFirst, we need to pull our \"Readiness\" and \"Sleep\" data. Oura provides high-resolution HRV samples (usually 5-minute intervals during sleep).\nimport requests\nimport pandas as pd\n\ndef fetch_oura_data(token, st",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "预测职业倦怠：使用TCN和Oura Ring数据构建心率变异性压力追踪器",
+        "summary": "本教程使用时间卷积网络在Oura Ring心率变异性数据上构建24小时压力预测系统，利用扩张因果卷积捕获长期依赖关系，速度比循环神经网络更快。它将生物计量时间序列分析与生产级深度学习模式相结合。"
+      }
+    }
+  },
+  {
+    "title": "Harness Engineering Has No Fixed Address",
+    "slug": "harness-engineering-agent-spec-verification",
+    "url": "https://dev.to/saurav_bhattacharya/harness-engineering-has-no-fixed-address-2m7a",
+    "source": "DEV Community",
+    "date": "2026-06-22T00:17:04.000Z",
+    "summary": "Harness engineering—specification and verification of agent behavior—is the engineering work in agents, distinct from the model itself. As models absorb more scaffolding, the harness work migrates toward deterministic boundaries: what agents may do and proof they did it correctly.",
+    "content": "TL;DR — Harness engineering is one thing: getting reliable judgment out of a reasoner you didn't train — given an instruction, bounded by a spec that can override that instruction, and verified before the result ships. It is not \"the wrapper around the model.\" It's a property of code, not a place in your stack, and it lives on both sides of every tool call. The generic scaffolding — loops, dispatch, memory — melts into the model a little more every quarter. What survives is the part that stays external to the model: the specification of what the agent may do, and the verification that it did. That's the discipline. The rest is plumbing.\nI've written before that Agent = Model × Harness, and that the harness is the half you actually engineer. I still believe the formula. But stop there and it oversells two things — so this is me correcting my own framing, precisely, with code.\nThe × oversells separability. Multiplication implies the factors are independent. They aren't. A better model doesn't leave your harness untouched — it dissolves parts of it. Chain-of-thought prompting became reasoning models. ReAct-style tool loops became native tool use. Half your RAG plumbing is being quietly absorbed by longer context and better-trained retrieval. Every model generation collapses a layer of harness the previous one needed.\n\"Harness absorbs software engineering\" oversells the annexation. It doesn't absorb it. It partly consumes it — pulls in the slice that encodes the agent's behavior — while the deterministic spine (payments, ledgers, auth) and the dumb tools stay exactly what they were. Relocation with an annexation at the seam. Not a takeover.\nBoth corrections point at the same uncomfortable question: if the model eats the scaffold every quarter, isn't the harness the melting part — the thing you'd be foolish to bet a career on?\nHere's the resolution, and it's the whole point.\nThe harness mechanism melts. The loop, the dispatch, the retry, the memory-stitching — that's the",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "系统工程没有固定地址",
+        "summary": "系统工程——代理行为的规范和验证——是代理中的工程工作，与模型本身不同。随着模型吸收更多的脚手架，系统工程工作迁移到确定性边界：代理可以做什么，以及他们正确执行的证明。"
+      }
+    }
+  },
+  {
+    "title": "How to Run a 12-Surface AI Visibility Audit on Any B2B Brand",
+    "slug": "ai-visibility-audit-b2b-brands",
+    "url": "https://dev.to/darkhorsemkdev/how-to-run-a-12-surface-ai-visibility-audit-on-any-b2b-brand-4h7h",
+    "source": "DEV Community",
+    "date": "2026-06-22T00:10:58.000Z",
+    "summary": "An AI visibility audit maps where a B2B brand appears across 12 distinct surfaces (AI interfaces, search, reviews, owned content, developer platforms, social, knowledge graphs, marketplaces, case studies, and communities) that feed LLM training. This methodology surfaces why brands appear for some queries and not others.",
+    "content": "AI-generated answers now influence B2B buying decisions at the top of the funnel. Buyers use ChatGPT, Perplexity, Claude and Gemini to shortlist vendors before they ever visit a website. Which means the question \"where does my brand actually appear in AI-generated answers?\" is now a critical GTM intelligence question.\nMost brands don't know the answer. This post gives you the methodology to find out.\nAn AI visibility audit is not a technical SEO audit. You're not looking for broken links, page speed issues, or crawl errors (though those matter for a related reason). You're auditing citation density — how frequently and authoritatively your brand appears across the specific sources that LLMs draw from when generating recommendations.\nThose sources break down into 12 distinct surfaces. A brand can score 9/10 on one surface and 1/10 on eleven others — and the aggregate result is a brand that appears for some queries and not others in ways that seem inexplicable but are structurally predictable.\nThe goal of this audit is to make that structure visible.\nBefore diving into the methodology, here's the full surface map:\n\n\n\n#\nSurface\nPrimary platforms\n\n\n\n\n1\nAI Interfaces\nChatGPT, Perplexity, Gemini, Claude, Copilot\n\n\n2\nSearch + AI Search\nGoogle AI Overviews, Bing Copilot, Perplexity Search\n\n\n3\nReviews + Reputation\nG2, Clutch, Capterra, industry-specific platforms\n\n\n4\nEarned Media + Publishers\nTrade press, business press, analyst reports\n\n\n5\nOwned Content + Website\nBrand site, blog, schema markup, answer-object pages\n\n\n6\nTechnical + Developer\nGitHub, dev.to, Stack Overflow, Hacker News\n\n\n7\nSocial + Authority\nLinkedIn, executive publishing, award citations\n\n\n8\nData + Knowledge Graphs\nWikipedia, Wikidata, Crunchbase, ZoomInfo\n\n\n9\nMarketplaces + Ecosystems\nClutch category pages, Agency Spotter, partner directories\n\n\n10\nCase Studies + Proof\nPublished case studies, award wins, client outcomes\n\n\n11\nCommunity + Q&A\nReddit, Quora, LinkedIn groups, Slack communities\n\n\n12\nEnterprise +",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何对任何B2B品牌运行12维度AI可见性审计",
+        "summary": "AI可见性审计映射B2B品牌在12个不同平面上的出现位置（AI界面、搜索、评论、自有内容、开发者平台、社交媒体、知识图谱、市场、案例研究和社区），这些平面为大语言模型训练提供数据。这种方法论揭示为什么品牌在某些查询中出现，而在其他查询中不出现。"
+      }
+    }
+  },
+  {
+    "title": "How I Built a Developer Knowledge Base in Obsidian That I Actually Use",
+    "slug": "developer-knowledge-base-obsidian",
+    "url": "https://dev.to/appz_b0659e1ca24e36738948/how-i-built-a-developer-knowledge-base-in-obsidian-that-i-actually-use-5gc6",
+    "source": "DEV Community",
+    "date": "2026-06-22T00:05:23.000Z",
+    "summary": "A working developer knowledge base separates evergreen resources from time-scoped projects, avoiding the graveyard doc problem by aligning structure with how engineers think and debug. The framework uses project/area/resource directories with decision records embedded in project contexts.",
+    "content": "Every developer I know has the same problem: knowledge scattered across five places at once.\nBrowser bookmarks they never re-read. Notion docs that become graveyards. Slack threads with critical context that disappear into the archive. README files that contradict each other. Stack Overflow answers bookmarked with zero recall of why.\nI tried most of the \"second brain\" setups and none of them stuck until I figured out why they kept failing: generic productivity systems are not built for how developers actually think and work.\nA developer's knowledge is fundamentally different from a writer's or a manager's. It is:\nCode-linked (a note about a library is useless without the actual code it explains)\nDecision-heavy (architecture decisions need context, rationale, and alternatives considered)\nDebugging-intensive (solutions to bugs need the exact error message, environment, and what you tried)\nTime-sensitive (that API migration note is only relevant for a 3-month window)\nHere is the structure that actually worked.\n00-Inbox/\n10-Projects/\n20-Areas/\n  - Language: Python/\n  - Stack: AWS/\n  - Domain: Auth/\n30-Resources/\n  - Libraries/\n  - Tools/\n  - Patterns/\n40-Archive/\n\nThe key insight: Resources are evergreen, Projects are temporary, Areas are ongoing responsibilities.\nA note about how JWT works lives in 30-Resources/Domain-Auth/. A note about implementing JWT for the current sprint lives in 10-Projects/Sprint-42-Auth-Revamp/. When the sprint is done, the project gets archived. The JWT fundamentals note stays forever.\n# ADR-042: Use Postgres over DynamoDB for user sessions\n\nStatus: Accepted | Date: 2026-06-22\n\n## Context\nWe need session storage that supports complex queries for the audit log feature.\n\n## Decision\nPostgres with connection pooling via PgBouncer.\n\n## Alternatives Considered\n- DynamoDB: rejected (query limitations for audit log requirements)\n- Redis: rejected (not durable enough for compliance requirements)\n\n## Consequences\n- Positive: Full SQL query support for",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何在Obsidian中构建一个我真正使用的开发者知识库",
+        "summary": "一个有效的开发者知识库将常青资源与有时间限制的项目分开，通过将结构与工程师的思维和调试方式相一致来避免文档墓地问题。该框架使用项目/区域/资源目录，并在项目上下文中嵌入决策记录。"
+      }
+    }
+  },
+  {
+    "title": "Optimizing Django ORM Queries: A Practical Guide to select_related and prefetch_related",
+    "slug": "django-orm-select-related-prefetch-related",
+    "url": "https://dev.to/fhva29/optimizing-django-orm-queries-a-practical-guide-to-selectrelated-and-prefetchrelated-1gpl",
+    "source": "DEV Community",
+    "date": "2026-06-22T00:02:49.000Z",
+    "summary": "Django's select_related and prefetch_related solve the N+1 query problem by fetching related objects in bulk; select_related uses SQL JOINs for direct relationships, while prefetch_related handles reverse and many-to-many relations. Understanding when to combine them prevents silent performance degradation at scale.",
+    "content": "1. Introduction\n\n\nDjango's ORM is one of its greatest strengths. It abstracts away raw SQL, lets you express database operations in clean Python, and gets you productive fast. But that convenience comes with a hidden cost: if you're not deliberate about how you fetch related objects, you'll silently generate far more queries than you intend — and you won't notice until your app slows to a crawl in production.\nThe most common culprit is the N+1 query problem: a pattern where fetching a list of N objects triggers an additional query for each one, resulting in N+1 total round-trips to the database. At ten rows it's invisible. At ten thousand rows, it's a disaster.\nDjango provides two tools to fix this: select_related and prefetch_related. This article explains how each one works internally, when to use which, and how to combine them effectively — with before/after examples and real query counts throughout.\nConsider a simple blog with posts and authors. You want to render a list of posts, showing each post's title and its author's name.\nModels:\n# models.py\nfrom django.db import models\n\n\nclass Author(models.Model):\n    name: str = models.CharField(max_length=100)\n\n\nclass Post(models.Model):\n    title: \"str = models.CharField(max_length=200)\"\n    author: Author = models.ForeignKey(\n        Author,\n        on_delete=models.CASCADE,\n        related_name=\"posts\",\n    )\n\nThe naive approach:\n# views.py\nfrom django.db import connection\nfrom .models import Post\n\n\ndef list_posts() -> None:\n    posts = Post.objects.all()  # Query 1: fetch all posts\n\n    for post in posts:\n        print(f\"{post.title} by {post.author.name}\")\n        # ^^^ Query 2, 3, 4, ... N+1: one per post\n\nFor 100 posts, this produces 101 queries. Django lazily fetches post.author the first time you access it on each object. Each access hits the database separately.\nYou can verify this with django.db.connection.queries (requires DEBUG = True):\nfrom django.db import connection, reset_queries\n\nreset_queries()\npost",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "优化Django ORM查询：select_related和prefetch_related实用指南",
+        "summary": "Django的select_related和prefetch_related通过批量获取相关对象来解决N+1查询问题；select_related为直接关系使用SQL JOIN，而prefetch_related处理反向和多对多关系。了解何时组合使用它们可以防止在规模化时出现无声的性能降低。"
+      }
+    }
+  },
+  {
+    "title": "container escape is becoming an agent workload",
+    "slug": "container-escape-agent-workload",
+    "url": "https://dev.to/pvgomes/container-escape-is-becoming-an-agent-workload-56gb",
+    "source": "DEV Community",
+    "date": "2026-06-22T00:01:34.000Z",
+    "summary": "An LLM-powered attacker exploited a marimo notebook vulnerability and composed a known attack chain (Docker socket, enumeration, privileged container, Kubernetes token replay) faster than a human would. Agents weaponize familiar but chained security gaps rather than discovering new exploits.",
+    "content": "The scary part of an agent-driven container escape is not the container escape.\nThat sounds wrong, so let me be precise.\nThe primitives in Sysdig's latest threat research are not new magic. A mounted Docker socket has been a bad idea for years. Over-permissioned Kubernetes service accounts have been a bad idea for years. Privileged containers are dangerous. Host namespace tricks are dangerous. Secrets reachable from application pods are dangerous.\nNone of this should surprise anyone who has had to review production Kubernetes setups with a straight face.\nThe new part is the operator.\nSysdig observed what it describes as an LLM-harness-driven attacker exploiting a vulnerable marimo notebook, enumerating the container and host environment, using the Docker socket as an escape path, creating privileged containers, reading host credentials, and replaying a Kubernetes service-account token to dump Secrets.\nThat is the part worth sitting with.\nNot because the agent invented a new class of exploit.\nBecause it made the old mistakes compose faster.\nMost security incidents are not movie plots. They are boring edges left open long enough for someone to connect them.\nIn this case, the edges are familiar.\nAn internet-reachable application had a vulnerability. The workload had access to a Docker socket. The container environment exposed enough information to enumerate possible escape paths. A Kubernetes service-account token was available. The token had enough RBAC to read Secrets. Secrets contained useful downstream credentials.\nThat is not one bug.\nThat is a chain of assumptions.\nThe application team may have thought about the notebook vulnerability. The platform team may have thought about the Docker socket as a convenience for one workflow. The Kubernetes team may have thought the service account was scoped \"only\" to a namespace. The security team may have had runtime alerts somewhere in the backlog.\nEach decision can look locally tolerable.\nTogether, they become a runway.\nTh",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "容器逃逸正在成为代理工作负载",
+        "summary": "一个由大型语言模型驱动的攻击者利用marimo笔记本漏洞，并比人类更快地组合了一个已知的攻击链（Docker套接字、枚举、特权容器、Kubernetes令牌重放）。代理利用熟悉但相互关联的安全漏洞，而不是发现新的漏洞。"
+      }
+    }
+  }
+]
