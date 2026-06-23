@@ -1,5 +1,197 @@
 [
   {
+    "title": "ViewModel VS Coroutine Scope",
+    "slug": "viewmodel-vs-coroutine-scope",
+    "url": "https://dev.to/manoj_saichallagulla_798/viewmodel-vs-coroutine-scope-oln",
+    "source": "DEV Community",
+    "date": "2026-06-23T07:05:01.000Z",
+    "summary": "An explanation of how ViewModels, CoroutineScopes, and Coroutines work together in Android development, with emphasis on how viewModelScope automatically cancels coroutines when the ViewModel is cleared to prevent memory leaks and dangling tasks.",
+    "content": "1. Coroutine\n\n\nA coroutine is the actual background task.\nExample:\nlaunch {\n    api.getProfile()\n}\n\nHere, the work is:\nSo coroutine means:\nA lightweight task that can run without blocking the main thread.\nA CoroutineScope is like a container/manager for coroutines.\nIt decides:\nWhere coroutine runs\nHow long coroutine lives\nWhen coroutine should be cancelled\n\nExample:\nval scope = CoroutineScope(Dispatchers.IO)\n\nscope.launch {\n    // coroutine work\n}\n\nHere:\nscope = manager\nlaunch block = coroutine\n\n\nviewModelScope is a special CoroutineScope given by Android to every ViewModel.\nExample:\nclass ProfileViewModel : ViewModel() {\n\n    fun loadProfile() {\n        viewModelScope.launch {\n            repository.getProfile()\n        }\n    }\n}\n\nMeaning:\nRun this coroutine inside the ViewModel’s scope.\n4. Relationship\n\nVery important:\nCoroutineScope is the general concept.\n\nviewModelScope is one specific CoroutineScope.\n\nCoroutine is the actual task running inside the scope.\n\nLike this:\nViewModel\n   owns\nviewModelScope\n   manages\ncoroutines\n\nVisual:\nProfileViewModel\n\n\n  \n  \n  5. Why use viewModelScope?\n\n\nBecause it automatically cancels coroutines when ViewModel is cleared.\nviewModelScope.launch {\n    delay(10000)\n    println(\"Done\")\n}\n\nIf user leaves the screen before 10 seconds:\nScreen closed\n↓\nViewModel cleared\n↓\nviewModelScope cancelled\n↓\nCoroutine cancelled\n\nSo \"Done\" will not print.\nval scope = CoroutineScope(Dispatchers.IO)\n\nscope.launch {\n    delay(10000)\n    println(\"Done\")\n}\n\nHere you created the scope manually.\nSo you must cancel it manually:\nscope.cancel()\n\n\nOtherwise it may continue even after the screen is gone.\nWrite this in your notes:\n\nCoroutine = actual background task.\n\nCoroutineScope = manager/container that controls coroutines.\n\nviewModelScope = Android-provided CoroutineScope attached to ViewModel.\n\nWhen ViewModel is cleared, viewModelScope is automatically cancelled.\n\nSo all coroutines launched inside viewModelScope are also cancelled.\n\n\nBest simple line:\nv",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "ViewModel VS 协程作用域",
+        "summary": "解释了在Android开发中ViewModels、CoroutineScopes和Coroutines如何协同工作，重点强调了viewModelScope在ViewModel被清除时如何自动取消协程以防止内存泄漏和悬挂任务。"
+      }
+    }
+  },
+  {
+    "title": "AI Anomaly Detection in Grafana: 3 Mistakes We Made",
+    "slug": "ai-anomaly-detection-grafana-3-mistakes",
+    "url": "https://dev.to/oleksandr_kuryzhev_42873f/ai-anomaly-detection-in-grafana-3-mistakes-we-made-j9a",
+    "source": "DEV Community",
+    "date": "2026-06-23T07:03:01.000Z",
+    "summary": "An engineering team shares lessons learned replacing 200 static Prometheus alerts with an AI anomaly detection model, detailing initial failures like false 3am alarms and missed real incidents, alongside the working architecture they eventually implemented.",
+    "content": "Originally published on kuryzhev.cloud\nWe replaced 200 static Prometheus threshold alerts with an AI anomaly detection model — and spent the first month making things measurably worse before we figured out why. The model fired constantly, woke people up at 3am for non-issues, then went completely silent during a real incident. This is the honest account of what went wrong and what the working architecture actually looks like now.\nContext — Why We Tried AI Anomaly Detection in the First Place\nOur alerting stack before this experiment was a graveyard of static thresholds. CPU above 80%? Alert. Memory above 75%? Alert. P95 latency above 500ms? Alert. Every one of those numbers was picked by a human, at a point in time, for a service that has since changed completely. The result was a Prometheus setup with roughly 200 alert rules that the on-call rotation had learned to mostly ignore. Alert fatigue was real and documented — we had a Slack channel called #alerts-noise that received more traffic than #incidents.\nThe incident that finally pushed us to act was a gradual memory leak in a Go microservice. The leak was slow — about 12MB per hour. It stayed under every static threshold for six full hours. No alert fired. Then the service hit the container memory limit, got OOM-killed, and the cascade took down three downstream services before we caught it. The postmortem was uncomfortable. We had all the metrics. Prometheus had scraped every data point. We just had no rule that would have caught a slow, sustained drift rather than a sharp spike.\nThe target stack we built toward: Grafana 10.2.3, Prometheus 2.48, and a Python-based anomaly model using Isolation Forest from scikit-learn 1.4.0, deployed as a sidecar service on Kubernetes 1.28. The model would score incoming metric streams and expose those scores back to Prometheus, where Grafana alert rules would evaluate them. Clean in theory. Painful in practice.\nMistake 1 — We Trusted the Model Out of the Box Without Baseline Tr",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Grafana中的AI异常检测：我们犯的3个错误",
+        "summary": "一个工程团队分享了用AI异常检测模型替换200个静态Prometheus警报所学到的经验教训，详细说明了初期失败（如虚假的凌晨3点警报和错过的真实事件），以及他们最终实现的有效架构。"
+      }
+    }
+  },
+  {
+    "title": "How to prepare a PCAP for vendor support without leaking the whole capture",
+    "slug": "prepare-pcap-vendor-support-safely",
+    "url": "https://dev.to/hannes_wan/how-to-prepare-a-pcap-for-vendor-support-without-leaking-the-whole-capture-c70",
+    "source": "DEV Community",
+    "date": "2026-06-23T07:02:13.000Z",
+    "summary": "A practical guide to securely preparing network packet captures for vendor support by removing sensitive data like credentials and IP addresses while preserving the packets needed to diagnose the specific issue.",
+    "content": "Packet captures are useful because they are specific. They are risky for the same reason.\nA raw PCAP can contain:\ninternal IP addresses\nhostnames\ncredentials or tokens in cleartext protocols\ncookies\nDNS queries\ncustomer traffic unrelated to the bug\nproprietary endpoints\ntiming information\nenough context to reveal network architecture\nBefore sending a capture to a vendor, support team, customer, or public issue, treat it like evidence that needs minimization.\nThe goal is not to make the file pretty. The goal is to preserve the packets needed to reproduce or explain the issue while removing everything that does not belong in the handoff.\nDo not edit a PCAP until you know what the receiver needs to answer.\nExamples:\nWhy does TLS negotiation fail after ServerHello?\nWhy does this device retransmit every request?\nWhy does the API return 400 only for this payload?\nWhy does the camera stream freeze after PLAY?\nWhy does DNS resolve differently on this subnet?\n\nThat question tells you which packets matter.\nAlways preserve the original capture.\nRecommended structure:\ncase-1234/\n  original/\n    customer-capture-raw.pcapng\n  working/\n    filtered-draft.pcapng\n  handoff/\n    vendor-handoff-v1.pcapng\n    notes.md\n\nNever overwrite the original file. If a later question appears, you may need to rebuild the handoff from the untouched source.\nThe easiest safe reduction is time.\nIf the failure happens between 10:42:13 and 10:42:18, the vendor probably does not need a 45-minute capture.\nKeep:\na small lead-in before the failure\nthe failure itself\nenough aftermath to show retries, resets, or recovery\nRemove unrelated browsing, background sync, update checks, and other noise.\nProtocol filters are often too broad.\nInstead of “all HTTP” or “all DNS”, narrow to:\nclient IP\nserver IP\nport\nstream/conversation\ndevice MAC\ntransaction ID\nrequest path if visible\nA narrow conversation makes review faster and reduces accidental disclosure.\nCommon fields to inspect before sharing:\nIP addresses\nMAC addr",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何安全地为供应商支持准备PCAP而不泄露整个数据包捕获",
+        "summary": "一份实用指南，通过移除凭证和IP地址等敏感数据来为供应商支持安全地准备网络数据包捕获，同时保留诊断特定问题所需的数据包。"
+      }
+    }
+  },
+  {
+    "title": "RTSP black screen troubleshooting: what to check when VLC works but your VMS does not",
+    "slug": "rtsp-black-screen-vms-troubleshooting",
+    "url": "https://dev.to/hannes_wan/rtsp-black-screen-troubleshooting-what-to-check-when-vlc-works-but-your-vms-does-not-1pb9",
+    "source": "DEV Community",
+    "date": "2026-06-23T07:01:48.000Z",
+    "summary": "A diagnostic framework for troubleshooting RTSP stream failures when playback works in VLC but not in NMS systems, covering authentication, codec negotiation, RTP sequencing, and common failure patterns with remediation steps.",
+    "content": "An IP camera stream failure is rarely just “RTSP does not work”. The useful question is more specific:\nDid RTSP authentication succeed?\nDid DESCRIBE return the SDP you expected?\nDid SETUP choose TCP interleaved or UDP RTP?\nIs media arriving after PLAY?\nAre RTP sequence numbers continuous?\nDoes the codec profile match what the client can decode?\nIs ONVIF handing the VMS a different URI than the one you tested in VLC?\nWhen a camera plays in VLC but not in an NVR/VMS, the failure is usually in the gap between “the stream exists” and “this client can negotiate, receive, and decode it reliably”.\nDo not compare two different tests.\nWrite down the full RTSP URL used by each client:\nrtsp://user:pass@camera.local:554/path\n\nCheck for differences in:\nprofile path\nchannel number\nstream subtype\nquery parameters\nusername/password encoding\ntransport settings\nONVIF-generated URI vs manually copied URI\nMany cameras expose multiple profiles. VLC may be opening the main stream while the VMS is using a substream, or vice versa.\nA normal session usually looks like this:\nOPTIONS\nDESCRIBE\nSETUP video\nSETUP audio (optional)\nPLAY\nTEARDOWN\n\nUseful failure patterns:\n401 loop\n\nAuthentication is not being accepted. Check digest/basic auth, clock drift on some devices, special characters in passwords, and whether the VMS encodes credentials differently.\nDESCRIBE succeeds, SETUP fails\n\nThe client can read metadata but cannot negotiate media transport. Check UDP/TCP mode, client ports, firewall/NAT, and multicast settings.\nPLAY succeeds, black screen\n\nThe control session succeeded, but media or decoding failed. Now inspect RTP and codec details.\nThe DESCRIBE response should return SDP similar to:\nm=video 0 RTP/AVP 96\na=rtpmap:96 H264/90000\na=control:trackID=1\na=fmtp:96 packetization-mode=1; profile-level-id=...\n\nCheck:\ncodec: H.264, H.265, MJPEG\npayload type\ncontrol attribute\nSPS/PPS availability for H.264\nprofile-level-id compatibility\naudio track that may confuse weaker clients\nA stream can be v",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "RTSP 黑屏故障排除：当 VLC 能播放但 VMS 无法播放时检查什么",
+        "summary": "一个诊断框架，用于排查 RTSP 流传输故障，当播放在 VLC 中正常但在 NMS 系统中失败的情况，涵盖身份验证、编解码器协商、RTP 序列和常见故障模式及修复步骤。"
+      }
+    }
+  },
+  {
+    "title": "Part 12: Performance Optimization - High-Throughput Concurrency",
+    "slug": "high-throughput-concurrency-workflow-engine",
+    "url": "https://dev.to/homolibere/part-12-performance-optimization-high-throughput-concurrency-2mo5",
+    "source": "DEV Community",
+    "date": "2026-06-23T07:01:00.000Z",
+    "summary": "A technical dive into how the Vyshyvanka workflow engine achieves high throughput using .NET's async/await model and SemaphoreSlim to manage hundreds of concurrent executions without exhausting thread pools.",
+    "content": "In the world of workflow automation, efficiency is not just a nice-to-have; it is a fundamental requirement. A single workflow engine instance might need to manage hundreds of concurrent executions, each waiting on I/O, external APIs, or database operations. Today, we explore how Vyshyvanka achieves high-throughput performance using .NET's powerful concurrency model.\nVyshyvanka was built with an async-first philosophy. We recognized early on that workflow engines are inherently I/O-bound. You are constantly waiting: waiting for a database row to lock, waiting for an API to respond, or waiting for a disk write to confirm.\nIf we were to use traditional synchronous threads, we would quickly exhaust the thread pool and bring the system to a halt. By using async/await everywhere, we ensure that while a workflow waits for I/O, the underlying thread is returned to the .NET thread pool to handle other work. This allows a relatively small number of threads to manage hundreds of concurrent workflow executions.\nThe engine uses SemaphoreSlim to limit the degree of parallelism at each execution level. This prevents a single large workflow from saturating all available resources:\nprivate async Task<NodeExecutionResult[]> ExecuteLevelWithThrottlingAsync(\n    Workflow workflow, List<string> level, IExecutionContext context,\n    ConcurrentBag<NodeExecutionResult> nodeResults, int maxParallelism,\n    CancellationToken cancellationToken)\n{\n    using var semaphore = new SemaphoreSlim(maxParallelism, maxParallelism);\n\n    var tasks = level.Select(async nodeId =>\n    {\n        await semaphore.WaitAsync(cancellationToken);\n        try\n        {\n            return await ExecuteNodeInWorkflowAsync(\n                workflow, nodeId, context, nodeResults, cancellationToken);\n        }\n        finally\n        {\n            semaphore.Release();\n        }\n    }).ToList();\n\n    return await Task.WhenAll(tasks);\n}\n\nThe default parallelism is Environment.ProcessorCount * 2, configurable per workflo",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第 12 部分：性能优化 - 高吞吐量并发",
+        "summary": "对 Vyshyvanka 工作流引擎如何使用 .NET 的 async/await 模型和 SemaphoreSlim 来实现高吞吐量，管理数百个并发执行而不耗尽线程池的技术深入探讨。"
+      }
+    }
+  },
+  {
+    "title": "I Open-Sourced an AI Skill for Generating Minimalist Hand-Drawn Illustrations",
+    "slug": "open-source-ai-minimalist-hand-drawn-illustrations",
+    "url": "https://dev.to/yuva_kunaal/i-open-sourced-an-ai-skill-for-generating-minimalist-hand-drawn-illustrations-1395",
+    "source": "DEV Community",
+    "date": "2026-06-23T07:00:22.000Z",
+    "summary": "An announcement of Kunaal's Illustrations, an open-sourced AI tool for generating minimalist hand-drawn illustrations with consistent character styles, designed for use in blogs, documentation, and technical content.",
+    "content": "I Open-Sourced an AI Skill for Generating Minimalist Hand-Drawn Illustrations\n\n\nMost AI-generated illustrations today look highly polished, glossy, and over-rendered.\nWhile that's impressive, I wanted something different.\nI wanted illustrations that feel simple, human, playful, and intentionally imperfect — the kind of sketches you'd find in a notebook or on a whiteboard.\nSo I built and open-sourced Kunaal's Illustrations.\nThe objective was straightforward:\nMinimalist black line art\nLots of whitespace\nWobbly hand-drawn aesthetics\nConsistent character style\nEasy generation through AI prompts\nInstead of creating photorealistic artwork, the focus is on communication and storytelling.\nExamples:\nBoy reading a book with a coffee\nGirl working on a laptop\nFriends chatting at a dining table\nSomeone studying late at night\nIt can also visualize abstract ideas such as:\nComplex server architectures\nAPI workflows\nSystem design concepts\nDeveloper productivity themes\nThe illustrations work particularly well in:\nNotion pages\nBlog posts\nTechnical documentation\nSlide decks\nEducational content\nThe skill includes a consistent visual identity through:\nReference Boy\nReference Girl\nThese characters provide style consistency while still allowing generation of completely new scenes and concepts.\nGenerate an illustration: A boy and a girl sitting opposite each other at a dining table saying hi and hello.\n\nI wanted:\nAnyone to use it\nAnyone to improve it\nA reusable illustration style for creators and developers\nOpen-source tools become far more useful when the community can adapt and extend them.\nGitHub Repository:\n@Yuvakunal/kunaal-illustrations\nContributions, feedback, and suggestions are welcome.\nIf you find it useful, consider giving the repository a ⭐.\nHappy building!",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我开源了一个生成极简主义手绘插图的 AI 技能",
+        "summary": "Kunaal 插图的公告，这是一个开源 AI 工具，用于生成具有一致角色风格的极简主义手绘插图，适用于博客、文档和技术内容。"
+      }
+    }
+  },
+  {
+    "title": "How Fintechs Are Using Machine Learning to Cut Payment Fraud Without Killing Conversion",
+    "slug": "machine-learning-payment-fraud-detection-conversion",
+    "url": "https://dev.to/derek_francis_76323ca87a4/how-fintechs-are-using-machine-learning-to-cut-payment-fraud-without-killing-conversion-nen",
+    "source": "DEV Community",
+    "date": "2026-06-23T07:00:21.000Z",
+    "summary": "Machine learning models for fraud detection analyze multiple contextual signals to balance fraud prevention with customer conversion, unlike rigid static rules that cause high false-positive rates and lost revenue.",
+    "content": "Machine learning has quietly become the default tool for payment fraud detection, and the reason is a trade-off every fraud team knows too well. Tighten the rules and you block more fraud, but you also block real customers who just wanted to buy something. Loosen the rules and conversion improves, right up until losses start eating the margin. Push too far in either direction and someone in a leadership meeting is going to ask hard questions.\nFor a long time, the lever for managing this was static rules. Block transactions over a certain amount from a certain region. Flag anything that looks unusual. Rules are easy to understand, which is their charm, and rigid, which is their curse. A rule cannot tell the difference between a genuine customer behaving slightly differently and an actual fraudster. It just sees a threshold and reacts. The result is a pile of false positives, which is a polite way of saying you annoyed your best customers.\nAnd that is not a soft cost. Industry analyses have repeatedly found that the revenue lost to false declines runs at well over ten times the value of the fraud actually stopped, and roughly a third of wrongly declined shoppers never come back to that merchant. A blunt rule does not just leak money on the fraud side. It quietly bleeds it on the conversion side too.\nThis is where machine learning changed the conversation. Instead of asking whether a transaction crosses a fixed line, an ML model asks how this transaction compares to everything it has learned about normal and abnormal behavior. It weighs dozens of signals at once. \nThe payoff is sharper decisions. A good fraud model can spot the subtle signs of account takeover while waving through a loyal customer who happens to be shopping from a new city on holiday. That is the dream. Fewer real frauds slipping past, fewer legitimate buyers getting rejected at checkout. Both numbers move in the right direction at the same time, which static rules could never quite manage.\nBut machine",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "金融科技公司如何使用机器学习降低支付欺诈而不影响转化率",
+        "summary": "欺诈检测的机器学习模型分析多个上下文信号，在欺诈预防和客户转化之间取得平衡，与导致高误报率和收入损失的僵化静态规则不同。"
+      }
+    }
+  },
+  {
+    "title": "World Cup 2026: How the 48-Team Format Is Mathematically Reshaping Upset Probability",
+    "slug": "world-cup-2026-48-team-format-upset-probability",
+    "url": "https://dev.to/edgelab/world-cup-2026-how-the-48-team-format-is-mathematically-reshaping-upset-probability-36j5",
+    "source": "DEV Community",
+    "date": "2026-06-23T07:00:17.000Z",
+    "summary": "The 2026 FIFA World Cup's expansion to 48 teams with groups of three reduces each team's sample size to two matches, mathematically amplifying the impact of individual upsets on qualification probability by approximately 12%.",
+    "content": "The 2026 FIFA World Cup in North America represents a fundamental shift in tournament architecture. For the first time in history, 48 teams compete in 16 groups of three, fundamentally altering the statistical landscape of knockout qualification. Early group stage results are already revealing surprising patterns that challenge conventional wisdom about tournament dynamics.\nWith matches like Spain's demolition of Saudi Arabia (4-0), Netherlands' 5-1 victory over Sweden, and the shocking 0-0 stalemate between Belgium and Iran already in the books, the data tells a compelling story: the expanded format hasn't increased upset probability—it's redistributed it in ways that favor underdog advancement while simultaneously making dominant performances more consequential.\nThe transition from 32 to 48 teams with group-stage reform creates unprecedented dynamics. Previously, groups of four meant teams faced three opponents. Now, with groups of three, each team plays only two matches—a 33% reduction in sample size for qualification determination.\nLet's examine what this means mathematically:\n\n\n\nFormat Metric\n32-Team (2022)\n48-Team (2026)\n\n\n\n\nTotal Group Matches\n48\n48\n\n\nMatches Per Team\n3\n2\n\n\nSample Size for Qualification\n3 games\n2 games\n\n\nPossible Point Combinations\n0-9\n0-6\n\n\nQualification Probability Variance\n±15%\n±22%\n\n\nUpset Impact on Advancement\n~5% swing\n~12% swing\n\n\n\nThis compressed schedule creates a critical insight: single-match variance now represents a 50% sample size swing rather than 33%, mathematically amplifying the impact of any single upset.\nThe first week of matches validates this theoretical framework:\nDominant Performances:\nSpain 4-0 Saudi Arabia (xG: Spain 2.8, Saudi Arabia 0.3)\nNetherlands 5-1 Sweden (xG: Netherlands 4.1, Sweden 1.2)\nGermany 2-1 Ivory Coast (xG: Germany 1.9, Ivory Coast 0.8)\nJapan 4-0 Tunisia (xG: Japan 3.2, Tunisia 0.4)\nShocking Equilibrium:\nBelgium 0-0 Iran (xG: Belgium 1.4, Iran 0.6)\nEcuador 0-0 Curaçao (xG: Ecuador 1.1, Curaçao 0.9)\nU",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "2026年世界杯：48支球队的赛制如何在数学上重塑冷门概率",
+        "summary": "2026年FIFA世界杯扩展至48支球队，分组为三支一组，将每支球队的样本量减少到两场比赛，在数学上将个别冷门对晋级概率的影响放大了约12%。"
+      }
+    }
+  },
+  {
+    "title": "Building a Simple Java JDBC Project with MySQL: Displaying Cricket Players and Scores",
+    "slug": "java-jdbc-mysql-cricket-players-scores",
+    "url": "https://dev.to/jayashree_a84b6eff7bc414e/building-a-simple-java-jdbc-project-with-mysql-displaying-cricket-players-and-scores-5gf6",
+    "source": "DEV Community",
+    "date": "2026-06-23T07:00:14.000Z",
+    "summary": "A tutorial demonstrating Java-to-MySQL database connectivity using JDBC, retrieving and displaying cricket player scores from multiple tables with UNION ALL queries to combine results across different data sources.",
+    "content": "While learning Java, I wanted to understand how Java connects with a database and retrieves data. Instead of using a random example, I created a small cricket project. The idea was simple: store Indian and Afghanistan players' scores in MySQL and display them through Java.\nStep 1: Creating the Database\nFirst, I created a database named cricket.\nCREATE DATABASE cricket;\nUSE cricket;\n\nThen, I created two tables:\nCREATE TABLE india (\n    player_name VARCHAR(50),\n    score INT\n);\n\nCREATE TABLE afghanistan (\n    player_name VARCHAR(50),\n    score INT\n);\n\nAfter that, I inserted player data into both tables.\nStep 2: Connecting Java with MySQL\nTo connect Java with MySQL, I used JDBC.\nString url = \"jdbc:mysql://localhost:3306/cricket\";\nString user = \"root\";\nString password = \"root\";\n\nConnection con = DriverManager.getConnection(url, user, password);\n\nThis line creates a connection between the Java application and the MySQL database.\nStep 3: Creating a Statement Object\nOnce the connection is established, we need a Statement object to send SQL queries to the database.\nStatement st = con.createStatement();\n\nThink of it as a messenger that sends SQL commands from Java to MySQL.\nStep 4: Writing the SQL Query\nSince player data was stored in two different tables, I used UNION ALL to combine them.\nString query =\n\"SELECT 'India' AS country, player_name, score FROM india \" +\n\"UNION ALL \" +\n\"SELECT 'Afghanistan' AS country, player_name, score FROM afghanistan\";\n\n\nThe AS country part adds a country name because the tables themselves contain only player names and scores.\nStep 5: Executing the Query\nResultSet rs = st.executeQuery(query);\n\nThe executeQuery() method sends the query to MySQL and returns the result in a ResultSet object.\nStep 6: Reading Data from ResultSet\nwhile (rs.next()) {\n    System.out.println(\n        rs.getString(\"country\") + \" \" +\n        rs.getString(\"player_name\") + \" \" +\n        rs.getInt(\"score\"));\n}\n\nrs.next() moves row by row through the result.\nMethods like:\nrs",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建一个简单的Java JDBC项目与MySQL：显示板球运动员和比分",
+        "summary": "一个教程展示了使用JDBC进行Java到MySQL数据库的连接，从多个表中检索和显示板球运动员的比分，使用UNION ALL查询来合并来自不同数据源的结果。"
+      }
+    }
+  },
+  {
+    "title": "Do not treat LangGraph as a longer chain: define state, interrupts, and recovery first",
+    "slug": "langgraph-state-interrupts-recovery-first",
+    "url": "https://dev.to/doramagic/do-not-treat-langgraph-as-a-longer-chain-define-state-interrupts-and-recovery-first-4n3n",
+    "source": "DEV Community",
+    "date": "2026-06-23T06:55:06.000Z",
+    "summary": "An analysis of LangGraph's core purpose as an AI workflow framework, emphasizing that developers should define state schemas, reducers, checkpoints, and recovery mechanisms first rather than treating it as merely an extended LangChain.",
+    "content": "The easiest way to misunderstand LangGraph is to see it as “LangChain, but with more steps.”\nThat misses the point.\nLangGraph becomes useful when an agent is no longer a single prompt or a simple chain. It becomes useful when the workflow has state, branches, tool calls, human approval, checkpointing, and recovery behavior that must be inspected before the agent is trusted inside a real AI host.\nI used the Doramagic LangGraph manual as the source-backed reading layer for this note:\nhttps://doramagic.ai/en/projects/langgraph/manual/\nThis is an independent project guide, not an official LangGraph document. I use it as a pre-adoption checklist: what should be understood before wiring a project into Claude, ChatGPT, Cursor, Codex, or another AI host.\nThe point is not to create another prompt library. The useful artifact is a capability resource pack: a manual, source map, boundary notes, pitfall log, smoke check, lightweight eval criteria, feedback notes, and host-ready context that help a developer decide what to verify before adoption.\nFor a one-shot model call, the prompt is often the main boundary.\nFor LangGraph, the first boundary is the State schema:\nwhich fields move between nodes;\nwhich fields a node may update;\nhow concurrent branches merge values;\nwhich values enter a checkpoint;\nwhich values should never be persisted.\nThis is why reducers matter. A message list is usually not just overwritten. It needs an append or merge rule such as add_messages or the TypeScript equivalent. That small implementation detail decides whether parallel work preserves context or silently drops it.\nMy preferred first run is not a “universal agent.” It is a tiny graph with one State schema, one node, one partial update, and one explicit reducer. If that is not clear, adding tools will only hide the problem.\ncompile() is the boundary between description and runtime\n\n\nBefore compile(), a LangGraph graph is a description: nodes, edges, conditional routes, state fields, reducers.\nAfter",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "不要将 LangGraph 视为更长的链：首先定义状态、中断和恢复机制",
+        "summary": "对 LangGraph 作为 AI 工作流框架的核心目的的分析，强调开发者应首先定义状态模式、归约器、检查点和恢复机制，而不是将其仅视为扩展的 LangChain。"
+      }
+    }
+  },
+  {
+    "title": "Maintaining Background Sync in Muffle: Managing Android Doze Mode and AlarmManager",
+    "slug": "android-background-sync-doze-mode-alarmmanager",
+    "url": "https://dev.to/haseebthedev0/maintaining-background-sync-in-muffle-managing-android-doze-mode-and-alarmmanager-1oek",
+    "source": "DEV Community",
+    "date": "2026-06-23T06:54:41.000Z",
+    "summary": "A technical guide to implementing reliable background task execution in the Muffle Android app using AlarmManager with setExactAndAllowWhileIdle to ensure time-sensitive audio profile changes function despite Android's aggressive Doze Mode.",
+    "content": "Building an app like Muffle, which relies on precise, time-sensitive sound profile changes, presents a classic Android development challenge: how do you ensure a task executes exactly when needed without getting killed by the system's aggressive battery optimizations?\nWhen I started building Muffle, my first instinct was to use a simple background service. However, Android’s Doze Mode quickly became a hurdle. If the device is stationary and unplugged, the system restricts network access and defers background jobs to save power. For a user expecting their phone to silence right at the start of a prayer time or a calendar meeting, a 15-minute delay caused by a maintenance window is unacceptable.\nTo solve this, I moved away from persistent background services. Instead, I architected the trigger engine around AlarmManager with setExactAndAllowWhileIdle. By scheduling specific PendingIntents for upcoming events, I ensure that the OS wakes the app precisely when the volume needs to toggle, even if the device is in a deep sleep state.\nOne major trade-off here is the overhead of waking the CPU. Frequent, poorly managed alarms can degrade battery life, which is the antithesis of a helpful utility. I implemented a 'next-event-only' scheduling logic. Rather than scheduling every event for the day, the app calculates the single nearest upcoming trigger. Once that event finishes, it reschedules the next one. This reduces the number of pending alarms significantly.\nI also had to account for the REQUEST_IGNORE_BATTERY_OPTIMIZATIONS permission. While it's tempting to ask users to whitelist the app, I decided against this for the default experience. It’s a privacy-invasive request that creates friction. Instead, by carefully using WorkManager for non-critical tasks (like syncing calendar events) and reserving AlarmManager for the time-sensitive volume toggles, the app remains responsive without needing to be excluded from standard battery management.\nBecause Muffle handles sensitive",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在 Muffle 中维持后台同步：管理 Android Doze 模式和 AlarmManager",
+        "summary": "一份技术指南，介绍如何在 Muffle Android 应用中使用 AlarmManager 和 setExactAndAllowWhileIdle 实现可靠的后台任务执行，以确保时间敏感的音频配置更改在 Android 的激进 Doze 模式下正常运行。"
+      }
+    }
+  },
+  {
+    "title": "The Invisible Web: Why AI Can't Find Your Website (And How to Fix It)",
+    "slug": "make-website-discoverable-ai-llms-standard",
+    "url": "https://dev.to/madazz01/the-invisible-web-why-ai-cant-find-your-website-and-how-to-fix-it-40h6",
+    "source": "DEV Community",
+    "date": "2026-06-23T06:53:41.000Z",
+    "summary": "An overview of why AI search engines misrepresent or omit websites due to JavaScript-heavy designs and complex rendering, proposing the AILattice Standard with /llms.txt and /ai/*.md files to make content AI-discoverable.",
+    "content": "There's a quiet problem nobody's talking about yet.\nAI is becoming the new search engine. People ask ChatGPT, Perplexity, and Claude to recommend services, find experts, and compare products. The answers come back confident and detailed — and they're often completely wrong about specific businesses.\nNot because the AI is broken. Because your website was never designed for AI to read.\nHow Google Indexes the Web vs. How AI Does\nAI doesn't work that way.\nWhen a language model learns about the internet, it reads text. Raw, clean, structured text. It doesn't care about your hero image, your font choice, or your animated scroll effects. It can't \"see\" your nav menu or parse a React app that renders client-side. It reads what's there, and most modern websites — buried under layers of JavaScript, ads, and design — give it almost nothing useful.\nThe result: AI hallucinates your address. Gets your pricing wrong. Describes what you do in vague, generic terms because it couldn't find anything specific. Or worse, doesn't mention you at all.\nWhat AI Actually Needs\nA clear entry point — one file that says \"this is what this site is, this is what it does, start here\"\nThe AILattice Standard\n/llms.txt — your AI business card. Name, description, what you do, who you serve, and a pointer to your AI entry point. Takes 10 minutes to write.\n/ai/index.md — your full AI overview. Write it like you're briefing a very smart assistant who has never heard of you. What problem do you solve? Who are your customers? What makes you different?\n/ai/sitemap.md — a list of every AI-navigable page on your site with a one-line description of each. Lets AI agents navigate your content autonomously.\n/ai/*.md — topic pages. Products, pricing, about, API docs — whatever is most important for AI to know, written in clean markdown.\nThat's the whole standard. It's open source (MIT). No vendor lock-in, no proprietary format.\nThe Registry\nAILattice maintains a registry of every site that has implemented the stand",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "隐形网络：为什么 AI 无法找到你的网站（以及如何修复）",
+        "summary": "概述 AI 搜索引擎由于 JavaScript 繁重的设计和复杂的渲染而误解或省略网站的原因，提出使用 /llms.txt 和 /ai/*.md 文件的 AILattice 标准来使内容对 AI 可发现。"
+      }
+    }
+  },
+  {
     "title": "Why Your Ubuntu Laptop Lags, and How to Fix It for Free",
     "slug": "why-your-ubuntu-laptop-lags-and-how-to-fix-it-for-free",
     "url": "https://dev.to/emmanuellsensai/why-your-ubuntu-laptop-lags-and-how-to-fix-it-for-free-l0n",
