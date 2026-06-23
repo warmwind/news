@@ -1,5 +1,245 @@
 [
   {
+    "title": "Deploying Zabbix Open-Source Monitoring Platform on Ubuntu 24.04",
+    "slug": "deploying-zabbix-monitoring-platform-ubuntu-24-04",
+    "url": "https://dev.to/vultr/deploying-zabbix-open-source-monitoring-platform-on-ubuntu-2404-3coh",
+    "source": "DEV Community",
+    "date": "2026-06-23T18:42:34.000Z",
+    "summary": "Zabbix is an open-source monitoring platform that tracks server, network, application, and service health with built-in alerting and visualization. This guide deploys Zabbix on Ubuntu 24.04 using Docker Compose and Traefik to provide HTTPS-secured infrastructure monitoring.",
+    "content": "Zabbix is an open-source monitoring platform that tracks the health and performance of servers, networks, applications, and services, with built-in alerting and visualisation. This guide deploys the Zabbix server, web UI, agent, and MySQL database using Docker Compose, with Traefik handling automatic HTTPS for the dashboard. By the end, you'll have Zabbix monitoring its own host with a secured dashboard at your domain.\n1. Create the project directory:\n$ mkdir ~/zabbix-docker\n$ cd ~/zabbix-docker\n\n2. Create the environment file:\n$ nano .env\n\nDOMAIN=zabbix.example.com\nLETSENCRYPT_EMAIL=admin@example.com\nMYSQL_PASSWORD=YOUR_DB_PASSWORD\nMYSQL_ROOT_PASSWORD=YOUR_ROOT_PASSWORD\n\n1. Add your user to the Docker group:\n$ sudo usermod -aG docker $USER\n$ newgrp docker\n\n2. Create the Compose manifest:\n$ nano docker-compose.yaml\n\nservices:\n  traefik:\n    image: traefik:v3.6\n    container_name: traefik\n    restart: unless-stopped\n    command:\n      - \"--providers.docker=true\"\n      - \"--providers.docker.exposedbydefault=false\"\n      - \"--entrypoints.web.address=:80\"\n      - \"--entrypoints.websecure.address=:443\"\n      - \"--entrypoints.web.http.redirections.entrypoint.to=websecure\"\n      - \"--entrypoints.web.http.redirections.entrypoint.scheme=https\"\n      - \"--certificatesresolvers.le.acme.httpchallenge=true\"\n      - \"--certificatesresolvers.le.acme.httpchallenge.entrypoint=web\"\n      - \"--certificatesresolvers.le.acme.email=${LETSENCRYPT_EMAIL}\"\n      - \"--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json\"\n    ports:\n      - \"80:80\"\n      - \"443:443\"\n    volumes:\n      - /var/run/docker.sock:/var/run/docker.sock:ro\n      - ./letsencrypt:/letsencrypt\n    networks:\n      - zabbix-net\n\n  mysql-server:\n    image: mysql:8.4.8\n    container_name: zabbix-mysql\n    environment:\n      MYSQL_DATABASE: zabbix\n      MYSQL_USER: zabbix\n      MYSQL_PASSWORD: ${MYSQL_PASSWORD}\n      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}\n    volumes:\n      - ./mysql-data:/var/lib/mysql\n    netwo",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在 Ubuntu 24.04 上部署 Zabbix 开源监控平台",
+        "summary": "Zabbix 是一个开源监控平台，用于跟踪服务器、网络、应用和服务的健康状况，具有内置告警和可视化功能。本指南使用 Docker Compose 和 Traefik 在 Ubuntu 24.04 上部署 Zabbix，以提供 HTTPS 保护的基础设施监控。"
+      }
+    }
+  },
+  {
+    "title": "Deploying SeaweedFS, an Open-Source S3 Storage Alternative to MinIO, on Ubuntu 24.04",
+    "slug": "deploying-seaweedfs-s3-storage-alternative-ubuntu",
+    "url": "https://dev.to/vultr/deploying-seaweedfs-an-open-source-s3-storage-alternative-to-minio-on-ubuntu-2404-jpn",
+    "source": "DEV Community",
+    "date": "2026-06-23T18:42:14.000Z",
+    "summary": "SeaweedFS is a distributed object storage system with S3-compatible API and hierarchical file system support. This guide deploys it on Ubuntu 24.04 using Docker, providing a self-hosted alternative to cloud object storage with automatic HTTPS.",
+    "content": "SeaweedFS is an open-source, distributed object storage system with an S3-compatible API, a filer for POSIX-style hierarchical access, and a small footprint. This guide deploys SeaweedFS using Docker Compose with the master, volume, filer, S3, and admin services behind Traefik for automatic HTTPS on separate admin and S3 domains. By the end, you'll have SeaweedFS serving S3-compatible object storage securely at your domains.\nPrerequisite: Two DNS A records pointing at the server — storage.example.com (admin dashboard) and s3.storage.example.com (S3 API). AWS CLI installed on your local machine for testing.\n1. Create the project directory:\n$ mkdir seaweedfs && cd seaweedfs\n\n2. Generate an access key and a secret key (run twice and save both):\n$ openssl rand -hex 16\n\n3. Create the environment file:\n$ nano .env\n\nSTORAGE_DOMAIN=storage.example.com\nLETSENCRYPT_EMAIL=your-email@example.com\nADMIN_PASSWORD=yourpassword\n\n4. Create the S3 identities file:\n$ nano s3-config.json\n\n{\n  \"identities\": [\n    {\n      \"name\": \"admin\",\n      \"credentials\": [\n        {\n          \"accessKey\": \"YOUR_ACCESS_KEY\",\n          \"secretKey\": \"YOUR_SECRET_KEY\"\n        }\n      ],\n      \"actions\": [\n        \"Admin\",\n        \"Read\",\n        \"Write\",\n        \"List\",\n        \"Tagging\"\n      ]\n    }\n  ]\n}\n\n1. Create the Compose manifest:\n$ nano docker-compose.yml\n\nservices:\n  traefik:\n    image: traefik:v3.7.0\n    container_name: traefik\n    restart: unless-stopped\n    ports:\n      - \"80:80\"\n      - \"443:443\"\n    volumes:\n      - /var/run/docker.sock:/var/run/docker.sock:ro\n      - ./letsencrypt:/letsencrypt\n    command:\n      - --providers.docker=true\n      - --providers.docker.exposedByDefault=false\n      - --entrypoints.web.address=:80\n      - --entrypoints.websecure.address=:443\n      - --entrypoints.web.http.redirections.entrypoint.to=websecure\n      - --entrypoints.web.http.redirections.entrypoint.scheme=https\n      - --entrypoints.web.http.redirections.entrypoint.permanent=true\n      - --certifi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在 Ubuntu 24.04 上部署 SeaweedFS —— MinIO 的开源 S3 存储替代方案",
+        "summary": "SeaweedFS 是一个分布式对象存储系统，具有 S3 兼容 API 和分层文件系统支持。本指南使用 Docker 在 Ubuntu 24.04 上部署它，提供自托管的云对象存储替代方案，并支持自动 HTTPS。"
+      }
+    }
+  },
+  {
+    "title": "Deploying Qdrant Open-Source Vector Database for AI Applications on Ubuntu 24.04",
+    "slug": "deploying-qdrant-vector-database-ai-ubuntu-24",
+    "url": "https://dev.to/vultr/deploying-qdrant-open-source-vector-database-for-ai-applications-on-ubuntu-2404-5235",
+    "source": "DEV Community",
+    "date": "2026-06-23T18:41:48.000Z",
+    "summary": "Qdrant is a vector database optimized for AI similarity search over high-dimensional embeddings with REST/gRPC API and payload filtering. This guide deploys it on Ubuntu 24.04 with Docker, API-key authentication, and secure HTTPS access for AI applications.",
+    "content": "Qdrant is an open-source vector database for AI applications, optimised for similarity search over high-dimensional embeddings, with a REST/gRPC API, payload filtering, and a built-in dashboard. This guide deploys Qdrant using Docker Compose with Traefik handling automatic HTTPS, API-key authentication, and a sample collection that runs a similarity search. By the end, you'll have Qdrant serving vector search securely at your domain.\n1. Create the project directory:\n$ mkdir -p ~/qdrant/data\n$ cd ~/qdrant\n\n2. Generate a strong API key:\n$ openssl rand -hex 32\n\nSave the value for the .env file.\n3. Create the environment file:\n$ nano .env\n\nDOMAIN=qdrant.example.com\nLETSENCRYPT_EMAIL=admin@example.com\nQDRANT_API_KEY=PASTE_GENERATED_KEY_HERE\n\n1. Create the Compose manifest:\n$ nano docker-compose.yaml\n\nservices:\n  traefik:\n    image: traefik:v3.6\n    container_name: traefik\n    command:\n      - \"--providers.docker=true\"\n      - \"--providers.docker.exposedbydefault=false\"\n      - \"--api.dashboard=false\"\n      - \"--entrypoints.web.address=:80\"\n      - \"--entrypoints.websecure.address=:443\"\n      - \"--entrypoints.web.http.redirections.entrypoint.to=websecure\"\n      - \"--entrypoints.web.http.redirections.entrypoint.scheme=https\"\n      - \"--certificatesresolvers.letsencrypt.acme.httpchallenge=true\"\n      - \"--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web\"\n      - \"--certificatesresolvers.letsencrypt.acme.email=${LETSENCRYPT_EMAIL}\"\n      - \"--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json\"\n    ports:\n      - \"80:80\"\n      - \"443:443\"\n    volumes:\n      - \"./letsencrypt:/letsencrypt\"\n      - \"/var/run/docker.sock:/var/run/docker.sock:ro\"\n    restart: unless-stopped\n\n  qdrant:\n    image: qdrant/qdrant:v1.17.1\n    container_name: qdrant\n    expose:\n      - \"6333\"\n    volumes:\n      - \"./data:/qdrant/storage\"\n    environment:\n      QDRANT__SERVICE__API_KEY: \"${QDRANT_API_KEY}\"\n    labels:\n      - \"traefik.enable=true\"\n      - \"traefik.ht",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在 Ubuntu 24.04 上部署用于 AI 应用的 Qdrant 开源向量数据库",
+        "summary": "Qdrant 是一个向量数据库，优化用于 AI 相似性搜索，支持高维嵌入的 REST/gRPC API 和有效负载过滤。本指南使用 Docker 在 Ubuntu 24.04 上部署它，配置 API 密钥认证和安全的 HTTPS 访问，用于 AI 应用。"
+      }
+    }
+  },
+  {
+    "title": "Deploying Paperless-ngx Open-Source Document Management System on Ubuntu 24.04",
+    "slug": "deploying-paperless-ngx-document-management-ubuntu",
+    "url": "https://dev.to/vultr/deploying-paperless-ngx-open-source-document-management-system-on-ubuntu-2404-1og5",
+    "source": "DEV Community",
+    "date": "2026-06-23T18:41:22.000Z",
+    "summary": "Paperless-ngx is an open-source document management system that converts PDFs and scans into searchable archives using Tesseract OCR. This guide deploys it on Ubuntu 24.04 with PostgreSQL, Redis, and Traefik for secure, HTTPS-accessible document digitization.",
+    "content": "Paperless-ngx is an open-source document management system that converts scans and PDFs into a fully searchable archive using Tesseract OCR, with tags, custom fields, and automated processing rules. This guide deploys Paperless-ngx using Docker Compose with PostgreSQL, Redis, and Traefik handling automatic HTTPS, then uploads a document and verifies OCR extraction. By the end, you'll have Paperless-ngx serving an OCR-indexed document archive securely at your domain.\n1. Create the project directories:\n$ mkdir -p ~/paperless-ngx/{data,media,export,consume,pgdata}\n$ cd ~/paperless-ngx\n\n2. Create the environment file:\n$ nano .env\n\nDOMAIN=paperless.example.com\nLETSENCRYPT_EMAIL=admin@example.com\n\nPAPERLESS_SECRET_KEY=CHANGE_TO_RANDOM_STRING\nPAPERLESS_URL=https://paperless.example.com\nPAPERLESS_TIME_ZONE=UTC\nPAPERLESS_OCR_LANGUAGE=eng\nPAPERLESS_DBPASS=STRONG_PASSWORD_HERE\n\nPOSTGRES_DB=paperless\nPOSTGRES_USER=paperless\nPOSTGRES_PASSWORD=STRONG_PASSWORD_HERE\n\nUse the same value for PAPERLESS_DBPASS and POSTGRES_PASSWORD. PAPERLESS_SECRET_KEY should be a 32+ character random string.\n1. Create the Compose manifest:\n$ nano docker-compose.yaml\n\nservices:\n  traefik:\n    image: traefik:v3.6\n    container_name: traefik\n    command:\n      - \"--providers.docker=true\"\n      - \"--providers.docker.exposedbydefault=false\"\n      - \"--entrypoints.web.address=:80\"\n      - \"--entrypoints.websecure.address=:443\"\n      - \"--entrypoints.web.http.redirections.entrypoint.to=websecure\"\n      - \"--entrypoints.web.http.redirections.entrypoint.scheme=https\"\n      - \"--certificatesresolvers.letsencrypt.acme.httpchallenge=true\"\n      - \"--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web\"\n      - \"--certificatesresolvers.letsencrypt.acme.email=${LETSENCRYPT_EMAIL}\"\n      - \"--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json\"\n    ports:\n      - \"80:80\"\n      - \"443:443\"\n    volumes:\n      - \"./letsencrypt:/letsencrypt\"\n      - \"/var/run/docker.sock:/var/run/docker",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在 Ubuntu 24.04 上部署 Paperless-ngx 开源文档管理系统",
+        "summary": "Paperless-ngx 是一个开源文档管理系统，使用 Tesseract OCR 将 PDF 和扫描件转换为可搜索的档案。本指南通过 PostgreSQL、Redis 和 Traefik 在 Ubuntu 24.04 上部署它，以实现安全的、HTTPS 可访问的文档数字化。"
+      }
+    }
+  },
+  {
+    "title": "Deploying Overleaf Open-Source LaTeX Collaboration Platform on Ubuntu 24.04",
+    "slug": "deploying-overleaf-latex-collaboration-platform-ubuntu",
+    "url": "https://dev.to/vultr/deploying-overleaf-open-source-latex-collaboration-platform-on-ubuntu-2404-5cc1",
+    "source": "DEV Community",
+    "date": "2026-06-23T18:41:02.000Z",
+    "summary": "Overleaf is a collaborative LaTeX editor that bundles MongoDB, Redis, and the ShareLaTeX application for real-time document collaboration. This guide deploys Overleaf Community Edition on Ubuntu 24.04 with automatic HTTPS via Let's Encrypt.",
+    "content": "Overleaf is an open-source, collaborative LaTeX editor that bundles MongoDB, Redis, and the ShareLaTeX application into a single self-hosted stack. This guide deploys Overleaf Community Edition using the official Toolkit plus a Traefik override that adds automatic HTTPS via Let's Encrypt. By the end, you'll have Overleaf serving collaborative LaTeX editing securely at your domain.\n1. Clone the Overleaf Toolkit:\n$ git clone https://github.com/overleaf/toolkit.git ~/overleaf-toolkit\n$ cd ~/overleaf-toolkit\n\n2. Initialize the configuration:\n$ bin/init\n\nThis creates config/overleaf.rc, config/variables.env, and config/version.\n3. Create a directory for Traefik file-provider routes:\n$ mkdir traefik-routes\n\n1. Edit config/variables.env:\n$ nano config/variables.env\n\nOVERLEAF_APP_NAME=\"My Overleaf Instance\"\nOVERLEAF_SITE_URL=https://overleaf.example.com\nOVERLEAF_NAV_TITLE=\"Overleaf CE\"\nOVERLEAF_BEHIND_PROXY=true\nOVERLEAF_SECURE_COOKIE=true\n\nThe last two flags are required when Overleaf is fronted by an HTTPS reverse proxy.\n2. Edit config/overleaf.rc:\n$ nano config/overleaf.rc\n\nSIBLING_CONTAINERS_ENABLED=false\n\n3. Create the project-level .env file used by the Traefik Compose file:\n$ nano .env\n\nDOMAIN=overleaf.example.com\nLETSENCRYPT_EMAIL=admin@example.com\nSERVER_IP=192.0.2.1\n\nSERVER_IP should be the server's public IP (Traefik binds 80/443 to it).\n1. Create the dynamic route:\n$ nano traefik-routes/overleaf.yml\n\nhttp:\n  routers:\n    overleaf:\n      rule: \"Host(`overleaf.example.com`)\"\n      service: overleaf\n      entryPoints:\n        - websecure\n      tls:\n        certResolver: le\n  services:\n    overleaf:\n      loadBalancer:\n        servers:\n          - url: \"http://sharelatex:80\"\n\n2. Create the Traefik Compose file:\n$ nano docker-compose.traefik.yml\n\nservices:\n  traefik:\n    image: traefik:v3.6\n    container_name: traefik\n    restart: unless-stopped\n    command:\n      - \"--providers.docker=true\"\n      - \"--providers.docker.exposedbydefault=false\"\n      - \"--providers.fil",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在 Ubuntu 24.04 上部署 Overleaf 开源 LaTeX 协作平台",
+        "summary": "Overleaf 是一个协作 LaTeX 编辑器，捆绑了 MongoDB、Redis 和 ShareLaTeX 应用程序，用于实时文档协作。本指南在 Ubuntu 24.04 上部署 Overleaf 社区版，通过 Let's Encrypt 实现自动 HTTPS。"
+      }
+    }
+  },
+  {
+    "title": "Deploying Ory Kratos Open-Source Identity and User Management System on Ubuntu 24.04",
+    "slug": "deploying-ory-kratos-identity-management-system",
+    "url": "https://dev.to/vultr/deploying-ory-kratos-open-source-identity-and-user-management-system-on-ubuntu-2404-3k47",
+    "source": "DEV Community",
+    "date": "2026-06-23T18:40:35.000Z",
+    "summary": "Ory Kratos is an API-first identity and user management system handling registration, login, recovery, verification, and session management. This guide deploys it on Ubuntu 24.04 with PostgreSQL and self-service UI, supporting SMTP for email verification flows.",
+    "content": "Ory Kratos is an open-source, API-first identity and user management system handling registration, login, recovery, verification, and session management with a self-service UI. This guide deploys Kratos using Docker Compose with PostgreSQL, the self-service UI Node, and Traefik handling automatic HTTPS for the public API. By the end, you'll have Kratos managing identities and sessions for users registering through your domain over HTTPS.\nPrerequisite: SMTP credentials are required for verification and recovery emails. The admin API stays bound to 127.0.0.1 on purpose — never expose it publicly.\n1. Create the project directories:\n$ mkdir -p ~/ory-kratos/{config,data/postgres}\n$ cd ~/ory-kratos\n\n2. Create the environment file:\n$ nano .env\n\nDOMAIN=kratos.example.com\nLETSENCRYPT_EMAIL=admin@example.com\nKRATOS_VERSION=v26.2.0\nPOSTGRES_USER=kratos\nPOSTGRES_PASSWORD=EXAMPLE_DB_PASSWORD\nPOSTGRES_DB=kratosdb\nLOG_LEVEL=info\n\n3. Create the identity schema — defines the user fields (email + name) and how the email maps to login, recovery, and verification:\n$ nano config/identity.schema.json\n\nUse the schema described in the Vultr Docs walkthrough — email is the login identifier with password auth; name is a free-text trait.\n4. Create the Kratos configuration — public/admin API URLs, password policy (12-char minimum + HaveIBeenPwned), session lifetimes, self-service flows, SMTP courier:\n$ nano config/kratos.yml\n\nFill in the full configuration from the source article. Key points to keep consistent with the stack below:\nPublic API listens on the internal port and is fronted by Traefik on ${DOMAIN}.\nAdmin API listens on 127.0.0.1:4434 only — used by tooling on the host.\nThe DSN points at the postgres service (postgres://kratos:...@postgres:5432/kratosdb?sslmode=disable).\nThe courier section uses your SMTP provider for verification mail.\n1. Create the Compose manifest:\n$ nano docker-compose.yml\n\nservices:\n  traefik:\n    image: traefik:v3.6\n    container_name: traefik\n    command:",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在 Ubuntu 24.04 上部署 Ory Kratos 开源身份和用户管理系统",
+        "summary": "Ory Kratos 是一个 API 优先的身份和用户管理系统，处理注册、登录、恢复、验证和会话管理。本指南通过 PostgreSQL 和自服务 UI 在 Ubuntu 24.04 上部署它，支持用于电子邮件验证流程的 SMTP。"
+      }
+    }
+  },
+  {
+    "title": "Deploying NocoDB Open-Source Airtable Alternative on Ubuntu 24.04",
+    "slug": "deploying-nocodb-airtable-alternative-ubuntu-24",
+    "url": "https://dev.to/vultr/deploying-nocodb-open-source-airtable-alternative-on-ubuntu-2404-2eam",
+    "source": "DEV Community",
+    "date": "2026-06-23T18:39:56.000Z",
+    "summary": "NocoDB is a no-code platform providing spreadsheet-style interface for relational databases with grid, form, Kanban, and gallery views plus REST API. This guide deploys it on Ubuntu 24.04 with PostgreSQL backend and Traefik for secure HTTPS access.",
+    "content": "NocoDB is an open-source no-code platform that puts a spreadsheet-style UI on top of a relational database, with grid, form, Kanban, and gallery views plus a REST API. This guide deploys NocoDB using Docker Compose with a PostgreSQL backend and Traefik handling automatic HTTPS, then exercises the API with a sample base. By the end, you'll have NocoDB serving a base over HTTPS with API access at your domain.\n1. Create the project directories:\n$ mkdir -p ~/nocodb/{data,pgdata,letsencrypt}\n$ cd ~/nocodb\n\n2. Create the environment file:\n$ nano .env\n\nDOMAIN=nocodb.example.com\nLETSENCRYPT_EMAIL=admin@example.com\n\nPOSTGRES_DB=postgres\nPOSTGRES_PASSWORD=strong_password\nPOSTGRES_USER=postgres\n\n1. Create the Compose manifest:\n$ nano docker-compose.yaml\n\nservices:\n  traefik:\n    image: traefik:v3.6\n    container_name: traefik\n    command:\n      - \"--providers.docker=true\"\n      - \"--providers.docker.exposedbydefault=false\"\n      - \"--entrypoints.web.address=:80\"\n      - \"--entrypoints.websecure.address=:443\"\n      - \"--entrypoints.web.http.redirections.entrypoint.to=websecure\"\n      - \"--entrypoints.web.http.redirections.entrypoint.scheme=https\"\n      - \"--certificatesresolvers.letsencrypt.acme.httpchallenge=true\"\n      - \"--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web\"\n      - \"--certificatesresolvers.letsencrypt.acme.email=${LETSENCRYPT_EMAIL}\"\n      - \"--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json\"\n    ports:\n      - \"80:80\"\n      - \"443:443\"\n    volumes:\n      - \"./letsencrypt:/letsencrypt\"\n      - \"/var/run/docker.sock:/var/run/docker.sock:ro\"\n    restart: unless-stopped\n\n  db:\n    image: postgres:16\n    container_name: nocodb-db\n    hostname: root_db\n    environment:\n      POSTGRES_DB: ${POSTGRES_DB}\n      POSTGRES_USER: ${POSTGRES_USER}\n      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}\n    volumes:\n      - \"./pgdata:/var/lib/postgresql/data\"\n    healthcheck:\n      test: [\"CMD\", \"pg_isready\", \"-U\", \"${POSTGRES_USER}\", \"-d\", \"$",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在 Ubuntu 24.04 上部署 NocoDB 开源 Airtable 替代品",
+        "summary": "NocoDB 是一个无代码平台，为关系数据库提供电子表格式界面，包括网格、表单、看板和画廊视图以及 REST API。本指南在 Ubuntu 24.04 上使用 PostgreSQL 后端和 Traefik 部署它以实现安全的 HTTPS 访问。"
+      }
+    }
+  },
+  {
+    "title": "Deploying MLflow Open-Source Machine Learning Experiment Tracking on Ubuntu 24.04",
+    "slug": "deploying-mlflow-experiment-tracking-ubuntu-24-04",
+    "url": "https://dev.to/vultr/deploying-mlflow-open-source-machine-learning-experiment-tracking-on-ubuntu-2404-1fcg",
+    "source": "DEV Community",
+    "date": "2026-06-23T18:39:33.000Z",
+    "summary": "MLflow is an open-source platform for managing the machine learning lifecycle including experiment tracking, model registry, and reproducible runs. This guide deploys it on Ubuntu 24.04 with PostgreSQL, S3 storage, basic authentication, and HTTPS access.",
+    "content": "MLflow is an open-source platform for managing the machine learning lifecycle — experiment tracking, model registry, and reproducible runs. This guide deploys MLflow using Docker Compose with a PostgreSQL backend, S3-compatible artifact storage, basic-auth, and Traefik handling automatic HTTPS, then logs a sample scikit-learn run. By the end, you'll have MLflow recording experiments at your domain over HTTPS.\nPrerequisite: An S3-compatible bucket (e.g. Vultr Object Storage) with access key, secret key, region, and endpoint URL.\n1. Create the project directory:\n$ mkdir -p ~/mlflow\n$ cd ~/mlflow\n\n2. Create the environment file:\n$ nano .env\n\nDOMAIN=mlflow.example.com\nLETSENCRYPT_EMAIL=admin@example.com\n\nPOSTGRES_USER=mlflow\nPOSTGRES_PASSWORD=StrongDatabasePassword123\n\nMLFLOW_AUTH_CONFIG_PATH=/app/basic_auth.ini\nMLFLOW_FLASK_SERVER_SECRET_KEY=GENERATED_SECRET_KEY\n\nS3_BUCKET=mlflow-artifacts\nS3_ACCESS_KEY=YOUR_ACCESS_KEY\nS3_SECRET_KEY=YOUR_SECRET_KEY\nS3_REGION=YOUR_REGION\nS3_ENDPOINT=https://YOUR_OBJECT_STORAGE_ENDPOINT\n\n3. Create the basic-auth configuration:\n$ nano basic_auth.ini\n\n[mlflow]\ndefault_permission = READ\ndatabase_uri = sqlite:///basic_auth.db\nadmin_username = admin\nadmin_password = ADMIN_PASSWORD\nauthorization_function = mlflow.server.auth:authenticate_request_basic_auth\n\n4. Create a Dockerfile that adds the auth-server extras and Postgres/S3 clients to the official image:\n$ nano Dockerfile\n\nFROM ghcr.io/mlflow/mlflow:v3.10.1\n\nRUN pip install --no-cache-dir psycopg2-binary boto3 'mlflow[auth]'\n\n1. Create the Compose manifest:\n$ nano docker-compose.yml\n\nservices:\n  traefik:\n    image: traefik:v3.6\n    container_name: traefik\n    command:\n      - \"--providers.docker=true\"\n      - \"--providers.docker.exposedbydefault=false\"\n      - \"--entrypoints.web.address=:80\"\n      - \"--entrypoints.websecure.address=:443\"\n      - \"--entrypoints.web.http.redirections.entrypoint.to=websecure\"\n      - \"--entrypoints.web.http.redirections.entrypoint.scheme=https\"\n      - \"--cer",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在 Ubuntu 24.04 上部署 MLflow 开源机器学习实验跟踪",
+        "summary": "MLflow 是一个开源平台，用于管理机器学习生命周期，包括实验跟踪、模型注册表和可重现的运行。本指南在 Ubuntu 24.04 上使用 PostgreSQL、S3 存储、基本身份验证和 HTTPS 访问部署它。"
+      }
+    }
+  },
+  {
+    "title": "Deploying LocalAI Self-Hosted AI Model Management Platform on Ubuntu 24.04",
+    "slug": "deploying-localai-self-hosted-llm-platform-ubuntu",
+    "url": "https://dev.to/vultr/deploying-localai-self-hosted-ai-model-management-platform-on-ubuntu-2404-fo3",
+    "source": "DEV Community",
+    "date": "2026-06-23T18:38:59.000Z",
+    "summary": "LocalAI is an open-source platform for running large language models locally with an OpenAI-compatible API, enabling cost-effective inference without external API calls. This guide deploys it on Ubuntu 24.04 with persistent model storage and secure HTTPS access.",
+    "content": "LocalAI is an open-source platform for running Large Language Models locally with an OpenAI-compatible API, so you can swap it in behind existing OpenAI client code without paying per-token or sending data off-server. This guide deploys LocalAI using Docker Compose with Traefik handling automatic HTTPS, persistent model and cache directories, and a working chat-completion test. By the end, you'll have LocalAI serving an OpenAI-compatible API securely at your domain.\n1. Create the project directories:\n$ mkdir -p ~/localai/{models,cache}\n$ cd ~/localai\n\nmodels/ holds downloaded model files; cache/ persists between restarts.\n2. Create the environment file:\n$ nano .env\n\nDOMAIN=localai.example.com\nLETSENCRYPT_EMAIL=admin@example.com\n\n1. Add your user to the Docker group:\n$ sudo usermod -aG docker $USER\n$ newgrp docker\n\n2. Create the Compose manifest:\n$ nano docker-compose.yaml\n\nservices:\n  traefik:\n    image: traefik:v3.6\n    container_name: traefik\n    restart: unless-stopped\n    environment:\n      DOCKER_API_VERSION: \"1.44\"\n    command:\n      - \"--providers.docker=true\"\n      - \"--providers.docker.exposedbydefault=false\"\n      - \"--entrypoints.web.address=:80\"\n      - \"--entrypoints.websecure.address=:443\"\n      - \"--entrypoints.web.http.redirections.entrypoint.to=websecure\"\n      - \"--entrypoints.web.http.redirections.entrypoint.scheme=https\"\n      - \"--certificatesresolvers.le.acme.httpchallenge=true\"\n      - \"--certificatesresolvers.le.acme.httpchallenge.entrypoint=web\"\n      - \"--certificatesresolvers.le.acme.email=${LETSENCRYPT_EMAIL}\"\n      - \"--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json\"\n    ports:\n      - \"80:80\"\n      - \"443:443\"\n    volumes:\n      - /var/run/docker.sock:/var/run/docker.sock:ro\n      - ./letsencrypt:/letsencrypt\n\n  localai:\n    image: localai/localai:latest-aio-cpu\n    container_name: localai\n    restart: unless-stopped\n    volumes:\n      - ./models:/models:cached\n      - ./cache:/cache:cached\n    healthcheck:\n      test: [\"C",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在 Ubuntu 24.04 上部署 LocalAI 自托管 AI 模型管理平台",
+        "summary": "LocalAI 是一个开源平台，用于在本地运行大型语言模型，具有 OpenAI 兼容的 API，可实现经济高效的推理而无需外部 API 调用。本指南在 Ubuntu 24.04 上使用持久性模型存储和安全的 HTTPS 访问部署它。"
+      }
+    }
+  },
+  {
+    "title": "Deploying LibreChat Open-Source AI Chat Platform on Ubuntu 24.04",
+    "slug": "deploying-librechat-ai-chat-platform-ubuntu-24",
+    "url": "https://dev.to/vultr/deploying-librechat-open-source-ai-chat-platform-on-ubuntu-2404-36ff",
+    "source": "DEV Community",
+    "date": "2026-06-23T18:38:22.000Z",
+    "summary": "LibreChat is an open-source ChatGPT-style web UI supporting OpenAI, Anthropic, Azure, Gemini, and local endpoints, with MongoDB-backed conversation history. This guide deploys it on Ubuntu 24.04 with Traefik for secure HTTPS multi-provider AI chat.",
+    "content": "LibreChat is an open-source, ChatGPT-style web UI that supports OpenAI, Anthropic, Azure OpenAI, Gemini, OpenRouter, local OpenAI-compatible endpoints, and more — with MongoDB-backed conversation history and Meilisearch-powered search. This guide deploys LibreChat using its official Compose manifest plus a Traefik override for automatic HTTPS. By the end, you'll have LibreChat running with a registration page and multi-provider chat at your domain over HTTPS.\n1. Clone the LibreChat repository and check out a stable tag:\n$ git clone https://github.com/danny-avila/LibreChat.git\n$ cd LibreChat\n$ git checkout tags/v0.8.3\n\n2. Find the Meilisearch data directory name pinned by this release:\n$ grep -o 'meili_data_v[0-9.]*' docker-compose.yml | head -1\n\n3. Create the required data directories (replace meili_data_v1.35.1 if the previous command printed a different name):\n$ mkdir -p data-node images logs meili_data_v1.35.1 uploads\n$ sudo chown -R 1000:1000 meili_data_v1.35.1\n\n4. Copy the env template and uncomment the UID/GID lines:\n$ cp .env.example .env\n$ nano .env\n\nUID=1000\nGID=1000\n\n1. Create a Compose override that adds Traefik and wires the API to it:\n$ nano docker-compose.override.yml\n\nservices:\n  api:\n    labels:\n      - \"traefik.enable=true\"\n      - \"traefik.http.routers.librechat.rule=Host(`librechat.example.com`)\"\n      - \"traefik.http.routers.librechat.entrypoints=websecure\"\n      - \"traefik.http.routers.librechat.tls.certresolver=leresolver\"\n      - \"traefik.http.services.librechat.loadbalancer.server.port=3080\"\n    volumes:\n      - ./librechat.yaml:/app/librechat.yaml\n\n  traefik:\n    image: traefik:v3.6.10\n    ports:\n      - \"80:80\"\n      - \"443:443\"\n    volumes:\n      - \"/var/run/docker.sock:/var/run/docker.sock:ro\"\n      - \"./letsencrypt:/letsencrypt\"\n    command:\n      - \"--providers.docker=true\"\n      - \"--providers.docker.exposedbydefault=false\"\n      - \"--entrypoints.web.address=:80\"\n      - \"--entrypoints.websecure.address=:443\"\n      - \"--entrypoints.web",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在 Ubuntu 24.04 上部署 LibreChat 开源 AI 聊天平台",
+        "summary": "LibreChat 是一个开源的 ChatGPT 风格网页界面，支持 OpenAI、Anthropic、Azure、Gemini 和本地端点，配备 MongoDB 支持的对话历史。本指南在 Ubuntu 24.04 上部署它，使用 Traefik 实现安全的 HTTPS 多提供商 AI 聊天。"
+      }
+    }
+  },
+  {
+    "title": "Why Multi-Agent Systems Are a Trap (And What I Learned the Hard Way)",
+    "slug": "multi-agent-systems-trap-hard-lessons-learned",
+    "url": "https://dev.to/bredmond1019/why-multi-agent-systems-are-a-trap-and-what-i-learned-the-hard-way-2dlc",
+    "source": "DEV Community",
+    "date": "2026-06-23T18:38:14.000Z",
+    "summary": "This article examines why multi-agent system architectures often fail in practice, identifying context drift, cascading partial failures, and debugging opacity as critical failure modes. The author shares lessons from building production orchestration systems.",
+    "content": "There's a moment in every ambitious AI engineering project where you convince yourself that more agents means more power. I hit that moment early in building my Python orchestration framework — and I spent several painful weeks learning exactly why that intuition is wrong.\nThe seductive pitch: decompose complex tasks into specialized sub-agents, run them in parallel, let them coordinate. What actually happened was a reliability nightmare that taught me more about agentic architecture than any framework documentation ever could.\nMy Python orchestration system was designed to automate complex, multi-step workflows — the kind that require planning, research, code generation, and validation to happen in a coherent sequence. Early on, I structured it as a web of parallel agents: a planner, several workers, a validator, and a synthesizer, all exchanging structured messages.\nOn paper it was elegant. In practice, it had three failure modes I couldn't engineer away:\nContext drift. Each agent only saw the slice of information it was handed. The worker writing one module couldn't see what the worker writing another module had decided. By the time the synthesizer tried to combine outputs, I had conflicting assumptions baked into the results — variable names that clashed, patterns that contradicted each other, interfaces that didn't align.\nCascading partial failures. When one agent produced ambiguous output, every downstream agent amplified the ambiguity. A planner that returned a slightly underspecified task description produced workers that each interpreted it differently. Nothing failed loudly. Everything just drifted, quietly, until the final output was incoherent.\nDebugging opacity. When something went wrong in a parallel multi-agent system, tracing the failure was miserable. Was it the planner? One of the workers? The message-passing layer? I'd rebuilt the worst parts of distributed systems debugging inside a single Python process.\nThe fix wasn't clever. It was humbling: I",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么多代理系统是一个陷阱（以及我从中学到的教训）",
+        "summary": "本文探讨了为什么多代理系统架构在实践中经常失败，指出上下文漂移、级联部分故障和调试不透明是关键失败模式。作者分享了从构建生产编排系统中学到的经验教训。"
+      }
+    }
+  },
+  {
+    "title": "The 7 Building Blocks of Reliable AI Agents (Skip the Frameworks)",
+    "slug": "seven-building-blocks-reliable-ai-agents-production",
+    "url": "https://dev.to/bredmond1019/the-7-building-blocks-of-reliable-ai-agents-skip-the-frameworks-2600",
+    "source": "DEV Community",
+    "date": "2026-06-23T18:38:13.000Z",
+    "summary": "This article identifies seven essential building blocks for reliable production AI agents, emphasizing deterministic code with surgical LLM calls over framework-driven approaches. It distinguishes assistant mode (human-in-loop) from background automation (no oversight) with different architectural requirements.",
+    "content": "When I started building multi-agent systems, I made the mistake most engineers make: I went looking for the right framework. I evaluated LangChain, AutoGPT, and a dozen other options. I built prototypes in each. I spent weeks on tooling instead of solving the actual problem.\nThe moment things clicked was when I stripped everything back to bare API calls and asked: what does every agent I've shipped actually need? The answer wasn't a framework. It was seven building blocks — patterns that show up in every reliable agentic system I've built, from the Python orchestration framework that drives parallel task execution to the SDLC agentic harness that ships production code.\nHere's what I've learned from building and operating these systems: the best AI agents aren't \"agentic\" in the way the demos make them look. They're mostly deterministic code with surgical, well-scoped calls to language models.\nBefore the building blocks, this distinction matters enormously.\nAI Assistants (Human-in-the-Loop): Users interact directly, can correct mistakes in real time, and expect exploration. Multiple LLM calls make sense. Think pair programming with Cursor, or a chat interface.\nBackground Automation (No Human Oversight): Errors compound silently. Latency and cost are magnified. Every LLM call needs justification. This is the domain of production agents.\nMy Python orchestration framework and the support-automation system I built both fall into the second category. They run without a human watching every step. That constraint shaped every architectural decision — and it's why these seven building blocks matter.\n# Background automation: minimize and isolate LLM calls\ndef process_support_ticket(ticket_data: dict) -> dict:\n    # Deterministic routing first — no LLM needed here\n    if ticket_data[\"type\"] == \"refund\" and ticket_data[\"amount\"] < 50:\n        return handle_refund_automatically(ticket_data)\n\n    # Use LLM only where reasoning is genuinely required\n    if requires_classification(",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "可靠 AI 代理的 7 个构建块（跳过框架）",
+        "summary": "本文确定了可靠生产 AI 代理的七个必要构建块，强调确定性代码和精细的 LLM 调用优于框架驱动的方法。它区分了助手模式（人类在循环中）和后台自动化（无监督）的不同架构要求。"
+      }
+    }
+  },
+  {
+    "title": "F3",
+    "slug": "f3-future-file-format-github-project",
+    "url": "https://github.com/future-file-format/f3",
+    "source": "Hacker News",
+    "date": "2026-06-23T16:53:32.000Z",
+    "summary": "F3 is a GitHub project exploring future file format specifications that generated substantial community discussion. The project earned 277 points and 71 comments on Hacker News.",
+    "content": "Article URL: https://github.com/future-file-format/f3\nComments URL: https://news.ycombinator.com/item?id=48647799\nPoints: 277\n# Comments: 71",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "F3",
+        "summary": "F3是一个探索未来文件格式规范的GitHub项目，引发了大量社区讨论。该项目在Hacker News上获得了277个点赞和71条评论。"
+      }
+    }
+  },
+  {
+    "title": "I automated my job (and it made me a better leader)",
+    "slug": "automated-job-made-better-leader",
+    "url": "https://github.blog/developer-skills/github/i-automated-my-job-and-it-made-me-a-better-leader/",
+    "source": "GitHub Blog",
+    "date": "2026-06-23T16:00:00.000Z",
+    "summary": "A senior leader shares how automating 40 routine tasks improved effectiveness and decision-making capacity. The piece explores specific automations that freed time for higher-impact leadership work.",
+    "content": "Explore how my day as a senior leader looks now that I use 40 automations to help, and learn more about some of my favorites.\nThe post I automated my job (and it made me a better leader) appeared first on The GitHub Blog.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我自动化了我的工作（这让我成为了更好的领导者）",
+        "summary": "一位资深领导者分享了自动化40项日常工作如何提高了工作效能和决策能力。该文章探讨了特定的自动化如何为更有影响力的领导力工作节省了时间。"
+      }
+    }
+  },
+  {
+    "title": "What we call \"age verification\" is actually mass surveillance",
+    "slug": "age-verification-actually-mass-surveillance",
+    "url": "https://pluralistic.net/2026/06/23/destroy-the-village/",
+    "source": "Hacker News",
+    "date": "2026-06-23T14:04:43.000Z",
+    "summary": "This article critiques 'age verification' requirements as mass surveillance infrastructure rather than effective content protection, raising concerns about government and corporate monitoring. The piece from Cory Doctorow's Pluralistic blog generated significant discussion with 477 upvotes and 289 comments.",
+    "content": "Article URL: https://pluralistic.net/2026/06/23/destroy-the-village/\nComments URL: https://news.ycombinator.com/item?id=48645173\nPoints: 477\n# Comments: 289",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我们所谓的\"年龄验证\"实际上是大规模监控",
+        "summary": "这篇文章批评\"年龄验证\"要求是大规模监控基础设施而非有效的内容保护，引发了对政府和企业监控的担忧。这篇来自Cory Doctorow的Pluralistic博客的文章获得了477条赞同和289条评论。"
+      }
+    }
+  },
+  {
     "title": "Data-Oriented Design in C#: Why Objects Are Slowing You Down",
     "slug": "data-oriented-design-csharp",
     "url": "https://dev.to/iancowley/data-oriented-design-in-c-why-objects-are-slowing-you-down-51ak",
