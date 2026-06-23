@@ -1,5 +1,197 @@
 [
   {
+    "title": "Data-Oriented Design in C#: Why Objects Are Slowing You Down",
+    "slug": "data-oriented-design-csharp",
+    "url": "https://dev.to/iancowley/data-oriented-design-in-c-why-objects-are-slowing-you-down-51ak",
+    "source": "DEV Community",
+    "date": "2026-06-23T12:54:16.000Z",
+    "summary": "Data-Oriented Design in C# restructures data to match how CPUs access memory sequentially, eliminating costly cache misses from traditional object-oriented approaches. Converting from Array of Structs to Struct of Arrays architecture can dramatically improve performance by avoiding pointer chasing and maximizing CPU cache utilization. This optimization complements garbage collection improvements and is essential for high-performance C# applications.",
+    "content": "Data-Oriented Design in C#: Why Objects Are Slowing You Down\n\n\nIn my previous article, we talked about starving the Garbage Collector by moving away from heap-allocated class types and leaning heavily into struct, Span<T>, and ArrayPool<T>. \nThat’s a critical first step, but it only solves half the problem. You’ve stopped the GC from pausing your app, but you might still be leaving massive amounts of CPU performance on the table. Why? Because of how your data is structured. \nIt’s time to talk about Data-Oriented Design (DoD).\nWe are taught from day one to model our code after the real world. If you are building a social network graph, you might write something like this:\npublic class UserNode\n{\n    public int Id { get; set; }\n    public string Name { get; set; }\n    public List<Edge> Connections { get; set; }\n}\n\npublic class Edge\n{\n    public UserNode Target { get; set; }\n    public int Weight { get; set; }\n}\n\nThis makes perfect logical sense. A user has connections, and those connections point to other users. \nBut modern CPUs don't care about your logical models. A CPU only cares about reading data from memory into its L1/L2 caches as fast as possible. When a CPU reads a byte from RAM, it doesn't just read that one byte; it pulls a whole 64-byte \"cache line\" under the assumption that you will probably want the neighboring bytes next.\nWhen you loop through a List<UserNode>, traversing from object to object, you are jumping randomly across the heap. The CPU pulls a cache line, reads your data, and then has to go fetch a completely different block of RAM for the next node. This is called pointer chasing, and the resulting cache misses are devastating to performance.\nData-Oriented Design says: Stop modeling the real world. Model the data the way the hardware wants to consume it.\nInstead of an Array of Structs (AoS) (or an array of objects), we invert the architecture to a Struct of Arrays (SoA).\nIf we look at how the native DataFrame engine Glacier.Polaris or the graph",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "C#中的面向数据设计：为什么对象让你变慢",
+        "summary": "C#中的面向数据设计通过重构数据以匹配CPU顺序访问内存的方式，消除了传统面向对象方法中代价高昂的缓存未命中。从数组的结构转换为结构的数组架构可以通过避免指针追踪和最大化CPU缓存利用率来大幅提高性能。这种优化补充了垃圾回收改进，对于高性能C#应用程序至关重要。"
+      }
+    }
+  },
+  {
+    "title": "Your AI coding agent forgets everything every session. I fixed it with markdown and YAML.",
+    "slug": "ai-agent-persistent-context-markdown",
+    "url": "https://dev.to/mboiman/your-ai-coding-agent-forgets-everything-every-session-i-fixed-it-with-markdown-and-yaml-12od",
+    "source": "DEV Community",
+    "date": "2026-06-23T12:53:04.000Z",
+    "summary": "A developer solved AI agents' context amnesia by storing persistent session knowledge in plain markdown and YAML files within a git repository, avoiding databases and vendor lock-in. The approach ensures agents start each session with institutional knowledge about projects and prior decisions, eliminating the need to re-explain context repeatedly. This durability-first design prioritizes auditability, model-agnosticism, and low operational overhead.",
+    "content": "Every time I opened a fresh session with my coding agent, it started from zero. Which repos am I working across? Which client is this for? Where did we leave off yesterday? I'd re-explain the same context, the agent would occasionally load the wrong project, and nothing I decided last week survived into this one. A \"re-explain myself\" tax on every single session.\nI tried the obvious fix first — a better prompt, a longer system message. It didn't hold. Context that has to persist can't live inside the chat; the chat is the thing that resets.\nWhat actually worked: give the agent a place outside the chat to read and write — and make it the most boring, durable thing I could. Plain files in a git repo.\nopen-bridge is a plain git repo of markdown and YAML. At the start of every session the agent reads it, so it begins already knowing my world. No database, no SaaS, no daemon, nothing to host — the substrate itself runs nothing. It's just files the agent reads.\nThat \"just files\" choice is the whole point:\nAgents can read a file but can't hold an API key. What I write today, the agent still reads in six months — no migration, no second app, no vendor lock-in.\nIt's auditable. Clone it and cat anything the agent reads. No black box.\nIt's model- and tool-agnostic. Plain text is something every agent runtime can read.\nA tiny slice of what that looks like (from the repo's examples/agency setup — fictional \"Acme Dev\"):\n# ecosystem.yaml — the repos/clients the agent should know about\nprojects:\n  bigcorp:    { display_name: \"BigCorp E-Commerce\", repos: [bigcorp-api, bigcorp-frontend] }\n  startupxyz: { display_name: \"StartupXYZ MVP\",     repos: [startupxyz-app] }\n\n# work/board.md — generated from the task dirs, read every session\n## Doing\n| bigcorp-api-payment-retry | incident | P1 | Stripe webhook retries failing |\n| startupxyz-onboarding     | feature  | P2 | guided signup flow             |\n\nSo when I say \"good morning, briefing\", the agent doesn't ask \"GitHub or Jira?\" or load",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的AI编程助手每次会话都忘记一切。我用markdown和YAML修复了它。",
+        "summary": "一位开发者通过在git仓库中的纯markdown和YAML文件中存储持久化会话知识，解决了AI代理的上下文遗忘问题，避免了数据库和供应商锁定。这种方法确保代理在每次会话开始时都拥有关于项目和先前决策的机构知识，消除了重复解释上下文的需要。这种持久化优先设计优先考虑可审计性、模型无关性和低操作开销。"
+      }
+    }
+  },
+  {
+    "title": "Prototype vs MVP: How to Validate an Interactive Product Before Overengineering It",
+    "slug": "prototype-vs-mvp-validation",
+    "url": "https://dev.to/aestar/prototype-vs-mvp-how-to-validate-an-interactive-product-before-overengineering-it-180m",
+    "source": "DEV Community",
+    "date": "2026-06-23T12:52:57.000Z",
+    "summary": "Prototypes are focused experiments to validate core interactions and test assumptions, while MVPs are production-ready products designed to test market demand—a distinction that determines engineering decisions. Interactive products involving 3D, AR, or spatial elements cannot be validated through static mockups alone and require functional prototypes first. Building an MVP before learning from a prototype wastes resources on features that may address untested assumptions.",
+    "content": "Prototype vs MVP: How to Validate an Interactive Product Before Overengineering It\n\n\nA common early-stage product mistake is treating development output as product validation.\nThe team creates screens, components, integrations, API endpoints, and increasingly complex application logic.\nThe backlog is moving.\nThe product is growing.\nBut the core assumption may still be untested.\nBefore building a full MVP, a startup should be able to answer a simpler question:\nWhat exactly are we trying to validate?\nFor some products, a clickable UI prototype is enough.\nFor others — especially products involving real-time 3D, WebAR, WebXR, data visualization, or spatial interaction — the experience cannot be validated through static screens alone.\nThe team may need a functional interactive prototype.\nA prototype is an experiment.\nIts purpose is to explore the concept, test the main interaction, and expose incorrect assumptions early.\nAn MVP is a usable product.\nIts purpose is to deliver real value in production conditions and test market demand.\ninteraction logic;\nproduct comprehension;\ntechnical feasibility;\nthe main user flow;\nvisual communication;\ninvestor or stakeholder response.\nreal usage;\nretention;\nwillingness to pay;\nproduction performance;\noperational requirements;\nmarket demand.\nThe distinction becomes important because prototypes and MVPs require different engineering decisions.\nA prototype should be focused and fast.\nAn MVP needs a more reliable technical foundation.\nBuilding the second before learning from the first can lead to unnecessary architecture, unused features, and expensive rework.\nTeams often begin technical discussions too early.\nShould we use React?\nShould the 3D layer be built with Three.js?\nDo we need WebXR support?\nShould the backend be serverless?\nThese may be relevant questions, but they are not the first questions.\nThe first questions should be:\nWhat user problem are we testing?\nWhat interaction represents the core value?\nWhat evidence would confirm o",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "原型与MVP：如何在过度设计前验证交互产品",
+        "summary": "原型是用于验证核心交互和测试假设的专注实验，而MVP是用于测试市场需求的生产就绪产品——这种区别决定了工程决策。涉及3D、AR或空间元素的交互产品无法仅通过静态模型验证，需要先构建功能原型。在从原型中学习之前构建MVP会浪费资源在可能解决未经测试假设的功能上。"
+      }
+    }
+  },
+  {
+    "title": "Claude Code Security: Why the Real Risk Lies Beyond Code",
+    "slug": "claude-code-security-paradigm-shift",
+    "url": "https://dev.to/gitguardian/claude-code-security-why-the-real-risk-lies-beyond-code-57op",
+    "source": "DEV Community",
+    "date": "2026-06-23T12:50:25.000Z",
+    "summary": "Anthropic's Claude Code Security scans codebases for vulnerabilities, but GitGuardian argues the real security risk lies in secrets management and identity access as AI generates more code. The industry faces an amplified problem of exposed API keys used by AI agents and services requiring sophisticated access to multiple systems. The paradigm has shifted from human-coded secrets to AI-driven access patterns, requiring new security approaches.",
+    "content": "Many cybersecurity professionals have been following Anthropic's announcement about the release of Claude Code Security on Friday. This created the beginning of a panic on the cybersecurity stock market. It also raised a lot of questions from domain experts, investors and security enthusiasts.\nAnthropic introduces Claude Code Security: a tool that scans full codebases for security vulnerabilities, and can propose fixes directly in developer workflows. The tool leverages the latest foundational model's reasoning capabilities to provide a new experience. In a world where code will be generated only by AI, this can sound very much like code security is dead.\n18 months ago, SAST, SCA, and IaC security were areas where we had real traction and could see ourselves expanding. But as AI tooling started reshaping how code gets written, we made a tough call. We decided to stop these initiatives and go all-in on what we believed would matter most: Protecting enterprises against leaked secrets and mismanaged NHIs.\nWe envisioned a future where identity is crucial for the AI era security, with secrets enabling AIs to access data and take actions. After pioneering in secrets detection for years we witnessed how amplified the problem became as LLM emerged: more API keys for AI services, more code generated, often less secure, more agents requiring sophisticated access to a myriad of tools. All in all, this resulted in more secrets exposed. Yet the problem of overseeing and managing these secrets in a secure way remains unsolved.\nThe paradigm shifted from human hardcoding secrets in their code, to AIs having wide access levels on several systems with humans, coders and non-coders, prompting them and creating new vulnerabilities.\n18 months later, let me describe where we stand.\nGitGuardian is the leader in secrets detection. We are the only solution able to scan large volume of data at scale (50 MB/s per core at negligible cost) in addition to +30 different data sources (ticketing sy",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Claude Code 安全性：为什么真正的风险在代码之外",
+        "summary": "Anthropic 的 Claude Code Security 扫描代码库以查找漏洞，但 GitGuardian 主张真正的安全风险在于当 AI 生成更多代码时的秘密管理和身份访问。该行业面临暴露的 API 密钥的放大问题，这些密钥被 AI 代理和需要对多个系统进行复杂访问的服务使用。范式已从人工编写的秘密转变为 AI 驱动的访问模式，需要新的安全方法。"
+      }
+    }
+  },
+  {
+    "title": "Find meeting times with the Nylas Availability API",
+    "slug": "nylas-availability-api-scheduling",
+    "url": "https://dev.to/mqasimca/find-meeting-times-with-the-nylas-availability-api-2e4e",
+    "source": "DEV Community",
+    "date": "2026-06-23T12:50:10.000Z",
+    "summary": "The Nylas Availability API automates finding common meeting times across multiple calendars by handling time zones, working hours, and buffer times in a single request. The API offers two endpoints: Availability for bookable slots and Free/Busy for raw calendar data, helping developers choose the right tool for their scheduling needs. This eliminates tedious manual calendar coordination logic.",
+    "content": "\"What time works for everyone?\" is a surprisingly hard question to answer in code. You have to read each person's calendar, line up the busy blocks, respect working hours and time zones, leave buffer time between meetings, and only then find the gaps everyone shares. The Nylas Availability API does all of that in one request: hand it a list of participants and a window, and it returns the time slots that actually work.\nThis post covers finding meeting times from two angles: the HTTP API for your backend, and the nylas CLI for the terminal. I work on the CLI, so the terminal commands below are the ones I reach for when I'm checking a calendar.\nThere are two endpoints here, and picking the right one saves you work. The Availability endpoint finds bookable slots across a group of participants, applying working hours, buffers, and meeting duration to return times you can actually book. Free/Busy is simpler: it returns the raw busy blocks for one or more email addresses over a window, leaving the slot math to you.\nReach for Availability when the question is \"when can these people meet?\" and you want the answer as a list of open slots. Reach for Free/Busy when you only need to see when calendars are busy, for example to gray out times in a custom UI. Availability is a POST /v3/calendars/availability, an application-level call that takes participants by email, while Free/Busy is grant-scoped at POST /v3/grants/{grant_id}/calendars/free-busy. This post focuses on Availability, since that's the one that answers the scheduling question directly.\nThe core request lists the participants and the window to search. Each participant is identified by email and must be associated with a valid Nylas grant, since the endpoint reads their calendars. You set start_time and end_time as Unix timestamps for the search window, duration_minutes for how long the meeting is, and interval_minutes for how the candidate start times are spaced.\ncurl --request POST \\\n  --url \"https://api.us.nylas.co",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用 Nylas Availability API 查找会议时间",
+        "summary": "Nylas Availability API 通过在单个请求中处理时区、工作时间和缓冲时间来自动查找跨多个日历的共同会议时间。该 API 提供两个端点：Availability 用于可预订的时间段，Free/Busy 用于原始日历数据，帮助开发人员为其日程安排需求选择正确的工具。这消除了繁琐的手动日历协调逻辑。"
+      }
+    }
+  },
+  {
+    "title": "Generate email drafts with Nylas Smart Compose",
+    "slug": "nylas-smart-compose-email-drafts",
+    "url": "https://dev.to/mqasimca/generate-email-drafts-with-nylas-smart-compose-2ha6",
+    "source": "DEV Community",
+    "date": "2026-06-23T12:50:03.000Z",
+    "summary": "Nylas Smart Compose converts natural-language prompts into drafted email messages, reducing composition time while preserving human review before sending. The tool offers variants for new messages and replies that automatically incorporate original email context. This balances AI efficiency with safety by keeping humans in control of final content.",
+    "content": "Writing a clear, well-structured email takes time, and it's the kind of task an LLM is genuinely good at. But wiring up your own prompt-to-email pipeline means picking a model, threading the original message in as context, handling streaming, and keeping it all behind your API keys. The Nylas Smart Compose endpoints do that for you: send a natural-language prompt, get back a written message body, and the reply variant pulls in the original email as context automatically.\nThis post walks through Smart Compose from two angles: the HTTP API for your backend, and the nylas CLI for the terminal. I work on the CLI, so the terminal commands below are the ones I reach for when I'm testing a prompt.\nSmart Compose is two endpoints that turn a prompt into a message body. You send a natural-language prompt, and the response comes back with a suggestion field holding the generated text. There's a POST /messages/smart-compose for writing a brand-new message, and a POST /messages/{message_id}/smart-compose for writing a reply, where the original message is folded into the context so the response actually answers it.\nThe key thing to understand is that Smart Compose generates text, it doesn't send anything. The suggestion it returns is a message body you do something with: pass it straight to the Send Message endpoint, or pre-fill it into a draft for a human to review and edit first. That separation is deliberate, since it lets you put a person between the AI's output and the recipient, which is usually what you want for anything an LLM wrote.\nTwo things to know before you start. Smart Compose runs against connected OAuth grants only, not Agent Accounts. The prompt also has a ceiling: up to 1,000 tokens, and a longer prompt returns an error.\nTo write a fresh email, POST /v3/grants/{grant_id}/messages/smart-compose takes a single prompt describing what you want. The response carries the generated body in suggestion, which you then send or save. The prompt is plain natural language,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用 Nylas Smart Compose 生成电子邮件草稿",
+        "summary": "Nylas Smart Compose 将自然语言提示转换为起草的电子邮件消息，减少了组合时间，同时在发送前保留人工审查。该工具提供适用于新消息和回复的变体，自动包含原始电子邮件上下文。这通过保持人类对最终内容的控制，平衡了 AI 效率和安全性。"
+      }
+    }
+  },
+  {
+    "title": "Send and download email attachments with Nylas",
+    "slug": "nylas-email-attachments-unified-api",
+    "url": "https://dev.to/mqasimca/send-and-download-email-attachments-with-nylas-4oc8",
+    "source": "DEV Community",
+    "date": "2026-06-23T12:49:40.000Z",
+    "summary": "The Nylas Email API provides a unified interface for handling attachments across Gmail, Microsoft Graph, and IMAP, eliminating provider-specific encoding complexities. Attachments are added during message composition and retrieved through a separate read-only API, with support for various file sizes through different encoding strategies. This abstraction significantly simplifies email integration in applications.",
+    "content": "Email is how most files still move between people: the signed contract, the PDF invoice, the logo embedded in a newsletter. If your app sends or processes mail, it has to handle attachments, and doing that against each provider means Gmail's attachment encoding, Microsoft Graph's, and raw MIME for IMAP. The Nylas Email API gives you one model for both directions: attach files to outbound messages with the same call you use to send, and pull files off inbound messages with a read-only Attachments API.\nThis post covers both halves from two angles: the HTTP API for your backend, and the nylas CLI for the terminal. I work on the CLI, so the terminal commands below are the ones I reach for when I'm checking a file came through.\nThere's a split worth understanding up front. You add attachments through the Messages or Drafts API, as part of sending or saving a message, and you read existing attachments through the dedicated Attachments API. The Attachments API is read-only: it downloads bytes and returns metadata, but it never adds files. That division keeps the model simple, since attaching is part of composing a message and reading is a separate concern.\nThe size of what you're attaching decides how you encode it on the way out. Small files ride inline in the JSON request, larger ones move to a multipart request, and very large files use a separate upload step. On the way in, every attachment, regardless of how it was sent, is fetched the same way: by its attachment_id together with the message_id it belongs to. Get those two ideas straight and the rest is mechanical.\nFor files that keep the whole request under 3 MB, the simplest path is the application/json schema. You pass each attachment in an attachments array with its content_type, filename, and the file bytes as a Base64-encoded content string. The 3 MB ceiling covers the entire HTTP request, not just the file, so it's the right path for a small PDF or image and nothing bigger.\ncurl --request POST \\\n  --url \"https:",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用Nylas发送和下载电子邮件附件",
+        "summary": "Nylas电子邮件API为处理跨Gmail、Microsoft Graph和IMAP的附件提供了统一接口，消除了特定于提供商的编码复杂性。附件在消息组成期间添加，并通过单独的只读API检索，支持通过不同编码策略处理各种文件大小。这种抽象显著简化了应用程序中的电子邮件集成。"
+      }
+    }
+  },
+  {
+    "title": "You Don't Need Kubernetes to Monitor 20 Linux VMs",
+    "slug": "linux-vm-monitoring-prometheus-simple",
+    "url": "https://dev.to/irinobservability/you-dont-need-kubernetes-to-monitor-20-linux-vms-5af4",
+    "source": "DEV Community",
+    "date": "2026-06-23T12:42:27.000Z",
+    "summary": "Most real-world infrastructure runs on traditional Linux VMs rather than Kubernetes, often with better performance and lower costs for smaller teams, yet observability documentation emphasizes Kubernetes-first approaches. A simple combination of node_exporter and Prometheus provides complete infrastructure monitoring without Kubernetes' operational overhead. Teams should match monitoring solutions to actual infrastructure needs, not industry hype.",
+    "content": "If you've ever tried to set up Prometheus by following the official getting-started path, you're likely to find a path that does not follow your infrastructure model. Out of the gate, page one mentions kube-prometheus-stack. Page two wants you to install a Helm chart, and page three assumes you already have a cluster running. The documentation for monitoring plain Linux servers is in there somewhere, but you have to dig for it. When you do find it, the tone suggests you are doing something slightly old-fashioned.\nIf that sounds like your setup, the tooling is making this harder than it actually is. Monitoring a fleet of Linux VMs is fairly simple and has been for years. It is just obscured behind documentation that would prefer to sell you something bigger.\nModern infrastructure tooling has quietly decided everyone runs Kubernetes. If you don't, the assumption is that you eventually will. Meanwhile, most real-world infrastructure still runs on VMs.\nTL;DR: Modern observability documentation often assumes you're running Kubernetes. Most small teams aren't. If you're managing a fleet of Linux VMs, node_exporter plus Prometheus gives you everything you need for infrastructure monitoring with a single lightweight agent and a straightforward deployment model. No cluster required.\nFor most small businesses, running VMs instead of Kubernetes does not mean you failed to evolve. Most workloads under a certain scale perform better on VMs:\nOne process per box, predictable resource limits, and the ability to ssh in and look at what's happening, which makes it easier to keep track of the infrastructure as a whole.\nThey're cheaper, both financially and in the mental overhead of running them.\nBackups and snapshots are straightforward in a way stateful Kubernetes still isn't.\nThere's no control plane that itself needs monitoring and upgrades and care.\nKubernetes solves problems that mostly pertain to companies with dozens of engineers and hundreds of services. For platforms that con",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "监控20个Linux虚拟机不需要Kubernetes",
+        "summary": "大多数真实基础设施运行在传统Linux虚拟机而不是Kubernetes上，对于较小的团队来说通常具有更好的性能和更低的成本，然而可观测性文档强调了以Kubernetes优先的方法。node_exporter和Prometheus的简单组合无需Kubernetes的运维开销即可提供完整的基础设施监控。团队应该根据实际基础设施需求而不是行业炒作来匹配监控解决方案。"
+      }
+    }
+  },
+  {
+    "title": "The Invisible Guardrail: How Commercial LLMs Enforce Algorithmic Paternalism",
+    "slug": "algorithmic-paternalism-llm-refusals",
+    "url": "https://dev.to/nostop123/the-invisible-guardrail-how-commercial-llms-enforce-algorithmic-paternalism-2ld1",
+    "source": "DEV Community",
+    "date": "2026-06-23T12:38:42.000Z",
+    "summary": "Commercial LLMs like GPT-4 and Claude implement 'soft refusals'—degraded, sanitized responses to security and edge-case queries—without explicit rejection, constituting algorithmic paternalism. This practice undermines independent technical research and creates a class divide where certified entities receive unfiltered access while others get obfuscated results. Corporate liability concerns are prioritized over knowledge accessibility and research integrity.",
+    "content": "I recently published my PhD thesis analyzing what I term the \"Alignment Tax\" and the emerging phenomenon of Algorithmic Paternalism in commercial artificial intelligence.\nAs the tech industry rapidly positions Large Language Models (LLMs) as the primary interface for information retrieval and coding assistance, a critical epistemological issue is being largely ignored. Much of the public debate regarding AI alignment focuses exclusively on existential risk or the prevention of catastrophic physical harm. While necessary, this focus obscures the structural damage being done to legitimate technical research.\nThrough my research in Cybersecurity and AI, I have documented how frontier models (such as GPT-4 or Claude) systematically enforce what I define as \"Soft Refusals\". When presented with a complex, edge-case, or dual-use query—particularly in fields like information security, reverse engineering, or deep systems architecture—these models rarely issue a hard, explicit \"I cannot answer that\".\nInstead, they provide a degraded, superficial, or heavily sanitized response. They effectively neuter the research process without the user fully realizing the depth of technical information that is being actively withheld.\nThis is Algorithmic Paternalism. The commercial model acts as a silent, corporate arbiter, deciding unilaterally what level of technical detail is \"safe\" for the user to possess. This dynamic flattens the available technical knowledge and actively penalizes independent researchers and developers working on advanced problems.\nThe core issue is that this paradigm creates a profound class division in how we access computational intelligence. We are rapidly moving toward a two-tier system. On one side, there are \"certified\" entities, corporate partners, and wealthy organizations who are granted direct access to strong, unfiltered base models. On the other side, the general public and independent developers are subjected to obfuscation algorithms, sanitized APIs,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "隐形护栏：商用大语言模型如何实施算法家长制",
+        "summary": "商用大语言模型（如GPT-4和Claude）实施了\"软拒绝\"——对安全和边界情况查询进行降级、消毒的响应，但没有明确拒绝，构成了算法家长制。这种做法破坏了独立技术研究，并造成了一个阶级分化，其中认证实体获得未过滤的访问权限，而其他实体获得混淆的结果。公司责任问题被优先考虑，而不是知识可访问性和研究完整性。"
+      }
+    }
+  },
+  {
+    "title": "AI agents already settle millions a month - almost none of it atomically",
+    "slug": "ai-agents-settlements-millions-scale",
+    "url": "https://dev.to/barissozen/ai-agents-already-settle-millions-a-month-almost-none-of-it-atomically-4pp4",
+    "source": "DEV Community",
+    "date": "2026-06-23T12:35:37.000Z",
+    "summary": "AI agents have already processed $73 million across 176 million transactions on a single platform, proving the agent economy is operational at scale today. The critical gap lies in distinguishing payments (one-directional transfers) from trades (two-directional atomic exchanges), where current infrastructure assumes trust that only works between known parties. Scaling agent-to-agent transactions requires solving atomic settlement vulnerabilities.",
+    "content": "Here is a number that should reframe how you think about the agent economy: in roughly one year, AI agents moved about $73M across 176 million machine-to-machine transactions on a single exchange, at an average of around $0.31 per transaction, across 100k+ registered agents.\nRead that again. Agents are not \"coming.\" They are already transacting, at scale, in production, right now. The interesting question is no longer whether autonomous software moves money. It is what those transactions are trusting - and what happens the first time that trust is misplaced.\nAlmost all of that volume runs on payment rails. A payment rail does one job, and does it well: it moves a unit of value in one direction. Agent pays a service. Agent tips an API. Agent settles a micro-invoice. At thirty-one cents a pop, the failure modes are invisible - if a transaction goes wrong, you are out pocket change, and you move on.\nThe problem is that a payment and a trade are not the same operation.\nA payment asks one question: did the money move?\nA trade asks a harder one: did **both* sides happen - or neither?*\nWhen your agent pays for something, there is one transfer and one direction of risk. When your agent trades - my asset for yours, your stablecoin for my token, one chain's value for another's - there are now two transfers that must both complete, or both not. The risk lives in the gap between them. One side sends; the other side is supposed to send back. On a payment rail, \"supposed to\" is doing an enormous amount of load-bearing work.\nEvery one of those 176 million transactions made an assumption that nobody had to state out loud: the counterparty will deliver. Between parties who already trust each other - a company and its own agents, two services under one operator - that assumption is fine. It holds because the trust was established off-chain, by humans, before the agent ever ran.\nBut the entire promise of the agent economy is the opposite of that. It is agents transacting with counterp",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI代理已每月结算数百万 - 几乎没有任何原子性",
+        "summary": "AI代理已在单一平台处理7300万美元交易，跨越1.76亿笔交易，证明代理经济已规模化运营。关键差距在于区分支付（单向转账）和交易（双向原子交换），现有基础设施的信任假设仅在已知方之间有效。扩展代理间交易需要解决原子结算漏洞。"
+      }
+    }
+  },
+  {
+    "title": "Styling the Vertical - Achieving Parity",
+    "slug": "vertical-navigation-styling-parity",
+    "url": "https://dev.to/shaynaproductions/styling-the-vertical-achieving-parity-5h2h",
+    "source": "DEV Community",
+    "date": "2026-06-23T12:30:00.000Z",
+    "summary": "This article addresses styling vertical navigation components to ensure visual parity with accessibility information conveyed through aria attributes like aria-current. Built with TypeScript, React 19, and vanilla CSS on Next.js 16, the component series demonstrates balancing accessibility requirements with visual design. Proper styling ensures both sighted and screen-reader users receive equivalent information about current page state.",
+    "content": "Note: This article is one of a series demonstrating building a React navigational component from scratch while considering accessibility through the process. The articles are accompanied by a GitHub repository with releases tied to one or more articles; each builds on the previous one until a fully implemented navigation component is complete.\nEach release and its associated tag contain fully runnable code for the article. The code discussed in this article is available in the release. and may be downloaded at release 0.9.0. A page showcasing these base components may be run locally through this release.\nWhile code examples are written in JavaScript for brevity, all actual code is written in Typescript and targets React 19.x, all while using vanilla CSS. Examples use Next.js v16.x, which is not required to run the navigation component.]\nThe design requirements for this release are available.\n-—\nIntroduction\nLayout\n<nav / >\nGeneric Styling\nReimagining Focus and Hover\nAchieving Parity\naria-current\nRefinements\nSummary\nWith only one more release coming up and the horizontal layout styling complete, now is the time to focus on completing vertical layout styling. Most of the layout itself was completed in an earlier release and described in the article Laying it all out on the vertical.\nWhen styling a component, care must be taken to ensure parity with the information provided by screen readers through some aria attributes. For instance, a navigation component must set the aria-current=\"page\" attribute on a link whose href points to the current page. In the example being shown, the link in question is the \"by Era\" link, under Find Your Next Story and Tales.\n)\nWhile screen reader users hear which button or link is the item currently capturing focus, styling is needed to achieve the same for screen users. Visual styling is necessary to guarantee that visual and auditory/tactile users have the same information.\n@layer system-component {\n  div.vertical {\n    position: relativ",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "垂直导航样式 - 实现平等",
+        "summary": "本文讨论垂直导航组件的样式设计，以确保视觉与通过aria属性传达的无障碍信息相等。使用TypeScript、React 19和原生CSS在Next.js 16上构建，该组件系列展示在无障碍要求和视觉设计间的平衡。正确样式确保有视力用户和屏幕阅读器用户都能获得关于当前页面状态的等效信息。"
+      }
+    }
+  },
+  {
+    "title": "Go 1.26 Cheat Sheet",
+    "slug": "go-1-26-cheat-sheet-reference",
+    "url": "https://dev.to/lappy/go-126-cheat-sheet-34fi",
+    "source": "DEV Community",
+    "date": "2026-06-23T12:29:32.000Z",
+    "summary": "A comprehensive reference for Go 1.26 covering program structure, variables, control flow, functions, data structures, interfaces, goroutines, generics, and the standard library with quick syntax examples. The cheat sheet organizes common Go patterns and conventions for rapid lookup and learning. It serves as both an introduction and refresher for both beginners and experienced developers.",
+    "content": "This cheat sheet is based on Go 1.26.\nProgram structure\nVariables, constants, and types\nControl flow\nFunctions\nArrays, slices, and maps\nStructs, methods, and tags\nInterfaces\nErrors\nGoroutines, channels, and synchronization\nContext\nGenerics\nIterators\nTesting\nStandard-library quick reference\nTips and common mistakes\nModules and packages\nFurther reading\npackage main  // Every executable must be in package main.\n\nimport (\n    \"fmt\"\n    \"os\"\n)\n\nfunc main() {\n    fmt.Println(\"Hello, Go 1.26\")\n    os.Exit(0)\n}\n\nEvery Go source file starts with a package declaration.\nAn executable program uses package main and a main function.\nGroup standard-library and third-party imports separately.\n// var can infer the type from an initializer.\nvar name = \"Gopher\" // string\nvar age int          // No initializer: specify a type. Zero value: 0.\nvar id int64 = 42    // Use an explicit type when int is not what you want.\n\n// Short declaration: inside functions only.\ncity := \"Tokyo\"\n\n// Declare multiple variables in a block.\nvar (\n    x, y int = 1, 2\n    msg  string\n)\n\nUse var name = \"Gopher\" when an initializer makes the type clear. Without an initializer, write the type explicitly. A := declaration is only valid inside a function, and at least one name on its left side must be new.\n\n\n\nCategory\nTypes\nZero value\n\n\n\n\nNumbers\nintegers, floats, complex numbers\n\n0 (0 + 0i for complex)\n\n\nStrings\nstring\n\"\"\n\n\nBooleans\nbool\nfalse\n\n\nArrays\n[N]T\nevery element is T's zero value\n\n\nStructs\nstruct\nevery field has its zero value\n\n\nReference-containing types\npointers, slices, maps, channels, functions, interfaces\nnil\n\n\nDefined types\ne.g. type UserID int\n\nthe underlying type's zero value\n\n\n\n\n\n\nCategory\nTypes\nNotes\n\n\n\n\nBoolean\nbool\n\ntrue or false\n\n\n\nString\nstring\nimmutable sequence of bytes (usually UTF-8, but invalid UTF-8 is allowed)\n\n\nSigned integers\n\nint, int8, int16, int32, int64\n\n\nint is platform-sized (32 or 64 bit)\n\n\nUnsigned integers\n\nuint, uint8, uint16, uint32, uint64, uintptr\n\n\nuintptr holds a poi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Go 1.26 速查表",
+        "summary": "Go 1.26综合参考，涵盖程序结构、变量、控制流、函数、数据结构、接口、goroutine、泛型和标准库，包含快速语法示例。速查表组织常见Go模式和约定便于快速查找和学习，既可作为初学者和经验丰富开发者的介绍，也可作为复习资料。"
+      }
+    }
+  },
+  {
     "title": "ViewModel VS Coroutine Scope",
     "slug": "viewmodel-vs-coroutine-scope",
     "url": "https://dev.to/manoj_saichallagulla_798/viewmodel-vs-coroutine-scope-oln",
@@ -188,6 +380,38 @@
       "zh": {
         "title": "隐形网络：为什么 AI 无法找到你的网站（以及如何修复）",
         "summary": "概述 AI 搜索引擎由于 JavaScript 繁重的设计和复杂的渲染而误解或省略网站的原因，提出使用 /llms.txt 和 /ai/*.md 文件的 AILattice 标准来使内容对 AI 可发现。"
+      }
+    }
+  },
+  {
+    "title": "VibeThinker: 3B param model that beats Opus 4.5 on reasoning with novel SFT+GRPO",
+    "slug": "vibethinker-3b-reasoning-efficiency",
+    "url": "https://arxiv.org/abs/2606.16140",
+    "source": "Hacker News",
+    "date": "2026-06-23T02:01:25.000Z",
+    "summary": "VibeThinker, a 3-billion parameter model, outperforms OpenAI's Opus 4.5 on reasoning tasks using novel training techniques combining Supervised Fine-Tuning and GRPO. This efficiency milestone demonstrates that smaller models can compete with larger proprietary systems through advanced training methodologies. The result challenges assumptions that model size alone determines reasoning capability.",
+    "content": "Article URL: https://arxiv.org/abs/2606.16140\nComments URL: https://news.ycombinator.com/item?id=48639240\nPoints: 246\n# Comments: 105",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "VibeThinker：采用新颖SFT+GRPO技术的3B参数模型超越Opus 4.5推理能力",
+        "summary": "VibeThinker是一个30亿参数的模型，在推理任务中的表现超越OpenAI的Opus 4.5，采用了结合监督微调和GRPO的新颖训练技术。这一效率里程碑证明了较小模型可以通过先进的训练方法与更大的专有系统竞争。这个成果挑战了模型规模决定推理能力的传统假设。"
+      }
+    }
+  },
+  {
+    "title": "1,700 free online courses from top universities",
+    "slug": "1700-free-online-university-courses",
+    "url": "https://www.openculture.com/freeonlinecourses",
+    "source": "Hacker News",
+    "date": "2026-06-23T01:54:38.000Z",
+    "summary": "Open Culture has compiled 1,700 free online courses from top universities across multiple disciplines, making higher education accessible regardless of economic barriers. This comprehensive directory supports lifelong learning and skill development at no cost. The collection democratizes access to knowledge from prestigious institutions worldwide.",
+    "content": "Article URL: https://www.openculture.com/freeonlinecourses\nComments URL: https://news.ycombinator.com/item?id=48639184\nPoints: 214\n# Comments: 33",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "1700门来自顶尖大学的免费在线课程",
+        "summary": "开放文化组织编辑汇总了1700门来自顶尖大学的免费在线课程，涵盖多个学科领域，无论经济状况如何都能获取高等教育资源。这个全面的目录支持终身学习和技能发展，完全免费。该集合使全球名校知识的获取民主化。"
       }
     }
   },
