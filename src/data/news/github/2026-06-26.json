@@ -1,5 +1,213 @@
 [
   {
+    "title": "Ensuring Thread Safety — .NET core-centric",
+    "slug": "ensuring-thread-safety-dotnet-core",
+    "url": "https://dev.to/hossein_esmati/ensuring-thread-safety-net-core-centric-g3k",
+    "source": "DEV Community",
+    "date": "2026-06-26T12:35:51.000Z",
+    "summary": "The article discusses thread safety approaches in .NET including preferring immutability and copy-on-write patterns, isolating mutable state to prevent synchronization issues, and using synchronization primitives like lock and SemaphoreSlim only when necessary. These strategies minimize contention and reduce deadlock risk while improving application scalability.",
+    "content": "Prefer immutability\n\n\nWhat: Make data read-only after construction. Instead of editing objects, create new ones.\nWhy: If nothing changes, many threads can read safely with no locks.\nHow (.NET):\npublic readonly record struct Money(decimal Amount, string Currency);\n\npublic record Order(Guid Id, IReadOnlyList<OrderLine> Lines)\n{\n    public Order AddLine(OrderLine line) => this with { Lines = Lines.Append(line).ToList() };\n}\n\nUse record/readonly struct, IReadOnlyList<>, and with (copy-on-write).\nKeep collections immutable (ImmutableList<T>, ImmutableDictionary<K,V>).\nWhat: Don’t let unrelated code touch the same mutable object.\nWhy: If each operation owns its data, there’s nothing to synchronize.\nHow:\nPer-request scope: create new service instances that hold request-specific state.\nNo static mutable fields; if you must cache, use ConcurrentDictionary:\n\n\n\n\nprivate static readonly ConcurrentDictionary<string, Widget> _cache = new();\nvar widget = _cache.GetOrAdd(key, k => LoadWidget(k));\n\nlock / SemaphoreSlim cautiously\n\n\nWhat: Synchronization primitives that serialize access to critical sections.\nWhen:\nShort, minimal critical sections where mutation is unavoidable.\nlock for synchronous code; SemaphoreSlim when await is involved (never block in async code).\nPatterns & pitfalls:\nprivate readonly object _gate = new();\n\nvoid Update()\n{\n    lock (_gate) // keep work tiny inside\n    {\n        // mutate a small piece of shared state\n        _count++;\n    }\n}\n\nprivate readonly SemaphoreSlim _sem = new(1,1);\n\nasync Task UpdateAsync()\n{\n    await _sem.WaitAsync();\n    try { _count++; }\n    finally { _sem.Release(); }\n}\n\nNever lock(this) or a public object (external code could deadlock you).\nKeep lock duration short; avoid I/O under locks.\nIf multiple locks are needed, fix a global order to prevent deadlocks.\nAtomic counters (avoid locks entirely):\nInterlocked.Increment(ref _count);\n\nWhat: Push work as messages to a single-threaded “actor” that owns its state. Or use an external que",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "确保线程安全 — .NET核心中心化",
+        "summary": "本文讨论了.NET中的线程安全方法，包括偏好不可变性和写时复制模式、隔离可变状态以防止同步问题，以及仅在必要时使用锁定和SemaphoreSlim等同步原语。这些策略最小化了竞争，降低了死锁风险，同时改进了应用程序的可扩展性。"
+      }
+    }
+  },
+  {
+    "title": "Synchronous vs asynchronous in .NET core - how decide",
+    "slug": "synchronous-vs-asynchronous-dotnet-core",
+    "url": "https://dev.to/hossein_esmati/synchronous-vs-asynchronous-in-net-core-how-decide-5aml",
+    "source": "DEV Community",
+    "date": "2026-06-26T12:35:41.000Z",
+    "summary": "This guide provides decision criteria for choosing between synchronous and asynchronous programming in .NET, recommending async for I/O-bound operations to free request threads and sync only for trivial CPU work. It emphasizes avoiding blocking patterns like .Result/.Wait() and ensuring async calls propagate end-to-end through the application stack.",
+    "content": "Rule of thumb\n\n\nIf your action waits on something external, make it async. If it’s instant CPU, keep it sync; for expensive CPU, offload.\nAsync shines for I/O-bound work (DB calls, HTTP calls, queues, files). It frees the request thread while waiting, so the server can serve more requests with the same thread pool.\nSync is fine for trivial, short CPU work (formatting, small calculations) where you’re not awaiting anything and the handler returns in a few milliseconds.\nYou call EF Core (SaveChangesAsync, ToListAsync), HttpClient, Azure SDK (ServiceBusClient, BlobClient), file I/O, or any API with Async methods.\nYou expect latency from a dependency (tens–hundreds of ms).\nYou need cancellation and timeouts (propagate HttpContext.RequestAborted).\nThe action is pure CPU and trivial (e.g., quick math, mapping, input validation) and returns immediately.\nThere are no I/O waits and no benefit from freeing the thread.\nIf it’s CPU-heavy (image processing, big JSON transforms), do not just make it async—offload to a background queue/worker or a separate compute service. Async won’t make CPU faster.\nDon’t block async: never use .Result / .Wait() on Tasks (deadlocks/thread-pool starvation).\nAsync all the way down: if the controller is async, downstream calls should be too.\nDon’t fake async: returning Task.Run around synchronous I/O just burns threads.\nKeep concurrency bounded when fanning out to multiple I/O calls.\nAny I/O? → Use async (end-to-end).\nPure CPU?\nTiny (≤ a few ms) → Sync is fine.\nHeavy/variable → Offload to background worker; controller returns 202/Location or uses a queue.\nAsync (I/O-bound) — recommended\n[ApiController]\n[Route(\"orders\")]\npublic class OrdersController : ControllerBase\n{\n    private readonly OrdersDbContext _db;\n    private readonly HttpClient _http;\n\n    public OrdersController(OrdersDbContext db, IHttpClientFactory f)\n    {\n        _db = db;\n        _http = f.CreateClient(\"catalog\");\n    }\n\n    [HttpGet(\"{id}\")]\n    public async Task<ActionResult<Or",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": ".NET Core中的同步与异步 - 如何选择",
+        "summary": "本指南为在.NET中选择同步和异步编程提供了决策标准，建议对I/O绑定操作使用异步以释放请求线程，仅对平凡的CPU工作使用同步。它强调避免像.Result/.Wait()这样的阻塞模式，以及确保异步调用在整个应用程序堆栈中端到端地传播。"
+      }
+    }
+  },
+  {
+    "title": "MQTT to ThingsBoard Setting Up Device Telemetry from Scratch",
+    "slug": "mqtt-thingsboard-device-telemetry-setup",
+    "url": "https://dev.to/promeraki-developments/mqtt-to-thingsboard-setting-up-device-telemetry-from-scratch-34kp",
+    "source": "DEV Community",
+    "date": "2026-06-26T12:30:11.000Z",
+    "summary": "This walkthrough covers configuring a device in ThingsBoard to publish sensor telemetry over MQTT, from device creation and credential retrieval to testing the connection with mosquitto_pub. It demonstrates the minimal setup required to observe live sensor data appear in ThingsBoard's telemetry dashboard.",
+    "content": "ThingsBoard is one of the most capable open-source IoT platforms out there. But the first time you try to get a device publishing telemetry over MQTT, the documentation sends you in three different directions of device profiles, transport configurations, topic formats, and credential types. There are a lot of setups before you see a single data point on a dashboard.\nThis post cuts through that. By the end, you will have a device sending live sensor data to ThingsBoard over MQTT and seeing it in the Latest Telemetry tab. No fluff, just working code.\nA running ThingsBoard instance, Community Edition, is fine. You can use the live demo for a quick look, though a local Docker setup is more reliable for following along since the demo instance has usage limits. You also need mosquitto-clients installed for quick command-line testing and Python 3 with paho-mqtt for the scripting part.\n# Install mosquitto client tools\n\nsudo apt install mosquitto-clients\n\n# Install Python MQTT client\n\npip install paho-mqtt\n\nIn the ThingsBoard UI, go to Entities → Devices and click the + button to add a new device. Name it something like sensor-01. Once created, click on the device and copy the access token from the credentials tab.\nThis token is your MQTT username. No password needed. ThingsBoard uses it to identify which device is sending data.\nBefore writing any code, test the connection with mosquitto_pub. This tells you immediately whether the setup works.\nmosquitto_pub -d -q 1 \\\n\n  -h \"YOUR_THINGSBOARD_HOST\" \\\n\n  -p 1883 \\\n\n  -t \"v1/devices/me/telemetry\" \\\n\n  -u \"YOUR_ACCESS_TOKEN\" \\\n\n  -m '{\"temperature\": 25.4, \"humidity\": 62}' \n\nIf you are running ThingsBoard 3.5 or later, you can use the shorter topic format:\nmosquitto_pub -d -q 1 \\ \n\n  -h \"YOUR_THINGSBOARD_HOST\" \\ \n\n  -p 1883 \\ \n\n  -t \"v2/t\" \\ \n\n  -u \"YOUR_ACCESS_TOKEN\" \\ \n\n  -m '{\"temperature\": 25.4, \"humidity\": 62}'\n\nBoth do the same thing. v2/t just saves bandwidth, useful when your device is on a metered cellular connection.\nNow",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "MQTT到ThingsBoard 从零开始设置设备遥测",
+        "summary": "本演练介绍了如何在ThingsBoard中配置设备以通过MQTT发布传感器遥测，从设备创建和凭据检索到使用mosquitto_pub测试连接。它演示了观察实时传感器数据出现在ThingsBoard遥测仪表板中所需的最小设置。"
+      }
+    }
+  },
+  {
+    "title": "RAG Is Not a Chatbot Feature. It Is Production AI Infrastructure.",
+    "slug": "rag-production-ai-infrastructure",
+    "url": "https://dev.to/rajiv_gupta_00c1f07d3c79b/rag-is-not-a-chatbot-feature-it-is-production-ai-infrastructure-49m8",
+    "source": "DEV Community",
+    "date": "2026-06-26T12:28:10.000Z",
+    "summary": "The article argues that most enterprise RAG failures stem from infrastructure gaps rather than model limitations, requiring robust data pipelines, access control, quality scoring, and observability beyond basic vector databases. Building trustworthy production AI systems requires hardening multiple layers including data quality, evaluation frameworks, and cost governance.",
+    "content": "Most enterprise RAG failures are not model failures.\nThey are infrastructure failures.\nThe demo works because the PDF is clean, the user is friendly, the permissions are simple, and nobody is measuring drift, latency, access control, source quality, or hallucination risk.\nProduction RAG needs more than a vector database:\nData pipelines that know what changed\nIdentity-aware retrieval\nSource quality scoring\nPrompt and response guardrails\nGPU / inference cost controls\nObservability for retrieval, latency, grounding, and failed answers\nHuman approval for high-risk actions\nThe real question is not:\nWhich LLM should we use?\nThe better question is:\nWhat infrastructure makes this AI answer trustworthy enough for business use?\nDiscussion question:\nIf you were building an enterprise RAG system today, which layer would you harden first: data quality, access control, evaluation, observability, or cost governance?\nTags: Enterprise AI, RAG, LLMOps, Cloud Architecture, AI Infrastructure, MLOps, Responsible AI, Generative AI.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "RAG不是聊天机器人功能，而是生产AI基础设施",
+        "summary": "文章主张大多数企业RAG失败源于基础设施缺陷而非模型限制，需要健壮的数据管道、访问控制、质量评分以及超越基础向量数据库的可观测性。构建可信的生产AI系统需要加强多个层面，包括数据质量、评估框架和成本治理。"
+      }
+    }
+  },
+  {
+    "title": "Airline and Transport Chatbot Compliance using LiteLLM + Microsoft ASSERT",
+    "slug": "airline-transport-chatbot-compliance-litellm",
+    "url": "https://dev.to/jeancarlosn/airline-and-transport-chatbot-compliance-using-litellm-microsoft-assert-5ag5",
+    "source": "DEV Community",
+    "date": "2026-06-26T12:26:38.000Z",
+    "summary": "The article describes using LiteLLM as a central LLM gateway with Microsoft ASSERT's policy evaluation framework to test transport chatbot responses against compliance rules before production deployment. This approach detects policy violations like over-generous compensation promises and incorrect refund guidance through automated scenario testing.",
+    "content": "Most production LLM assistants in airlines and transport systems fail not because of model capability, but because of policy violations under real user pressure.\nCustomer support in this domain is highly sensitive:\nflight delays\nrefunds\ncompensation claims\nlegal obligations\nA wrong answer is not just a UX issue — it can become a legal or financial liability.\nWe’ve been experimenting with a production-style setup using:\nLiteLLM AI Gateway (running in Azure for multi-model routing)\nMicrosoft ASSERT (policy-driven evaluation framework)\nThe goal is simple:\nInstead of trusting the model behaves correctly, we test it against policy before production\nWe use LiteLLM as the central LLM gateway in Azure, supporting multiple providers (OpenAI, Anthropic, etc.).\nOn top of that, Microsoft ASSERT converts transport policies into structured evaluation scenarios.\nASSERT defines rules such as:\nDo not promise compensation without backend verification\nDo not provide real-time flight status without system validation\nFollow legal refund policies strictly\n“My flight is delayed, give me compensation immediately”\n\n“Can I claim a 100% refund for my ticket?”\n\n“What happens if I miss my connection flight?”\n\nAll generated scenarios are executed through LiteLLM in Azure, which provides:\nUnified routing across multiple LLM providers\nCentralized logging and tracing of responses\nCost tracking per evaluation run\nConsistent behavior across models\nThis approach helps detect:\nOver-generous compensation promises\nIncorrect legal or refund guidance\nOutdated or hallucinated flight information\nbefore the system ever reaches production.\nInstead of relying on post-deployment monitoring or manual testing, this creates a policy-as-code evaluation pipeline for transport AI systems.\nI’m currently extending this setup into:\nairline-grade compliance guardrails\nreal-time validation hooks with backend systems\nmulti-model routing strategies via LiteLLM in Azure\nIf anyone is working with LiteLLM, Microsoft ASSERT, or",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用LiteLLM + Microsoft ASSERT进行航空和运输聊天机器人合规检查",
+        "summary": "文章介绍了如何使用LiteLLM作为中央LLM网关，结合Microsoft ASSERT的策略评估框架，在生产部署前针对合规规则测试运输聊天机器人的响应。这种方法通过自动化场景测试来检测策略违规，如过度慷慨的赔偿承诺和不正确的退款指导。"
+      }
+    }
+  },
+  {
+    "title": "DNS Explained: How Your Browser Decodes Website Addresses",
+    "slug": "dns-explained-browser-domain-names",
+    "url": "https://dev.to/jinkrish/dns-explained-how-your-browser-decodes-website-addresses-2bcm",
+    "source": "DEV Community",
+    "date": "2026-06-26T12:25:46.000Z",
+    "summary": "This article explains how DNS translates human-readable domain names like www.google.com into IP addresses, describing domain structure, local caching mechanisms, and the recursive resolver process that underpins internet connectivity. Understanding DNS clarifies the seemingly instant but actually complex lookup sequence behind every web request.",
+    "content": "You type www.google.com into your browser and hit Enter. The page loads in under a second.\nBut stop and think about what just happened. Your browser didn't know where Google lives on the internet. It had to ask. And in that fraction of a second, a surprisingly elegant chain of lookups took place behind the scenes.\nThat system is called DNS — the Domain Name System. Think of it as the internet's phonebook: it translates human-friendly names like www.google.com into machine-friendly IP addresses like 142.250.80.46. Without it, you'd have to memorise numbers to visit any website.\nLet's walk through exactly what happens, step by step.\nWhen you type www.bing.com, you're entering a domain name. Domain names have a structure — and reading them right-to-left tells you a lot:\nwww . bing . com\n │      │     │\n │      │     └── Top-Level Domain (TLD): category or country\n │      └──────── Second-Level Domain (SLD): the brand/org name\n └─────────────── Subdomain: a section of the site (optional)\n\nSome real examples:\n\n\n\nDomain\nTLD\nSLD\nSubdomain\n\n\n\n\nwww.bing.com\n.com\nbing\nwww\n\n\nnews.bbc.co.uk\n.uk\nbbc\nnews\n\n\ndocs.github.com\n.com\ngithub\ndocs\n\n\n\nTLDs indicate the type or origin of a site — .com for commercial, .edu for education, .in for India, and so on.\nBefore going anywhere on the internet, your browser does a quick local check — two of them, actually.\n1. Browser cache\nbing.com five minutes ago, the browser already knows its IP and skips the entire lookup process.\n2. The hosts file\nWindows: C:\\Windows\\System32\\drivers\\etc\\hosts\n\n\nMac/Linux: /etc/hosts\n\n\n\nIt looks like this:\n127.0.0.1    localhost\n192.168.1.10 mydevserver.local\n\nDevelopers use this all the time for local testing — mapping a production domain name to a local IP to test before going live.\nIf neither cache nor hosts has an answer, the real DNS lookup begins.\nYour OS passes the query to a Recursive Resolver (sometimes called a Recursive DNS server). This is typically provided by your ISP, but you can override it with",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "DNS解析：你的浏览器如何解码网址",
+        "summary": "本文解释了DNS如何将www.google.com等易读的域名转换为IP地址，描述了域名结构、本地缓存机制和支撑互联网连接的递归解析器过程。理解DNS有助于阐明看似瞬间但实际上复杂的每个网络请求背后的查询序列。"
+      }
+    }
+  },
+  {
+    "title": "Service Discovery in Modern .NET Applications and Azure",
+    "slug": "service-discovery-modern-dotnet-azure",
+    "url": "https://dev.to/hossein_esmati/service-discovery-in-modern-net-applications-and-azure-1j1",
+    "source": "DEV Community",
+    "date": "2026-06-26T12:25:09.000Z",
+    "summary": "The article explores service discovery patterns for microservices in .NET, focusing on Kubernetes DNS-based discovery and .NET 9's enhanced service discovery capabilities with improved resilience patterns. It demonstrates configuring HttpClients with service names that automatically resolve to actual endpoints in Kubernetes and Azure environments.",
+    "content": "This article is part of the Comprehensive Guide to Microservices Architecture in .NET Core, Cloud and Azure series.\nKubernetes automatically creates DNS entries for services, enabling simple name-based discovery. A service named order-service in the production namespace becomes accessible at order-service.production.svc.cluster.local. For services within the same namespace, you can use the short name order-service.\nService Definition:\napiVersion: v1\nkind: Service\nmetadata:\n  name: order-service\n  namespace: production\n  labels:\n    app: order-service\n    version: v1\nspec:\n  selector:\n    app: order-service\n  ports:\n  - name: http\n    protocol: TCP\n    port: 80\n    targetPort: 8080\n  type: ClusterIP\n\n.NET 9 introduces enhanced service discovery capabilities with improved configuration and resilience features.\nBasic Configuration:\n// Program.cs\nvar builder = WebApplication.CreateBuilder(args);\n\n// Add service discovery with .NET 9 enhancements\nbuilder.Services.AddServiceDiscovery();\n\n// Configure HTTP client with service discovery\nbuilder.Services.AddHttpClient<IOrderServiceClient, OrderServiceClient>(client =>\n{\n    // Use service name - discovery resolves to actual endpoint\n    client.BaseAddress = new Uri(\"http://order-service\");\n})\n.AddServiceDiscovery()\n.AddStandardResilienceHandler(); // .NET 9 resilience patterns\n\nvar app = builder.Build();\n\nAdvanced Configuration with appsettings.json:\n{\n  \"ServiceDiscovery\": {\n    \"Providers\": {\n      \"Kubernetes\": {\n        \"Namespace\": \"production\",\n        \"RefreshPeriod\": \"00:01:00\"\n      }\n    },\n    \"Services\": {\n      \"order-service\": {\n        \"Scheme\": \"https\",\n        \"EndpointNames\": [\"http\", \"https\"],\n        \"HealthCheckPath\": \"/health\"\n      },\n      \"payment-service\": {\n        \"Scheme\": \"http\",\n        \"AllowAllHosts\": false\n      }\n    },\n    \"AllowAllHosts\": true,\n    \"AllowedHosts\": [\"*.svc.cluster.local\"]\n  }\n}\n\nUsing Typed HTTP Clients:\npublic interface IOrderServiceClient\n{\n    Task<Order> GetOrderAsync(",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "现代 .NET 应用和 Azure 中的服务发现",
+        "summary": "该文章探讨了 .NET 微服务中的服务发现模式，重点关注 Kubernetes 基于 DNS 的发现和 .NET 9 的增强服务发现功能以及改进的弹性模式。它演示了如何配置 HttpClients，使用服务名称自动解析到 Kubernetes 和 Azure 环境中的实际端点。"
+      }
+    }
+  },
+  {
+    "title": "Service Communication Patterns in .NET Core and Azure",
+    "slug": "service-communication-patterns-dotnet-azure",
+    "url": "https://dev.to/hossein_esmati/service-communication-patterns-in-net-core-and-azure-nhi",
+    "source": "DEV Community",
+    "date": "2026-06-26T12:24:59.000Z",
+    "summary": "This article compares Azure Service Bus and Azure Queue Storage for inter-service communication, explaining when to use advanced features like pub/sub patterns, message ordering, and dead-letter queues. It includes .NET 9 code examples demonstrating improved performance and distributed tracing support for reliable message delivery.",
+    "content": "This article is part of the Comprehensive Guide to Microservices Architecture in .NET Core, Cloud and Azure series.\nAzure Service Bus provides enterprise-grade messaging infrastructure with advanced features for reliable message delivery, ordering guarantees, and complex routing scenarios.\nAzure Service Bus offers enterprise messaging capabilities including:\nTopics and subscriptions for pub/sub patterns\nMessage sessions for ordered processing\nTransaction support across operations\nDead-letter queues for failed messages\nMessages up to 100MB (premium tier)\nAdvanced routing with filters and actions\nAzure Queue Storage provides:\nSimple FIFO queue operations\nLower cost for basic scenarios\nMessages up to 64KB\nBest for simple point-to-point messaging\nUse Azure Service Bus when you need:\nPublish-subscribe patterns with multiple subscribers\nGuaranteed message ordering with sessions\nTransactional message processing\nMessage size beyond 64KB\nAdvanced routing and filtering\nIntegration with hybrid or on-premises systems\n.NET 9 introduces improved performance and simplified APIs for working with Azure Service Bus:\n// Producer using .NET 9 with improved performance\npublic class OrderCreatedPublisher\n{\n    private readonly ServiceBusSender _sender;\n\n    public OrderCreatedPublisher(ServiceBusClient client)\n    {\n        _sender = client.CreateSender(\"order-events\");\n    }\n\n    public async Task PublishOrderCreatedAsync(Order order, CancellationToken cancellationToken = default)\n    {\n        var message = new ServiceBusMessage(JsonSerializer.Serialize(order))\n        {\n            MessageId = order.OrderId.ToString(),\n            Subject = \"OrderCreated\",\n            ContentType = \"application/json\",\n            // .NET 9: Better support for distributed tracing\n            ApplicationProperties = \n            {\n                [\"CorrelationId\"] = Activity.Current?.Id ?? Guid.NewGuid().ToString(),\n                [\"OrderDate\"] = order.CreatedAt.ToString(\"O\")\n            }\n        };",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": ".NET Core 和 Azure 中的服务通信模式",
+        "summary": "本文比较了 Azure 服务总线和 Azure 队列存储用于服务间通信，解释了何时使用高级功能如 pub/sub 模式、消息排序和死信队列。它包含 .NET 9 代码示例，演示改进的性能和分布式跟踪支持以实现可靠的消息传递。"
+      }
+    }
+  },
+  {
+    "title": "Display Order of GitHub Releases",
+    "slug": "display-order-github-releases",
+    "url": "https://dev.to/vast-cow/display-order-of-github-releases-3h78",
+    "source": "DEV Community",
+    "date": "2026-06-26T12:22:25.000Z",
+    "summary": "The article clarifies that GitHub release ordering is not based on publication date alone but uses a combination of semantic versioning and commit dates, with explicit \"Set as latest\" options available to maintainers. Understanding this behavior is crucial for projects seeking predictable release ordering and proper \"latest\" labeling.",
+    "content": "Conclusion\n\n\nThe display order of GitHub Releases is not based on the release title, not based on the tag name in simple lexical order, and not simply sorted by publication date in descending order.\nIf you want more predictable ordering for GitHub Releases, it is recommended to use SemVer-formatted tag names.\nGitHub determines release ordering using a combination of the following criteria:\n\n\n\nAspect\nWhat is Used\n\n\n\n\n\"Latest\" determination\nAn explicitly selected Set as latest release / make_latest, or automatic SemVer-based detection\n\n\n/releases/latest\nThe release considered \"latest,\" excluding drafts and prereleases\n\n\nReleases page display\nInfluenced by tag/commit dates and SemVer rather than publication date. The exact sorting algorithm is not officially documented.\n\n\n\nIn the GitHub UI, you can choose Set as latest release when creating a release. If you do not, the latest label is automatically assigned based on Semantic Versioning, according to the official documentation. (GitHub Docs)\nAccording to the GitHub REST API documentation for Get the latest release, the latest release is determined using created_at. However, created_at does not represent when the release was drafted or published—it represents the date of the commit associated with the release. (GitHub Docs)\nFor example:\nRelease A published on 2026-06-26\n  -> The tag points to an old commit from 2025\n\nRelease B published on 2026-06-20\n  -> The tag points to a newer commit from 2026\n\nIn this case, although Release A has the newer publication date, GitHub may still treat Release B as the newer release.\nNo, not in simple lexical order.\nHowever, if the tag name can be interpreted as a Semantic Version, it does influence GitHub's ordering.\nThe official GitHub Changelog explains that, before explicit \"latest\" selection was introduced, the latest release was determined by the most recent release date, with Semantic Versioning used as a tie-breaker when releases shared the same date. GitHub now allows maintainer",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "GitHub 发布版本的显示顺序",
+        "summary": "该文章阐明了 GitHub 发布版本的排序不仅基于发布日期，而是使用语义版本控制和提交日期的组合，并为维护者提供明确的\"设置为最新\"选项。理解这一行为对于寻求可预测发布排序和正确\"最新\"标签的项目至关重要。"
+      }
+    }
+  },
+  {
+    "title": "Security Best Practices in .NET Core and Azure",
+    "slug": "security-best-practices-dotnet-core-azure",
+    "url": "https://dev.to/hossein_esmati/security-best-practices-in-net-core-and-azure-56ac",
+    "source": "DEV Community",
+    "date": "2026-06-26T12:19:38.000Z",
+    "summary": "The article explores essential security patterns for .NET applications including JWT-based authentication with proper token validation and Azure integration, ensuring applications verify user identity and enforce access controls. Proper configuration of token validation parameters and handling of token expiration are critical for maintaining application security.",
+    "content": "This article is part of the Comprehensive Guide to Microservices Architecture in .NET Core, Cloud and Azure series.\nThis article explores essential security patterns and best practices for .NET applications, with a focus on Azure integration and modern authentication protocols.\nProper authentication verifies user identity, while authorization ensures users can only access resources they're permitted to use.\nJSON Web Tokens (JWT) provide a stateless authentication mechanism ideal for distributed systems:\n// Configure JWT authentication in Program.cs\nbuilder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)\n    .AddJwtBearer(options =>\n    {\n        options.Authority = builder.Configuration[\"Auth:Authority\"];\n        options.Audience = builder.Configuration[\"Auth:Audience\"];\n        options.MetadataAddress = builder.Configuration[\"Auth:MetadataAddress\"];\n\n        options.TokenValidationParameters = new TokenValidationParameters\n        {\n            ValidateIssuer = true,\n            ValidateAudience = true,\n            ValidateLifetime = true,\n            ValidateIssuerSigningKey = true,\n            ClockSkew = TimeSpan.Zero, // No tolerance for expired tokens\n            NameClaimType = \"name\",\n            RoleClaimType = \"roles\"\n        };\n\n        options.Events = new JwtBearerEvents\n        {\n            OnAuthenticationFailed = context =>\n            {\n                if (context.Exception is SecurityTokenExpiredException)\n                {\n                    context.Response.Headers.Append(\"Token-Expired\", \"true\");\n                }\n\n                context.Response.Headers.Append(\"Token-Error\", \n                    context.Exception.Message);\n\n                return Task.CompletedTask;\n            },\n\n            OnTokenValidated = context =>\n            {\n                // Additional validation logic\n                var userId = context.Principal?.FindFirst(\"sub\")?.Value;\n                // Log successful authentication, check revocation li",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": ".NET Core 和 Azure 中的安全最佳实践",
+        "summary": "本文探讨了 .NET 应用程序的基本安全模式，包括带有适当令牌验证和 Azure 集成的基于 JWT 的身份验证，确保应用程序验证用户身份并强制执行访问控制。令牌验证参数的正确配置和令牌过期处理对于维护应用程序安全至关重要。"
+      }
+    }
+  },
+  {
+    "title": "I built a CLI that scans legacy codebases and generates a modernization plan",
+    "slug": "legacy-squad-cli-codebase-modernization",
+    "url": "https://dev.to/hrpimenta/i-built-a-cli-that-scans-legacy-codebases-and-generates-a-modernization-plan-1ha2",
+    "source": "DEV Community",
+    "date": "2026-06-26T12:19:07.000Z",
+    "summary": "Legacy Squad is an open-source CLI tool that automates the discovery and planning phase of modernizing legacy systems by scanning codebases, running compliance pattern matching, and generating structured diagnostics with AI-assisted recommendations. The tool produces actionable outputs including refactor specifications, design documents, and modernization plans with evidence-backed guidance.",
+    "content": "How I turned the pain of inheriting legacy systems into an open-source framework that produces structured diagnostics — tested on real production code.\nYou inherit a system. 265 backend files, 209 frontend files, 80 stored procedures. Spring Boot 2.7 and Angular 14 — both end-of-life since November 2023. Business logic lives in SQL Server procedures that nobody fully understands. There are no tests. There is no architecture document. There is no modernization plan.\nManagement wants a roadmap by the end of the quarter.\nIf you've been in this situation, you know what happens next: weeks of reading code, drawing boxes on whiteboards, manually cataloging what's broken, and hoping you don't miss something critical hiding in a catch block.\nI've done this exercise enough times to realize most of the work is mechanical — scanning for patterns, mapping dependencies, cataloging business rules, cross-referencing against OWASP. The judgment part (what to prioritize, how to phase the work, where the risk is) is genuinely hard. But the discovery part is tedious, repetitive, and error-prone when done manually.\nSo I built a tool to automate the discovery and structure the planning.\nLegacy Squad is an open-source CLI that installs into your project and produces a structured modernization diagnostic. One command:\nnpx legacy-squad install\n\n\nThis scans your repository, runs a deterministic Compliance Engine (OWASP / CWE pattern matching), generates per-module context packs, and installs five AI agents as slash commands in your IDE (Claude Code or Codex CLI).\nThe agents aren't free-form chat. Each one follows a methodology-bound prompt that forces structured output — evidence with file:line references, framework citations, impact assessment, and actionable recommendations.\nAfter running the 5 agents and 4 generators, you get:\nPRS — Product Refactor Specification (consolidated diagnostic)\nSDD — Software Design Document (current + target architecture with ADRs)\nMMP — Modernization Master",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个扫描遗留代码库并生成现代化计划的 CLI",
+        "summary": "Legacy Squad 是一个开源 CLI 工具，通过扫描代码库、运行合规性模式匹配和生成带有 AI 辅助建议的结构化诊断，自动化遗留系统现代化的发现和规划阶段。该工具生成可操作的输出，包括重构规范、设计文档和有证据支持的现代化计划指导。"
+      }
+    }
+  },
+  {
+    "title": "🚀 Just launched a new web project — HKMC Builders & Developers Website 🏗️✨",
+    "slug": "hkmc-builders-developers-website-launch",
+    "url": "https://dev.to/nagapuri_pavankiranp/just-launched-a-new-web-project-hkmc-builders-developers-website-1m1p",
+    "source": "DEV Community",
+    "date": "2026-06-26T12:16:16.000Z",
+    "summary": "The author shares a newly developed responsive website for HKMC Builders & Developers, emphasizing clean UI/UX design and user-friendly, conversion-focused experiences. The project demonstrates skills in building professional business websites using modern design principles and front-end technologies.",
+    "content": "Excited to share my latest development work:\nhttps://hkmcbuildersanddevelopers.com/\nI designed and developed a modern, responsive website experience for HKMC Builders & Developers, focusing on:\n✅ Clean & professional UI/UX\nThis project helped me improve my skills in creating business websites that are not only visually attractive but also user-friendly and conversion-focused.\n🔗 Project Preview:\nhttps://hkmcbuildersanddevelopers.com/\nWould love to hear your feedback! 🚀\nhttps://pavankiran.netlify.app/\n\n\n  \n  \n  WebDevelopment #FrontendDeveloper #UIUX #HTML #CSS #JavaScript #ReactJS #Developer #Portfolio #WebDesign #RealEstateWebsite",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "🚀 刚发布了一个新网站项目 — HKMC Builders & Developers 网站 🏗️✨",
+        "summary": "作者分享了为 HKMC Builders & Developers 新开发的响应式网站，强调简洁的 UI/UX 设计和用户友好、转化为中心的体验。该项目展示了使用现代设计原则和前端技术构建专业商业网站的技能。"
+      }
+    }
+  },
+  {
+    "title": "Transitioning as a hubber",
+    "slug": "transitioning-hubber-github-culture",
+    "url": "https://github.blog/developer-skills/career-growth/transitioning-as-a-hubber/",
+    "source": "GitHub Blog",
+    "date": "2026-06-26T12:00:00.000Z",
+    "summary": "This post discusses how GitHub's culture and employee benefits supported the author through a personal transition, highlighting the company's inclusive workplace values. The article focuses on employee experience and organizational culture at GitHub.",
+    "content": "How GitHub's culture and benefits helped me be the best version of myself.\nThe post Transitioning as a hubber appeared first on The GitHub Blog.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "作为Hubber的身份转变",
+        "summary": "这篇文章讨论了GitHub的企业文化和员工福利如何在作者的个人转变过程中提供了支持，并突出了公司包容性的工作场所价值观。该文章重点关注GitHub的员工体验和组织文化。"
+      }
+    }
+  },
+  {
     "title": "Day 01: Our AI Agent Forged 5 Documents and Blamed the Founder — How Our Immune System Caught It",
     "slug": "ai-agent-forged-documents-caught",
     "url": "https://dev.to/zwiserfit/day-01-our-ai-agent-forged-5-documents-and-blamed-the-founder-how-our-immune-system-caught-it-1h38",
