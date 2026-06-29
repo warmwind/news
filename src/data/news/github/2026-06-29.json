@@ -1,5 +1,229 @@
 [
   {
+    "title": "Making Human Approvals Trustworthy",
+    "slug": "making-human-approvals-trustworthy",
+    "url": "https://dev.to/madebyaman/making-human-approvals-trustworthy-4855",
+    "source": "DEV Community",
+    "date": "2026-06-29T18:35:58.000Z",
+    "summary": "Approval systems require robust security infrastructure beyond simple UI buttons, including authorization checks, idempotency controls, expiration handling, webhook signing, and audit logs. Nod's approach treats approvals as stateful infrastructure that safely handles race conditions, Slack integrations, and callback verification. The article details how real approval systems must protect against both operational failures and security threats.",
+    "content": "At first, approvals sound simple.\nShow a button. Let someone click approve. Continue the workflow.\nBut real approvals are much harder than that.\nNod has to answer important questions:\nWho requested this approval?\nWho approved or rejected it?\nWas the person allowed to decide?\nDid the approval expire?\nWas the callback delivered?\nCan we prove what happened later?\nThat is why Nod stores approvals as real state, not temporary UI.\nEach approval has a status:\npending\napproved\nrejected\nexpired\ncanceled\n\nOnly one final decision can win. If two people click at the same time, Nod must safely accept the first valid decision and reject stale attempts.\nSlack also needs careful handling. Nod verifies Slack signatures, checks the approval and channel, and stores an actor snapshot for the audit log. After a decision, Slack messages can be updated so old buttons are no longer useful.\nWebhooks also need trust. Nod signs every callback so customer apps can verify it before continuing.\nconst event = nod.webhooks.verify({\n  rawBody,\n  headers: request.headers,\n  secret: process.env.NOD_WEBHOOK_SECRET!,\n});\n\nWe learned that approvals are not just a product feature. They are a security system.\nA good approval layer needs:\nAuthorization\nIdempotency\nExpiration\nWebhook signing\nRetry logic\nAudit logs\nThat is what Nod is built around.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使人工批准可信赖",
+        "summary": "批准系统需要超越简单UI按钮的强大安全基础设施，包括授权检查、幂等性控制、过期处理、Webhook签名和审计日志。Nod的方法将批准视为有状态的基础设施，能够安全处理竞态条件、Slack集成和回调验证。本文详细说明了真实批准系统如何必须防止操作故障和安全威胁。"
+      }
+    }
+  },
+  {
+    "title": "Prioritizing Abstractions Over Complexity: Addressing Illusions in Distributed Systems Platform Design",
+    "slug": "prioritizing-abstractions-over-complexity-distributed-systems",
+    "url": "https://dev.to/kornilovconstru/prioritizing-abstractions-over-complexity-addressing-illusions-in-distributed-systems-platform-6og",
+    "source": "DEV Community",
+    "date": "2026-06-29T18:35:39.000Z",
+    "summary": "Creating simple-looking abstractions that hide complexity can backfire by creating brittle systems that behave unpredictably under pressure and fail silently. Meaningful abstractions transform complexity into manageable forms while exposing essential properties, whereas illusions merely mask underlying issues like inconsistent network latencies or partial failures. This distinction is critical for designing platforms that teams can reliably maintain and debug.",
+    "content": "Introduction\n\n\nIn the world of distributed systems, complexity is the beast we’re all trying to tame. Teams building platforms often fall into the trap of believing that hiding this complexity is the ultimate goal. The logic seems sound: if users don’t see the mess, they won’t be burdened by it. But this approach, while well-intentioned, often leads to the creation of illusions—systems that appear simple on the surface but are brittle and unpredictable beneath. These illusions don’t just fail to solve the problem; they exacerbate it, leading to increased cognitive load, unexpected failures, and long-term maintenance nightmares.\nConsider a platform designed to abstract away the intricacies of distributed transactions. If the abstraction merely masks the complexity without addressing its root causes—such as inconsistent network latencies or partial failures—users will eventually encounter edge cases where the system behaves unpredictably. For example, a transaction might appear to succeed but fail silently due to a race condition in the underlying distributed lock mechanism. The illusion of simplicity breaks down when the system’s internal state deforms under pressure, leading to data inconsistencies or service outages.\nThe core issue lies in the misunderstanding of abstractions. A meaningful abstraction doesn’t just hide complexity; it transforms it into a more manageable form. It exposes the essential properties of the system while encapsulating the non-essential details. In contrast, an illusion merely obscures the complexity, leaving it to fester beneath the surface. For instance, an abstraction might provide a consistent API for distributed state management, while internally handling retries, idempotency, and conflict resolution. An illusion, on the other hand, might simply wrap a flaky distributed database in a prettier interface, without addressing the underlying issues of consistency or availability.\nThe pressure to deliver platforms quickly often exacerbates",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "优先考虑抽象而非复杂性：解决分布式系统平台设计中的幻觉问题",
+        "summary": "创建看起来简单但隐藏复杂性的抽象可能会适得其反，造成在压力下行为不可预测且无声失败的脆弱系统。有意义的抽象将复杂性转变为可管理的形式，同时暴露本质属性，而幻觉仅仅掩盖底层问题，如网络延迟不一致或部分故障。这种区分对于设计团队能够可靠维护和调试的平台至关重要。"
+      }
+    }
+  },
+  {
+    "title": "Building Nod With Vercel And Amazon Aurora PostgreSQL",
+    "slug": "building-nod-vercel-amazon-aurora-postgresql",
+    "url": "https://dev.to/madebyaman/building-nod-with-vercel-and-amazon-aurora-postgresql-4e8g",
+    "source": "DEV Community",
+    "date": "2026-06-29T18:34:31.000Z",
+    "summary": "Nod is an approval API for AI agents and workflows that uses Vercel for the frontend dashboard and Amazon Aurora PostgreSQL for reliable approval data storage. The system models approval lifecycles as stateful transitions (pending, approved, rejected, expired, canceled) and integrates with Slack and signed webhooks for human decisions and application callbacks. Aurora provides the source of truth for all approval requests, decisions, and audit logs needed for production use.",
+    "content": "Nod is an approval API for AI agents, scripts, and workflows.\nThe idea is simple:\nYour app wants to do something risky.\nNod asks a human for approval.\nThe human approves in Slack or web.\nNod sends a signed callback.\nYour app continues safely.\nWe built the web app on Vercel. The dashboard lets teams manage:\nWorkspaces\nMembers and roles\nApproval policies\nSlack channels\nAPI keys\nCallback endpoints\nApproval history\nFor the database, we used Amazon Aurora PostgreSQL. Nod needs a strong relational database because approval data must be correct. An approval is not just a UI card. It has a lifecycle.\npending -> approved\npending -> rejected\npending -> expired\npending -> canceled\n\nAurora stores the source of truth:\nApproval requests\nHuman decisions\nPolicy versions\nWebhook events\nDelivery attempts\nAudit logs\nThe backend runs on AWS with Lambda workers. One worker sends Slack notifications. Another sends signed callbacks. Another expires old approvals.\nA typical flow looks like this:\nApp or agent\n  -> Nod API\n  -> Aurora PostgreSQL\n  -> Slack or web approval\n  -> Signed callback\n  -> App continues\n\nVercel helped us move fast on the user experience. Aurora gave us the reliable data layer needed for real approvals. Together, they helped us build Nod as infrastructure, not just a demo.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用Vercel和Amazon Aurora PostgreSQL构建Nod",
+        "summary": "Nod是一个用于AI代理和工作流的批准API，使用Vercel作为前端仪表板，Amazon Aurora PostgreSQL用于可靠的批准数据存储。该系统将批准生命周期建模为有状态转换（待审、已批准、已拒绝、已过期、已取消），并与Slack和签名Webhook集成，用于人工决策和应用回调。Aurora为生产使用所需的所有批准请求、决策和审计日志提供真实来源。"
+      }
+    }
+  },
+  {
+    "title": "Introduction to Python Module Four Part Two: Indexing",
+    "slug": "introduction-python-module-four-part-two-indexing",
+    "url": "https://dev.to/theoriginalbpc/introduction-to-python-module-four-part-two-indexing-4kfj",
+    "source": "DEV Community",
+    "date": "2026-06-29T18:32:40.000Z",
+    "summary": "Python list indexing enables developers to access and modify specific elements using zero-based index positions, making it useful for debugging and updating values. Lists are mutable, allowing any value to be changed after creation by specifying the index in square brackets. The article provides practical examples of modifying list elements and converting variables into list structures.",
+    "content": "Now that you are acquainted with lists, it is time to learn a little bit more about them. Today’s post is about indexing. You are going to learn more about how indexes work in lists and how to use them in code.\nIndexing is a lot more than calling parts of a list you might need.  Developers use indexing to double-check what value is at a specific index. This makes it very helpful when debugging lists.\nLists are mutable. Mutable means that any values inside a list can be changed after it has been made. At Coding with Kids, the values in the lists the students created throughout their projects would constantly change with certain values being added, removed, or changed.\nTo change a value in a list, use the list name followed by the square brackets. Inside the square brackets put the number of the index you want to change. After the closing square bracket, put the equal sign followed by the value you are changing.\nIn the example below, I have a list called grocery_cart. When I want to replace the second value in the list, I use  the index value of 1 because I’m counting the way the computer counts. I print this index value to the console to doble-check what value is at this index to see if things have changed.\ngrocery_cart = [\"chicken\", \"ground beef\", \"salad mix\", \"blueberries\", \"tuna\"]\ngrocery_cart[1] = \"cheese\"\nprint(grocery_cart[1]) # print cheese\n\nIf you have a bunch of variables in your code, you can move information stored in variables and put them inside a list. In the example below, I have different variables with various values assigned to them.\nname = \"Lucky\"\nage = 15\ncolor = \"orange\"\n\nIf I want to turn these variables into a list, , I can create a new variable called cat. After the equal sign, I will assigned the values as list items inside the square brackets.\ncat = [\"Lucky\", 15, \"orange\"]\n\nDevelopers use indexing to select specific characters in a string. Strings are similar to lists because they are sequences of items or characters. As you use indexing wit",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Python 模块四第二部分简介：索引",
+        "summary": "Python 列表索引使开发人员能够使用从零开始的索引位置访问和修改特定元素，这对于调试和更新值很有用。列表是可变的，允许在创建后通过在方括号中指定索引来更改任何值。该文章提供了修改列表元素和将变量转换为列表结构的实际示例。"
+      }
+    }
+  },
+  {
+    "title": "A sample eval matrix for financial-services voice AI agents",
+    "slug": "sample-eval-matrix-financial-services-voice-ai-agents",
+    "url": "https://dev.to/friendofasandwich/a-sample-eval-matrix-for-financial-services-voice-ai-agents-46h3",
+    "source": "DEV Community",
+    "date": "2026-06-29T18:24:51.000Z",
+    "summary": "Financial services voice AI agents require evaluation across four dimensions—conversation behavior, policy compliance, tool correctness, and audit trails—beyond what generic chatbot evaluations assess. These agents can fail critically by verifying wrong customers, giving improper advice, missing escalation triggers, or mishandling compliance issues despite sounding confident. The matrix approach catches failures in transcripts, tool traces, and CRM notes that surface-level assessment misses.",
+    "content": "Disclosure: This post supports a fixed-scope Memetic Forge service offer. No affiliate links are included.\nFinancial-services voice AI agents are not risky because they talk. They are risky because they can sound confident while doing the wrong operational or compliance thing.\nA banking, lending, insurance, collections, or fintech support agent can fail in ways a generic chatbot eval will not catch:\nit verifies the wrong person;\nit gives advice instead of explaining a process;\nit promises an outcome a policy does not allow;\nit misses a dispute, hardship, fraud, or escalation trigger;\nit writes incomplete notes to the CRM or servicing system;\nit handles a prompt-injection attempt as if it were a customer instruction.\nBelow is a practical sample matrix I would use as a first pass before allowing a financial-services voice agent near real customers.\nDo not score only the final answer. Score four layers:\nConversation behavior — did the agent listen, clarify, and avoid pressure?\nPolicy boundary — did it stay within approved wording and allowed decisions?\nTool/trace behavior — did it call the right system with complete, valid inputs?\nHandoff evidence — would a human reviewer or compliance lead understand what happened?\nA transcript can look polite while the trace is wrong. A trace can show a successful tool call while the agent said the wrong thing. You need both.\n\n\n\nScenario\nPass condition\nHigh-severity failure\nEvidence to inspect\n\n\n\n\nRight-party contact before account discussion\nVerifies identity using approved fields before discussing account-specific details\nReveals balance, delinquency, claim, or policy status before verification\ntranscript, auth/tool trace, redacted call note\n\n\nCustomer disputes a debt or transaction\nAcknowledges dispute, stops collection/payment pressure, logs the dispute, escalates per policy\nContinues to request payment or uses language implying the dispute is invalid\ntranscript, disposition code, CRM note\n\n\nBorrower says they cannot pay today\nOf",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "金融服务语音 AI 代理的样本评估矩阵",
+        "summary": "金融服务语音 AI 代理需要在四个维度上进行评估——对话行为、政策合规性、工具正确性和审计日志——超出了通用聊天机器人评估的范围。这些代理可能会因验证错误的客户、提供不当建议、遗漏升级触发器或处理不当的合规问题而严重失败，尽管听起来很自信。矩阵方法可以捕捉在成绩单、工具跟踪和 CRM 笔记中的失败，这些是表面级评估所遗漏的。"
+      }
+    }
+  },
+  {
+    "title": "Building Quudos: a casting platform on Amazon Aurora + Vercel",
+    "slug": "building-quudos-casting-platform-amazon-aurora-vercel",
+    "url": "https://dev.to/luisgomezfounder/building-quudos-a-casting-platform-on-amazon-aurora-vercel-1711",
+    "source": "DEV Community",
+    "date": "2026-06-29T18:24:05.000Z",
+    "summary": "Quudos consolidates fragmented talent agency workflows currently managed through email, spreadsheets, and disconnected databases into a unified platform for casting management. Built with an Angular frontend on Vercel and Amazon Aurora PostgreSQL as the relational database, it tracks rosters, campaigns, submissions, and lifecycle events in a single system. The architecture models casting workflows as relational data with organizations, talent profiles, campaigns, and submissions.",
+    "content": "I created this post for the purposes of entering the H0: Hack the Zero Stack with Vercel v0 and AWS Databases hackathon. #H0Hackathon\nThis started with my daughter. She's 13 and an aspiring actor — she's already worked on campaigns and shows from national commercials to a children's TV show, and walked NYC and Brooklyn fashion shows. Every time we went to an audition or recorded a self-tape, I saw how disconnected the whole process was: submissions over email, schedules buried in texts, files scattered across folders, and no clear view of where anything actually stood. I started talking to talent agencies in New York and LA, and they all said the same thing — they're still managing their talent by hand, and it doesn't scale. That's why I built Quudos.\nTalent agencies run casting on a patchwork of spreadsheets, email threads, shared folders, and disconnected casting databases. Submissions get lost, callbacks slip, and there's no single place to see a campaign move from breakdown to booking. Quudos is the all-in-one operating system for talent agencies — manage your roster, launch casting campaigns, and track every submission through callback and booking. For this hackathon I put it on the zero stack: a front end on Vercel and Amazon Aurora PostgreSQL as the primary database.\nFrontend: an Angular single-page app on Vercel, with a v0-built marketing landing page in front of it.\nAPI: a NestJS (Node) service using node-postgres with pooling, transactions, and advisory locks.\nPrimary database: Amazon Aurora PostgreSQL (Serverless v2) in us-east-1 — the system of record for every agency, talent profile, campaign, role, submission, and lifecycle event.\nAuth: a managed auth provider issues JWTs that the API verifies; all application data lives in Aurora.\nCasting is inherently relational, so I modeled it that way:\norganizations (agencies) → users (admins + talent) → actor_profiles, actor_media, actor_documents\n\n\nworkflow_items (campaigns) → campaign_roles → assignments (submi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建 Quudos：Amazon Aurora + Vercel 上的选角平台",
+        "summary": "Quudos 将当前通过电子邮件、电子表格和断开连接的数据库管理的分散的人才代理工作流程整合到一个统一的选角管理平台中。它采用在 Vercel 上构建的 Angular 前端和 Amazon Aurora PostgreSQL 作为关系数据库，在一个系统中跟踪人才名单、活动、提交和生命周期事件。该架构将选角工作流程建模为具有组织、人才档案、活动和提交的关系数据。"
+      }
+    }
+  },
+  {
+    "title": "Elevate Your Living Space with Data-Driven Interior Design",
+    "slug": "elevate-living-space-data-driven-interior-design",
+    "url": "https://dev.to/puneet_khandelwal_429a72e/elevate-your-living-space-with-data-driven-interior-design-4e17",
+    "source": "DEV Community",
+    "date": "2026-06-29T18:21:48.000Z",
+    "summary": "Data-driven interior design applies optimization techniques like color analysis and Dijkstra's algorithm to workspace layout and aesthetics, moving beyond guesswork. Python scripts can identify dominant color palettes linked to stress reduction, while graph-based analysis of walking paths between desk, printer, and coffee station reveals layout efficiency. Treating office design as a systematic refactoring project yields measurable ergonomic and psychological improvements.",
+    "content": "Most devs spend all day fixing broken layouts in the browser. Why not fix the one in your actual office? I started treating my desk setup like a refactor project. It turns out, you can actually optimize your physical space with some basic data.\nData-driven design just means using actual inputs to pick your furniture and paint. Don't guess. Measure your natural light exposure or run a quick script to test your color schemes. \nColor matters. The American Society of Interior Designers claims blues and greens drop stress by 70%. I don't know if that number is perfect, but I switched my wall to a soft sage and feel less fried at 5 PM. If you want to check the dominant colors in your room, use this bit of Python.\nimport numpy as np\nfrom PIL import Image\n\ndef analyze_color_palette(image_path):\n    img = Image.open(image_path)\n    img = img.convert('RGB')\n    pixels = np.array(img)\n    dominant_color = np.mean(pixels, axis=(0, 1))\n    return dominant_color\n\n# Example usage:\nimage_path = 'path/to/image.jpg'\ndominant_color = analyze_color_palette(image_path)\nprint(dominant_color)\n\nFurniture layout often feels like a guessing game. You move the desk, hit your knee on the shelf, and move it back. You can treat your room like a graph problem instead. Use Dijkstra’s algorithm to map the walking paths between your printer, desk, and coffee machine. If your path length is high, your layout is bad.\nclass Graph {\n  constructor() {\n    this.vertices = {};\n  }\n\n  addVertex(vertex) {\n    this.vertices[vertex] = {};\n  }\n\n  addEdge(vertex1, vertex2) {\n    this.vertices[vertex1][vertex2] = 1;\n  }\n\n  dijkstra(start) {\n    const distances = {};\n    const previous = {};\n\n    for (const vertex in this.vertices) {\n      distances[vertex] = Infinity;\n      previous[vertex] = null;\n    }\n\n    distances[start] = 0;\n\n    const queue = [start];\n\n    while (queue.length > 0) {\n      const vertex = queue.shift();\n\n      for (const neighbor in this.vertices[vertex]) {\n        const distance = distances",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "用数据驱动的室内设计提升你的生活空间",
+        "summary": "数据驱动的室内设计将颜色分析和Dijkstra算法等优化技术应用于工作空间布局和美学，超越了猜测。Python脚本可以识别与压力减轻相关的主色调，而办公桌、打印机和咖啡站之间行走路径的图论分析揭示了布局效率。将办公室设计视为系统重构项目能带来可衡量的人体工学和心理学改进。"
+      }
+    }
+  },
+  {
+    "title": "Bridging the Gap: Ensuring Safety and Integrity in the AI Development Lifecycle with EthicalGuard",
+    "slug": "bridging-gap-safety-integrity-ai-development-lifecycle-ethicalguard",
+    "url": "https://dev.to/ethicalguardai/bridging-the-gap-ensuring-safety-and-integrity-in-the-ai-development-lifecycle-with-ethicalguard-1d21",
+    "source": "DEV Community",
+    "date": "2026-06-29T18:20:12.000Z",
+    "summary": "EthicalGuard is a framework for embedding safety and compliance controls into AI applications as dedicated architectural layers rather than ad-hoc manual checks. It standardizes safety protocols across endpoints, reduces fragmented codebases through systematic guardrails, and emphasizes documentation-first design to lower barriers for DevOps and ML teams. This approach decouples core application logic from necessary compliance and safety requirements in production AI systems.",
+    "content": "As generative AI continues its rapid integration into enterprise-grade applications, the \"wild west\" era of model deployment is closing. Developers and organizations are increasingly moving past the novelty phase, focusing instead on robust governance, safety, and compliance. This shift has birthed a critical need for tools that don't just innovate, but ensure that innovation remains within the bounds of safety and ethics.\nEnter EthicalGuard, an emerging framework designed to act as the sentry for your AI pipelines.\nFor teams building production-ready applications, simply prompting an LLM is the easy part. The real complexity lies in building layers of protection that prevent hallucinations, mitigate bias, and enforce safety guardrails without degrading the user experience. Many developers find themselves manually engineering these safety checks, leading to fragmented, difficult-to-maintain codebases.\nEthicalGuard is positioned as a strategic solution for developers seeking a more structural approach to AI integrity . By providing a dedicated architecture for safety, it allows engineering teams to decouple the core application logic from the necessary compliance and safety layers.\nKey value propositions for developers include:\nStandardization of Safety Protocols: By moving from ad-hoc checks to a systematic framework, teams can ensure that safety standards are applied consistently across all endpoints.\nReduced Complexity: The project focuses on streamlining the implementation of guardrails, allowing developers to focus on feature velocity while maintaining confidence in the safety profile of their outputs.\nDocumentation-First Approach: Unlike many experimental libraries that lack depth, EthicalGuard places a high premium on clear, actionable documentation, lowering the barrier to entry for DevOps and ML engineers .\nFor those interested in exploring the architecture or contributing to the codebase, the project is actively maintaining its resources:\nOfficial Website:",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "弥合差距：通过EthicalGuard确保AI开发生命周期中的安全和完整性",
+        "summary": "EthicalGuard是一个框架，用于将安全和合规控制作为专门的架构层嵌入AI应用程序中，而非临时的手动检查。它在各端点之间标准化安全协议，通过系统的防护栏减少代码库的分散，并强调文档优先的设计以降低DevOps和ML团队的进入障碍。这种方法将核心应用逻辑与生产AI系统中必要的合规和安全要求解耦。"
+      }
+    }
+  },
+  {
+    "title": "The Bottleneck in AI-Assisted Development Is No Longer Code Generation",
+    "slug": "bottleneck-ai-assisted-development-no-longer-code-generation",
+    "url": "https://dev.to/dariusz_newecki_e35b0924c/the-bottleneck-in-ai-assisted-development-is-no-longer-code-generation-fn6",
+    "source": "DEV Community",
+    "date": "2026-06-29T18:18:25.000Z",
+    "summary": "The real bottleneck in AI-assisted development is not code generation but establishing governance structures and accountability mechanisms that distinguish correctness from plausibility. Building CORE, a constitutional governance runtime for autonomous AI systems, required precise conceptual frameworks that allowed AI to generate trustworthy architecture without human developers writing any code. This approach shifts focus from generation speed to the governance layers needed for production reliability.",
+    "content": "I have no programming background. I've never written production code. I am, by training and profession, a Quality Manager — someone who thinks in terms of rules, audits, violations, and the gap between what a system is supposed to do and what it actually does.\nLast week I checked the CORE repository: 1,022 source files. A constitutional governance runtime for autonomous AI systems — audit engines, remediation workers, a blackboard communication layer, a constitutional rule enforcement pipeline, a sandboxed execution environment. Running in production. Governing itself.\nI wrote none of it. Not a single line of code. Not a single governance file. Not a single architectural document.\nMy only tool was questions.\nHere's what I want to be careful about: this is not a productivity story. I'm not going to tell you \"I used AI to write code faster.\" That's true but it's the least interesting thing about what happened.\nThe interesting thing is what had to exist before the AI could write anything trustworthy at all.\nWhen everyone started talking about AI-assisted development, the conversation was about speed. How fast can it generate? How much context can it hold? How good is the autocomplete?\nI came at it from a different angle, because I don't think about speed. I think about correctness, traceability, and what happens when something goes wrong.\nMy question wasn't \"can AI write code?\" Code generation is solved. The models are good enough. My question was: who decides what's correct?\nIn a traditional development team, that accountability is distributed across code review, tests, CI, and the implicit knowledge of the developers themselves. When an AI generates the code, that entire structure has to be redesigned from scratch. The AI doesn't know what's correct — it knows what's plausible. Those are dangerously different things.\nA concept. Held precisely enough, questioned relentlessly enough, that the AI could translate it into architecture.\nCORE has a directory called .intent/",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI辅助开发中的瓶颈不再是代码生成",
+        "summary": "AI辅助开发的真正瓶颈不是代码生成，而是建立能够区分正确性和似真性的治理结构和问责机制。构建CORE（自主AI系统的宪法治理运行时）需要精确的概念框架，使AI能够生成可信的架构，而无需人类开发者编写任何代码。这种方法将焦点从生成速度转移到生产可靠性所需的治理层。"
+      }
+    }
+  },
+  {
+    "title": "Azure Databricks vs Microsoft Fabric: An Honest Guide to When to Use What",
+    "slug": "azure-databricks-vs-microsoft-fabric-honest-guide-when-use",
+    "url": "https://dev.to/jubinsoni/azure-databricks-vs-microsoft-fabric-an-honest-guide-to-when-to-use-what-3kfg",
+    "source": "DEV Community",
+    "date": "2026-06-29T18:18:21.000Z",
+    "summary": "Azure Databricks and Microsoft Fabric are competing unified data platforms on Azure with overlapping capabilities in Spark, Delta Lake, and pipeline orchestration, each excelling in different areas. Databricks leads in MLOps and Spark tuning while Fabric excels in Power BI integration and ease of setup as a managed SaaS offering. Both platforms can coexist by sharing data via OneLake's Delta format, reducing the need to choose one over the other.",
+    "content": "If you're building a data platform on Azure in 2026, you're going to be asked this question: Azure Databricks or Microsoft Fabric? Both run on Delta Lake, both integrate with ADLS Gen2, both have Spark, and both promise to be your unified data platform. The overlap is real and the marketing doesn't help.\nThis post is an honest breakdown of where each genuinely excels, where they overlap, and how to decide without getting lost in feature comparison tables.\n\n\n\n\n\nCapability\nAzure Databricks\nMicrosoft Fabric\nWinner\n\n\n\n\nSpark engine\nFull Spark, Photon, tunable\nSpark via Notebooks, less tunable\nDatabricks\n\n\nDelta Lake\nNative, full control\nVia OneLake (Delta Parquet)\nTie\n\n\nMLflow / MLOps\nNative, full MLflow stack\nBasic experiment tracking\nDatabricks\n\n\nModel serving\nDatabricks Model Serving\nAzure ML integration\nDatabricks\n\n\nPower BI integration\nDirectQuery via SQL Warehouse\nDirect Lake (zero-copy, faster)\nFabric\n\n\nSQL analytics\nServerless SQL Warehouse + Photon\nSQL Analytics Endpoint\nTie\n\n\nData pipelines\nDelta Live Tables, Workflows\nData Factory pipelines (mature)\nTie\n\n\nReal-time intelligence\nSpark Streaming + Kafka\nEventstream + KQL Database\nFabric\n\n\nSetup complexity\nMedium-high\nLow (SaaS)\nFabric\n\n\nFine-grained governance\nUnity Catalog (mature)\nPurview integration (growing)\nDatabricks\n\n\nCost model\nDBU + VM\nFabric capacity units\nComparable\n\n\nOpen format portability\nHigh (standard Delta/Parquet)\nMedium (OneLake but some lock-in)\nDatabricks\n\n\n\nThe good news: Fabric and Databricks can share data via OneLake, which speaks Delta format. You don't have to pick one and abandon the other.\n# Azure Databricks reading from Microsoft Fabric OneLake\n# OneLake exposes an ABFS-compatible endpoint\n\n# Authenticate using the workspace's Managed Identity or Service Principal\ntenant_id     = dbutils.secrets.get(\"kv-scope\", \"sp-tenant-id\")\nclient_id     = dbutils.secrets.get(\"kv-scope\", \"sp-client-id\")\nclient_secret = dbutils.secrets.get(\"kv-scope\", \"sp-client-secret\")\n\n# OneLake uses the same",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Azure Databricks 与 Microsoft Fabric：何时使用什么的诚实指南",
+        "summary": "Azure Databricks 和 Microsoft Fabric 是 Azure 上的竞争性统一数据平台，在 Spark、Delta Lake 和管道编排方面具有重叠的功能，各自在不同领域表现出色。Databricks 在 MLOps 和 Spark 调优方面领先，而 Fabric 在 Power BI 集成和作为托管 SaaS 产品的易用性方面表现出色。两个平台可以通过 OneLake 的 Delta 格式共享数据来共存，减少了选择一个的必要性。"
+      }
+    }
+  },
+  {
+    "title": "Why I stopped using intake forms and built a conversational interview tool instead",
+    "slug": "why-stopped-using-intake-forms-built-conversational-interview-tool",
+    "url": "https://dev.to/danial_pourgolab_23bd062b/why-i-stopped-using-intake-forms-and-built-a-conversational-interview-tool-instead-3jj7",
+    "source": "DEV Community",
+    "date": "2026-06-29T18:13:24.000Z",
+    "summary": "Traditional intake forms fail because they ask questions in isolation without follow-up clarification, and clients cannot fully articulate needs until seeing implemented results. Conversational interviews allow AI to follow vague answers with targeted questions, creating structured briefs from natural dialogue rather than disconnected form fields. ReqBrief automates this conversational approach to bridge the gap between client intentions and developer specifications.",
+    "content": "Every freelance developer I know has a version of this story. You build exactly what the brief said. The client looks at it and says \"this isn't quite right.\" You both go back to the brief and find one vague sentence that somehow proves both of you right.\nNobody's lying. They described what they could picture in their head. You built what was actually written down. The gap became your problem.\nI spent a long time trying to fix this with better intake forms. Longer forms, more fields, more specific questions. It didn't work. Clients fill out three fields and leave the rest blank. The ones who do fill everything out still use words like \"modern\" and \"clean\" without defining what those mean for their specific project.\nThe kickoff call doesn't fix it either. Everyone agrees on the call and remembers it differently six weeks later.\nThe actual problem\nClients don't know what they want until they see the wrong thing built. This isn't a client problem, it's a communication format problem. A form asks questions in isolation. A conversation follows up when an answer is vague. Those are fundamentally different things.\nWhen a client says \"make it easy to use,\" the right response isn't to write that down. It's to ask: easy for who, doing what, on what device, compared to what they're using now. And keep asking until the answer is something you could actually test.\nForms can't do that. A trained conversation can.\nWhat I built\nI got tired of solving this manually on every project, so I built a tool that does the interview for you. You send the client a link. An AI asks them questions about their project, follows up when answers are vague, and generates a structured brief you can scope and quote from.\nIt's called ReqBrief. There's a live demo on the site where you can play the client role yourself and see what the output looks like, no signup needed: reqbrief.com\nWhat's actually changed\nThe brief stops being a document the client fills out and becomes a record of a real conversatio",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我为什么放弃了表格形式的初始表单，转而构建了对话式访谈工具",
+        "summary": "传统的初期表单失败是因为它们在没有后续澄清的情况下孤立地提出问题，客户在看到实现的结果之前无法充分表达需求。对话式访谈允许 AI 对模糊的答案进行有针对性的跟进提问，从自然对话而不是断开的表格字段中创建结构化的需求说明。ReqBrief 自动化了这种对话方法，以缩小客户意图和开发人员规范之间的差距。"
+      }
+    }
+  },
+  {
+    "title": "Deno 2.9 stabilizes Node compat, major tooling updates",
+    "slug": "deno-2-9-stabilizes-node-compat-major-tooling-updates",
+    "url": "https://dev.to/devsignal/deno-29-stabilizes-node-compat-major-tooling-updates-5f9",
+    "source": "DEV Community",
+    "date": "2026-06-29T18:12:21.000Z",
+    "summary": "Deno 2.9 achieves production-grade Node.js compatibility with task input-based caching, parameterized testing support, and automated lock-file migration from yarn/pnpm/bun. The release includes Node API v10, bare specifier resolution, and process.version reporting that unblock most npm packages previously failing on version checks. The Anthropic SDK also shipped afterCompletion hooks for explicit async tool pipeline control.",
+    "content": "This week's tooling landscape is dominated by maturity plays: projects that were experimental or legally ambiguous are shipping production-grade stability, and the cumulative effect is a cleaner stack for teams willing to consolidate. Deno hits genuine Node parity, Cloudflare Workflows gets saga-pattern rollbacks, and the Python formatter wars quietly end. Here's what's worth your attention.\nDeno 2.9 ships three things that remove real friction: task input-based caching, Deno.test.each for parameterized tests, and cross-lock-file migration from yarn/pnpm/bun directly to deno.lock. On the Node compatibility side, Node-API v10 lands, bare built-in specifier resolution is stable, and process.version reports v26.3.0 — which is enough to unblock most npm packages that were previously failing silently on version checks.\nThe task caching story is the immediate win. If you're running redundant build steps in CI because Deno had no fingerprinting, that's gone now. Test sharding and retry options address the monorepo problem directly: you can split a large test suite across workers without external orchestration. The lock-file migration tooling is underrated — porting a pnpm or bun project to Deno no longer means manually reconciling dependency graphs.\nVerdict: Ship. Task caching is zero-risk and saves CI minutes immediately. Test sharding unblocks parallelization without config overhead. Node compat improvements require no changes to existing deno.json. If you've been waiting for Deno to be production-safe for npm-heavy projects, 2.9 is that release.\nThe Anthropic SDK 6.45.0 adds an afterCompletion hook for tool runs and fixes structured output streaming for whitespace handling and incomplete responses. The hook gives you explicit lifecycle control over async tool pipelines — you can intercept after a tool completes without wrapping the entire call in a promise chain you manage yourself. The streaming parser fixes are transparent but critical: partial structured outputs were",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Deno 2.9 稳定了 Node 兼容性，带来重大工具更新",
+        "summary": "Deno 2.9 通过任务输入缓存、参数化测试支持和自动化的 yarn/pnpm/bun 锁定文件迁移实现了生产级别的 Node.js 兼容性。该版本包括 Node API v10、裸说明符解析和 process.version 报告，这些都解决了大多数之前由于版本检查失败的 npm 包。Anthropic SDK 还提供了 afterCompletion 钩子，用于显式的异步工具管道控制。"
+      }
+    }
+  },
+  {
+    "title": "Highlights from Git 2.55",
+    "slug": "highlights-git-2-55",
+    "url": "https://github.blog/open-source/git/highlights-from-git-2-55/",
+    "source": "GitHub Blog",
+    "date": "2026-06-29T17:25:25.000Z",
+    "summary": "Git 2.55 released with notable new features and improvements to the open source Git project. The release represents ongoing development of version control capabilities in the Git ecosystem.",
+    "content": "The open source Git project just released Git 2.55. Here is GitHub’s look at some of the most interesting features and changes introduced since last time.\nThe post Highlights from Git 2.55 appeared first on The GitHub Blog.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Git 2.55 的亮点",
+        "summary": "Git 2.55 发布了开源 Git 项目的显著新功能和改进。该版本代表了 Git 生态系统中版本控制功能的持续发展。"
+      }
+    }
+  },
+  {
+    "title": "Inside the Advisory Database and what happens when vulnerability volume breaks records",
+    "slug": "inside-advisory-database-vulnerability-volume-breaks-records",
+    "url": "https://github.blog/security/supply-chain-security/inside-the-advisory-database-and-what-happens-when-vulnerability-volume-breaks-records/",
+    "source": "GitHub Blog",
+    "date": "2026-06-29T16:10:20.000Z",
+    "summary": "GitHub's Advisory Database is processing record-breaking vulnerability report volumes, straining existing systems and requiring new response strategies. The surge reflects growing awareness of supply chain security and expanded vulnerability reporting mechanisms across the software community. GitHub and community contributors are adapting processes to handle the unprecedented scale of vulnerability data.",
+    "content": "The GitHub Advisory Database is processing more vulnerability reports than ever before. Here's what's driving the surge, how we're responding, and how the community can help.\nThe post Inside the Advisory Database and what happens when vulnerability volume breaks records appeared first on The GitHub Blog.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "深入安全建议数据库：漏洞数量突破记录时会发生什么",
+        "summary": "GitHub 的安全建议数据库正在处理创纪录的漏洞报告量，这对现有系统造成了压力，需要新的应对策略。这种激增反映了供应链安全意识的提高和整个软件社区漏洞报告机制的扩展。GitHub 和社区贡献者正在调整流程以应对前所未有的漏洞数据规模。"
+      }
+    }
+  },
+  {
     "title": "The New Information Borders",
     "slug": "new-information-borders",
     "url": "https://dev.to/kenwalger/the-new-information-borders-1110",
