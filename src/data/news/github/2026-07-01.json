@@ -1,5 +1,197 @@
 [
   {
+    "title": "Multi-Agent Systems in Production: When One Agent Isn't Enough and How We Coordinate Them",
+    "slug": "multi-agent-systems-in-production",
+    "url": "https://dev.to/lycore/multi-agent-systems-in-production-when-one-agent-isnt-enough-and-how-we-coordinate-them-12di",
+    "source": "DEV Community",
+    "date": "2026-07-01T07:36:47.000Z",
+    "summary": "The article explains how dividing complex tasks across multiple agents improves reliability and prevents hallucinations caused by context exhaustion. Instead of one agent handling extraction, validation, summarization, and follow-up actions, splitting work into single-purpose agents ensures each stays focused and accurate in production systems.",
+    "content": "We built our first multi-agent system by accident. We had a single agent handling document analysis for a client — extract data, validate it, write a summary, trigger a follow-up action. It worked in demos. In production, it hallucinated its way through the validation step roughly 15% of the time, because one context window was doing too much and losing the thread. The fix wasn't better prompting. It was splitting the work across agents that each had one job.\nThat experience shaped how we think about multi-agent architecture now. Not as something exotic, but as the natural answer to a specific set of problems: when a task is too complex for a single context, when different subtasks need different models or tools, or when you need parallelism and one agent is a bottleneck.\nA single agent starts failing in predictable ways. You'll notice the LLM losing track of early context by the time it reaches a later step. You'll see a validation step get skipped or half-done because the agent prioritised completing the previous task. You'll hit context limits on long-running workflows.\nThe cleaner framing: if you're writing a prompt with more than three distinct roles in it (\"you are a researcher, and also a critic, and also a summariser\"), you probably need three agents.\nWe apply a simple test. If we can describe the workflow as a sequence of handoffs — agent A produces output X, agent B takes X and produces Y — we build it as multiple agents. If it's a single stream of reasoning with tool calls, one agent is fine.\nOur typical multi-agent setup runs on Celery for orchestration, with each agent as a separate task. The orchestrator agent decides what to run and in what order; the worker agents execute. Here's a stripped-down version of the pattern:\n# tasks.py\nfrom celery import shared_task\nfrom .agents import ResearchAgent, ValidationAgent, SummaryAgent\n\n@shared_task\ndef run_document_pipeline(document_id: str) -> dict:\n    \"\"\"Orchestrator: runs the full multi-agent pipeline.\"\"\"",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "生产环境中的多代理系统：一个代理不够时如何协调它们",
+        "summary": "该文章解释了将复杂任务分配给多个代理如何提高可靠性并防止由于上下文耗尽而导致的幻觉。与其让一个代理处理提取、验证、总结和后续操作，不如将工作分配给单一用途的代理，以确保每个代理在生产系统中保持专注和准确。"
+      }
+    }
+  },
+  {
+    "title": "What Is an MCP Registry? (And the N M Problem It Solves)",
+    "slug": "what-is-an-mcp-registry",
+    "url": "https://dev.to/sahajmeet_kaur_/what-is-an-mcp-registry-and-the-nxm-problem-it-solves-4ogm",
+    "source": "DEV Community",
+    "date": "2026-07-01T07:35:26.000Z",
+    "summary": "An MCP registry is a centralized catalog that solves the distributed credential and configuration problem by storing metadata about all MCP servers—what they do, how to connect, and who can access them. It functions like DNS for microservices, replacing manual configuration files and enabling dynamic tool discovery with centralized access control.",
+    "content": "TL;DR: An MCP registry is a centralized catalog of MCP servers - what they do, how to connect, what tools they expose, and who's authorized to call them. Without one, every developer and agent maintains their own copy of that information, credential rotation breaks everything, and access control is nonexistent. With one, tool discovery is dynamic, credentials are managed centrally, and RBAC governs what each agent can see and call. This post covers what it is, how it works, and the specific failure modes it prevents.\nThere's a pattern I've seen play out in almost every team that scales past a handful of MCP servers.\nThe first few connections feel like magic. You run npx @modelcontextprotocol/server-github in a terminal, point Claude Code at it, and your agent can suddenly search repositories. Clean, fast, no glue code. Then you add Jira. Then Confluence. Then a Slack MCP server and an internal data API. Now you have six servers and twelve developers, and each developer has their own ~/.cursor/mcp.json or .claude/settings.json with hardcoded connection details and credentials.\nWhen a server endpoint changes, you update twelve config files manually. When a credential rotates, you hunt down every developer who cached it. When a new engineer joins, you spend half a day walking them through which servers exist and how to connect. When someone leaves, you hope you remembered to revoke their individual tokens on each of the six systems.\nThat's the distributed sticky-note problem. An MCP registry is the infrastructure that replaces it.\nAn MCP registry is a centralized catalog that stores metadata about every MCP server in your organization - what it does, how to connect to it, what tools it exposes, what auth method it uses, and who is authorized to access it.\nThe analogy that made it click for me: it's to MCP servers what a DNS server is to IP addresses, or what a service registry is to microservices. Instead of hardcoding addresses everywhere, you have one authoritative p",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "什么是 MCP 注册表？（以及它解决的 NM 问题）",
+        "summary": "MCP 注册表是一个中央化的目录，通过存储关于所有 MCP 服务器的元数据（它们做什么、如何连接以及谁可以访问）来解决分布式凭证和配置问题。它的作用类似于微服务的 DNS，取代了手动配置文件，支持动态工具发现和集中式访问控制。"
+      }
+    }
+  },
+  {
+    "title": "2+ Years as a .NET Developer in Chennai — What I Learned the Hard Way",
+    "slug": "2-years-net-developer-chennai",
+    "url": "https://dev.to/imran_tech/2-years-as-a-net-developer-in-chennai-what-i-learned-the-hard-way-2gaf",
+    "source": "DEV Community",
+    "date": "2026-07-01T07:27:49.000Z",
+    "summary": "A .NET developer reflects on early career failures in production systems, from poor SQL optimization to misunderstanding system complexity. The piece highlights how college education teaches syntax but not real-world skills—recognizing N+1 problems, writing performant queries, and understanding interconnected system architecture requires hands-on experience.",
+    "content": "Originally published at imrantech.hashnode.dev\nWhen I got my first job as a .NET developer, I genuinely believed college had prepared me well.\nI knew C#. I understood databases. I had built a few small projects. I was ready.\nTwo weeks into the job, I realized I knew almost nothing about real software development.\nThis is an honest account of 2 years building production systems — what broke, what I fixed, and what I wish someone had told me before I started.\nMy first real task was writing SQL queries for an HRMS system. Attendance reports, employee data, payroll calculations — all pulling from multiple tables.\nI wrote the worst SQL of my life.\nBad JOINs everywhere. Stored procedures that nobody could read. API endpoints that made three times more database calls than needed. I didn't know what an N+1 problem was. I didn't know what query optimization meant in practice.\nI knew SQL from college — SELECT, INSERT, UPDATE. But writing SQL that actually performs well in production with real data? That was a completely different skill that nobody taught me.\nMy senior reviewed my code and rewrote half of it. That was embarrassing. But it was also the most educational week of my entire career.\nThe lesson? Knowing the syntax is not the same as knowing how to write good code.\nIn college, we built projects to submit assignments. There was a beginning, a deadline, and it ended there.\nIn a real job, the project never ends. You're working on a system that:\nReal people use every single day\nHas existing code you didn't write and must understand\nHas bugs in production that affect actual employees getting paid\nThe biggest shock for me was seeing the overall flow of a real system for the first time.\nIn college, I built isolated features. In my job, I had to understand how the attendance module connects to payroll, how payroll connects to leave management, how leave management affects the HRMS reports — everything talks to everything else.\nNobody prepares you for that complexity. You only",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在钦奈做了 2 多年的 .NET 开发者——我学到的艰难教训",
+        "summary": "一位 .NET 开发者反思了在生产系统中的早期职业失败，从糟糕的 SQL 优化到误解系统复杂性。该文章强调了大学教育教授语法但不教授现实世界技能——识别 N+1 问题、编写高性能查询和理解互联系统架构需要实际操作经验。"
+      }
+    }
+  },
+  {
+    "title": "Building a 2D Physics Engine From Scratch: SAT Collision Detection in C++ and SDL2",
+    "slug": "building-2d-physics-engine-scratch",
+    "url": "https://dev.to/whomi928/building-a-2d-physics-engine-from-scratch-sat-collision-detection-in-c-and-sdl2-5dd",
+    "source": "DEV Community",
+    "date": "2026-07-01T07:20:51.000Z",
+    "summary": "The article explains the Separating Axis Theorem (SAT) algorithm for polygon collision detection in 2D physics engines, showing why it's superior to simple circle approximations. It walks through the C++ implementation, demonstrating how to project shapes onto axes and detect overlaps for proper bounce physics.",
+    "content": "I wanted to actually understand collision detection — not \"call the library function,\" but understand it well enough to write it myself. So I built a small 2D physics engine in C++ and SDL2, no external physics library, and picked the Separating Axis Theorem (SAT) as the core algorithm.\nHere's how it works, and the gotchas I ran into turning \"shapes are touching\" into \"shapes bounce correctly.\"\nWhy not just bounding circles?\nCircle-vs-circle collision is one line: compare the distance between centers to the sum of the radii. Easy, but wrong the moment you want anything that isn't round — a square, a triangle, a pentagon. Once shapes have edges and orientation, you need real polygon-vs-polygon detection. That's what SAT gives you.\nThe idea behind SAT\nTwo convex shapes are not colliding if you can find any single axis where their projections don't overlap. So the algorithm is:\nFor every edge of both shapes, take the perpendicular (the edge's normal) as a candidate separating axis.\nHere's the core of it:\ncppCollisionResult check_collision_sat(const vector>& shape1, const vector>& shape2) {\nfor (int s = 0; s < 2; s++) {\n    const vector<pair<float, float>>& current_shape = *shapes[s];\n\n    for (int i = 0; i < current_shape.size(); i++) {\n        int next_i = (i + 1) % current_shape.size();\n        float edge_x = current_shape[next_i].first - current_shape[i].first;\n        float edge_y = current_shape[next_i].second - current_shape[i].second;\n\n        // perpendicular to the edge = candidate separating axis\n        float axis_x = -edge_y;\n        float axis_y = edge_x;\n        float len = vector_length(axis_x, axis_y);\n        axis_x /= len;\n        axis_y /= len;\n\n        // project both shapes onto this axis\n        float minA = INFINITY, maxA = -INFINITY;\n        for (const auto& p : shape1) {\n            float projected = dot_product(p.first, p.second, axis_x, axis_y);\n            minA = std::min(minA, projected);\n            maxA = std::max(maxA, projected);",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "从零开始构建2D物理引擎：C++和SDL2中的SAT碰撞检测",
+        "summary": "本文介绍了用于2D物理引擎中多边形碰撞检测的分离轴定理（SAT）算法，说明了为什么它优于简单的圆形近似。文章通过C++实现演示了如何将形状投影到轴上并检测重叠，以实现正确的反弹物理。"
+      }
+    }
+  },
+  {
+    "title": "I Built a Text Encryption Tool Because Sometimes Plain Text Shouldn't Stay Plain",
+    "slug": "text-encryption-tool-simple",
+    "url": "https://dev.to/bhavin-allinonetools/i-built-a-text-encryption-tool-because-sometimes-plain-text-shouldnt-stay-plain-17io",
+    "source": "DEV Community",
+    "date": "2026-07-01T07:19:45.000Z",
+    "summary": "A developer created a simple, account-free tool for encrypting and encoding text using methods like AES, Base64, and Caesar Cipher. The tool addresses the perception gap between encryption's technical complexity and users' practical need for quick, accessible text obfuscation without overhead.",
+    "content": "It Started With a Simple Thought\n\n\nSometimes we share things that aren't meant for everyone.\nNot huge secrets.\nJust things like:\nAPI keys\nNotes\nIDs\nTokens\nSmall messages\nTest data\nAnd sending them as plain text never felt right.\nMost people hear the word:\nEncryption\nAnd immediately think:\n\"That's too technical.\"\nHonestly...\nI used to think the same.\nSo I built something simple:\n👉 https://allinonetools.net/text-encryption-tool/\nA tool where you can:\nEncrypt text\nDecrypt text\nChoose different methods\nCopy the result instantly\nIt supports:\nBase64\nAES\nROT13\nCaesar Cipher\nXOR Encryption\nCustom Shift\nNo signup.\nNo software.\nJust:\nPaste → Select Method → Encrypt\nOne interesting thing surprised me.\nPeople often use the word \"encryption\" for everything.\nBut not every method is actually encryption.\nFor example:\nAES is real encryption designed to protect data.\nBase64 is an encoding format—it changes how data is represented, but it isn't meant to keep information secret.\nROT13 and Caesar Cipher are fun for learning and simple obfuscation, but they aren't secure for protecting sensitive information.\nUnderstanding that difference changed how I thought about these tools.\nMany existing tools:\nAsk you to create an account\nFeel overloaded\nMix too many settings together\nBut for many situations, people simply want to:\nEncode, encrypt, or decode a piece of text quickly.\nI wanted the tool to feel:\nSimple\nFast\nBeginner-friendly\nFlexible enough for different use cases\nWhether you're experimenting, learning, or handling everyday text.\nI expected mostly developers to use it.\nInstead, I found people using it for:\nLearning cryptography basics\nClassroom exercises\nSmall personal notes\nUnderstanding different encoding methods\nCuriosity turned out to be just as important as productivity.\nSecurity tools don't always need to be complicated.\nSometimes the hardest part is simply:\nUnderstanding which method to use and why.\nIf something looks too technical...\n👉 Make it easier to understand before maki",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个文本加密工具，因为纯文本有时不应该保持原样",
+        "summary": "一位开发者创建了一个简单的、无需账户的工具，用于使用AES、Base64和凯撒密码等方法加密和编码文本。该工具解决了加密的技术复杂性与用户快速、便捷进行文本混淆的实际需求之间的认知差距，无需额外开销。"
+      }
+    }
+  },
+  {
+    "title": "Your agents keep making the same mistakes. Nobody has time to fix it.",
+    "slug": "agents-keep-making-same-mistakes",
+    "url": "https://dev.to/tessl/your-agents-keep-making-the-same-mistakes-nobody-has-time-to-fix-it-5b0p",
+    "source": "DEV Community",
+    "date": "2026-07-01T07:18:31.000Z",
+    "summary": "The announcement introduces Tessl Agent, a tool that automatically detects recurring AI agent errors in code reviews and PR histories, then creates skills and CI/CD workflows to prevent them. It shifts agent improvement from manual intervention to autonomous, scheduled systems that operate without user prompting.",
+    "content": "Your agents keep making the same mistakes. Nobody has time to fix it.\nAI coding agents are getting better at the tasks you give them direct feedback on. Everything else stays broken.\nYou leave the same comment in code review three sprints in a row. There's a recurring task that could run as an automation but it's on the backlog because no one has time to stop and systematize it. The context your agents need to do better work — updated conventions, patterns from past PRs, recurring fixes — exists in your commit history and session logs. Nobody has time to extract it and package it up.\nAgent enablement is real work. It just never gets done.\nMost teams handle this one of three ways: rely on PR review to catch the same errors week after week, schedule occasional cleanup sprints to update skills and conventions (that never actually get scheduled), or accept that their agents plateau.\nAll three require engineers to stop building to maintain the thing that's supposed to help them build faster.\nToday we're launching Tessl Agent.\nPoint it at a repo. It scans your PRs, coding agent session logs, and tickets continuously. When it spots a recurring error pattern, it creates a skill to address it and opens a PR. When it finds a task your team runs manually every week, it turns it into a GitHub Actions workflow. Then it asks if you want it to keep doing that automatically; daily, weekly, on a schedule you set.\nTessl Agent is built to get you to stop using it interactively. You work with it, and at the end of each session it says: I could set some of these up as recurring actions. I could create a CI/CD check for this. The goal is that most of the recurring work — finding optimizations, catching agent mistakes, updating context — runs on a trigger and files issues without you having to ask.\n  \n  \n\n\n\n  \n  \n  What it looks like in practice\n\n\nThe use case we use most at Tessl: setting up an agentic code review harness.\nYou type something like set up agentic code review or I want to s",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的代理总是犯同样的错误。没人有时间去修复它。",
+        "summary": "该公告介绍了Tessl Agent，这是一个工具，可以自动检测代码审查和PR历史中AI代理的重复错误，然后创建技能和CI/CD工作流来防止这些错误。它将代理改进从手动干预转变为自主、定时的系统，这些系统可以在没有用户提示的情况下运行。"
+      }
+    }
+  },
+  {
+    "title": "What's Your Tech Journey? Every Developer Has a Story Worth Telling",
+    "slug": "your-tech-journey-every-developer",
+    "url": "https://dev.to/technogamerz/whats-your-tech-journey-every-developer-has-a-story-worth-telling-3jnd",
+    "source": "DEV Community",
+    "date": "2026-07-01T07:14:45.000Z",
+    "summary": "A community post inviting developers to share their origin stories and career lessons, emphasizing that diverse learning paths and real-world experience matter more than formal credentials. The piece highlights how peer experiences in tech offer more practical wisdom than courses or documentation.",
+    "content": "One of the things I love most about the tech community is that there isn't a single path to becoming a developer.\nSome people wrote their first lines of code when they were 10 years old. Others discovered programming in college. Some switched careers after years in a completely different field. Many are self-taught, learning through documentation, open-source projects, YouTube videos, blogs, and countless hours of trial and error.\nAnd that's exactly what makes this community so special.\nBehind every GitHub repository, every app, every website, every open-source contribution, and every successful developer is a story filled with curiosity, mistakes, late nights, debugging sessions, self-doubt, small victories, and continuous learning.\nWe often see the finished product but rarely hear about the journey that made it possible.\nThat's why I wanted to ask the community a few questions.\nHow did your tech journey begin?\nWas there a particular moment that sparked your interest in technology? Did someone inspire you? Was it a school project, a YouTube tutorial, a book, a game, or simple curiosity?\nWhat was your biggest challenge when you started?\nWas it understanding programming concepts? Learning mathematics? Finding good resources? Balancing work or studies? Staying motivated after repeated failures?\nWhat kept you going?\nEvery developer reaches moments where giving up seems easier than continuing. What helped you push through those difficult phases?\nWhat are you learning today?\nTechnology evolves incredibly fast. Are you exploring AI, cybersecurity, cloud computing, web development, mobile apps, DevOps, data science, game development, or something completely different?\nIf you could go back and talk to your beginner self, what advice would you give?\nI think this question alone could help hundreds of people who are just starting their own journey.\nI believe the most valuable lessons in tech don't always come from courses or documentation.\nSometimes they come from real people",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的技术之旅是什么？每个开发者都有值得分享的故事",
+        "summary": "一篇社区文章邀请开发者分享他们的成长故事和职业教训，强调多样化的学习路径和实际工作经验比正规学位更重要。这篇文章强调了同行在技术领域的经验提供的实用智慧远超课程或文档。"
+      }
+    }
+  },
+  {
+    "title": "🚀 Never Write a README.md from Scratch Again — Meet readmeai",
+    "slug": "never-write-readme-scratch-again",
+    "url": "https://dev.to/erico964blip/never-write-a-readmemd-from-scratch-again-meet-readmeai-3589",
+    "source": "DEV Community",
+    "date": "2026-07-01T07:12:13.000Z",
+    "summary": "Introduces readmeai, an AI-powered tool that automatically generates comprehensive README files, eliminating the friction that causes many projects to ship without documentation. It supports multiple AI providers and customization while keeping the process simple and fast.",
+    "content": "Every developer has been there. You finally finish that side project, push it to GitHub, open the repo and the README.md is just  # project-name . You tell yourself you'll fix it tomorrow. Tomorrow becomes next week. The repo quietly gathers dust.\nSuggested section headers for the rest of the article:\nQuickstart in 90 Seconds\nHow It Works (Under the Hood)\nPicking a Provider: OpenCode vs OpenAI vs Ollama\nInteractive Mode: Preview Before You Commit\nSupported Project Types & Config Files\nCustomising the Output\nRoadmap & Contributing\nClosing Thoughts",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "🚀 永远不要再从零开始写README.md——认识readmeai",
+        "summary": "介绍readmeai，一个由AI驱动的工具，可以自动生成全面的README文件，消除导致许多项目没有文档发布的摩擦。它支持多个AI提供商和自定义，同时保持过程简单快速。"
+      }
+    }
+  },
+  {
+    "title": "How QBitFlow's On-Chain Referral Program Works. Earn 20% of Our Fee, Enforced by Smart Contract.",
+    "slug": "qbitflow-on-chain-referral-program",
+    "url": "https://dev.to/qbitflow/how-qbitflows-on-chain-referral-program-works-earn-20-of-our-fee-enforced-by-smart-contract-5e3h",
+    "source": "DEV Community",
+    "date": "2026-07-01T07:00:00.000Z",
+    "summary": "QBitFlow's referral program runs on smart contracts where commissions are paid automatically and trustlessly on-chain rather than through traditional dashboard promises. Referrers earn 20% of fees from each referred transaction for six months, with payouts executed by code at settlement instead of discretionary company batches.",
+    "content": "We put our referral program on-chain — here's why, and how it works\n\n\nAlmost every referral or affiliate program is, underneath, an IOU.\nYou refer someone. A dashboard tells you you're owed something. And then payment happens if the company's accounting agrees, when their payout schedule comes around, on terms they can change. You're trusting the same discretionary, custodial machinery that crypto was supposed to make unnecessary.\nWhen we built QBitFlow's referral program, that contradiction was the thing we couldn't ship past. So we didn't.\nRefer someone to QBitFlow — a business that accepts payments, or a creator collecting tips on qbf.cash. When they transact, you earn 20% of our fee on every transaction they make — for six months.\nAnd the referrer can be almost anyone: any QBitFlow user (down to a non-admin role) or any qbf.cash user holds a referral link. You don't have to run a marketplace, or even be a merchant yourself, to earn.\nThe part that matters: that split is enforced by the smart contract at settlement. It isn't tracked in a spreadsheet we control. It isn't queued for a monthly payout run. The moment a referred merchant's payment settles on-chain, your cut is taken in the same transaction and routed to you. Paid by code, every transaction.\nThere's nothing to claim, nothing to invoice, and nothing to trust about our bookkeeping. If you want to verify what you're owed, you read the chain.\nOne deliberate choice worth calling out: that 20% comes out of our fee, not the merchant's. Referring someone costs the person you vouched for nothing — we share our own revenue rather than skimming theirs. A referral program shouldn't make the people you bring in pay more for the privilege of being referred.\nBecause \"trust us, we'll pay you\" is exactly the thing crypto was meant to fix. A payout rail that's custodial and discretionary is just Stripe with extra steps. A referrer shouldn't have to trust our accounting any more than a merchant should have to trust that t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "QBitFlow的链上推荐计划如何运作。赚取20%的费用，由智能合约强制执行。",
+        "summary": "QBitFlow的推荐计划运行在智能合约上，佣金自动且无需信任地在链上支付，而不是通过传统的仪表板承诺。推荐人在6个月内获得每笔推荐交易费用的20%，支付由代码在结算时执行，而不是由公司自由裁量的批次支付。"
+      }
+    }
+  },
+  {
+    "title": "Build a Minimal WebMCP Agent with Playwright and Gemini",
+    "slug": "webmcp-agent-playwright-gemini",
+    "url": "https://dev.to/gramli/build-a-minimal-webmcp-agent-with-playwright-and-gemini-24fh",
+    "source": "DEV Community",
+    "date": "2026-07-01T06:58:36.000Z",
+    "summary": "A tutorial on building an agent that uses Playwright to control a real Chrome browser and execute WebMCP tools exposed by web pages, connecting the Gemini API to browser-based tools. This approach enables testing WebMCP implementations with stronger AI models beyond the lightweight options in the Inspector extension.",
+    "content": "WebMCP lets a web page expose tools that AI agents can discover and execute inside the browser. That sounds simple until you want to test those tools with a model outside the Model Context Tool Inspector Chrome extension.\nA while ago, I built a small puzzle game that exposes WebMCP tools. I tested and debugged those tools using the Model Context Tool Inspector, which is great for quick experiments, the limitation is that it only gives access to a small set of lightweight Gemini models and I wanted to test the same WebMCP tools with stronger ones.\nMy first idea was to build another Chrome extension, but that felt like overkill. WebMCP tools need a real browser context: the browser must open the page directly, discover the tools and execute them inside the page. So instead of building another extension, I looked for something that could simply open Chrome and control the page.\nAnd that is where Playwright fits nicely.\nSo in this article, I will show how to create a simple agent that wires up the Gemini API with WebMCP through Playwright. Gemini requests a tool call and Playwright executes the matching WebMCP tool inside a real Chrome browser.\nPrerequisites\nPrepare the Solution\nCheck if modelContext Exists\nRead Exposed WebMCP Tools\nExecute a WebMCP Tool\nGen AI SDK\nAgent Creation\nRepositories\nSummary\nFor this example, you need:\nNode.js 20+\nGoogle Chrome\nA Gemini API key\nThe first thing we need to do is enable WebMCP in Chrome. WebMCP is still experimental, so for local development it must be enabled through a Chrome flag:\nOpen Chrome and navigate to chrome://flags/#enable-webmcp-testing\nSet the flag to Enabled.\nRelaunch Chrome to apply the changes.\n\nAfter that, we can create a small Node.js project:\nmkdir custom-agent\ncd custom-agent\nnpm init -y\n\nNext, install Playwright as a development dependency. I also use tsx to run TypeScript files directly and dotenv to read environment variables from a .env file:\nnpm install -D playwright tsx dotenv typescript @types/node\n\nThis",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用Playwright和Gemini构建最小化WebMCP代理",
+        "summary": "关于构建代理的教程，该代理使用Playwright控制真实Chrome浏览器并执行网页公开的WebMCP工具，将Gemini API连接到基于浏览器的工具。这种方法可以使用比检查器扩展中的轻量级选项更强大的AI模型来测试WebMCP实现。"
+      }
+    }
+  },
+  {
+    "title": "AI - Understanding it the modern way",
+    "slug": "ai-understanding-modern-way",
+    "url": "https://dev.to/riturathin/ai-understanding-it-the-modern-way-45ck",
+    "source": "DEV Community",
+    "date": "2026-07-01T06:54:59.000Z",
+    "summary": "A series introduction demystifying how AI works and its pervasive role in modern life, targeting developers overwhelmed by the rapid evolution of the technology. The author aims to break down AI concepts into digestible explanations to help engineers upskill without feeling lost in the field.",
+    "content": "We all use AIs today - From a 5th grader to a retired pensioner, from a small-time business owner to a multimillionaire businessman, from a software engineer to a medical expert. AI exists everywhere!\nAnd to be honest its making our lives very simple. Yes, it does!. Response in no time, flexibility, reliability - yes, AI gives all and even more\nAnd as Software Engineers, we are getting more inclined towards AI. Back in the days, we used to rely on Stackoverflow to get our queries resolved. Sometimes it did, sometimes it didn't. But, AI changed that landscape completely - asking a query, retrieving data, asking follow-ups and so and on so forth. \nBut, honestly, how many of us have thought - Wow this looks amazing! But how does it actually work!\nLet's say I type this in Chat GPT or Gemini or Claude etc: \"Hi, how is the weather today?\". The AI assistant takes the input and processes it and returns the response. But , there is a lot of processing and workflow happening under the hood. \nAs a Software Architect, I struggled a lot to get these answers. Different sources, different suggestions. And the suggestions at some point seemed too overwhelming for me. So, I decided to break it down and start a series which will enable people to understand AI. I want to make people understand AI in the simplest way possible and make every developer leverage AI - not just to get their job done, but also to help in upskilling, so that they don't get lost in the overwhelming world of AI as I did initially!\nFollow me for more updates!",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI - 以现代方式理解它",
+        "summary": "一系列介绍，揭开AI如何运作及其在现代生活中的普遍作用的神秘面纱，针对对技术快速发展感到不知所措的开发者。作者旨在将AI概念分解为易于理解的解释，帮助工程师提升技能，而不会在该领域感到迷茫。"
+      }
+    }
+  },
+  {
+    "title": "Java & AI: What Developers Need to Know",
+    "slug": "java-ai-what-developers-need-know",
+    "url": "https://dev.to/machinecodingmaster/java-ai-what-developers-need-to-know-5cgj",
+    "source": "DEV Community",
+    "date": "2026-07-01T06:52:45.000Z",
+    "summary": "Promotes orchestrating Claude Code CLI directly into Maven and Testcontainers workflows to automate test failure diagnosis and patching instead of manually debugging. It argues that feeding structured failure reports to AI agents and letting them execute iterative fixes is the modern alternative to manual log analysis.",
+    "content": "Stop Wasting Hours on Flaky Integration Tests: Orchestrate Claude Code CLI with Maven and Testcontainers\n\n\nIn 2026, if you are still manually digging through massive Maven Surefire XML reports to debug a flaky Testcontainers integration test, you are burning valuable engineering time. By orchestrating Claude Code's CLI agentic loops directly inside your local terminal, you can automate the entire cycle of running, diagnosing, and patching complex test failures without lifting a finger.\n  Grepping raw console logs: Developers waste time scrolling through thousands of lines of verbose Spring Boot and Docker startup noise instead of feeding structured Surefire XML failure reports directly to an agent.\n  Treating LLMs as passive chat boxes: Copy-pasting code into a browser UI is a legacy workflow; you need an active CLI agent that can execute mvn test, read files, and write patches iteratively.\n  Ignoring ephemeral state: Failing to configure Testcontainers with reusable or properly cleanable states, causing the AI agent to get stuck in infinite loops due to stale database containers.\nThe modern workflow hooks Claude Code's terminal-execution agent loop directly to your local Maven lifecycle, feeding it the exact Surefire XML failure details and letting it execute targeted test runs.\n  Structured Error Parsing: Feed Claude Code the path to target/surefire-reports/TEST-*.xml so it parses the exact stack trace and failing assertion instantly.\n  Local Agentic Loop: Authorize Claude Code to modify the test class, spin up the Testcontainers PostgreSQL instance, and verify the patch locally.\n  Isolated Ephemeral Debugging: Use Testcontainers' Ryuk sidecar to ensure that when Claude restarts the test loop, the containerized environment resets cleanly.\nShameless plug: javalld.com has full LLD implementations with step-by-step execution traces — free to use while prepping.\nExecute this direct prompt pattern in your terminal to kick off Claude Code's autonomous debugging loop:\ncl",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Java与AI：开发者需要了解的事项",
+        "summary": "推荐将Claude Code CLI直接编排到Maven和Testcontainers工作流中，以自动诊断和修补测试失败，而不是手动调试。它辩称，将结构化故障报告提供给AI代理并让他们执行迭代修复是对手动日志分析的现代替代方案。"
+      }
+    }
+  },
+  {
     "title": "Maintaining WordPress sites behind HTTP Basic auth — Playwright, urllib, and encrypted credentials",
     "slug": "wordpress-http-basic-auth-maintenance",
     "url": "https://dev.to/susumun/maintaining-wordpress-sites-behind-http-basic-auth-playwright-urllib-and-encrypted-credentials-5f2f",
