@@ -1,5 +1,213 @@
 [
   {
+    "title": "Peak Load Is the Steady State",
+    "slug": "peak-load-steady-state",
+    "url": "https://dev.to/sakurasky/peak-load-is-the-steady-state-5eig",
+    "source": "DEV Community",
+    "date": "2026-07-03T09:11:59.000Z",
+    "summary": "Peak load is no longer a predictable scheduled event but an unpredictable pattern requiring continuous architectural adaptation. Companies must shift from provisioning for named events to building resilience for unexpected traffic shapes, moving closer to how telecommunications engineers approach network design.",
+    "content": "The product drop had been planned for months. The direct-to-consumer subscription business had run three separate load tests, provisioned extra capacity for the launch window, and staffed a warroom across two time zones. The drop itself went cleanly. Two hours in, an unrelated video from a creator with a large following mentioned the product without warning, and the sign-up flow collapsed under a rush of new members for twenty-eight minutes. Customers were told the site was busy and to try again later. Some did. Most did not. The refund exposure was manageable. The customer acquisition exposure was not.\nWhat went wrong is not the interesting question. The system was under-provisioned for a specific traffic shape it had not seen before, and the team fixed it. The interesting question is what happened seven weeks later. A weather event redirected a wave of app traffic in an entirely different sector, at midnight on a Tuesday, without any warning. That system held, because a small group of engineers had spent those seven weeks quietly rebuilding assumptions about when peak load happens and what it looks like. The lesson from the product drop was not \"provision more capacity for product drops.\" The lesson was that the mental model of peak load as a scheduled event had stopped being useful.\nThis is another post in our series on the engineering layer underneath enterprise strategy. The previous post (Sovereignty Versus Efficiency) argued that sovereignty has become an architectural property that procurement cannot solve on its own. This post makes an analogous argument about load. Across banking, media, retail, travel, restaurant chains, and sport, the architectures built to survive named events are increasingly the wrong architectures for the traffic these businesses now routinely encounter. The discipline required has moved closer to what telecommunications engineers have always done, while the cost models have not caught up.\nFor most of the last two decades, peak load",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "峰值负载是稳定状态",
+        "summary": "峰值负载不再是可预测的定期事件，而是一种需要持续架构适应的不可预测模式。企业必须从为命名事件进行配置转变为为意外流量模式构建弹性，这种做法更接近电信工程师的网络设计方法。"
+      }
+    }
+  },
+  {
+    "title": "Decision Records for AI-Driven Software Development",
+    "slug": "decision-records-ai-driven-software",
+    "url": "https://dev.to/rosgluk/decision-records-for-ai-driven-software-development-25ba",
+    "source": "DEV Community",
+    "date": "2026-07-03T09:10:32.000Z",
+    "summary": "Decision records capture architectural choices and their rationale in version-controlled markdown, creating institutional memory that AI agents can reference before making changes. As code generation becomes cheaper, judgment—not typing—becomes the scarce resource, making these records critical for coherent AI-assisted development.",
+    "content": "Decision records are the missing memory layer in AI-assisted software development. They capture not just what was built, but why — and that distinction becomes critical when AI tools are writing your code.\nAI-driven programming changes the economics of software development by making code cheaper to generate, easier to refactor, and faster to throw away. That is useful. It is also dangerous, because when code becomes easier to produce, the scarce resource is no longer typing — the scarce resource is judgment.\nWhy did the team choose PostgreSQL instead of DynamoDB? Why does the product require human review before sending AI-generated emails? Why does the interface show suggestions in a side panel instead of applying them directly? Why was a simpler approach rejected six months ago? The code may show what exists, but it rarely explains why it exists.\nDecision records solve this problem by providing a short, version-controlled document that captures an important choice, the context behind it, the alternatives considered, and the consequences the team accepted. In an AI-assisted codebase, these records become more than documentation — they become durable project memory that both humans and AI coding agents can read before making future changes. The practical operating rule is simple: keep decision records as Markdown files in the repository, review them like code, and let future AI tools read them before proposing or implementing changes.\nA decision record is a written record of a meaningful decision, structured to answer four basic questions: what did we decide, why did we decide it, what alternatives did we consider, and what consequences did we accept? The most common form is the Architecture Decision Record, shortened to ADR. ADRs are widely used to document technical decisions, and the same pattern can be extended beyond architecture into product and design work.\nFor AI-driven programming, three types are especially useful:\n\n\n\nRecord type\nCaptures\nExample\n\n\n\n\nADR\nAr",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "人工智能驱动软件开发的决策记录",
+        "summary": "决策记录在版本控制的markdown中捕捉架构选择和其理由，创建AI代理在进行更改前可以参考的机构记忆。随着代码生成成本变得更便宜，判断力——而不是打字——成为稀缺资源，使这些记录对于连贯的AI辅助开发至关重要。"
+      }
+    }
+  },
+  {
+    "title": "I Scored 10,000 Job Listings a Day With GPT-4. Here's What Broke",
+    "slug": "scored-10000-job-listings-gpt4",
+    "url": "https://dev.to/abdul___rehman/i-scored-10000-job-listings-a-day-with-gpt-4-heres-what-broke-1o7d",
+    "source": "DEV Community",
+    "date": "2026-07-03T09:06:04.000Z",
+    "summary": "Running a production RAG pipeline that scores 10,000 job listings daily with GPT-4 requires multi-pass extraction strategies, aggressive rate-limit handling, and careful cost optimization that tutorials rarely address. The gap between demo and production reveals that smaller chunks with explicit schemas outperform single-chunk approaches significantly.",
+    "content": "The first time my scoring pipeline ran against a full day's batch, it took 47 minutes and cost $86. The second run took three hours because half the requests hit rate limits and the retry logic was too aggressive. By the third day I had a queue of unprocessed listings growing faster than the system could score them.\nThat's when I learned the difference between a RAG demo and a production RAG pipeline.\nThe system I built processes over 10,000 job listings daily, extracts structured fields via GPT-4 function calling, scores each listing against candidate profiles, and serves results through a REST API. It's been running in production for months. Here's what the architecture actually looks like and where most tutorials skip the hard parts.\nThe naive approach is to dump the entire job description into a single chunk and call it done. That works until you need to extract 18 structured fields from a 2,000-word posting that mixes requirements, responsibilities, and boilerplate legalese.\nI landed on a two-pass strategy. First pass: split the raw description into semantic sections using sentence boundary detection and topic shifts. Second pass: feed each section to GPT-4 with a focused extraction schema.\ninterface ExtractionSchema {\n  role_title: string;\n  required_skills: string[];\n  nice_to_have: string[];\n  salary_range: { min: number; max: number; currency: string } | null;\n  experience_years: { min: number; max: number };\n  location_type: 'remote' | 'hybrid' | 'onsite';\n  visa_sponsorship: boolean;\n}\n\nThe key insight: smaller chunks with explicit schemas produce more reliable structured output than one large chunk with a complex schema. My error rate dropped from 12% to under 2% when I switched from single-chunk to multi-chunk extraction. The tradeoff is more API calls per listing, which brings me to cost.\nI evaluated three embedding setups: OpenAI's text-embedding-3-small, text-embedding-3-large, and an open-source alternative via Ollama. For job listings, the differen",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我用GPT-4每天给10,000份工作列表评分。以下是出了什么问题",
+        "summary": "运行一个每天用GPT-4为10,000份工作列表评分的生产RAG管道需要多遍提取策略、激进的速率限制处理和教程很少涉及的仔细成本优化。演示和生产之间的差距表明，具有显式schema的较小块比单块方法性能显著更好。"
+      }
+    }
+  },
+  {
+    "title": "Building a Self-Hosted Photo Organizer with Face Recognition (Laravel + FastAPI + InsightFace)",
+    "slug": "self-hosted-photo-organizer-face-recognition",
+    "url": "https://dev.to/kwasii/building-a-self-hosted-photo-organizer-with-face-recognition-laravel-fastapi-insightface-3g2k",
+    "source": "DEV Community",
+    "date": "2026-07-03T09:05:38.000Z",
+    "summary": "This self-hosted photo organizer uses FastAPI, Laravel, and InsightFace's face detection models running entirely on personal hardware via Docker, eliminating cloud dependencies while retaining the face-grouping convenience of services like Google Photos. The system respects privacy boundaries while delivering sophisticated computer vision locally.",
+    "content": "I take a lot of photos. Like most people, I'd been dumping them into Google Photos for years, mostly for the face-grouping feature — that quiet magic where it just knows which photos have your kid, your friend, your dog in them. Then I started wondering: could I build that myself, on my own hardware, without shipping every photo of my family to a cloud provider?\nTurns out, yes — and it became one of the more satisfying infrastructure projects I've built in a while.\nThis post walks through the architecture, the interesting technical decisions, and a few of the harder problems I ran into along the way.\nAt a high level: you upload photos, the system detects faces in them, groups similar faces into \"people,\" and gives you a dashboard to browse, tag, and correct those groupings — all running locally via Docker, no external API calls, no subscription.\nThree repositories make up the project:\nface-pipeline — a FastAPI service that does the actual computer vision work\nface-pipeline-ui — a Laravel application that provides the dashboard, uploads, and real-time progress\nphoto-organizer — the deployment layer, tying everything together with Docker Compose\nThe core of the project is InsightFace, using two of its models in sequence:\nSCRFD for face detection — finding the bounding boxes of faces in a photo\nArcFace for generating embeddings — turning each detected face into a vector that captures its distinguishing features\nOnce you have embeddings, the interesting problem becomes: how do you group them into \"people\" without knowing in advance how many people exist, or manually labeling anything?\nI used HDBSCAN, a density-based clustering algorithm that doesn't require you to specify the number of clusters upfront — a good fit here since you have no idea how many distinct people are in a given photo library. Face embeddings get stored in pgvector (a Postgres extension for vector similarity search), which makes it fast to compare new faces against existing clusters.\nThat last point",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建具有人脸识别功能的自托管照片管理器（Laravel + FastAPI + InsightFace）",
+        "summary": "这个自托管照片管理器使用FastAPI、Laravel和InsightFace的人脸检测模型，完全在个人硬件上通过Docker运行，消除了云端依赖，同时保留了谷歌照片等服务的人脸分组便利。系统既尊重隐私边界，又在本地提供强大的计算机视觉功能。"
+      }
+    }
+  },
+  {
+    "title": "One client shouldn't be able to drown your API: rate limiting with Bucket4j and Redis",
+    "slug": "rate-limiting-bucket4j-redis",
+    "url": "https://dev.to/dev48v/one-client-shouldnt-be-able-to-drown-your-api-rate-limiting-with-bucket4j-and-redis-213f",
+    "source": "DEV Community",
+    "date": "2026-07-03T09:03:35.000Z",
+    "summary": "Token bucket rate limiting with Bucket4j and Redis protects APIs from being overwhelmed by buggy clients or attackers by maintaining per-client thresholds that allow bursts while sustaining fair long-term throughput. This pattern ensures one misbehaving client cannot starve others or collapse the database.",
+    "content": "Day 13 of building OrderHub in the open. We have a monolith with real persistence, validation, exception handling, OpenAPI docs, and a Redis cache. Today we add the thing that keeps all of that standing up when someone points a firehose at it: a rate limiter.\nThe problem is simple to state. Without a limit, one buggy retry loop, one scraper, or one genuinely malicious client can fire thousands of requests a second and starve everyone else — or knock your database over. You want a fair ceiling on how fast any single client can call you. The token bucket is the classic way to draw that ceiling, and it's nicer than a plain counter because it allows short bursts while still capping the sustained rate.\nHere's the mental model. Imagine a bucket that holds up to capacity tokens and refills them steadily over time. Every request has to spend one token to get in. If the bucket has tokens, the request is allowed and the count drops by one. If it's empty, the request is turned away. Because the bucket can be full when traffic arrives, a client can spend a burst of saved-up tokens all at once — but once it's drained, they can only go as fast as the bucket refills. Capacity is the burst size; the refill rate is the long-run limit. \"20 requests per minute per client\" is just a bucket of 20 tokens that refills 20 tokens over 60 seconds.\nOn the JVM, Bucket4j is the library for this. Defining the limit is two lines:\nBandwidth limit = Bandwidth.builder()\n    .capacity(20)\n    .refillGreedy(20, Duration.ofMinutes(1))\n    .build();\nBucket bucket = Bucket.builder().addLimit(limit).build();\n\nrefillGreedy matters: it drips tokens back continuously rather than dumping the whole allowance at the end of the window. A client recovers smoothly, and you avoid the synchronized bursts you'd get if every bucket topped up on the same tick.\nOne bucket isn't enough, though — a single global bucket would throttle everyone together, which is useless. The limit has to be per client. So we resolve a key",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "单个客户端不应该能够压垮你的API：使用Bucket4j和Redis实现速率限制",
+        "summary": "Bucket4j和Redis的令牌桶算法通过为每个客户端维护请求阈值来保护API，允许流量突发但维持公平的长期吞吐量。这种模式确保一个故障的客户端无法饿死其他客户端或导致数据库崩溃。"
+      }
+    }
+  },
+  {
+    "title": "Upgrades don't have to be a blind trust exercise",
+    "slug": "upgrades-blind-trust-exercise",
+    "url": "https://dev.to/michaeltruong/upgrades-dont-have-to-be-a-blind-trust-exercise-13mj",
+    "source": "DEV Community",
+    "date": "2026-07-03T09:02:30.000Z",
+    "summary": "AI dramatically reduces the cost of evaluating framework upgrades by rapidly assessing which changes require actual refactoring versus which migrate cleanly, making dependency maintenance tractable even for solo projects competing against feature work. This shifts the bottleneck from implementation to investigation.",
+    "content": "I've been building Codenames AI as a solo project I want to keep alive. Renovate helps dependency upgrades move without maintenance eventually crushing momentum.\nYou don't need my exact setup to follow along.\nEvery project accumulates maintenance work. Framework upgrades are one place that work stalls, not because engineers do not know how to migrate, but because proving what actually needs to change takes time. That tradeoff shows up on a hobby repo as \"I'll look at this when I have an uninterrupted evening.\" It shows up in production as major versions piling up while investigation competes with feature work.\nThat's the problem I was trying to solve.\nBefore AI, my realistic choices were narrow: trust the automation and hope, spend hours mapping release notes to my codebase, or leave the upgrade sitting.\nI was not trying to invent a better review process.\nI was trying to keep maintenance cost below available time.\nAI changed the cost of investigation enough that I stopped treating it as something to postpone.\nWhen Renovate opened a pull request for one of those framework majors, upgrading Vite from ^6.0.11 to ^8.0.0 and @vitejs/plugin-react from ^4.3.4 to ^6.0.0, my first instinct was still to treat it like migration work. Read the guides. Find the breaking changes. Plan the code changes. Validate the app. Then merge.\nIt was also the wrong starting assumption.\nThe useful work was not implementing the migration. The useful work was proving whether a migration existed for this repo at all.\nRenovate grouped the update as a frontend React/Vite major. My review policy sorts packages into low-risk and high-touch buckets: a patch-level bump to a type definition or a lint plugin can auto-merge, but anything that builds or serves the app (the bundler, the React plugin) is high-touch.\nBoth Vite and @vitejs/plugin-react sit in that high-touch bucket, so any version change routes to a human instead of auto-merge.\nThe pull request looked serious on paper:\nVite 8 release notes in",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "升级不必是盲目的信任考验",
+        "summary": "AI通过快速评估哪些更改需要实际重构、哪些可以顺利迁移，大幅降低了框架升级评估的成本。这使得即使对于与功能开发竞争的独立项目，依赖维护也变得可行。这将瓶颈从实现转移到了调查阶段。"
+      }
+    }
+  },
+  {
+    "title": "Industrial Robot Data Acquisition: From Robot Cells to Cloud Systems",
+    "slug": "industrial-robot-data-acquisition-cloud",
+    "url": "https://dev.to/robustel/industrial-robot-data-acquisition-from-robot-cells-to-cloud-systems-4p40",
+    "source": "DEV Community",
+    "date": "2026-07-03T09:00:00.000Z",
+    "summary": "Industrial robot monitoring requires treating robot cells as layered systems where edge gateways collect and prepare data locally before forwarding to cloud platforms, maintaining clear boundaries between control and visibility. This architecture enables predictive maintenance while respecting the constraint that cloud systems must never directly control robots.",
+    "content": "Industrial robot data acquisition sounds simple at first.\nRobustel EG5200 can sit in the site-side data layer, helping collect selected robot-cell data, prepare it locally where needed, and forward useful information toward cloud or monitoring systems.\nRobot monitoring is often reduced to a few states:\nRobot controllers, PLCs, edge gateways, and cloud systems should not be treated as interchangeable.\nrobot controller + PLC + cell equipment\n\n\nThe goal is not to make the cloud responsible for robot control.\nThe most useful data depends on the monitoring goal.\nRobot monitoring should respect the boundary between control and visibility.\nIn industrial robot data acquisition, an edge gateway may help with tasks such as:\nIn this type of robot monitoring architecture, Robustel EG5200 fits into the site-side industrial edge gateway layer.\nIndustrial robot data acquisition works best when the robot cell is treated as a layered system.\nhttps://robustel.com/product/eg5200/  gives more detail on its gateway capabilities and deployment options.\nQ1: How can industrial robot data be collected?\nQ2: Can industrial robot data be used for predictive maintenance?\nQ3: Where does Robustel EG5200 fit in robot data acquisition?\nRobustel EG5200 fits into the site-side industrial edge gateway layer. It can support robot data acquisition workflows where selected robot-cell data from PLC-side systems, sensors, meters, or supported equipment needs to be collected, prepared locally, and forwarded toward cloud or monitoring platforms. The final workflow depends on the robot controller, PLC integration, available interfaces, software configuration, and security requirements.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "工业机器人数据采集：从机器人单元到云系统",
+        "summary": "工业机器人监控需要将机器人单元视为分层系统，其中边缘网关在本地收集和准备数据，然后转发到云平台，在控制和可见性之间保持明确的边界。这种架构支持预测性维护，同时保证云系统永远无法直接控制机器人。"
+      }
+    }
+  },
+  {
+    "title": "Lessons from Enterprise Application Development",
+    "slug": "lessons-enterprise-application-development",
+    "url": "https://dev.to/ufomadu_nnaemeka_89/lessons-from-enterprise-application-development-4l9g",
+    "source": "DEV Community",
+    "date": "2026-07-03T09:00:00.000Z",
+    "summary": "Enterprise software engineering prioritizes long-term maintainability and collective understanding over technical cleverness, with actual coding representing only a fraction of the full development lifecycle. These lessons—simple code, comprehensive testing, operational excellence—apply at any company size and produce more sustainable systems.",
+    "content": "Enterprise application development is often viewed as a completely different world from startup development. Massive codebases, thousands of developers, millions of users, strict compliance requirements, and years of accumulated technical debt make enterprise software engineering uniquely challenging.\nHowever, working on enterprise applications teaches lessons that every software engineer can benefit from.\nMany of the engineering practices that power companies like global banks, healthcare organisations, telecommunications providers, and Fortune 500 businesses aren't about writing clever code—they're about building software that remains reliable for years while serving millions of users.\nIn this article, we'll explore the biggest lessons from enterprise application development and why they matter regardless of your company size. These lessons reflect widely adopted software engineering practices around maintainability, scalability, security, testing, and operational excellence.\nOne of the biggest surprises for junior developers entering enterprise environments is discovering that writing code represents only a fraction of the job.\nA feature that takes two days to implement may require:\nArchitecture discussions\nDesign reviews\nSecurity assessments\nAutomated testing\nPerformance validation\nDocumentation\nCode reviews\nDeployment approvals\nProduction monitoring\nThe actual coding is often the easiest step.\nEnterprise software development emphasises building systems that remain understandable and maintainable years after the original developers have moved on.\nMost developers often want to write elegant, complex solutions that demonstrate technical ability.\nEnterprise teams usually prefer something different:\nCode that every engineer can understand six months later.\nA simple implementation that is easy to debug almost always outperforms an overly clever one.\nThis philosophy becomes essential when hundreds of engineers contribute to the same codebase.\nGood enterprise code is:",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "企业应用开发经验教训",
+        "summary": "企业软件工程将长期可维护性和集体理解放在首位，而不是技术复杂性，实际编码只占整个开发生命周期的一小部分。这些经验——简洁的代码、全面的测试、卓越的运维——适用于任何规模的公司，能够产生更可持续的系统。"
+      }
+    }
+  },
+  {
+    "title": "ReWOO: plan every tool call up front, then call the model only twice",
+    "slug": "rewoo-plan-tool-calls-model-twice",
+    "url": "https://dev.to/dev48v/rewoo-plan-every-tool-call-up-front-then-call-the-model-only-twice-1234",
+    "source": "DEV Community",
+    "date": "2026-07-03T08:58:56.000Z",
+    "summary": "ReWOO reduces multi-hop agent queries from linear model calls (one per hop) to just two calls by planning all tool usage upfront without observing intermediate results, dramatically lowering inference costs. This approach separates reasoning from execution while maintaining the agent's ability to handle complex multi-step questions.",
+    "content": "Give an agent a multi-hop question and the usual answer is ReAct: think, act, look at the result, think again, act again. It works, but there is a hidden bill. Every \"think\" is a full call to the model, and every call re-sends the entire growing transcript. A three-hop question costs you four model calls. A ten-hop one costs eleven. ReWOO — Reasoning WithOut Observation — asks a sharper question: what if the model never had to see the tool results at all while it was reasoning? Then it could plan the whole thing once, hand the plan to plain code, and only come back at the very end to write the answer. Two model calls, no matter how many hops.\nTake a genuinely multi-hop question: \"What is the population of the capital of the country that won the 2018 World Cup?\" You cannot answer it in one lookup. You need the winner (France), then its capital (Paris), then that city's population (2.1 million). Three tool hops, each depending on the last.\nReAct walks it like a conversation with itself:\nThought 1 (model call): \"I need the 2018 World Cup winner.\" → Search → France\nThought 2 (model call): \"Now the capital of France.\" → Search → Paris\nThought 3 (model call): \"Now Paris's population.\" → Population → 2.1M\nFinal (model call): \"The answer is 2.1 million.\"\nFour LLM calls, and each one re-reads everything that came before. The model is in the loop the entire time.\nReWOO splits the agent into three roles, and only two of them ever touch the model.\n1. Planner (one LLM call). Give the model the question and the tool list, and ask for the entire plan up front — as variable assignments:\nPlan: find the winner\n#E1 = Search[2018 World Cup winner]\nPlan: find its capital\n#E2 = Search[capital of #E1]\nPlan: find that city's population\n#E3 = Population[#E2]\n\nNotice the model never saw a single tool result to write this. It doesn't know the winner is France. It only needs to say \"the capital of whatever #E1 turns out to be.\" That is the \"without observation\" part — the reasoning happens bef",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "ReWOO：提前规划所有工具调用，然后仅调用模型两次",
+        "summary": "ReWOO通过提前规划所有工具使用而不观察中间结果，将多步跳代理查询从线性模型调用（每跳一次）减少到仅两次调用，大幅降低推理成本。这种方法将推理与执行分离，同时保持代理处理复杂多步问题的能力。"
+      }
+    }
+  },
+  {
+    "title": "Is There a Claude Agent SDK for Ruby? Here's What to Use Instead",
+    "slug": "claude-agent-sdk-ruby-alternative",
+    "url": "https://dev.to/nsinenko/is-there-a-claude-agent-sdk-for-ruby-heres-what-to-use-instead-42jl",
+    "source": "DEV Community",
+    "date": "2026-07-03T08:58:17.000Z",
+    "summary": "Ruby lacks an official Claude Agent SDK but developers can build agents using the anthropic gem with custom agent loops or MCP adapters. Clarifying the distinction between the Client SDK (API wrapper) and Agent SDK (full harness) helps Ruby developers find practical paths forward.",
+    "content": "I went looking for a Ruby port of Anthropic's Claude Agent SDK this week, the thing that ships as pip install claude-agent-sdk for Python and npm install @anthropic-ai/claude-agent-sdk for TypeScript. There is no gem in that list: Ruby has no official Claude Agent SDK, and one isn't in the works as far as any changelog shows.\nThat's a different gap than it sounds like at first. Ruby already has an official Anthropic library, the anthropic gem at anthropics/anthropic-sdk-ruby, but that one is the Client SDK: the plain API wrapper where you write the tool loop yourself. The Agent SDK is a different product: Claude Code's actual harness (agent loop, filesystem tools, permissions, hooks, subagents, MCP support) packaged as a library. Ruby has the first one and not the second, and most of the confusion I saw searching for this comes from tutorials that treat them as the same thing. Some of it is also naming: Anthropic called this the Claude Code SDK before renaming it the Claude Agent SDK, so \"claude code sdk ruby\" searches land in the same gap.\nSo \"wait for the SDK\" was the wrong question. The real one is which of three paths gets an agent running in Ruby with the least friction.\nThis is what I reach for when the agent needs to act on my own app, not on a filesystem or a shell. Look up an invoice and draft a reply to it, that kind of thing.\nclass Anthropic::AgentRunner\n  def initialize(client: Anthropic::Client.new, tools:)\n    @client = client\n    @tools = tools\n  end\n\n  def run(messages, max_turns: 8)\n    max_turns.times do\n      response = @client.messages.create(\n        model: \"claude-sonnet-5\",\n        max_tokens: 1024,\n        messages: messages,\n        tools: @tools.map(&:schema)\n      )\n\n      return response unless response.stop_reason == :tool_use\n\n      messages << { role: \"assistant\", content: response.content }\n      messages << { role: \"user\", content: run_tools(response.content) }\n    end\n\n    raise \"agent did not converge in #{max_turns} turns\"\n  end",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Ruby 有 Claude Agent SDK 吗？这是替代方案",
+        "summary": "Ruby 缺乏官方的 Claude Agent SDK，但开发者可以使用 anthropic gem 配合自定义代理循环或 MCP 适配器来构建代理。区分 Client SDK（API 包装器）和 Agent SDK（完整框架）的区别，可以帮助 Ruby 开发者找到实际的解决方案。"
+      }
+    }
+  },
+  {
+    "title": "How I Got My GitHub Repo to 1k Stars",
+    "slug": "github-repo-1k-stars-hexabot",
+    "url": "https://dev.to/marrouchi/how-i-got-my-github-repo-to-1k-stars-akb",
+    "source": "DEV Community",
+    "date": "2026-07-03T08:50:48.000Z",
+    "summary": "Hexabot reached 1,000 GitHub stars by communicating early and often with users before launch rather than building in isolation, compounding audience growth through sustained visibility over months. The journey from proprietary chatbot through open-source releases demonstrates that early feedback and consistent engagement unlock exponential growth.",
+    "content": "Imagine watching a project you’ve poured years into suddenly catch fire and cross the 1k-star milestone on GitHub. It’s an incredible feeling, but it didn't happen overnight.\nThis is the story of Hexabot, an AI workflow automation platform designed to democratize AI adoption for everyone. The idea originally evolved from a simple chatbot builder. Back then, we saw a massive opportunity to break down the barriers to entry for advanced AI tools, ensuring that powerful workflow automation wasn't just reserved for massive enterprises with unlimited budgets.\nOur journey to 1k stars was a long game of evolution:\n2018: We started building v1 behind closed doors as a proprietary, closed-source project.\n\n\nSeptember 10, 2024: We officially went public and open-source, publishing v2 as a streamlined chatbot builder.\n\n\nNovember 19, 2025: We launched v3, with a fair-core license, pivotally transforming Hexabot into the full-fledged AI workflow automation platform it is today.\n\n\n\nIn this post, I’m going to pull back the curtain.\nLooking back at the road to 1,000 stars, it’s easy to focus only on what went right. But truth be told, the mistakes taught me just as much as the successes. If I could build a time machine and whisper some advice to my past self, here is exactly what I would say:\nIt is incredibly easy to get trapped in the \"developer bubble\"—that cozy place where you're completely absorbed by coding, tweaking features, and chasing the perfect architecture. But building in isolation is a massive trap.\nWhen you don't communicate early and often:\nYou lose crucial early feedback: You might spend months building a feature your users don't actually want or understand.\n\n\nYou lose valuable runway: Audience growth, SEO authority, and general visibility don't happen overnight. They compound over time. If you only start talking about your project on launch day, you're already months behind.\n\n\n\n\n  \n  \n  2. Reach Out to Your Audience Early\n\n\nYour users hold the answers to questions y",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何让 GitHub 仓库获得 1000 颗星",
+        "summary": "Hexabot 通过在发布前频繁与用户沟通而非孤立开发，获得了 1000 颗 GitHub 星，通过数月的持续曝光实现了用户群体的复合增长。从专有聊天机器人到开源发布的过程表明，早期反馈和持续参与能够解锁指数级增长。"
+      }
+    }
+  },
+  {
+    "title": "Making a datatable keyboard-usable: focus traps and arrow-key row reorder",
+    "slug": "datatable-keyboard-accessible-focus-traps",
+    "url": "https://dev.to/nasrulhazim/making-a-datatable-keyboard-usable-focus-traps-and-arrow-key-row-reorder-252f",
+    "source": "DEV Community",
+    "date": "2026-07-03T08:48:36.000Z",
+    "summary": "Laravel Livewire Tables v4.1.0 improves accessibility by implementing focus traps on popovers using Alpine's x-trap directive and adding arrow-key navigation for row reordering. These changes eliminate the keyboard and screen-reader barriers that made data tables mouse-only for millions of users.",
+    "content": "TL;DR\n\n\n\nShipped two a11y wins in laravel-livewire-tables v4.1.0: focus traps on popovers and a keyboard alternative to drag-reorder.\nFocus trap = Alpine's x-trap. One directive gives you focus-in, Tab-wrap, and ESC-to-close-and-return.\nDrag handles are now focusable buttons that move rows with ArrowUp/ArrowDown — mouse is no longer mandatory.\nBonus: an opt-in client-side column toggle that flips visibility via x-show with zero Livewire round-trips.\nDrag-and-drop and mouse-only popovers are the two spots where datatables quietly lock out keyboard and screen-reader users. Both got fixed today. Here's the how and the why.\nWhen a filter or column dropdown opens, focus should move into it, Tab should cycle within it, and ESC should close it and hand focus back to the button that opened it. Writing that by hand means tracking the first/last focusable element, listening for Tab at the boundaries, and stashing the trigger to restore later. It's fiddly and easy to get subtly wrong.\nAlpine's x-trap does the whole dance in one directive:\n<div x-trap=\"filterPopoverOpen\" ...>\n    {{-- popover contents --}}\n</div>\n\nBind it to the same boolean that controls the popover's visibility. When the expression flips true, focus moves in; ESC and Tab-wrapping come for free; when it flips false, focus returns to the trigger. Same pattern on the column-select and bulk-actions popovers — three popovers, one mental model.\nTL;DR of this section: don't hand-roll focus management. x-trap is a battle-tested primitive; wiring it to your existing open/close state is a one-line change per popover.\nDrag-to-reorder is the classic \"works great with a mouse, impossible without one\" feature. The fix isn't to replace drag — it's to give the drag handle a keyboard mode too. While reordering is active, the handle becomes a real button and listens for arrow keys:\n<x-livewire-tables::table.td.plain\n    x-show=\"currentlyReorderingStatus\"\n    role=\"button\"\n    aria-label=\"{{ __('Reorder') }}\"\n    x-bind:tabinde",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "让数据表格支持键盘操作：焦点陷阱和箭头键行重排",
+        "summary": "Laravel Livewire Tables v4.1.0 通过在弹出框上实现焦点陷阱（使用 Alpine 的 x-trap 指令）并为行重排添加箭头键导航，改进了可访问性。这些改动消除了导致数百万用户无法通过键盘或屏幕阅读器访问数据表格的障碍。"
+      }
+    }
+  },
+  {
+    "title": "Why Switzerland has 25 gbit internet and America doesn't",
+    "slug": "switzerland-25gbit-internet-america",
+    "url": "https://stefan.schueller.net/posts/the-free-market-lie/",
+    "source": "Hacker News",
+    "date": "2026-07-03T04:16:17.000Z",
+    "summary": "Switzerland's 25 Gbps internet infrastructure outpaces America's due to different regulatory and investment models, challenging assumptions that free-market competition automatically delivers optimal broadband access. Policy choices and infrastructure investment strategies fundamentally shape digital competitiveness and access equity.",
+    "content": "Article URL: https://stefan.schueller.net/posts/the-free-market-lie/\nComments URL: https://news.ycombinator.com/item?id=48770647\nPoints: 477\n# Comments: 337",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么瑞士拥有25Gbps互联网而美国没有",
+        "summary": "瑞士的25 Gbps互联网基础设施超越美国，这是由于不同的监管和投资模式，挑战了自由市场竞争自动提供最优宽带接入的假设。政策选择和基础设施投资战略从根本上塑造了数字竞争力和接入公平性。"
+      }
+    }
+  },
+  {
     "title": "LINQ and ZLinq in the Unity 6 Era: Avoiding GC Allocations in Large-Scale Projects",
     "slug": "linq-zlinq-unity-6-gc-allocations",
     "url": "https://dev.to/gamedevtoollab/linq-and-zlinq-in-the-unity-6-era-avoiding-gc-allocations-in-large-scale-projects-36c2",
