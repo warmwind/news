@@ -1,5 +1,197 @@
 [
   {
+    "title": "Chunked Prefill: Why One Long Prompt Freezes Your LLM Server",
+    "slug": "chunked-prefill-llm-server-latency",
+    "url": "https://dev.to/ji_ai/chunked-prefill-why-one-long-prompt-freezes-your-llm-server-30e0",
+    "source": "DEV Community",
+    "date": "2026-07-03T19:16:01.000Z",
+    "summary": "When long prompts cause LLM inference servers to stall other users' token streams, chunked prefill solves the problem by interleaving prompt processing with token generation. The technique is a critical tuning parameter in production serving stacks that trades time-to-first-token for smoother inter-token latency.",
+    "content": "You ship an LLM service. p50 latency looks great. Then a user pastes a 40-page contract into the chat, and for the next 400 milliseconds every other user's tokens stop arriving. Their streams freeze, then catch up in a burst. Your dashboards show inter-token latency spikes with no obvious cause. Nothing crashed. Nothing is rate-limited. One long prompt did it.\nThis is prefill-decode interference, and the fix — chunked prefill — is one of the highest-leverage knobs in an LLM serving stack that almost nobody tunes deliberately. Here is the mechanism and the config.\nPrefill is compute-bound and runs in one giant forward pass; decode is memory-bound and runs one token at a time. A naive scheduler runs a long prefill as a single batch step, and every in-flight decode request stalls until it finishes.\nChunked prefill splits the prompt into fixed-size chunks and interleaves them with decode tokens in the same forward step, bounding step time so decode latency stays smooth.\nThe trade-off is TTFT vs ITL. Smaller chunks smooth inter-token latency but raise time-to-first-token for the long prompt and cut total throughput; bigger chunks do the reverse.\nIn vLLM the lever is max_num_batched_tokens. Lower (~2048) for latency-sensitive chat, higher (8192+) for throughput/batch workloads.\nIf you need to isolate both fully, use disaggregated prefill — separate GPU pools for prefill and decode — instead of interleaving.\nBecause prefill and decode are two different kinds of work fighting for the same GPU, and by default the long one wins the whole timestep.\nPrefill processes every token in the prompt in parallel. For a 32K-token prompt that is a batch of 32K query positions running through every layer's attention and MLP — dense matmuls, high arithmetic intensity, compute-bound. It saturates the GPU's FLOPs for as long as it takes.\nDecode is the opposite. Each running generation produces one token per step. That step loads the full model weights and the request's KV cache to compute a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "分块预填充：为什么长提示会冻结您的LLM服务器",
+        "summary": "当长提示导致LLM推理服务器停滞其他用户的令牌流时，分块预填充通过交错提示处理和令牌生成来解决问题。该技术是生产服务堆栈中的关键调优参数，在时间到第一个令牌和更平滑的令牌间延迟之间进行权衡。"
+      }
+    }
+  },
+  {
+    "title": "Binary, Hex & Octal — Number Systems Every Developer Must Know",
+    "slug": "binary-hex-octal-number-systems-developers",
+    "url": "https://dev.to/akaranjkar08/binary-hex-octal-number-systems-every-developer-must-know-5d8o",
+    "source": "DEV Community",
+    "date": "2026-07-03T19:15:38.000Z",
+    "summary": "Binary, hexadecimal, and octal number systems power everyday development tasks from file permissions to color values and bitwise operations. Fluency with these systems is a key differentiator for senior developers and crucial for debugging production issues across systems programming, embedded work, and security.",
+    "content": "Every time you type chmod 755, set a color to #FF5733, or write permissions & 0x0F in a production codebase, you are doing number system arithmetic. Binary, hexadecimal, and octal are not abstract CS theory you clear from memory after your first algorithms exam. They are the language your operating system, CPU, and network stack speak natively — and fluency pays dividends in code quality, debugging speed, and interview performance.\nThis guide covers all four number bases you need as a developer — binary, octal, decimal, and hexadecimal — plus two's complement for negative numbers, bitwise operations with practical examples, and a set of performance tricks your CPU rewards with faster execution. Practice every example at the free binary converter tool on WOWHOW — no signup, instant conversion between all bases.\nThe Stack Overflow Developer Survey has consistently found that bit manipulation and number base fluency are among the top skills separating senior from mid-level developers, particularly in systems programming, embedded development, and security engineering. But the truth is these skills appear in ordinary web and application development far more than most developers realize.\nMemory addresses in debuggers display as hex. Network subnets are defined by binary masks. File permissions use octal. Color values in CSS, image processing, and graphics APIs are hex. Feature flags, access control bitfields, and configuration masks are binary operations in disguise. When a production bug stems from a permissions issue or a bitwise operator applied incorrectly, understanding the underlying number system is the fastest path to the root cause.\nThe four bases you need are:\nBinary (base 2) — the native language of hardware\n\n\nOctal (base 8) — Unix file permissions\n\n\nDecimal (base 10) — human-readable arithmetic\n\n\nHexadecimal (base 16) — compact binary representation for memory, colors, encodings\n\n\n\n\n  \n  \n  Binary: What Your CPU Actually Sees\n\n\nEvery value a computer stores —",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "二进制、十六进制和八进制——每个开发者都必须了解的数字系统",
+        "summary": "二进制、十六进制和八进制数字系统支撑从文件权限到颜色值和按位操作的日常开发任务。熟练掌握这些系统是高级开发人员的关键差异化因素，对于调试系统编程、嵌入式工作和安全领域的生产问题至关重要。"
+      }
+    }
+  },
+  {
+    "title": "I built an AI that predicts its own collapse",
+    "slug": "neoth-ai-system-predicts-collapse",
+    "url": "https://dev.to/alexander_zuberjatzke_7e/i-built-an-ai-that-predicts-its-own-collapse-17h2",
+    "source": "DEV Community",
+    "date": "2026-07-03T19:15:28.000Z",
+    "summary": "NEOTH is a Rust-based system that uses internal event streams and cryptographic verification to help AI assistants track and predict their own failures. Built for both regular users and operators, it emphasizes local-first execution, plugin sandboxing, and transparent audit trails to establish trust in AI systems.",
+    "content": "1. It predicts its own collapse\n\n\nThis is the part I'm proudest of and least certain about, so let's lead with\nNEOTH keeps an internal event stream (every tool call, model request, agent\nWhen the score crosses a threshold, you get a warning. The failure definitions\npre-registered —\nmeasurable instead\nneoth babel status     # threshold, calibration, latest scores\nneoth babel windows    # the actual measurements, window by window\n\nThe model behind it comes from an open research framework called\ndelta-kosmologie, which\nAn assistant that remembers you is only trustworthy if you can see what it\nIn NEOTH, every sensitive action — a profile write, a provider call, a channel\nneoth verify              # recompute the whole chain — tamper and it fails\nneoth wal show --last 20  # every sensitive frame, in order\nneoth profile pending     # nothing enters your profile without approval\n\nThe trust anchor is a key on your disk, not a sentence in a README. That's the\nThe last idea is a posture, not a feature. Crossing a trust boundary — a cloud\ndenied by default until you\nneoth preset activate fully-local\nneoth privacy audit --last 30d   # exactly what left the device — zero, locally\n\nFor plugins specifically, this is a real sandbox: NEOTH runs WASM plugins\n0xC7 PLUGIN_CAP_DENIED frame — never\nNEOTH is a single Rust daemon. That bought me a few things that matter for this\nPermissionToken<T> that enforces plugin capabilities at compile time, and the\nIt's deliberately built for two audiences at once, which is the hard bet:\nNormal users get a GUI wizard that asks plain questions. No YAML required.\nOperators get the CLI, local models, the WAL, policies, a plugin sandbox,\nn8n automation, and a private mesh over Tailscale/Hysteria.\nThat \"both at once\" goal is the single thing I most want held accountable, and\ncomparison table is\nPartial or Goal, not Yes.\ngit clone https://github.com/The-Geek-Freaks/NEOTH\ncd NEOTH/SRC && cargo install --path neothd\nneoth doctor\n\nIt's pre-1.0, dual-licensed",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个能预测自身崩溃的人工智能",
+        "summary": "NEOTH是一个基于Rust的系统，使用内部事件流和密码验证来帮助AI助手跟踪和预测自身故障。为普通用户和运营商而构建，它强调本地优先执行、插件沙箱化和透明审计跟踪，以建立对AI系统的信任。"
+      }
+    }
+  },
+  {
+    "title": "Building an Enterprise-Grade Real-Time Analytics Pipeline with FastAPI and TimescaleDB",
+    "slug": "enterprise-analytics-pipeline-fastapi",
+    "url": "https://dev.to/aman179102/building-an-enterprise-grade-real-time-analytics-pipeline-with-fastapi-and-timescaledb-57al",
+    "source": "DEV Community",
+    "date": "2026-07-03T18:50:51.000Z",
+    "summary": "A production-ready open-source analytics pipeline combining FastAPI, TimescaleDB, and Redis/Kafka with WebSocket dashboards, JWT auth, and observability via Prometheus and OpenTelemetry. The system handles adaptive sampling, TTL-based retention, and enterprise security requirements with 150/152 tests passing and zero regressions.",
+    "content": "I just released v1.0.0 of an open-source, production-ready real-time analytics pipeline built with Python. Here's what it does and why you might care.\nEvery SaaS product needs analytics — event tracking, real-time dashboards, time-series aggregations. Most teams either pay for Segment/RudderStack or build their own from scratch. This project is the \"build your own\" done right.\nClient → FastAPI → Redis Streams/Kafka → Event Processor → TimescaleDB → WebSocket → Dashboard\n\n\n\n\nComponent\nTechnology\n\n\n\n\nAPI Layer\nFastAPI (async, auto-docs, WebSocket native)\n\n\nEvent Queue\nRedis Streams or Apache Kafka\n\n\nStorage\nTimescaleDB (PostgreSQL extension for time-series)\n\n\nReal-time\nWebSocket with JWT auth + auto-reconnect\n\n\nMetrics\nPrometheus + OpenTelemetry\n\n\nLogging\nStructured JSON with correlation IDs\n\n\nDeployment\nDocker Compose + Kubernetes\n\n\n\nAsync Event Ingestion — REST API + batch endpoints, buffered via Redis Streams or Kafka\nAdaptive Sampling — configurable rate-based sampling per event type\nData Retention — TTL-based policies with automatic partition management\nEnterprise Security — JWT auth, RBAC (admin/editor/viewer), rate limiting, security headers, correlation IDs\nLive Dashboards — WebSocket push with auto-reconnect\nObservability — Prometheus metrics, OpenTelemetry traces, structured JSON logs\nProduction Ready — Docker multi-stage build, Kubernetes manifests, health checks\ngit clone https://github.com/aman179102/real-time-analytics-pipeline\ncd real-time-analytics-pipeline\nmake install\ndocker compose up -d postgres redis\nmake migrate\nmake run-dev\n\n150 out of 152 unit tests pass. The 2 excluded tests are pre-existing async timing issues in process_loop — zero regressions introduced.\nEvery request flows through:\nCorrelationMiddleware → AuthMiddleware → SecurityHeadersMiddleware → RateLimitMiddleware → SizeLimiterMiddleware → Router\n\nGitHub: https://github.com/aman179102/real-time-analytics-pipeline\nStar the repo if you find it useful! Contributions and feedback are alwa",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用FastAPI和TimescaleDB构建企业级实时分析管道",
+        "summary": "一个生产就绪的开源分析管道，结合FastAPI、TimescaleDB和Redis/Kafka，具有WebSocket仪表板、JWT身份验证和通过Prometheus与OpenTelemetry的可观测性。该系统处理自适应采样、基于TTL的数据保留和企业安全需求，拥有150/152个测试通过和零回归。"
+      }
+    }
+  },
+  {
+    "title": "Open Knowledge Format (OKF): The Markdown Standard Your AI Agents Have Been Waiting For 📚",
+    "slug": "open-knowledge-format-okf-specification",
+    "url": "https://dev.to/suhas_mallesh/open-knowledge-format-okf-the-markdown-standard-your-ai-agents-have-been-waiting-for-3mfb",
+    "source": "DEV Community",
+    "date": "2026-07-03T18:50:23.000Z",
+    "summary": "Open Knowledge Format (OKF), published June 12, 2026, is a vendor-neutral specification that standardizes organizational knowledge as plain markdown files with YAML frontmatter, enabling AI agents to access tables, metrics, runbooks, and APIs without custom integrations. The format's simplicity makes it compatible with any agent framework.",
+    "content": "AI agents are only as smart as the context you give them. OKF is a new open specification that packages your organizational knowledge as plain markdown files so any agent can read it without custom integrations or proprietary SDKs.\nEvery team building AI agents hits the same wall. The model is capable. The agent framework is set up. But the agent doesn't know anything about your organization. It doesn't know what your orders table means, what the churn_score metric formula is, or what the on-call runbook says to do when the pipeline breaks.\nThat knowledge exists. It's scattered across Confluence pages, Notion wikis, data catalog entries, Slack threads, and the heads of senior engineers. Getting it into an agent means building a custom integration for every source. Every team solves this from scratch.\nPublished on June 12, 2026, the Open Knowledge Format (OKF) is a vendor-neutral specification that solves this with the simplest possible approach: a directory of markdown files. 🎯\nAn OKF bundle is a directory of markdown files representing concepts: anything you want to capture, including tables, datasets, metrics, playbooks, runbooks, and APIs. Each concept is one file.\nThat's the entire model. A directory of .md files with YAML frontmatter. The format is deliberately minimal: one required field (type), optional metadata (title, description, resource, tags, timestamp), and a free-form markdown body.\nA concept document looks like this:\n---\ntype: table\ntitle: \"orders\"\ndescription: \"One row per customer order. Source of truth for revenue reporting.\"\nresource: \"postgresql://prod-db/ecommerce/orders\"\ntags: [revenue, core, sla]\ntimestamp: 2026-06-15T10:00:00Z\n---\n\n# orders\n\nThe `orders` table records every purchase event. It is the join root for all\nrevenue queries. Do not filter on `status = 'complete'` unless you specifically\nwant to exclude in-flight orders from the count.\n\n## Key columns\n\n- `order_id` - UUID primary key\n- `customer_id` - FK to [customers](../customers.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "开放知识格式(OKF)：你的AI代理一直在等待的Markdown标准",
+        "summary": "开放知识格式(OKF)发布于2026年6月12日，是一个厂商中立的规范，将组织知识标准化为带有YAML前置信息的纯markdown文件，使AI代理无需自定义集成即可访问表格、指标、运行手册和API。该格式的简洁性使其与任何代理框架兼容。"
+      }
+    }
+  },
+  {
+    "title": "개발 지식 없이도 외주 앱 개발 과정을 직접 점검하는 방법",
+    "slug": "outsourced-app-development-non-technical-oversight",
+    "url": "https://dev.to/potenlab/gaebal-jisig-eobsido-oeju-aeb-gaebal-gwajeongeul-jigjeob-jeomgeomhaneun-bangbeob-po7",
+    "source": "DEV Community",
+    "date": "2026-07-03T18:46:25.000Z",
+    "summary": "Non-technical product managers can oversee outsourced development by establishing transparent feedback loops with three components: visible completed work, specific next-week deliverables, and flagged blockers. Kanban-style visualizations and structured weekly updates bridge the communication gap between technical and non-technical teams.",
+    "content": "개발 역량이 없어도 외주 개발사의 진행 상황을 명확하게 파악하고 피드백을 줄 수 있다. 필요한 건 기술 지식이 아니라, 올바른 협업 구조다. 이 글은 비개발자 제품 관리자가 바로 적용할 수 있는 투명한 피드백 루프와 점검 방식을 소개한다.\n외주 개발사와 일을 시작하면 처음 며칠은 소통이 활발하다. 요구사항 정리, 계약, 착수 미팅까지는 순탄하다. 문제는 그 이후다.\n개발이 시작되면 대화의 언어가 바뀐다. \"API 연결 중\", \"백엔드 스키마 설계 단계\", \"프론트 컴포넌트 분리 작업\"처럼 전공자가 아니면 체감하기 어려운 표현들이 보고서를 채운다. 이 상태에서 비개발자가 할 수 있는 질문은 사실상 하나뿐이다. \"잘 되고 있나요?\" 그리고 돌아오는 답도 하나다. \"네, 잘 되고 있습니다.\"\n이 구조는 어느 개발사가 나쁜 의도를 가져서 생기는 문제가 아니다. 개발자는 기술 언어로 사고하고, 비개발자는 결과와 흐름으로 사고한다. 이 두 언어 사이에 다리가 없을 때 소외가 생긴다.\n그리고 이 소외는 감정의 문제가 아니라 실질적인 리스크다. 방향이 틀어진 채 몇 주가 흐르면, 다시 맞추는 비용은 처음보다 훨씬 커진다. 비개발자가 개발 과정을 직접 점검할 수 있는 구조가 필요한 이유가 여기 있다.\n투명한 협업 구조는 \"보고를 더 자주 받는 것\"이 아니다. 받는 정보의 언어와 형식을 바꾸는 것이다.\n포텐랩은 매주 진행 상황을 공유하는 주간 피드백 루프를 팀 표준으로 운영한다. 이 루프의 핵심은 세 가지다.\n무엇이 완료됐는가: 이번 주에 실제로 만들어진 것, 확인 가능한 것.\n다음 주에 무엇을 만드는가: 다음 단계에서 기대할 수 있는 결과물.\n막힌 것이 있는가: 결정이 필요하거나 확인이 필요한 사항.\n이 세 가지가 매주 비개발자도 읽을 수 있는 언어로 정리된다면, 소통 구조는 이미 절반 이상 해결된 것이다. 기술 용어 없이 \"로그인 화면 완성, 다음 주엔 상품 목록 화면 작업\"이라고 쓸 수 있다면, 비개발자는 지금 어디쯤 왔는지 감을 잡을 수 있다.\n주간 루프가 형식적인 보고에 그치지 않으려면 구조가 있어야 한다. 아래는 포텐랩이 프로젝트마다 적용하는 주간 피드백 사이클의 구성이다.\n1단계 — 주간 업데이트 문서 공유\n2단계 — 화면으로 확인 가능한 결과물 공유\n3단계 — 비개발자가 직접 테스트하는 시간\n4단계 — 다음 주 작업 범위 합의\n개발 진행 상황을 평가할 때 기술적 판단을 할 필요는 없다. 다음 세 가지 기준으로 충분히 점검할 수 있다.\n\n\n\n점검 항목\n확인 방법\n좋은 신호\n주의가 필요한 신호\n\n\n\n\n완료 결과물\n화면 또는 테스트 링크로 직접 확인\n매주 눈에 보이는 결과물이 있음\n텍스트 보고만 있고 확인할 수 없음\n\n\n다음 단계 예측 가능성\n다음 주 작업 항목이 명시됨\n구체적 기능 단위로 기술됨\n\"계속 진행 중\"처럼 모호한 표현\n\n\n이슈 공유 투명도\n막힌 사항이나 리스크를 먼저 알려줌\n문제가 생기면 즉시 공유하고 대안을 함께 논의\n문제를 숨기거나 뒤늦게 보고\n\n\n피드백 반영 여부\n지난주 피드백이 이번 주 결과에 반영됐는지 확인\n피드백 항목이 명시되고 반영됨\n피드백이 흐지부지되거나 미반영\n\n\n\n이 표는 기술 평가가 아니다. 소통과 협업의 질을 점검하는 기준이다. 개발사가 아무리 좋은 기술을 쓴다고 해도 이 네 가지가 작동하지 않으면, 비개발자는 결국 마지막 날에 결과물을 처음 보게 된다.\n주간 보고를 텍스트로만 받으면 전체 진행 상황을 가늠하기 어렵다. 프로젝트 전체에서 지금 어디쯤 왔는지를 한눈에 파악하려면 간단한 시각화가 도움이 된다.\n가장 접근하기 쉬운 방법은 기능 목록을 '준비 중 → 개발 중 → 테스트 중 → 완료' 네 단계로 나눈 보드 형태로 관리하는 것이다. 노션, 트렐로, 지라(Jira) 같은 도구가 이 방식을 지원하지만, 도구보다 중요한 건 이 보드가 매주 실제로 업데이트되느냐다. 업데이트되지 않는 보드는 진행 상황을 보여주지 않고, 현황을 감추는 효과를 낼 수 있다.\n칸반(Kanban) 방식처럼 각 기능이 어느 단계에 있는지 시각적으로 보이는 구조는 비개발자에게 특히 유용하다. 칸반이란 작업 항목의 진행",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "没有开发知识也能直接监督外包应用开发过程的方法",
+        "summary": "非技术型产品经理可以通过建立透明的反馈循环来监督外包开发，该循环包含三个组成部分：可见的已完成工作、具体的下周可交付成果和标记的阻碍。Kanban风格的可视化和结构化的周更新弥合了技术和非技术团队之间的沟通鸿沟。"
+      }
+    }
+  },
+  {
+    "title": "OpenAI Agents SDK 0.13 to 0.17: Three Breaking Changes You Will Hit",
+    "slug": "openai-agents-sdk-breaking-changes",
+    "url": "https://dev.to/peytongreen_dev/openai-agents-sdk-013-to-017-three-breaking-changes-you-will-hit-385e",
+    "source": "DEV Community",
+    "date": "2026-07-03T18:45:31.000Z",
+    "summary": "OpenAI Agents SDK versions 0.13–0.17 introduced three breaking changes, including model refusals now raising exceptions instead of returning empty strings and a silent default model switch from gpt-4.1 to gpt-5.4-mini. Upgrading requires explicit error handlers for refusals and awareness of changed inference defaults.",
+    "content": "OpenAI Agents SDK 0.13 → 0.17: Three Breaking Changes You Will Hit\n\n\nThe OpenAI Agents SDK moved from 0.13 to 0.17 in five weeks (April 9 – May 19, 2026). That's 19 releases, including three breaking changes. Two of them are silent — they change runtime behavior without raising an error at upgrade time.\nIf you're running agents on 0.13.x, this is the migration guide you need before you upgrade.\nThe change: Model refusals used to return empty-string output. Now they raise an exception.\nWhat this means: If your code treated refusals as output == \"\" or checked for empty responses, you were silent-failing gracefully. That behavior changed. A model refusal now raises ModelRefusalError and will crash your agent run unless you handle it.\nWhat you need to do:\nRegister a \"model_refusal\" error handler before upgrading past 0.15.0:\nfrom openai.agents import Agent, RunConfig\n\ndef handle_refusal(error):\n    print(f\"Model refused: {error.reason}\")\n    return \"Model refused to respond. Try rephrasing.\"\n\nagent = Agent(\n    model=\"gpt-4\",\n    tools=[...],\n)\n\nconfig = RunConfig(\n    on_error={\n        \"model_refusal\": handle_refusal,\n    }\n)\n\nresponse = agent.run(\"...\", config=config)\n\nWithout the handler, you'll see:\nModelRefusalError: model declined to process this request\n\nThis is an intentional change — OpenAI wants refusals to be explicit, not silent. But it means your error handling has to change.\nImpact: Any agent that doesn't add a refusal handler will crash on a refusal. High-risk if your agents field user input directly.\nThe change: The default model switched from gpt-4.1 to gpt-5.4-mini.\nWhat this means: If you created an agent without explicitly setting model=, you were running on gpt-4.1. On upgrade to 0.16.0+, that same code silently switches to gpt-5.4-mini.\nThis isn't just a version bump — gpt-5.4-mini ships with different defaults:\nreasoning.effort=\"none\" (GPT-5 default, not OpenAI's historical \"medium\")\nverbosity=\"low\" (more concise output)\nDifferent token economics",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "OpenAI Agents SDK 0.13 至 0.17：三个你会遇到的破坏性变更",
+        "summary": "OpenAI Agents SDK 版本 0.13-0.17 引入了三项破坏性变更，包括模型拒绝现在抛出异常而不是返回空字符串，以及默认模型从 gpt-4.1 静默切换到 gpt-5.4-mini。升级需要为拒绝添加显式错误处理器，并了解推理默认值的变化。"
+      }
+    }
+  },
+  {
+    "title": "I built an AI that plays GeoGuessr. Here is how single-image geolocation actually works.",
+    "slug": "single-image-geolocation-ai-geoguessr",
+    "url": "https://dev.to/atlasgeoai/i-built-an-ai-that-plays-geoguessr-here-is-how-single-image-geolocation-actually-works-39dm",
+    "source": "DEV Community",
+    "date": "2026-07-03T18:43:15.000Z",
+    "summary": "Single-image geolocation performs two distinct tasks—coarse country classification and fine-grained coordinate regression—each requiring different visual signals like road markings, signs, bollards, and vegetation. Models can excel at one task while being mediocre at the other, and most disappointments stem from expecting a single accuracy metric to capture both.",
+    "content": "Give a person a single street-view photo with no metadata and ask them which country it is. A trained GeoGuessr player will often get it in a few seconds. They are not reading a hidden GPS tag. They are reading the image: the color of the road lines, the shape of the bollards, the script on a distant sign, the vegetation, the direction of the sun, the style of the power poles.\nI spent a long time building a system that does the same thing from one frame, and the interesting part is how ordinary the core idea turns out to be. Here is what actually matters, and what does not.\nSingle-image geolocation is: given one photo, output a location. In practice you want two things at once, and they are not the same task.\nCoarse: which country or region is this. This is a classification problem over a few hundred buckets.\nFine: the exact latitude and longitude. This is a regression problem over a continuous surface.\nPeople conflate them, but they behave very differently. Country is often readable from a handful of strong cues. Pinning a spot to within a few kilometers usually needs the model to recognize something specific: a particular road surface, a chain of shops, a mountain profile. A model can be excellent at the first and mediocre at the second, and most of the disappointment in this space comes from expecting one number to capture both.\nThe signal is real and it is visual. A short, non-exhaustive list of what carries country-level information:\nRoad markings. Line color, dash length, and edge treatment vary by country in ways that are remarkably consistent.\nSigns and language. Even blurred, the script and the sign shapes narrow things fast.\nDriving side and the position of the camera car.\nBollards, guardrails, utility poles. These are almost a fingerprint. Enthusiast communities have catalogued them for years.\nVegetation, soil color, and light. Latitude and climate leak through the plants and the quality of the sun.\nArchitecture and street furniture. Rooflines, fences, an",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个玩 GeoGuessr 的 AI。这是单图像地理定位的实际工作原理。",
+        "summary": "单图像地理定位执行两个不同的任务——粗粒度国家分类和细粒度坐标回归——每个都需要不同的视觉信号，如道路标记、标志、防护栏和植被。模型可能在一个任务上表现出色，而在另一个上表现平庸，大多数失望来自于期望单一的准确度指标同时捕捉两者。"
+      }
+    }
+  },
+  {
+    "title": "The Right Way to Pair AI With Terraform Plans",
+    "slug": "terraform-plans-ai-review-json-filtering",
+    "url": "https://dev.to/devopsaitoolkit/the-right-way-to-pair-ai-with-terraform-plans-3i1c",
+    "source": "DEV Community",
+    "date": "2026-07-03T18:42:46.000Z",
+    "summary": "Effective AI review of Terraform plans requires converting text output to JSON and filtering for dangerous changes (deletes, replaces) rather than cosmetic ones. This structured, pre-filtered input produces compact summaries that focus AI analysis on decisions requiring human judgment, avoiding false positives in verbose 400-line plans.",
+    "content": "terraform plan is honest about what it's going to do. The problem is it's also verbose, repetitive, and full of cosmetic changes (like recomputed tags) mixed in with real ones (like a database instance scheduled for -/+ replace). On a 400-line plan, the dangerous changes hide.\nThis is the kind of task AI is actually good at: skimming structured text, flagging the entries that matter, ignoring the rest. But \"paste plan into Claude\" is not the workflow. There's a specific shape to this that works.\nThe natural instinct is to copy the plan output and paste it into a chat:\nTerraform will perform the following actions:\n\n  # aws_instance.web will be updated in-place\n  ~ resource \"aws_instance\" \"web\" {\n        id                  = \"i-0abc123def456\"\n      ~ instance_type       = \"t3.small\" -> \"t3.medium\"\n        ...\n\nThe model will respond with a sentence about each line. You'll scroll. You'll skim. You'll miss the -/+ replace on the database because it's in the middle of 30 routine updates.\nThis is the same failure mode as pasting a wall of logs and asking \"is anything wrong?\" The model is too polite to skip things. You need to tell it to.\nterraform show -json tfplan outputs a structured representation of the plan that's much easier to reason about than the text format. Two reasons:\nThe \"actions\" field is explicit. Each resource_change has a change.actions array — [\"create\"], [\"delete\"], [\"update\"], or [\"delete\", \"create\"] for replace. No ambiguity.\nYou can filter before pasting. With jq, you can extract only the dangerous changes, drop the noise, and feed a 20-line summary into the AI instead of a 400-line plan.\nTry this:\nterraform plan -out=tfplan\nterraform show -json tfplan > plan.json\n\n# Get just the dangerous changes\njq '[.resource_changes[] |\n     select(.change.actions | contains([\"delete\"])) |\n     {address, type, actions: .change.actions}]' plan.json\n\nThat's the AI's input. Compact, unambiguous, and pre-filtered to the changes that need a human decision.\nOnce you",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "与 Terraform 计划配对 AI 的正确方式",
+        "summary": "对 Terraform 计划进行有效的 AI 审查需要将文本输出转换为 JSON，并过滤危险变更（删除、替换）而非美观性变更。这种结构化、预过滤的输入生成紧凑的摘要，将 AI 分析集中在需要人类判断的决策上，避免在冗长的 400 行计划中出现假阳性。"
+      }
+    }
+  },
+  {
+    "title": "Just realized the JSON pain has been already solved thanks to github.com/kaptinlin/jsonrepair \r\n\r\nShout out to @kaptinlin",
+    "slug": "go-programming-ai-agent-platform",
+    "url": "https://dev.to/sks/just-realized-the-json-pain-has-been-already-solved-thanks-to-githubcomkaptinlinjsonrepair-eo6",
+    "source": "DEV Community",
+    "date": "2026-07-03T18:41:46.000Z",
+    "summary": "Go was chosen over Python for an AI agent platform to leverage its systems-engineering strengths and compile-time safety guarantees for agent development. This decision represents a pragmatic divergence from industry convention driven by platform-specific requirements.",
+    "content": "Why We Chose Go for Our AI Agent Platform (When Everyone Else Picked Python)\n\n\n  \nSabith KS\n                    \n                  \n\n                \nJul 1\n        \n#go\n            #aiagents\n            #architecture\n            #llm\n        \nAdd Comment\n            \n        \n        \n          \n            1 min read",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "刚意识到JSON问题已经通过github.com/kaptinlin/jsonrepair解决了 感谢@kaptinlin",
+        "summary": "在构建AI代理平台时选择了Go而不是Python，以充分利用其系统工程优势和编译时安全保证。这一决定代表了基于特定平台需求对行业惯例的务实偏离。"
+      }
+    }
+  },
+  {
+    "title": "The AI Era: Democratizing the Ivory Tower",
+    "slug": "ai-democratizing-academic-ivory-tower",
+    "url": "https://dev.to/sothiss/the-ai-era-democratizing-the-ivory-tower-1he3",
+    "source": "DEV Community",
+    "date": "2026-07-03T18:41:29.000Z",
+    "summary": "AI offers an opportunity to democratize academic recognition and publishing by surfacing contributions from non-Western researchers who were historically overlooked or attributed to first-world colleagues. The article draws parallels to cases like Dr. Sérgio Ferreira's ACE inhibitor research and Carlos Chagas's disease discovery, both obscured by Eurocentric academic institutions.",
+    "content": "When you view the academic world from the perspective of a woman and a Latina, you quickly learn to be skeptical of whatever the first-world establishment has to say. History tells us exactly who they are and how the system was built. How many brilliant women had to publish their life's work under a man’s name just to see the light of day? How many Latino researchers have been completely erased from global scientific conversations while the Global North took the credit?\nLook at Dr. Sérgio Henrique Ferreira. In the 1960s, working right here in Brazil, he isolated the Bradykinin-Potentiating Factor from the venom of the Bothrops jararaca snake—a breakthrough that led directly to the creation of Captopril, the first-ever ACE inhibitor that revolutionized blood pressure treatment and saved millions of lives. Yet, when he went to London to collaborate with his colleague Sir John Vane, helping co-author the revolutionary papers explaining exactly how aspirin treats pain, the predictable script played out. In 1982, John Vane was awarded the Nobel Prize. The first-world supervisor got the immortal glory, the status, and the global acclaim, while the brilliant Brazilian mind who unlocked the actual mechanics was left out of the spotlight and forgotten by the committee.\nLook at what they did to Carlos Chagas in 1909. Working with limited resources in the Brazilian interior, Chagas achieved a medical feat that no European or American scientist in history had ever duplicated before, or has accomplished since. He single-handedly discovered and described a completely new infectious disease from scratch—isolating the parasite (Trypanosoma cruzi), identifying the insect vector, and mapping its clinical manifestations. Yet, when it came to the Nobel Prize, the Eurocentric committees looked away. Look at Cuban physician Carlos Juan Finlay, who discovered in 1881 that yellow fever was transmitted by mosquitoes. The medical establishments of Europe and the United States spent twenty ye",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "人工智能时代：实现学术象牙塔的民主化",
+        "summary": "人工智能提供了一个机会来民主化学术认可和出版，通过呈现历史上被忽视或被归功于西方学者的非西方研究者的贡献。该文章以塞尔吉奥·费雷拉博士的ACE抑制剂研究和卡洛斯·沙加斯病的发现为例，这两个案例都被欧洲中心主义学术机构所掩盖。"
+      }
+    }
+  },
+  {
+    "title": "I Built an AI Tool That Finds Wasted Cloud Spending — And Its Carbon Footprint. Published: True",
+    "slug": "greenops-ai-tool-cloud-waste-carbon",
+    "url": "https://dev.to/raghu_putta_1e4490f2e9648/i-built-an-ai-tool-that-finds-wasted-cloud-spending-and-its-carbon-footprintpublished-true-3p95",
+    "source": "DEV Community",
+    "date": "2026-07-03T18:40:03.000Z",
+    "summary": "GreenOps is an AI tool that identifies unused Google Cloud resources (idle servers, unattached storage, orphaned IP addresses) and calculates their carbon footprint simultaneously. Four specialized AI agents analyze findings, generate optimization plans, and require user approval before implementing changes, combining cost and environmental insights.",
+    "content": "The difficulty\nIf you’re using Google Cloud, you’re probably paying for stuff you don’t need anymore—a server someone forgot to turn off, a storage disk someone forgot to delete, \nor an IP address someone forgot to release. \"That waste is costing us money.\" It consumes electricity. It generates carbon emissions. Almost nobody tracks those alongside the cost.\nI wanted a tool that could find both problems simultaneously, without me having to think. So I made one.\nLive demo: https://greenops-dashboard-845589445410.us-central1.run.app/\nhttps://github.com/raghu-putta/greenops-agent\nHow it works: 4 AI agents in a row\nImagine an assembly line in which each worker has only one job:\nCarbon Scout scans your Google Cloud project and reports on everything that looks like it might be unused or forgotten—idle servers, unattached storage disks, and unused reserved IP addresses.\nOptimization Executor takes each finding and makes it an action: stop this server, delete this disk, release this address. It shows you the plan first; it only changes if you say go.\nPowered by: FastAPI (the web framework), Google’s Agent Development Kit (a library for building AI agents), Gemini 2.5 Pro (the AI model doing the reasoning), and Google Cloud Run (where it’s all running).\nThe “bug” that was not a bug:\nAnd then at some point that window just stopped showing anything. Nothing. My backend logs told me that the updates were still being sent, so the data was leaving the server just fine. I spent time looking at the frontend code, adding debug logs, and looking at the network tab in the browser, thinking I wrote something wrong.\nThe actual issue: Google Cloud Run has a default timeout on how long it will keep a connection open, and my agent runs were exceeding that timeout. The connection was getting dropped midstream—not for a code bug, but for a platform setting. The workaround was a single line in my deployment command, telling Cloud Run to allow longer-running connections and to keep at least on",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个AI工具，可以找到浪费的云支出及其碳足迹",
+        "summary": "GreenOps是一个AI工具，可以识别未使用的谷歌云资源（空闲服务器、未连接的存储、孤立的IP地址），同时计算其碳足迹。四个专门的AI代理分析发现、生成优化计划，并在实施更改前需要用户批准，将成本和环保见解结合在一起。"
+      }
+    }
+  },
+  {
     "title": "Microsoft Azure DevOps Engineer (AZ-400): What's Actually Tested",
     "slug": "azure-devops-engineer-az-400-exam-guide",
     "url": "https://dev.to/nerdexam/microsoft-azure-devops-engineer-az-400-whats-actually-tested-53e6",
@@ -188,6 +380,22 @@
       "zh": {
         "title": "两个线程的另一个故事（C或C++ vs Python）",
         "summary": "C/C++和Python处理线程和进程终止的方式不同——C/C++会立即退出，而Python有不同的线程语义。在语言间迁移的开发者应该理解并发编程中这些基本的行为差异。"
+      }
+    }
+  },
+  {
+    "title": "Valve open source the Steam Machine e-ink screen so you can make your own",
+    "slug": "valve-steam-machine-eink-screen-open-source",
+    "url": "https://www.gamingonlinux.com/2026/07/valve-open-source-the-steam-machine-e-ink-screen-so-you-can-make-your-own/",
+    "source": "Hacker News",
+    "date": "2026-07-03T13:01:49.000Z",
+    "summary": "Valve has open-sourced the e-ink screen hardware from the Steam Machine, allowing developers and enthusiasts to build custom gaming handhelds and portable displays. This release enables innovation beyond Valve's original platform by providing transparent access to the display technology.",
+    "content": "Article URL: https://www.gamingonlinux.com/2026/07/valve-open-source-the-steam-machine-e-ink-screen-so-you-can-make-your-own/\nComments URL: https://news.ycombinator.com/item?id=48774518\nPoints: 376\n# Comments: 65",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Valve开源Steam Machine电子墨水屏 让你可以自己制作",
+        "summary": "Valve已开源Steam Machine的电子墨水屏硬件，允许开发者和爱好者构建自定义游戏掌机和便携式显示设备。这一发布通过提供对显示技术的透明访问，使创新超越Valve的原始平台成为可能。"
       }
     }
   },
