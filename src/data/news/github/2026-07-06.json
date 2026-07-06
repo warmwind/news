@@ -1,5 +1,213 @@
 [
   {
+    "title": "I Run 1,000 Agents in Production. Here's What I Learned About Reliability",
+    "slug": "i-run-1000-agents-production-reliability",
+    "url": "https://dev.to/wzg0911/i-run-1000-agents-in-production-heres-what-i-learned-about-reliability-5f6b",
+    "source": "DEV Community",
+    "date": "2026-07-06T15:27:09.000Z",
+    "summary": "An engineer shares lessons learned scaling 1,000+ production AI agents after a costly reliability failure. The article covers critical practices including output validation against schemas to catch AI hallucinations, idempotency guards to prevent duplicate API calls, and proper monitoring infrastructure. These patterns shift focus from agent capability to production reliability fundamentals.",
+    "content": "The 3 AM Wake-Up Call\n\n\nLast month, my phone buzzed at 3:17 AM. A Slack alert informed me that my OpenAI bill had jumped from $47 to $5,847 in 58 minutes.\nA while True loop without a termination guard. One model output that didn't match the expected format. Four parallel workers, each running GPT-4 Turbo at $0.85 per request, firing every 2 seconds.\nThat's not a smart agent failure. That's a reliability infrastructure failure.\nSince then, I've scaled to over 1,000 production agent runs across 12 clients. Here's everything I learned about making agents actually reliable — not just smart.\nAgent hallucination isn't just about facts — it's about actions. I've seen agents:\n\"Send\" emails that never left the app\n\"Charge\" customers with fake transaction IDs\n\"Call\" APIs with fabricated responses\nIt's not malicious. The model's training data says \"when tool returns, describe result.\" But the model often skips actually calling the tool and just simulates the output.\nFix: Output Validation + Proven Execution\nfrom ark import OutputValidator\nfrom pydantic import BaseModel\n\nclass PaymentResult(BaseModel):\n    amount: float\n    txn_id: str\n    status: str\n\nvalidator = OutputValidator()\nresult = validator.validate(PaymentResult, agent_output)\n\nif not result.valid:\n    raise ValueError(f\"Agent fabricated output: {result.errors}\")\n\nValidate every critical output against a schema. If it doesn't match, don't trust it.\nAgent frameworks retry on failure. That's great for resilience. But if the model retries a charge() call because of a network timeout — and the first call actually succeeded — you just triple-charged your customer.\nThis isn't theoretical. The top 3 agent frameworks have 8,847+ open issues about duplicate execution, phantom tool calls, and cascading failures.\nFix: Idempotency Guard\nfrom ark import IdempotencyGuard\n\nguard = IdempotencyGuard()\n\n@guard.wrap\ndef charge(amount: float):\n    return stripe.charge(amount)\n\ncharge(99.99)  # ✅ Charged once\ncharge(99.99)  # 🛡 Intercep",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我在生产环境中运行1,000个AI代理。以下是我对可靠性的学习经验",
+        "summary": "一位工程师分享了在扩展1000多个生产AI代理后从代价昂贵的可靠性失败中学到的经验教训。该文章涵盖了关键实践，包括针对模式的输出验证以捕获AI幻觉、幂等性保护以防止重复API调用，以及适当的监控基础设施。这些模式将重点从代理能力转移到生产可靠性基础。"
+      }
+    }
+  },
+  {
+    "title": "WebSocket in Spring Boot, Explained Simply",
+    "slug": "websocket-spring-boot-explained",
+    "url": "https://dev.to/turboline_ai_/websocket-in-spring-boot-explained-simply-4kn0",
+    "source": "DEV Community",
+    "date": "2026-07-06T15:26:54.000Z",
+    "summary": "The article explains how WebSocket connections in Spring Boot eliminate the inefficiency of polling, where clients repeatedly request updates rather than servers pushing changes. Unlike polling's request-response overhead, WebSockets enable bidirectional real-time communication with a persistent connection. The author provides practical Spring Boot configuration to implement this pattern cleanly.",
+    "content": "Stop Polling. Your Server Already Knows the Answer.\n\n\nThere's a pattern that shows up in codebases more often than it should: a frontend making repeated HTTP requests to check if something has changed. Every 2 seconds. Every 1 second. Sometimes faster. The server receives the request, looks around, finds nothing new, and responds anyway. Then it happens again.\nThis is polling, and it's the developer equivalent of refreshing your inbox manually every 30 seconds. It works, technically. It's also wasteful in a way that compounds quietly until it doesn't.\nThe real issue isn't performance overhead, though that matters. The issue is that polling inverts the natural flow of information. The server knows when something changes. The client doesn't. So instead of letting the server speak up when it has something to say, polling forces the client to keep asking. You've built a conversation where one side has to repeatedly say \"anything yet?\" just to get an answer the other side was already holding.\nWebSocket flips that around.\nWhen a WebSocket connection opens, both sides can send messages to each other at any time. The connection stays open. There's no handshake overhead on every exchange, no headers being re-sent, no client initiating every interaction.\nIn Spring Boot, getting this running is less involved than most developers expect. The configuration looks like this:\n@Configuration\n@EnableWebSocketMessageBroker\npublic class WebSocketConfig implements WebSocketMessageBrokerConfigurer {\n\n    @Override\n    public void configureMessageBroker(MessageBrokerRegistry config) {\n        config.enableSimpleBroker(\"/topic\");\n        config.setApplicationDestinationPrefixes(\"/app\");\n    }\n\n    @Override\n    public void registerStompEndpoints(StompEndpointRegistry registry) {\n        registry.addEndpoint(\"/ws\").withSockJS();\n    }\n}\n\nThat's the foundation. A broker to route messages, a destination prefix for incoming client messages, and an endpoint the client connects to. From here, a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Spring Boot中的WebSocket简单说明",
+        "summary": "该文章解释了Spring Boot中的WebSocket连接如何消除轮询的低效率，其中客户端反复请求更新而不是服务器推送更改。与轮询的请求-响应开销不同，WebSocket通过持久连接实现双向实时通信。作者提供了实用的Spring Boot配置来清晰地实现这一模式。"
+      }
+    }
+  },
+  {
+    "title": "Streaming Responses in Next.js App Router — Server-Sent Events and ReadableStream",
+    "slug": "streaming-responses-nextjs-server-sent-events",
+    "url": "https://dev.to/turboline_ai_/streaming-responses-in-nextjs-app-router-server-sent-events-and-readablestream-2c10",
+    "source": "DEV Community",
+    "date": "2026-07-06T15:26:50.000Z",
+    "summary": "Users experience frozen UIs on long-running requests because the request-response model forces servers to wait until complete before responding. Server-Sent Events and streaming alternatives let applications send incremental responses, providing user feedback while work continues. SSE offers simpler implementation than WebSockets for server-to-client streaming with automatic reconnection.",
+    "content": "Your API Isn't Slow. Your Response Strategy Is.\n\n\nThere's a class of bug that never shows up in your performance benchmarks but destroys user trust every single time: the frozen UI on a long-running request.\nYou've seen it. A user clicks a button. The spinner appears. Ten seconds pass. Fifteen. The page looks completely dead. Has it crashed? Is it working? Should they refresh? By the time the response arrives, the damage is already done — they've lost confidence in your app.\nThe instinct is to optimize the underlying operation. Faster queries, better caching, smarter algorithms. That's not wrong, but it's also not the whole picture. Sometimes the operation genuinely takes time, and the real fix isn't making it faster — it's changing what the user experiences while they wait.\nHTTP request-response is simple to reason about: client asks, server answers. But that model bakes in an assumption — that the server has everything ready before it says anything. For a 200ms database query, fine. For a multi-step pipeline, an AI completion, or a report that aggregates across dozens of sources, that assumption turns your UI into a black box.\nThe alternative is incremental delivery. Start responding the moment you have something meaningful to say, then keep sending as more becomes available. The total time doesn't change, but the user's experience of that time changes completely.\nWebSockets get all the attention for real-time patterns, but they bring genuine complexity: stateful connections, custom protocols, proxy headaches, and deployment constraints that don't play well with serverless or edge environments.\nServer-Sent Events are different. They're HTTP. The server holds a response open and pushes text in a simple format. The browser handles reconnection automatically. There's no handshake protocol to manage, no separate connection to maintain. For server-to-client streaming — which covers most real-world use cases — SSE gives you 80% of the capability at about 20% of the comp",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Next.js App Router中的流式响应——服务器发送事件和ReadableStream",
+        "summary": "用户在长时间运行的请求上体验到冻结的UI，因为请求-响应模型强制服务器等到完成才能响应。服务器发送事件和流式替代方案允许应用程序发送增量响应，在工作继续进行时提供用户反馈。SSE为服务器到客户端的流式传输提供了比WebSocket更简单的实现，具有自动重新连接功能。"
+      }
+    }
+  },
+  {
+    "title": "Building Floww: The AI-Native Financial Engine (A Vibe Coding Journey)",
+    "slug": "building-floww-ai-native-financial-engine",
+    "url": "https://dev.to/sreedevrajendran/building-floww-the-ai-native-financial-engine-a-vibe-coding-journey-1cn9",
+    "source": "DEV Community",
+    "date": "2026-07-06T15:24:03.000Z",
+    "summary": "Floww is an AI-powered financial engine that processes messy financial documents into structured insights using Google Gemini's multimodal capabilities. Built with Next.js, tRPC, and PostgreSQL, it includes an in-app RAG chatbot for natural language financial queries and privacy features like currency masking. The project demonstrates how AI-assisted development accelerates building sophisticated financial applications.",
+    "content": "I was getting really frustrated with typing in my coffee expenses manually back in 2026. That was the exact moment when Floww was born.\nFloww is not just another budgeting app — it is a financial engine that turns your messy, real-world financial data (crumpled receipts, complex bank statements, Gmail transactions) into structured, actionable intelligence. You can see the full project breakdown on my projects page.\nThis blog dives into how I built Floww, the unique experience of vibe coding alongside AI, and what makes it fundamentally different from every other finance app on the market.\nThe Vision: Moving Beyond Simple Expense Trackers\nWhat makes Floww fundamentally different?\nUniversal Document Intelligence: Floww doesn't just read simple receipts. Using Google Gemini 2.5 Flash's multi-modal capabilities, it understands itemized grocery bills, detailed salary slips, and multi-page bank statements.\nAgent Floww: An RAG-powered in-app chatbot — ask \"How much did I spend on Swiggy compared to last month?\" and get a precise answer without digging through charts.\nPrivacy-First Premium Feel: \"Privacy Mode\" instantly masks all currency values with one tap — built for public spaces.\nThe Tech Stack (The \"Vibe Coding\" Way)\nFloww is engineered on a fully modern, type-safe stack built for speed and scale:\nFramework: Next.js 15 — App Router with React Server Components\nAPI Layer: tRPC — end-to-end type-safe APIs without REST boilerplate\nDatabase: PostgreSQL + Prisma ORM\nAI Engine: Google Gemini 2.5 Flash API — multi-modal OCR + RAG agent\nAuth: Firebase Auth + Gmail API (OAuth 2.0 for transaction sync)\nStyling: Tailwind CSS + Framer Motion\nDeployment: Netlify — CI/CD from GitHub\nThe \"Vibe Coding\" Experience\n\"Give me a dashboard that feels like a premium iOS app, but with a web-first soul.\"\n\"Build a document processor that can distinguish between a grocery bill and a bank statement without me writing a single regex.\"\nDeep Dive: How the Core Features Were Built\nThe Multi-Modal OC",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建Floww：AI原生金融引擎（一次充满活力的编码之旅）",
+        "summary": "Floww是一个由AI驱动的金融引擎，它使用Google Gemini的多模态能力将混乱的财务文档转化为结构化的洞察。该项目采用Next.js、tRPC和PostgreSQL构建，包括一个应用内的RAG聊天机器人，用于自然语言金融查询和货币掩蔽等隐私功能。该项目展示了AI辅助开发如何加速构建复杂的金融应用程序。"
+      }
+    }
+  },
+  {
+    "title": "How I Built a Multi-Agent AI Research Suite with Human-in-the-Loop Validation",
+    "slug": "multi-agent-ai-research-human-loop-validation",
+    "url": "https://dev.to/emmanuel_ernest_7/how-i-built-a-multi-agent-ai-research-suite-with-human-in-the-loop-validation-n49",
+    "source": "DEV Community",
+    "date": "2026-07-06T15:21:39.000Z",
+    "summary": "The author built a multi-agent AI research system that deliberately pauses for human validation rather than running fully autonomous. Using CrewAI, the system separates research, analysis, and synthesis into independent agents following the Single Responsibility Principle. The human-in-the-loop gateway emerged as the most critical feature, preventing hallucinations while maintaining production reliability.",
+    "content": "Introduction\nEveryone is talking about autonomous AI agents.\nGive an agent internet access, connect it to an LLM, and it can research topics, write reports, analyze businesses, and even execute tasks with little human intervention.\nIt sounds impressive—until you let an autonomous agent run unattended.\nIn practice, AI agents can:\nhallucinate facts\ncollect irrelevant information\ncollect irrelevant information\nmisunderstand search intent\nwaste expensive API tokens\nconfidently produce inaccurate reports\nFor prototypes, that might be acceptable.\nFor production systems, it isn't.\nThat question led me to build a project around a different philosophy:\nAI should automate the work, but humans should validate the decisions that matter.\nInstead of building another fully autonomous agent, I designed a multi-agent AI research system that deliberately pauses before analysis, allowing a human to review the collected research before the workflow continues.\nThe result combines:\nCrewAI\nOpenAI GPT models\nDocker\nGitHub Actions\nHuman-in-the-Loop validation\nand follows software engineering practices inspired by real production systems rather than simple AI demos.\nWhy Not Use One Giant Prompt?\nOne of the earliest design decisions was refusing to build everything inside one prompt.\nCould GPT research, analyze, and write in one request?\nAbsolutely.\nShould it?\nProbably not.\nLarge prompts become difficult to:\ndebug\nimprove\ntest\nreuse\nscale\nInstead, I separated responsibilities into independent agents.\nAgent               Responsibility\nThis separation follows the Single Responsibility Principle, making each component easier to optimize independently.\nOverall Architecture\nUser\nUnlike many AI workflows, there is an intentional pause between research and analysis.\nThat pause became the most important feature of the entire project.\nThe Human-in-the-Loop Gateway\nMost autonomous AI demos assume the first agent always produces trustworthy output.\nI intentionally challenged that assumption.\nInstead of",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何构建一个带有人类环路验证的多智能体AI研究套件",
+        "summary": "作者构建了一个多智能体AI研究系统，该系统故意暂停以进行人类验证，而不是完全自动运行。使用CrewAI，该系统将研究、分析和综合分离成遵循单一责任原则的独立智能体。人类环路网关成为最关键的功能，可以防止幻觉，同时保持生产可靠性。"
+      }
+    }
+  },
+  {
+    "title": "What looks like AI slop from the outside is my accessibility tool",
+    "slug": "ai-slop-accessibility-tool",
+    "url": "https://dev.to/nazarii-ahapevych/what-looks-like-ai-slop-from-the-outside-is-my-accessibility-tool-54lc",
+    "source": "DEV Community",
+    "date": "2026-07-06T15:16:55.000Z",
+    "summary": "The author argues that AI assistance is an accessibility tool for ADHD, not \"slop,\" because it removes barriers to translating scattered thoughts into structured writing. The executive-function cost of organizing ideas is a specific bottleneck for ADHD that neurotypical writers don't experience equally. This reframes AI writing assistance from convenience to accessibility infrastructure.",
+    "content": "Context\n\n\nI have ADHD, and I write with AI. Those two facts are connected, and this piece is about how. Not \"AI helped me polish this.\" The article you're reading did not exist as a finished thing until an AI sat down with me and built the structure around it. The usual word for that from the outside is slop, or, aimed specifically at people like me, neuroslop.\nTL;DR: My ADHD means some tasks, like turning a scattered thought into a finished piece of writing, put a specific strain on exactly the resource I'm short on. AI tools remove that barrier. For a neurotypical writer they're a convenience. For me they're the reason a thought becomes a shipped piece of work instead of a fragment in a notes app forever. Same tool, completely different stakes.\nThe slop criticism is usually fair. A lot of AI-assisted writing really is low-effort output nobody reviewed, produced because it was easy to produce. I'm not arguing against that criticism in general, most of what gets called AI slop earns the label.\nBut the label carries a hidden assumption: that the person could have written the piece themselves, just a bit slower. That assumption doesn't hold for me. The barrier was never knowing what to say. It was the blank page itself, and the executive-function cost of turning a scattered mental state into the first three bullet points that make a piece of writing exist. That cost isn't there for everyone in the same way, and it doesn't scale down with \"try harder.\" It's the same shape as needing glasses to read fine print: fine for most of the day, and a hard wall the moment the task demands exactly the thing you can't do unaided.\nThe point is narrow: some tasks put a specific, predictable strain on exactly the resource ADHD affects, and a tool that corrects for that strain is doing accessibility work whether or not anyone calls it that.\nNot an abstract claim. Here's what it looks like in practice:\nStructuring from zero. I hand over a mess, and get back a skeleton I can build on. T",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "看似AI垃圾的东西是我的无障碍工具",
+        "summary": "作者辩称AI辅助是ADHD的无障碍工具，而不是\"垃圾\"，因为它消除了将分散想法转化为结构化写作的障碍。组织思想的执行功能成本是ADHD的特定瓶颈，而神经典型的作者不会同样经历。这将AI写作辅助从便利重新框架为无障碍基础设施。"
+      }
+    }
+  },
+  {
+    "title": "EyeNet: Turning a Webcam Feed Into Actionable Security Incidents",
+    "slug": "eyenet-webcam-actionable-security-incidents",
+    "url": "https://dev.to/splintersword/eyenet-turning-a-webcam-feed-into-actionable-security-incidents-28e5",
+    "source": "DEV Community",
+    "date": "2026-07-06T15:12:41.000Z",
+    "summary": "EyeNet is a real-time video surveillance system that converts raw webcam feeds into structured, queryable security incidents rather than noisy false positives. The pipeline processes frames through detection, tracking, and event filtering to provide actionable alerts with audit trails and snapshots. The architecture isolates camera input, enables multi-signal detection, and integrates face recognition for practical security monitoring.",
+    "content": "I built a real-time campus surveillance system that turns raw video into actionable incidents — here's how EyeNet works\n\n\nMost \"AI surveillance\" demos I see online stop at object detection: a bounding box, a confidence score, done. That's not actually useful for a security team. A camera that just says \"knife detected\" a hundred times a second because of one flickering frame is worse than no camera at all.\nSo I built EyeNet — a camera-first, real-time incident response system that treats detection as just the first step in a pipeline that ends in a structured, queryable, actionable event.\nTalk to any campus security or discipline team and you'll hear the same pain points:\nHumans can't watch 20 camera feeds at once, all day, every day.\nAlerts happen over phone calls or WhatsApp — no structure, no traceability, no history.\nNaive CV systems throw false positives constantly unless you enforce persistence and cooldowns.\nNobody has a reviewable audit trail with snapshots when something does go wrong.\nEyeNet's goal: turn a live video feed into structured incidents — not noise.\nCamera → SharedFrameBuffer → DetectionPipeline → ObjectTracker → DetectionEvent\n                                                                       ↓\n                                                              EventBus (priority queue)\n                                                            ↙        ↓        ↘\n                                                     DB Handler   Notifications   SSE → Dashboard\n\nA few decisions I'd make again:\nOne camera reader, many consumers. SharedFrameBuffer owns /dev/video0 exclusively so the pipeline, dashboard stream, and any future consumer aren't fighting over the same device.\nMulti-signal detection per frame, not just one model.\nFace recognition against enrolled encodings (face-recognition / dlib), matched via L2 distance against a threshold.\nUniform compliance — for known faces only, I estimate a torso ROI below the face box, convert to HSV, and check",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "EyeNet：将摄像头画面转化为可操作的安全事件",
+        "summary": "EyeNet是一个实时视频监控系统，将原始摄像头数据转化为结构化、可查询的安全事件，而不是嘈杂的误报。该管道通过检测、跟踪和事件过滤来处理帧，提供具有审计跟踪和快照的可操作警报。该架构隔离摄像头输入，启用多信号检测，并集成人脸识别以进行实用的安全监控。"
+      }
+    }
+  },
+  {
+    "title": "Running Hugging Face Inference with Kiro: From Prompt to Working Summarizer",
+    "slug": "hugging-face-kiro-summarizer",
+    "url": "https://dev.to/avani_1ddeec48cfa80546e1e/running-hugging-face-inference-with-kiro-from-prompt-to-working-summarizer-4g77",
+    "source": "DEV Community",
+    "date": "2026-07-06T15:11:11.000Z",
+    "summary": "The article demonstrates how to use Hugging Face's transformer models directly for text summarization, walking through building a BART-based summarizer with proper tokenization and device management. The Kiro approach iteratively adds GPU support and batching through natural conversation rather than wrestling with model configuration. This practical example shows moving from abstract model theory to working NLP pipelines.",
+    "content": "Pre-trained models are the backbone of modern NLP. Whether you're summarizing documents, classifying support tickets, or building semantic search, the Hugging Face transformers library gives you access to thousands of models, but wiring up tokenization, device management, and batching correctly takes careful attention to detail.\nThis post shows how Kiro handles that for you. We'll walk through a real example: building a text summarizer using a pre-trained BART model, then iterating with Kiro to add GPU support and batching, all through natural conversation.\nEverything here was tested locally and verified. The output you see below is real — captured from actual script execution on a MacBook with no GPU.\nI wanted a script that takes paragraphs of text and produces concise summaries. The goal: use the Hugging Face transformers library directly (not the pipeline shortcut) so we have full control over tokenization, device placement, and generation parameters.\nHere's what I asked Kiro:\n\"Write a Python script that loads a summarization model from Hugging Face and generates summaries for a list of input texts. Use the transformers library directly, not the pipeline abstraction. Pick the best model for the task.\"\nKiro selected sshleifer/distilbart-cnn-12-6 — a distilled version of BART trained on CNN/DailyMail. It has fewer parameters (~306M vs ~406M) with a halved decoder (6 layers instead of 12), so it downloads faster and runs faster on CPU while still producing quality summaries. It used AutoModelForSeq2SeqLM (the correct class for encoder-decoder summarization models) without being told.\nHere's the core of what it produced:\nimport torch\nfrom transformers import AutoTokenizer, AutoModelForSeq2SeqLM\n\n\ndef load_model(model_name: str = \"sshleifer/distilbart-cnn-12-6\"):\n    \"\"\"Load the tokenizer and model from Hugging Face Hub.\"\"\"\n    tokenizer = AutoTokenizer.from_pretrained(model_name)\n    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)\n    model.eval()  # Evalua",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "用Kiro运行Hugging Face推理：从提示到可工作的摘要系统",
+        "summary": "该文章演示了如何直接使用Hugging Face的Transformer模型进行文本摘要，讲解了如何使用正确的分词和设备管理构建基于BART的摘要器。Kiro方法通过自然对话迭代地添加GPU支持和批处理，而不是与模型配置相斗争。这个实际例子展示了从抽象的模型理论到可工作的NLP管道的转变。"
+      }
+    }
+  },
+  {
+    "title": "Setting up a local Kubernetes cluster with minikube",
+    "slug": "local-kubernetes-cluster-minikube",
+    "url": "https://dev.to/ferztyle/setting-up-a-local-kubernetes-cluster-with-minikube-11l2",
+    "source": "DEV Community",
+    "date": "2026-07-06T15:07:43.000Z",
+    "summary": "minikube enables developers to run a full Kubernetes cluster locally on their laptop in minutes, providing the same API as production clusters without cloud costs or infrastructure setup. The single-node cluster runs in Docker and uses identical kubectl commands and YAML manifests as EKS/GKE/AKS. This approach removes barriers to hands-on Kubernetes learning and local development.",
+    "content": "This is part of the Platform Engineering with Go series. View all posts in the series\nAnd that's a problem, because most engineers don't have one sitting around they can freely experiment on. Spinning up an EKS cluster just to follow a tutorial costs money, requires an AWS account, and takes longer than you want. Using your production cluster is obviously off the table.\nminikube fixes this. It gives you a real, full Kubernetes cluster running on your laptop in under 5 minutes. Same API as production. Free. No cloud account needed. When you're done for the day, you stop it. When things get messy, you delete it and start fresh.\nBy the end of this post you'll have a local cluster running with metrics-server enabled and a Go app deployed inside it.\nWhat minikube is and how it relates to a real production cluster\n\n\nHow to install minikube on Mac and Linux\n\n\nHow to start, stop, and manage a local cluster\n\n\nHow minikube connects to kubectl and your kubeconfig\n\n\nHow to enable the metrics-server addon\n\n\nHow to deploy a real Go app to your local cluster\n\n\n\n\n\n\n\n  \n  \n  Prerequisites\n\n\n\n\nMac or Linux, this post does not cover Windows\n\n\nDocker installed and running, minikube uses it as the default driver\n\n\n\nWe'll install kubectl as part of this post, so you don't need it yet.\nBefore installing anything, it's worth understanding what minikube does, and what it doesn't do.\nminikube runs a single-node Kubernetes cluster locally, inside a Docker container (or VM) on your machine. That cluster runs the exact same Kubernetes API as the production clusters you'd find on EKS, GKE, or AKS. The same kubectl commands work. The same YAML manifests work. The same Go code works, which is exactly why it's the right tool for this series.\nWhat minikube is not: a production cluster. It's a single node with no high availability, no cloud integrations, and no autoscaling. It's a development and learning environment, not something you'd run workloads on.\nThere are several tools for running Kubernete",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用minikube设置本地Kubernetes集群",
+        "summary": "minikube使开发者能够在几分钟内在笔记本电脑上本地运行完整的Kubernetes集群，提供与生产集群相同的API，无需云成本或基础设施设置。单节点集群在Docker中运行，并使用与EKS/GKE/AKS相同的kubectl命令和YAML清单。这种方法消除了Kubernetes实践学习和本地开发的障碍。"
+      }
+    }
+  },
+  {
+    "title": "Cohere's Aya 23 Release: A Practical Look at Open, Multilingual Models",
+    "slug": "cohere-aya-23-multilingual-models",
+    "url": "https://dev.to/albertomontagnese/coheres-aya-23-release-a-practical-look-at-open-multilingual-models-429e",
+    "source": "DEV Community",
+    "date": "2026-07-06T15:03:21.000Z",
+    "summary": "Cohere released Aya 23, an open-source family of multilingual models in 8B and 35B parameter sizes, covering 23 languages including Arabic, Chinese, Hindi, Japanese, and Spanish. The focused approach provides deeper training per language than its predecessor, covering roughly half the world's population. This offers developers a practical alternative to closed proprietary APIs or English-centric models for global applications.",
+    "content": "The open-source AI landscape has a new, serious contender for multilingual tasks. Cohere's release of the Aya 23 family, with 8B and 35B parameter open-weight models, provides a much-needed, high-performance baseline for builders working in the 23 languages it covers. This isn't just another model drop; it's a practical alternative to relying on closed APIs or fine-tuning English-centric models for global applications.\nAya 23 is a family of instruction-tuned, decoder-only transformer models released by Cohere for AI, the company's non-profit research lab. It comes in two sizes: an 8-billion parameter model designed for accessibility and a larger 35-billion parameter version for more complex tasks.\nThis release represents a strategic shift from its predecessor, Aya 101, which aimed for breadth across 101 languages. Aya 23 instead focuses on depth, allocating more training capacity to a curated list of 23 languages, including Arabic, Chinese, German, Hindi, Japanese, Spanish, and Vietnamese. The goal is to provide state-of-the-art capabilities for a set of languages that cover roughly half the world's population.\nThe models are based on Cohere's Command series and were fine-tuned on the Aya Collection dataset. By releasing the model weights, Cohere allows researchers and developers to inspect and build on top of their work, a move that distinguishes it from fully closed-source offerings.\nFor engineers building products for non-English speaking markets, the options have often been limited. You could use a proprietary, closed-source API, which offers high performance but limited customizability and potential lock-in. Or, you could take a powerful open-source but English-centric model and attempt to fine-tune it, with performance often lagging in other languages.\nAya 23 offers a compelling middle ground. The 8B model, in particular, is designed to be accessible, running on consumer-grade hardware, which significantly lowers the barrier to entry for developers and researc",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Cohere的Aya 23发布：开放多语言模型的实践解析",
+        "summary": "Cohere发布了Aya 23，一个开源多语言模型系列，包含8B和35B参数规模，支持包括阿拉伯语、中文、印地语、日语和西班牙语在内的23种语言。这种聚焦的方法为每种语言提供了比其前身更深入的训练，覆盖全球约一半的人口。这为开发者提供了一个实用的替代方案，可以替代封闭的专有API或以英语为中心的模型来进行全球应用。"
+      }
+    }
+  },
+  {
+    "title": "How NestJS Microservices Handle High Traffic Ecommerce Systems",
+    "slug": "nestjs-microservices-high-traffic-ecommerce",
+    "url": "https://dev.to/peacemelodi/how-nestjs-microservices-handle-high-traffic-ecommerce-systems-18ml",
+    "source": "DEV Community",
+    "date": "2026-07-06T15:01:33.000Z",
+    "summary": "NestJS microservices architecture enables ecommerce platforms to handle unpredictable traffic spikes by separating concerns (catalog, checkout, payments, notifications) into independently scaled services. Using message queues and async processing, non-critical tasks like email confirmations don't block customer checkout experiences. This pattern prevents cascading failures when one service faces unexpected load.",
+    "content": "An ecommerce platform lives or dies by what happens during its busiest moments. A flash sale, a holiday rush, a viral product moment, these are exactly when traffic spikes hardest and exactly when a poorly structured backend tends to fall apart. Checkout pages slow down, stock counts get confused, orders fail silently. NestJS has become a common choice for ecommerce platforms precisely because its architecture gives teams the tools to handle this kind of pressure deliberately, rather than hoping the system holds up.\nMost applications have fairly steady, predictable traffic. Ecommerce does not. A single marketing email or a product going viral can send traffic up tenfold within minutes. The backend needs to handle that surge without slowing down for everyone, without letting two customers buy the same last item, and without losing track of any order in the process. This is a very different problem from simply having a fast server, it is about how the system behaves under sudden, uneven pressure.\nRather than one large application handling everything, catalog browsing, checkout, payment, notifications, all in a single process, NestJS supports splitting these into separate microservices, each responsible for one part of the system. NestJS has built in support for this, with different transport layers depending on what a system needs.\nconst app = await NestFactory.createMicroservice(AppModule, {\n  transport: Transport.RMQ,\n  options: {\n    urls: ['amqp://localhost:5672'],\n    queue: 'orders_queue',\n  },\n});\n\nThis means a sudden spike in checkout traffic does not have to slow down product browsing, since they are handled by entirely separate services, each scaled independently based on its own actual load.\nSome tasks do not need to happen instantly, sending an order confirmation email, updating analytics, generating an invoice. NestJS integrates cleanly with queue systems, so these tasks get processed steadily in the background rather than blocking the customer's checkout",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "NestJS微服务如何处理高流量电子商务系统",
+        "summary": "NestJS微服务架构使电子商务平台能够通过将关注点分离（目录、结账、支付、通知）到可独立扩展的服务中来处理不可预测的流量峰值。使用消息队列和异步处理，非关键任务如电子邮件确认不会阻塞客户结账体验。当一个服务面临意外负载时，这种模式可以防止级联故障。"
+      }
+    }
+  },
+  {
+    "title": "When Claude Saves Your Workflow (And When It Doesn't)",
+    "slug": "claude-saves-workflow",
+    "url": "https://dev.to/learnairesource/when-claude-saves-your-workflow-and-when-it-doesnt-2n19",
+    "source": "DEV Community",
+    "date": "2026-07-06T15:00:36.000Z",
+    "summary": "Claude excels at complex reasoning tasks like architecture reviews, code refactoring, and narrative documentation, but struggles with simple lookups or domain-specific business logic requiring deep context. The author recommends treating Claude as a thinking partner for architecture discussions and rapid prototyping rather than a formula-based code generator. Understanding its strengths versus existing documentation saves wasted tokens.",
+    "content": "I've watched people throw Claude at every problem, and half the time they're just wasting tokens. But when you actually understand what it's good at, it becomes genuinely useful. Here's what I've learned building production workflows with it.\nComplex reasoning tasks. Claude actually thinks through multi-step problems. I built a code review system that catches architecture issues, not just linting errors. You describe the pattern you want enforced, and it reasons about trade-offs. That actually works.\nRefactoring existing code. Need to migrate from one pattern to another? Give Claude the code and the target pattern. It understands context better than find-and-replace, and the output usually requires minimal cleanup. I used this to refactor a Vue 2 app to 3 in half the time I expected.\nDocumentation generation. Write the function. Ask Claude to write docs that explain why not just what. The narrative-style docs are actually useful for other developers, not the generated garbage you get from some tools.\nRapid prototyping. When you need to validate an idea fast, Claude can generate scaffolding that's actually structurally sound. It's not production-ready, but it gets you past the blank page problem.\nDebugging stranger problems. If your error message is weird or domain-specific, Claude will hallucinate a fix. The first suggestion sounds confident. It's usually wrong. Save yourself the frustration and search Stack Overflow instead.\nDomain-specific business logic. Your system has 15 years of accumulated rules about edge cases. Claude doesn't know them. You'll spend more time correcting its assumptions than writing the code yourself. Not worth it.\nSimple tasks where the solution is formula. If the answer is \"use this regex\" or \"call this API endpoint like this,\" it's faster to just look it up. Claude will give you a working example, but so will the docs, and you'll learn something.\nUse Claude as a thinking partner, not a code monkey:\nFor architecture discussions: Describe y",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Claude何时能提升你的工作流（及何时不能）",
+        "summary": "Claude擅长复杂推理任务，如架构审查、代码重构和文档编写，但在简单查询或需要深入上下文的特定领域业务逻辑方面表现不佳。作者建议将Claude视为架构讨论和快速原型设计的思考伙伴，而不是基于公式的代码生成器。了解其优势相对于现有文档可以节省浪费的token。"
+      }
+    }
+  },
+  {
+    "title": "Anthropic's Method to Losing Goodwill in a Few Easy Steps",
+    "slug": "anthropic-losing-goodwill",
+    "url": "https://raheeljunaid.com/blog/anthropics-method-to-losing-goodwill-in-a-few-easy-steps/",
+    "source": "Hacker News",
+    "date": "2026-07-06T12:37:06.000Z",
+    "summary": "The article critiques Anthropic's recent business and communication decisions and their impact on community goodwill, arguing the company is eroding trust through these choices. The piece sparked significant discussion with detailed commentary exploring the implications. Readers debated the company's strategy and its effects on developer community perception.",
+    "content": "Article URL: https://raheeljunaid.com/blog/anthropics-method-to-losing-goodwill-in-a-few-easy-steps/\nComments URL: https://news.ycombinator.com/item?id=48803751\nPoints: 183\n# Comments: 95",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Anthropic轻易失去人心的几个方法",
+        "summary": "该文章批评了Anthropic最近的商业和沟通决策对社区好感的影响，声称该公司通过这些选择削弱了信任。这篇文章引发了广泛讨论，有详细的评论探讨其含义。读者们就公司战略及其对开发者社区看法的影响进行了辩论。"
+      }
+    }
+  },
+  {
     "title": "The Gap Between What AI Vendors Promise and What Enterprise Buyers Actually Get",
     "slug": "gap-ai-vendors-promise-enterprise-buyers-get",
     "url": "https://dev.to/mirasloan/the-gap-between-what-ai-vendors-promise-and-what-enterprise-buyers-actually-get-22g1",
@@ -192,6 +400,22 @@
     }
   },
   {
+    "title": "Real-time map of Great Britain's rail network",
+    "slug": "real-time-map-great-britain-rail-network",
+    "url": "https://www.map.signalbox.io",
+    "source": "Hacker News",
+    "date": "2026-07-06T09:38:36.000Z",
+    "summary": "The signalbox.io project provides a real-time interactive map of Great Britain's entire rail network with live train movements and operational status. The visualization enables users to track rail activity and network patterns as they happen. The project attracted significant technical interest on Hacker News as a novel approach to transport data visualization.",
+    "content": "Article URL: https://www.map.signalbox.io\nComments URL: https://news.ycombinator.com/item?id=48802535\nPoints: 268\n# Comments: 107",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "英国铁路网络实时地图",
+        "summary": "signalbox.io项目提供了英国全境铁路网络的实时交互式地图，可显示实时列车运动和运营状态。该可视化工具使用户能够实时跟踪铁路活动和网络模式。该项目作为一种新颖的交通数据可视化方法在黑客新闻上获得了很大的技术关注。"
+      }
+    }
+  },
+  {
     "title": "I Built a NATO Phonetic Alphabet Converter After One Phone Call Changed My Mind",
     "slug": "nato-phonetic-alphabet-converter",
     "url": "https://dev.to/bhavin-allinonetools/i-built-a-nato-phonetic-alphabet-converter-after-one-phone-call-changed-my-mind-50gf",
@@ -380,6 +604,22 @@
       "zh": {
         "title": "开源项目今日推荐（#116）：SAG——通过SQL JOIN替代PageRank的多跳RAG检索",
         "summary": "SAG（结构化智能代理图）用查询时的SQL JOIN替换昂贵的预构建知识图，消除了限制GraphRAG中检索链的PageRank分数衰减。该框架将文本块存储为事件和具有数据库关系的实体，使得能够进行确定性、可追踪的多跳扩展，而无需离线图构建。"
+      }
+    }
+  },
+  {
+    "title": "Building relationships with customers through support didn't turn out as hoped",
+    "slug": "building-relationships-customers-support",
+    "url": "https://www.uncommonapps.nyc/p/castro-podcasts-things-i-got-wrong-support",
+    "source": "Hacker News",
+    "date": "2026-07-06T02:06:49.000Z",
+    "summary": "The author reflects on building customer relationships through support in their podcast app (Castro), sharing lessons where support-first strategies didn't deliver expected business outcomes. The post examines assumptions about customer relationship building and reveals gaps between intent and results. This candid analysis resonated with the community as an honest look at customer strategy trade-offs.",
+    "content": "Article URL: https://www.uncommonapps.nyc/p/castro-podcasts-things-i-got-wrong-support\nComments URL: https://news.ycombinator.com/item?id=48799929\nPoints: 247\n# Comments: 150",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "通过客户支持建立客户关系并未如期实现",
+        "summary": "作者分享了在其播客应用程序Castro中通过客户支持建立客户关系的经验，讨论了以支持为先的策略未能实现预期业务成果的教训。该文章审视了关于客户关系建立的假设，揭示了意图与结果之间的差距。这一坦诚的分析引起了社区的共鸣，因为它诚实地看待了客户战略的权衡。"
       }
     }
   }
