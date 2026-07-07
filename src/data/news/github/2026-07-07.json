@@ -1,5 +1,197 @@
 [
   {
+    "title": "What ref() and reactive() Are Actually For",
+    "slug": "what-ref-and-reactive-are-actually-for",
+    "url": "https://dev.to/ysndmr/what-ref-and-reactive-are-actually-for-c52",
+    "source": "DEV Community",
+    "date": "2026-07-07T09:39:53.000Z",
+    "summary": "Article explains that Vue 3's ref() should be the default choice for making things reactive, while reactive() should only be used in specific situations where you know the tradeoffs. ref() avoids issues with destructuring and reassignment that plague reactive().",
+    "content": "Vue 3 gives you two ways to make something reactive: ref() and reactive(). The docs explain the difference clearly enough. What they don't tell you is which one to reach for by default.\nThe short answer: ref(), almost always. reactive() for specific situations where you know what you're trading away.\nHere's the problem with reactive(). It loses reactivity when you destructure it or reassign the root object, which catches people off guard more than it should.\nconst state = reactive({ count: 0, name: '' });\n\nstate.count++;       // works, Vue tracks this\nconst { count } = state;\ncount++;             // doesn't work, Vue has no idea\n\nref() sidesteps this because the reactive pointer lives on the .value property. You can pass a ref anywhere, destructure the container, and the ref itself stays tracked.\nThe case where reactive() actually earns its place: a form object where all the values are always read and written together, passed as-is to a composable, and you're never going to replace the whole reference. Some people find dropping the .value noise worth that constraint. I get it. But in composables especially, ref() is much easier to work with because you can return individual refs that stay reactive when the caller destructures them.\nexport function useCounter() {\n  const count = ref(0);\n  const increment = () => count.value++;\n  return { count, increment };\n}\n\nconst { count, increment } = useCounter(); // both still reactive\n\nYou can't do that cleanly with reactive() — destructuring breaks the connection.\nFor most of the time I was figuring out the ref/reactive split, I was making it more complicated than it needed to be. Default to ref(). Reach for reactive() when you have a specific reason. That's the whole decision.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "ref() 和 reactive() 的真正用途",
+        "summary": "该文章解释了 Vue 3 的 ref() 应该是实现响应式的默认选择，而 reactive() 应该只在特定情况下使用（且你了解其取舍之处）。ref() 避免了困扰 reactive() 的解构和重新赋值问题。"
+      }
+    }
+  },
+  {
+    "title": "Watchers Are Usually the Wrong Answer",
+    "slug": "watchers-are-usually-the-wrong-answer",
+    "url": "https://dev.to/ysndmr/watchers-are-usually-the-wrong-answer-15an",
+    "source": "DEV Community",
+    "date": "2026-07-07T09:39:46.000Z",
+    "summary": "Vue watchers are commonly misused for derived values instead of side effects. Computed properties should be used for derived values and chain dependencies, while watchers belong only to true side effects like API calls or localStorage persistence.",
+    "content": "When I started with Vue's Composition API I used watch() constantly. State changes, something needs to happen — that's what watchers are for. Right?\nMost of the time, no.\nWatchers are for side effects: persisting to localStorage, calling an API when something changes, syncing with a library that Vue doesn't control. They're not for computing derived values, and they're not for keeping reactive state in sync with other reactive state.\nThe most common misuse:\nconst firstName = ref('')\nconst lastName = ref('')\nconst fullName = ref('')\n\nwatch([firstName, lastName], ([first, last]) => {\n  fullName.value = `${first} ${last}`\n})\n\nThis is a computed property written the hard way. It runs asynchronously by default, it's harder to read, and it can produce frames where fullName is stale before the watcher fires.\nconst firstName = ref('')\nconst lastName = ref('')\nconst fullName = computed(() => `${firstName.value} ${lastName.value}`)\n\nAlways in sync. No timing edge cases. One line.\nThe other pattern that causes problems: chaining watchers. Watch A to update B, watch B to update C. I've done this. Every time I've eventually produced a cycle or a timing issue that was annoying to debug. If values derive from each other, computed handles it.\nWhere watch() actually belongs: real side effects. userId changes and you need to fetch new data, that's a watcher. The route changes and you need to update a third-party map instance, watcher. You need to debounce an API call on search input, watcher with a cleanup function.\nThe question I ask before adding a watch: is this a side effect, or is this a value that depends on other values? If it's the second thing, it's a computed. I've removed a lot of watchers by asking that.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "观察者通常是错误的选择",
+        "summary": "Vue 观察者常被误用于派生值而非副作用。应该使用计算属性来处理派生值和链式依赖，而观察者应仅用于真正的副作用，如 API 调用或 localStorage 持久化。"
+      }
+    }
+  },
+  {
+    "title": "A read-only MCP server for WooCommerce: what AI agents actually need from a store",
+    "slug": "read-only-mcp-server-woocommerce-ai-agents",
+    "url": "https://dev.to/wppolandcom/a-read-only-mcp-server-for-woocommerce-what-ai-agents-actually-need-from-a-store-3fk6",
+    "source": "DEV Community",
+    "date": "2026-07-07T09:38:47.000Z",
+    "summary": "Developers built a read-only Model Context Protocol server for WooCommerce that gives AI agents access to store data without write permissions, prioritizing safety by preventing accidental modification of prices, inventory, or orders. This design demonstrates that limiting blast radius is essential for production AI systems.",
+    "content": "Every WooCommerce integration project we take on now ends with the same question from the client: \"can the AI just check the store for me?\" What were last month's sales, which SKUs are out of stock, has order 48821 shipped. Reasonable questions. The tempting answer is to hand an agent full API access and let it figure things out. That is also how you end up with an LLM editing prices at 2am because it \"helpfully\" corrected what it thought was a typo.\nSo we built the boring version instead: woocommerce-mcp, a small Model Context Protocol server that gives Claude (or any MCP client) read access to a live WordPress + WooCommerce store, and nothing else. It is open source (MIT) and this post is about the design decisions, because the interesting part is not the code, it is what we deliberately left out.\nThe single most important line in the whole project is that there are no write tools. Not \"writes behind a confirmation,\" not \"writes gated by a flag.\" None. The server exposes five tools and all five only read:\n\n\n\nTool\nWhat it answers\n\n\n\n\nlist_products\nsearch products by name/sku, with price, stock, permalink\n\n\nget_product\nfull detail for one product\n\n\nlist_orders\nrecent orders, newest first, optional status filter\n\n\nsales_report\ntotals for a period (week / month / last_month / year)\n\n\nsearch_posts\npublished blog posts (public WP REST API, no keys)\n\n\n\nThe reasoning is blast radius. An agent that can only read cannot oversell inventory, cannot mangle a price, cannot cancel an order because it misread a prompt. When something inevitably goes sideways in the model's reasoning, the worst outcome is a wrong answer, not a wrong database. For a store owner deciding whether to point an AI at their production shop, \"it physically cannot change anything\" is the sentence that closes the conversation. You can always add a separate, explicitly-scoped write path later, with human confirmation, as its own project. Bundling it into the read tool by default is how you lose trust on day",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "WooCommerce 的只读 MCP 服务器：AI 代理实际需要什么",
+        "summary": "开发者为 WooCommerce 构建了一个只读模型上下文协议服务器，为 AI 代理提供存储数据访问权限但无写入权限，通过防止价格、库存或订单的意外修改来优先考虑安全性。这个设计证明限制爆炸范围对于生产 AI 系统至关重要。"
+      }
+    }
+  },
+  {
+    "title": "Stegachirp: Hide Messages in Audio Files Using Pure Python (No NumPy, No SciPy)",
+    "slug": "stegachirp-hide-messages-audio-files-python",
+    "url": "https://dev.to/aman_sachan_126d19c4a2773/stegachirp-hide-messages-in-audio-files-using-pure-python-no-numpy-no-scipy-52cb",
+    "source": "DEV Community",
+    "date": "2026-07-07T09:37:05.000Z",
+    "summary": "Stegachirp is a pure-Python steganography tool that hides messages in WAV files using frequency-shift keying in the 18-20 kHz range, inaudible to humans but resilient to re-encoding. The implementation uses only the standard library without scipy or numpy.",
+    "content": "Hide a Message in a WAV File With Pure Python (No NumPy, No FFT)\n\n\nI built stegachirp because I wanted to send a short secret message inside an audio file using nothing but the standard library. No numpy. No scipy. No fftpack. Just a bit of math and a WAV header.\nHere's the full story — the design choices, the math, and the implementation.\nTake a .wav file. Hide a 200-byte text message in it. The file still plays normally. Anyone with the decoder can pull the message back out. Pure Python. Zero dependencies.\nThat last constraint forced the design.\nThe bit stream has to live in audio the listener can't hear, but the encoder/decoder can. The sweet spot is 18–20 kHz:\nBelow ~16 kHz: audible to most people, especially kids and people with good hearing.\nAbove ~22 kHz: most consumer speakers roll off, and many audio formats (MP3, AAC) filter it out entirely.\n18–20 kHz: above the listener's ear, below the speaker's physical limit, in-band for any 48 kHz sample rate.\nModulation choice was easy: FSK (Frequency Shift Keying). Bit 0 = 18 kHz sine, bit 1 = 20 kHz sine. Two pure tones, no phase tricks, easy to detect.\nWhy not LSB steganography like image stego tools use? Because LSB gets destroyed the moment you re-encode the audio. Save a .wav as .mp3 and your LSB pattern is gone. FSK survives WAV-to-WAV copies, sample-rate conversion, and most audio editors.\nA bit is a window of audio samples, all the same sine wave at 18 kHz or 20 kHz:\ndef carrier_samples(bit: int, amplitude: float) -> list[float]:\n    freq = 20_000.0 if bit else 18_000.0\n    out = []\n    for n in range(BIT_SAMPLES):  # 480 samples = 10 ms @ 48 kHz\n        t = n / SAMPLE_RATE\n        out.append(amplitude * math.sin(2 * math.pi * freq * t))\n    return out\n\nThat's it. No tricks. 480 samples at 48 kHz = 10 ms per bit = 100 bits/sec.\nHere's where it gets fun. To know whether a 10 ms window is \"the 18 kHz tone\" or \"the 20 kHz tone,\" I use the Goertzel algorithm. It's a single-bin DFT — instead of computing an entir",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Stegachirp：使用纯Python在音频文件中隐藏消息（无NumPy、无SciPy）",
+        "summary": "Stegachirp是一个纯Python隐写工具，使用频率偏移键控（18-20 kHz范围）在WAV文件中隐藏消息，人类听不到但能抵御重新编码。该实现仅使用标准库，不需要scipy或numpy。"
+      }
+    }
+  },
+  {
+    "title": "Why I built an API-first e-commerce platform",
+    "slug": "why-i-built-api-first-ecommerce-platform",
+    "url": "https://dev.to/luca_at_webround/why-i-built-an-api-first-e-commerce-platform-2f3m",
+    "source": "DEV Community",
+    "date": "2026-07-07T09:33:37.000Z",
+    "summary": "Luca built Webround, an API-first e-commerce platform, after experiencing frustration with existing tools that feel constraining as projects evolve. The platform addresses common pain points in small-business e-commerce setups that often rely on outdated technology and inflexible architectures.",
+    "content": "Hi! I'm Luca, from Italy, and I've spent the last two years building Webround: an API-first e-commerce platform.\nThis is something that started as a project of mine with a totally different target: I wanted a quicker way to update my portfolio because I was completing different projects every week. After a lot of headaches, early mornings, late nights and a ton of coffee, I had what I wanted: a way to no-code my portfolio and update it as I wanted. \nBut while I was completing the project, an idea of making it a headless platform started growing: why would you keep things static and limited to portfolios? AI's already great at doing that! \nThis idea started getting more serious, to the point that I fired myself from the previous job and after waaay more coffee, late nights, early mornings and a lot of building, breaking, changing, crying, it started to take shape as the product that is today.\nWhile building the platform, I worked as a freelance dev for smaller businesses in town and I had the (very bad) privilege of seeing what they were doing with e-commerce platforms, website management, hosting and more. Nothing ever made any sense because every set-up started from a mix of old technology, forgotten stuff, weird hosting providers, on-premise setups, big ahh monoliths, hacked servers, random throwing errors systems and much more ugly stuff.\nI never tried to force Webround into making sense. I've always wanted to be free (in general in my life) and as a developer, the fact that other platforms started feeling as a constraint rather than a tool when things started evolving, was throwing me off.\nAfter working with other popular platforms, I realized that today's landscape is almost never about making things easier, rather about making users dependent on the platform so it's harder to go away.\nBefore answering this question, we have to take a look at two examples.\nShopify: this is arguably the best go-to platform for immediate satisfaction. But you're not buying a webs",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我为什么构建了API优先的电子商务平台",
+        "summary": "Luca在经历了现有工具随着项目发展而变得受限的挫折后，构建了Webround，一个API优先的电子商务平台。该平台解决了小型企业电子商务设置中的常见痛点，这些设置通常依赖过时的技术和不灵活的架构。"
+      }
+    }
+  },
+  {
+    "title": "LLM Policy as Code: Version-Controlled Governance for Model and Agent Access",
+    "slug": "llm-policy-as-code-version-controlled-governance",
+    "url": "https://dev.to/dvarahq/llm-policy-as-code-version-controlled-governance-for-model-and-agent-access-50fl",
+    "source": "DEV Community",
+    "date": "2026-07-07T09:32:44.000Z",
+    "summary": "LLM policy as code moves AI governance rules from scattered application code into a centralized, declarative, version-controlled format enforced at a gateway, enabling teams to review, test, audit, and roll back model access policies. This addresses critical gaps where policies are unauditable and scattered across codebases.",
+    "content": "Ask a team \"which models is your application allowed to call, and under what conditions?\" and the honest answer is usually \"let me check the code.\" The rules — which models are approved, which tools an agent may invoke, what happens when a request is too large or comes from the wrong region — are scattered across if statements in a dozen services. No one can review them in one place, no one can test a change safely, and no one can say what a rule would have done before it ships.\nLLM policy as code fixes that the same way infrastructure as code fixed server configuration: move the rules out of application code and into a declarative, version-controlled language that a single control point enforces on every call.\nLLM policy as code is the practice of expressing your governance rules — who can call which models and tools, under which conditions — in a declarative, version-controlled format, and enforcing them centrally at a gateway on every LLM and agent (MCP) request, instead of hard-coding them in each application.\nIt's the same idea behind Terraform for infrastructure, Open Policy Agent for authorization, and Kubernetes admission control for clusters: the policy is a reviewable artifact, not tribal knowledge. The difference is the domain — an LLM policy matches on AI-native attributes (model, token budget, requested tools, data-residency region) that a general-purpose API gateway or IAM system can't see.\nRules embedded in app code have four problems, and they compound:\nYou can't review them. \"What's allowed?\" has no single answer — you'd have to read every repo that calls a model.\nYou can't test them. Changing a rule means a deploy and hoping nothing breaks.\nYou can't roll them back. A bad rule is another deploy to undo, under pressure, with no record of the previous state.\nYou can't audit them. There's no trail of who changed which rule, when, or what decision it produced.\nPolicy as code turns all four from \"read the source\" into \"read the policy\" — a diffable, tes",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "LLM策略即代码：模型和代理访问的版本控制治理",
+        "summary": "LLM策略即代码将AI治理规则从分散的应用代码转移到一个集中的、声明式的、版本控制的格式中，由网关强制执行，使团队能够审查、测试、审计和回滚模型访问策略。这解决了策略无法审计且分散在各个代码库中的关键问题。"
+      }
+    }
+  },
+  {
+    "title": "Flutter Core Widgets — Part 1",
+    "slug": "flutter-core-widgets-part-1",
+    "url": "https://dev.to/gochev/flutter-core-widgets-part-1-4pdh",
+    "source": "DEV Community",
+    "date": "2026-07-07T09:25:07.000Z",
+    "summary": "A reference guide to Flutter's most-used widgets organized by category, featuring code examples and descriptions of how each widget renders on screen. Each entry includes runnable code snippets and visual output descriptions since Flutter renders natively.",
+    "content": "Flutter Core Widgets — Part 1\n\n\nA reference guide to the ~50 most-used Flutter widgets, grouped by category. Each entry includes a short description, a runnable code snippet, and a text description of how it renders on screen (since Flutter renders natively, this doc describes the visual output rather than embedding a screenshot).\n**NOTE: if you are using \"Open in DartPad\" do not foreget to hit RUN and give it time to load, it takes about 10-15 seconds to load.\nBasic Widgets\nLayout Widgets\nScrolling & Lists\nButtons\nInput & Forms\nStructural / Material\nFeedback & Overlays\nNavigation\nDisplays a string of styled text.\nText(\n  'Hello, Flutter!',\n  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue),\n)\n\n▶ Open in DartPad\nHow it looks: A single line reading \"Hello, Flutter!\" in large, bold, blue lettering. No border or background — just the rendered glyphs.\nDisplays text with multiple styles in one block, via TextSpan children.\nRichText(\n  text: TextSpan(\n    text: 'Hello ',\n    style: TextStyle(color: Colors.black, fontSize: 20),\n    children: [\n      TextSpan(text: 'bold', style: TextStyle(fontWeight: FontWeight.bold)),\n      TextSpan(text: ' world', style: TextStyle(fontStyle: FontStyle.italic)),\n    ],\n  ),\n)\n\n▶ Open in DartPad\nHow it looks: One continuous line — \"Hello bold world\" — where each segment has a different style, but they all flow together as a single sentence.\nDisplays an image from assets, network, memory, or file.\nImage.network(\n  'https://picsum.photos/200',\n  width: 200,\n  height: 200,\n  fit: BoxFit.cover,\n)\n\n▶ Open in DartPad\nHow it looks: A 200×200 pixel square photo, cropped to fill that box exactly (no distortion, edges may be cropped).\nDisplays a glyph from an icon font (usually Material Icons).\nIcon(Icons.favorite, color: Colors.red, size: 48)\n\n▶ Open in DartPad\nHow it looks: A solid red heart shape, 48 logical pixels tall, centered in its own bounding box.\nA general-purpose box for padding, margin, decoration, alignme",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Flutter 核心小部件 — 第 1 部分",
+        "summary": "一份 Flutter 最常用小部件的参考指南，按类别整理，包含代码示例和每个小部件如何在屏幕上呈现的描述。每个条目包含可运行的代码片段和视觉输出描述，因为 Flutter 本地呈现。"
+      }
+    }
+  },
+  {
+    "title": "Your AI API fallback is hiding your real bill",
+    "slug": "ai-api-fallback-hiding-real-bill",
+    "url": "https://dev.to/edward_li_71f26791eac62b8/your-ai-api-fallback-is-hiding-your-real-bill-jj6",
+    "source": "DEV Community",
+    "date": "2026-07-07T09:22:58.000Z",
+    "summary": "Teams using AI API fallbacks often hide their true costs by not tracking which route actually served each request, leading to inflated bills from retries and model switches. Every request should produce a detailed receipt showing the requested model, actual route, token counts, and charges.",
+    "content": "Fallbacks make AI products feel safer. They can also make the bill harder to explain.\nA typical production setup no longer sends one request to one model and stops. It may try a preferred model, retry after a timeout, move to a backup route, shorten context, call a smaller model for classification, then call a larger model for the final answer.\nThat is often the right engineering choice. The problem starts when the team only watches the first model name or the final HTTP status.\nIf a user action triggers three attempts, the expensive part may not be the model you intended to use. It may be the fallback path you forgot to measure.\nHere is the pattern I keep seeing in AI API integrations:\nThe app requests a model that looks cheap enough on a pricing page.\nA timeout, rate limit, or model mismatch triggers retry or fallback behavior.\nThe final response succeeds, so the product path looks healthy.\nNobody checks which route actually served the request.\nThe bill grows, but the dashboard still tells a vague story.\nThe dangerous part is not fallback itself. Fallback is useful. The dangerous part is treating fallback like invisible plumbing.\nFor a production AI feature, every successful request should leave a receipt.\nA useful request receipt does not need to be complicated. It should answer a few boring questions clearly:\nWhat model did the application ask for?\nWhich model or route actually served the request?\nDid the request retry, fail over, or change route?\nHow many input and output tokens were counted?\nWhat was charged for this request?\nHow long did it take?\nWhich project key, user segment, or feature produced it?\nWithout those fields, cost optimization turns into guesswork. Teams compare headline token prices while retries, fallback chains, long context, and agent loops quietly shape the real bill.\nA final HTTP 200 only says the transport path completed. It does not prove the request used the route you expected, stayed inside the budget you expected, or produced a usefu",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的 AI API 回退隐藏了你的真实账单",
+        "summary": "使用 AI API 回退的团队通常不追踪哪个路由实际处理了每个请求，从而隐藏了真实成本，导致由于重试和模型切换而产生膨胀的账单。每个请求都应该生成一份详细的收据，显示请求的模型、实际路由、令牌计数和费用。"
+      }
+    }
+  },
+  {
+    "title": "Using Azure Policy to prevent unscoped blob lifecycle rules",
+    "slug": "azure-policy-prevent-unscoped-blob-lifecycle",
+    "url": "https://dev.to/evdbogaard/using-azure-policy-to-prevent-unscoped-blob-lifecycle-rules-35l5",
+    "source": "DEV Community",
+    "date": "2026-07-07T09:17:14.000Z",
+    "summary": "Azure Blob Storage lifecycle rules without filters apply globally to an entire storage account, risking unintended bulk deletion or transitions. Azure Policy can enforce a guardrail requiring filters on lifecycle rules before creation, shifting prevention from review-time to enforcement-time.",
+    "content": "Azure Blob Storage lifecycle management is a nice way to move blobs between tiers or delete them after a certain amount of time. You configure the rule once and Azure takes care of the rest. The part that can be easy to miss is that a rule without filters applies to everything in the storage account.\nThat can be fine when you really do want a global rule, but most of the time it is risky. A missing prefixMatch or blobIndexMatch can suddenly transition or delete far more blobs than intended. In production you probably have reviews and deployment checks in place, but in lower environments it is still easy for someone to push a bad change and create a mess that takes time to clean up.\nI ran into this while working with lifecycle rules for automatic cleanup. In another post I wrote about Automatically deleting blobs in Azure Blob Storage, where I explain how lifecycle rules can be useful for targeted cleanup. This post is about the other side of that story: how to prevent overly broad rules from being created in the first place.\nThe problem is not lifecycle management itself. The problem is that the safest option is not the default one. If you forget to add a filter, Azure will happily accept a rule that targets every blob in the account.\nUsing infrastructure as code already reduces that risk a lot. A Bicep change in a pull request is much easier to review than a manual change in the portal. Still, that only helps if every change goes through the same path. In shared dev or test subscriptions people sometimes need to move fast, and that is usually where these kinds of mistakes slip in.\nWhat I wanted was a guardrail that simply refuses lifecycle rules when no filters are defined.\nAzure Policy is a good fit for this. The policy definition describes which resources it applies to and what condition should be checked. After that you assign the policy at management group, subscription, resource group, or individual resource scope.\nIn the example below the policy targets Micro",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用 Azure 策略防止无范围的 Blob 生命周期规则",
+        "summary": "Azure Blob 存储生命周期规则如果没有过滤器，将应用于整个存储账户，存在意外批量删除或转换的风险。Azure 策略可以强制实施一个护栏，要求在创建前在生命周期规则上添加过滤器，从审查时转移到强制执行层面的防止机制。"
+      }
+    }
+  },
+  {
+    "title": "Claude Code for Backup Automation: How I Stopped Trusting Backups I Had Never Actually Restored",
+    "slug": "claude-code-backup-automation-restore-verification",
+    "url": "https://dev.to/nextools/claude-code-for-backup-automation-how-i-stopped-trusting-backups-i-had-never-actually-restored-3m83",
+    "source": "DEV Community",
+    "date": "2026-07-07T09:13:46.000Z",
+    "summary": "A backup job's success indicator only measures whether the job ran, not whether the backup can be restored—a critical gap often invisible until disaster. Claude Code can automate restore verification as a routine step after each backup, converting it from a rare drill to an automated, auditable workflow.",
+    "content": "For most of my career I had backups I had never restored. The backup job ran every night. The green checkmark appeared every morning. The storage bucket filled up with files that had the right names and roughly the right sizes. I looked at all of that and told myself the data was safe. What I never did was take one of those files, restore it into a clean database, and confirm that the result was a working copy of production. I trusted the checkmark, and the checkmark was measuring the wrong thing.\nThe checkmark was measuring whether the backup job ran, not whether the backup could be restored. Those are completely different questions, and the gap between them is where disaster lives. A backup job can run perfectly every night for a year and produce a year of files that cannot be restored, because of a subtle format change, a missing table, a permissions issue in the restore path, or an encryption key that no longer exists. The only way to know a backup works is to restore it, and almost nobody restores their backups until the day they have no choice.\nClaude Code let me close that gap by making restore verification a routine, automated part of the backup workflow rather than a heroic effort that happens once a year during a disaster recovery drill, if it happens at all. The backups are still taken by the usual tools. What changed is that every backup is now proven restorable shortly after it is taken, and the proof is captured as evidence rather than assumed. Here is the workflow.\nThe green checkmark on a backup job is one of the most dangerous signals in operations, because it produces confidence without producing safety. It tells you the job finished. It tells you nothing about whether the output is usable. And the difference between those two things is invisible until the worst possible moment.\nThe reason the checkmark lies is that a backup is only half of a system. The other half is the restore, and the restore is the half that almost never gets exercised. Teams",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "用Claude Code实现备份自动化：如何停止信任从未真正恢复过的备份",
+        "summary": "备份任务的成功指标只衡量备份作业是否运行，而不衡量备份是否可以恢复——这是一个关键的漏洞，直到灾难发生才会显露。Claude Code可以将恢复验证自动化为每次备份后的常规步骤，将其从罕见的演练转变为自动化、可审计的工作流。"
+      }
+    }
+  },
+  {
+    "title": "What does electricity have to do with knowledge graphs?",
+    "slug": "what-does-electricity-have-to-do-with-knowledge-graphs",
+    "url": "https://dev.to/coldoven/what-does-electricity-have-to-do-with-knowledge-graphs-3kgd",
+    "source": "DEV Community",
+    "date": "2026-07-07T09:12:59.000Z",
+    "summary": "Knowledge graphs can produce confident wrong answers when edges violate domain constraints. Loading an ontology as code and validating each traversal hop against declared domain and range types prevents semantic nonsense while preserving structural validity.",
+    "content": "Christopher Nolan? Crime? Not really... But this is what my first tries for a knowledge graph did. \nIt wasn't hallucinating. There was a real directed_by edge leaving a node called \"Crime,\" and a plain traversal did exactly what traversals do: it followed the edge and handed back a confident, wrong answer. Every node existed. Every edge existed. The graph was structurally perfect and semantically nonsense.\nHere's the thing that fixed it, and the surprise that came with it.\nYou probably have an ontology somewhere. It's usually a picture: a boxes-and-arrowsdiagram, a wiki page, a PDF nobody opens. Mine is a YAML file the code actually loads:\nnamespace: movie\n\nrelationships:\n  directed_by:\n    domain: Movie\n    range: Person\n  has_genre:\n    domain: Movie\n    range: Genre\n\ndomain = the type an edge is allowed to leave. range = the type it's allowed to reach. directed_by goes Movie -> Person. That's the whole declaration. Everything below runs off it.\nThe Nolan bug is a domain violation: directed_by left a Genre node instead of a Movie. You can't catch it by looking at the edge, because the edge is genuinely there. So you check each hop against the declaration before you follow it:\nfrom open_kgo.feature_groups.kg.ontology.registry import OntologyRegistry\n\nOntologyRegistry.load_file(\"metaqa_ontology.yaml\")\n\ndef traverse(g, start, relationship, namespace):\n    entity_type = g.nodes[start].get(\"type\", \"Unknown\")\n    if not OntologyRegistry.is_valid_edge(namespace, entity_type, relationship):\n        raise ValueError(\n            f\"Ontology violation: '{relationship}' is not valid from \"\n            f\"entity type '{entity_type}' in namespace '{namespace}'.\"\n        )\n    expected_range = OntologyRegistry.get_range_type(namespace, relationship)\n    results = []\n    for _, target, data in g.out_edges(start, data=True):\n        if data.get(\"relation\") != relationship:\n            continue\n        target_type = g.nodes[target].get(\"type\", \"Unknown\")\n        if expected_range is",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "电力与知识图谱有什么关系？",
+        "summary": "当边违反领域约束时，知识图谱可能会产生自信的错误答案。将本体加载为代码并根据已声明的领域和范围类型验证每个遍历跳跃可以防止语义混乱，同时保持结构有效性。"
+      }
+    }
+  },
+  {
+    "title": "Adding GPU backends to a pure-C TTS engine: Metal, CUDA, and the rented-Mac trick",
+    "slug": "gpu-backends-pure-c-tts-metal-cuda",
+    "url": "https://dev.to/gabrielemastrapasqua/adding-gpu-backends-to-a-pure-c-tts-engine-metal-cuda-and-the-rented-mac-trick-16hh",
+    "source": "DEV Community",
+    "date": "2026-07-07T09:08:58.000Z",
+    "summary": "A pure-C text-to-speech engine achieved significant GPU acceleration on Apple Metal and NVIDIA CUDA by keeping weights and activations resident on GPU rather than offloading individual operations. The approach enables real-time speech synthesis with processing times under real-time on consumer hardware.",
+    "content": "Part of qwen3-tts — a pure C inference engine for Qwen3-TTS.\nThe engine is pure C and CPU by default. We added two opt-in GPU backends that leave the CPU path untouched:\nApple Metal (make metal) — 0.6B model RTF 1.5 → 0.60 on an M1, 0.36 on an M2 Pro; streaming first-audio in 314 ms.\nNVIDIA CUDA (make cuda) — 1.7B model RTF 0.44 on a ~270 GB/s GPU (RTX 4060-class), scaling to ~0.12 on a 4090.\nServer request-batching on both (plus CPU): ~2.8× throughput on Metal, ~3.35× on CUDA — serving N concurrent users in roughly the time of one.\nAnd two optimizations that looked obvious and that we measured and threw away (ICB and MMA). More on that at the end — it's the most useful part.\nRTF = processing time ÷ audio duration. < 1.0 = faster than real time.\nThe naive way to \"use the GPU\" is to offload one operation at a time — send the activation over, run a matmul, copy the result back. For a model that runs 16 sequential Code-Predictor passes per audio frame plus a 28-layer Talker step per token, that's death by a thousand PCIe/round-trip cuts. We measured it: per-op offload was slower than the CPU.\nThe fix is the same on both backends: make the whole step resident. Weights, KV cache, and activations live on the device. A full decode step is encoded into one command buffer / one kernel graph, committed once, waited on once. The CPU orchestrates; it never babysits individual matmuls.\nOn CUDA that's resident weights + CUDA Graphs + cuBLAS for the pointwise convs.\nOn Metal that's MTLBuffers cached by pointer + one MTLCommandBuffer per step + simdgroup matvec kernels.\nThe biggest single win on Metal came from the Code Predictor. It was sync-round-trip-bound — 16 waits per frame. Moving the whole 16-pass RVQ loop (embed → 5 transformer layers → argmax, ×16) onto the device as one command buffer with one sync/frame took 0.6B from RTF 1.36 → 0.89. Direct kernel fusions (per-head RMSNorm+RoPE, residual-add+norm) took it to 0.72, and int4 weights to 0.60 — the practical floor on an M1",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为纯C文本转语音引擎添加GPU后端：Metal、CUDA和租赁Mac技巧",
+        "summary": "一个纯C文本转语音引擎通过将权重和激活保留在GPU上而不是卸载单个操作，在Apple Metal和NVIDIA CUDA上实现了显著的GPU加速。该方法在消费者硬件上实现实时语音合成，处理时间低于实时要求。"
+      }
+    }
+  },
+  {
     "title": "Linux Package Management Explained Simply (apt, dnf, yum & rpm)",
     "slug": "linux-package-management-explained",
     "url": "https://dev.to/sreekanth_kuruba_91721e5d/linux-package-management-explained-simply-apt-dnf-yum-rpm-11gn",
@@ -188,6 +380,22 @@
       "zh": {
         "title": "无保险的中间地带内部：运维人员对AI代理运营风险的看法",
         "summary": "对AI代理系统中新兴运营风险的分析，这些风险是非对抗性的(没有攻击者)、跨系统相关的、无声的(没有警报)。作者描述了发现34个已发布的功能无声失败，未能触发仪表板或警报，突出了传统安全和保险模式所未能应对的风险类别。"
+      }
+    }
+  },
+  {
+    "title": "How to sequence your own DNA at home",
+    "slug": "how-to-sequence-your-own-dna-at-home",
+    "url": "https://bradleywoolf.com/links-1/sequencing-my-own-dna-at-home",
+    "source": "Hacker News",
+    "date": "2026-07-07T00:14:21.000Z",
+    "summary": "Bradley Woolf documents the process of sequencing personal DNA at home using accessible tools and techniques, providing insight into democratizing genomic analysis beyond laboratory settings. The post has generated significant discussion about personal genomics and at-home science projects.",
+    "content": "Article URL: https://bradleywoolf.com/links-1/sequencing-my-own-dna-at-home\nComments URL: https://news.ycombinator.com/item?id=48812156\nPoints: 206\n# Comments: 73",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何在家进行自己的DNA测序",
+        "summary": "Bradley Woolf记录了在家使用易得的工具和技术进行个人DNA测序的过程，提供了关于在实验室之外民主化基因组分析的见解。这篇文章引发了关于个人基因组学和家庭科学项目的重要讨论。"
       }
     }
   }
