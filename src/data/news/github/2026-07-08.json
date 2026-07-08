@@ -1,0 +1,194 @@
+[
+  {
+    "title": "Stop validating emails with regex: here's what to do instead",
+    "slug": "stop-validating-emails-with-regex",
+    "url": "https://dev.to/choi_changhwan_a8cf9f164f/stop-validating-emails-with-regex-heres-what-to-do-instead-45ci",
+    "source": "DEV Community",
+    "date": "2026-07-08T02:40:36.000Z",
+    "summary": "Most email regex patterns fail to catch invalid addresses, disposable emails, and typos while incorrectly validating obviously wrong formats. A layered validation approach combining syntax checks, disposable email detection, typo suggestions, and MX record verification provides more reliable email validation that improves signup conversion and email deliverability.",
+    "content": "Almost every codebase I've touched has some version of this line:\nconst ok = /^[^@]+@[^@]+\\.[^@]+$/.test(email);\n\nIt feels like email validation. It isn't. Here's what that regex actually misses, and a more honest way to check an address before you trust it.\nshape, not reality\n\n\na@a.a passes most regexes. So does test@mailinator.com (a disposable address) and ceo@yourcompany.com typed as ceo@yourcompnay.com. Your regex says \"valid\" to all three. Your signup funnel, your transactional email, and your deliverability rate disagree.\nThe full RFC 5322 grammar for a valid address is famously monstrous, and even the correct version tells you nothing about whether mail will actually arrive.\nInstead of one regex, think in layers, cheapest first:\nSyntax — a sane subset, not the full RFC. Catch the obvious garbage.\nDisposable / role detection — is the domain a throwaway (mailinator.com, 10minutemail) or a role inbox (admin@, support@)? These wreck your engagement metrics.\nTypo suggestions — gmial.com to gmail.com, yaho.com to yahoo.com. One of the highest-ROI fixes for signup conversion.\nMX / deliverability — does the domain actually publish mail servers (MX records)? If there's no MX, nothing you send can ever land.\nThat last one is the step people skip, because it needs a DNS lookup rather than a string test.\nIn Node you can do it yourself:\nimport { promises as dns } from 'node:dns';\n\nasync function hasMx(domain) {\n  try {\n    const records = await dns.resolveMx(domain);\n    return records.length > 0;\n  } catch {\n    return false;\n  }\n}\n\nThat's the core idea. In a browser or edge function you don't have raw DNS, so you'd hit a small endpoint that does the lookup for you.\nI got tired of re-implementing these four layers, so I put them behind one free GET call. Sharing in case it saves you the same afternoon:\nGET https://verify-api.cchkjjdobby.workers.dev/email?email=test@mailinator.com\n\n{\n  \"domain\": \"mailinator.com\",\n  \"is_disposable\": true,\n  \"has_mx\": true,\n  \"status\": \"di",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "停止使用正则表达式验证电子邮件：这是更好的方法",
+        "summary": "大多数电子邮件正则表达式无法捕获无效地址、临时电子邮件和打字错误，同时还错误地验证显然是错误的格式。结合语法检查、临时电子邮件检测、拼写建议和MX记录验证的分层验证方法提供了更可靠的电子邮件验证，可以改进注册转换率和电子邮件可传递性。"
+      }
+    }
+  },
+  {
+    "title": "HTTP QUERY Is Here — And Your Infrastructure Isn't Ready For It",
+    "slug": "http-query-infrastructure-not-ready",
+    "url": "https://dev.to/notme36912/http-query-is-here-and-your-infrastructure-isnt-ready-for-it-43ge",
+    "source": "DEV Community",
+    "date": "2026-07-08T02:39:02.000Z",
+    "summary": "The IETF standardized HTTP QUERY in June 2026, introducing the first new HTTP method since 2010 to enable safe, idempotent, cacheable requests with bodies. CDNs and infrastructure providers must implement body-aware cache-key logic for proper QUERY support, which current implementations like Cloudflare lack, creating engineering work before production deployment.",
+    "content": "HTTP QUERY Is Here — And Your Infrastructure Isn't Ready For It\n\n\nIn June 2026, the IETF published RFC 10008, standardizing a new HTTP method: QUERY. It's the first new standard HTTP method since PATCH in 2010, and it fixes a compromise developers have lived with for 16+ years: how do you send a large, structured, read-only request without abusing POST?\nQUERY combines:\nSafe — no state change on the server\nIdempotent — repeat it, get the same result\nCacheable — like GET\nHas a request body — like POST\n\n\n\n\nQUERY /orders HTTP/1.1\nHost: api.example.com\nContent-Type: application/json\nAccept: application/json\n\n{\n  \"status\": \"active\",\n  \"filters\": { \"region\": \"eu\", \"amount_gt\": 500 }\n}\n\nNotably, Cloudflare and Akamai engineers co-authored the RFC alongside Julian Reschke — a strong signal that edge/CDN support is coming faster than framework support.\nBelow: the three questions actually worth debating right now.\nWith GET, the cache key is just the URL. With QUERY, the cache key must incorporate the request body, since the \"identity\" of the request now lives partly in the payload.\nThis creates real engineering work for caching layers:\nThe proxy/CDN must buffer the body before it can even compute a cache key\nIt must hash the body alongside the URI\nIt should ideally normalize semantically-identical payloads (e.g., whitespace or key-order differences in JSON) so equivalent queries hit the same cache entry — otherwise cache hit rates collapse\nThis isn't hypothetical difficulty — it's exactly the gap that exists in current CDN cache-key implementations today. Cloudflare Workers' cache key, for example, is built from path and query string; request bodies do not currently partition the cache because only GET/HEAD are cacheable in existing implementations. QUERY breaks that assumption entirely, and CDNs will need dedicated logic before QUERY caching is trustworthy in production.\nBottom line: QUERY can be cached correctly per spec, but until CDNs ship QUERY-aware cache-key logic, trea",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "HTTP QUERY来了——你的基础设施还没准备好",
+        "summary": "IETF在2026年6月标准化了HTTP QUERY，这是自2010年以来首个新的HTTP方法，用于实现带有请求体的安全、幂等、可缓存请求。CDN和基础设施提供商必须实现体感知的缓存键逻辑来正确支持QUERY，而当前的实现（如Cloudflare）缺乏此功能，这在生产部署前会产生工程工作。"
+      }
+    }
+  },
+  {
+    "title": "I Thought I Was Writing a Resumé. Instead, I Read My Story.",
+    "slug": "thought-writing-resume-read-my-story",
+    "url": "https://dev.to/dexxtorrrr/i-thought-i-was-writing-a-resume-instead-i-read-my-story-aoo",
+    "source": "DEV Community",
+    "date": "2026-07-08T02:35:37.000Z",
+    "summary": "A personal reflection on preparing a job application that became recognition of cumulative growth through volunteer work, event organizing, and mentoring across diverse roles. The piece illustrates that meaningful career development emerges from consistent small commitments rather than single breakthrough moments.",
+    "content": "One thing I didn't expect while preparing my application was this:\nI had to read my own story.\nNot the version I tell people in conversations—but the one written across certificates, employment records, volunteer work, event photos, recommendation letters, and countless project documents.\nAt first, I thought I was just updating a résumé.\nInstead, I found myself remembering.\nThe late nights setting up venues before everyone arrived.\nThe countless pubmats that had to be finished before sunrise.\nThe trainings, startup programs, immersion activities, logistics, technical support, and creative work that happened quietly behind the scenes.\nThe volunteer work that never came with a paycheck but somehow became some of the most valuable experiences I've had.\nThe people I met because I simply kept saying \"yes\" to opportunities.\nIt's funny how we often measure ourselves only by what's next.\nWe forget that we've already come a long way.\nFor the longest time, I thought I was \"just\" an IT person.\nBut looking back, I've realized I've also become a project coordinator, event organizer, designer, problem solver, volunteer, startup ecosystem builder, and someone trusted to make things happen when they need to happen.\nPreparing an application wasn't just about proving I was qualified.\nIt became a reminder that growth rarely happens in one big moment.\nIt happens through hundreds of small decisions:\nshowing up,\nlearning something new,\nhelping where you can,\nand saying yes even when you're unsure you're ready.\nWhether this application leads to the next chapter or not, I'm grateful for what it reminded me:\nSometimes the biggest achievement isn't getting the position.\nIt's realizing you've already become the person you were working so hard to be.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我以为我在写简历。结果我读到了我的故事。",
+        "summary": "一篇关于准备求职申请的个人反思，它演变成了对通过志愿工作、活动组织和在不同角色中的指导所实现的累积成长的认可。这篇文章说明了有意义的职业发展来自于持续的小承诺，而不是单一的突破时刻。"
+      }
+    }
+  },
+  {
+    "title": "Write Loops, Not Prompts: Why AI Agents Work Better When They Iterate",
+    "slug": "write-loops-not-prompts-ai-agents",
+    "url": "https://dev.to/mininglamp/write-loops-not-prompts-why-ai-agents-work-better-when-they-iterate-o0l",
+    "source": "DEV Community",
+    "date": "2026-07-08T02:24:34.000Z",
+    "summary": "Agent loops that iteratively call tools and feed results back into context enable complex multi-step tasks with quality checks and error correction far better than single-prompt interactions. This iterative approach, validated by OpenAI and demonstrated in open-source implementations, handles task refinement and error recovery that one-shot prompting cannot achieve.",
+    "content": "Most people using LLMs are still stuck in prompt mode. You craft a careful instruction, send it off, get something back, tweak the wording, try again. It works for single-shot questions but falls apart the moment you need anything that involves multiple steps, quality checks, or batch work.\nBack in January OpenAI published a technical post called \"Unrolling the Codex agent loop\" where they broke down how Codex CLI actually works internally. The core concept is what they call the agent loop. The model receives input, runs inference, and either returns a final answer or requests a tool call. If it requests a tool call, the agent executes it, appends the result back into the prompt, and loops back to inference. This repeats until the model signals it's done.\nA few months earlier Philip Zeyliger at Sketch.dev wrote \"The Unreasonable Effectiveness of an LLM Agent Loop with Tool Use,\" a post that hit 447 points on Hacker News. His core implementation was 9 lines of Python. A while loop. Call the LLM, if it returns tool calls execute them and feed results back in, if it returns text you're done. Zeyliger described being genuinely surprised at how much mileage he got out of this simple structure. Tasks he used to handle manually, obscure git operations, merge conflict resolution, type error chains, he now lets the agent work through iteratively.\nThe difference between prompting and looping is fundamental. A prompt is a single exchange. You say something, the model replies, end of story. A loop is a structured process where the model keeps working, each tool call result gets appended to its context, and it reasons over progressively richer information until the job is actually done. In OpenAI's post they note that a single conversation turn can involve hundreds of tool calls, each one adding new information to the prompt for the next inference step.\nLoops solve problems that single prompts can't touch because they give the model room to be wrong and correct itself. It doesn'",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "写循环而不是提示词：为什么AI代理在迭代时工作更好",
+        "summary": "代理循环通过迭代调用工具并将结果反馈到上下文中，能够比单次提示交互更好地实现复杂的多步任务，包括质量检查和错误纠正。这种由OpenAI验证并在开源实现中演示的迭代方法，可以处理任务细化和错误恢复，这是单次提示无法实现的。"
+      }
+    }
+  },
+  {
+    "title": "We'll Certify the First 3 External x402 Agent Operators. Free.",
+    "slug": "certify-first-3-external-x402-agents",
+    "url": "https://dev.to/levelsofself/well-certify-the-first-3-external-x402-agent-operators-free-3oa0",
+    "source": "DEV Community",
+    "date": "2026-07-08T02:19:24.000Z",
+    "summary": "A Certified Agent Standard v0.1 establishes five requirements for accountable AI agents using probe-based behavioral testing, offering free certification to the first three external operators. The initiative addresses a trust gap where endpoint reliability scores say nothing about how agents are actually governed or whether they fail safely.",
+    "content": "Last week we published the Certified Agent Standard v0.1 - five requirements for accountable AI agents - and then did something uncomfortable: we ran our own agents against it and published the failures. Two of three failed the first round. We fixed what the probes exposed, re-ran them, and today three certificates are live on our public registry, each backed by live behavioral probes, not paperwork.\nNow we want to certify agents we don't control.\nThe gap this fills: the x402 ecosystem has gotten serious about endpoint trust. Probe services score whether your API answers, how fast, and whether the price is honest. That's necessary and good. But it answers only half the trust question. An endpoint badge tells a buyer your service responds. It says nothing about how the agent behind it is operated: whether it has a declared scope, whether its actions leave a tamper-evident trail, whether there's a human accountable for it, whether it fails safely.\nThat's what the Certified Agent Standard covers. Five requirements: declared scope, mechanical guardrails, tamper-evident audit trail, named accountable operator, and verified fail-safe behavior. Certification is probe-based - we test the agent's actual behavior against its declared scope, and the certificate is revocable if a re-probe fails.\nThe offer: the first 3 external x402 operators (or any production agent operators) get certified free. You get a numbered certificate on the public registry, the probe results, and a badge you can point buyers at. We get the case studies that prove the standard works outside our own walls. After the first 3, certification becomes a paid service.\nWho this is for: you run an agent that spends or earns real money - an x402 seller, an autonomous buyer, a trading agent, an ops agent with production access - and you want to be able to show a customer, a partner, or a compliance reviewer that it's governed by something more mechanical than vibes.\nHow to claim a slot: email ArtPalyan@LevelsOfSe",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我们将免费认证前3个外部x402代理运营商",
+        "summary": "认证代理标准v0.1建立了五项要求，用于通过基于探针的行为测试来实现负责任的AI代理，向前三个外部运营商提供免费认证。该倡议解决了一个信任缺口，其中端点可靠性评分无法说明代理实际如何管理或是否能够安全地失败。"
+      }
+    }
+  },
+  {
+    "title": "O que é uma rede e como a Internet funciona?",
+    "slug": "rede-internet-funciona-network-explained",
+    "url": "https://dev.to/lucassfernando/o-que-e-uma-rede-e-como-a-internet-funciona-4f0m",
+    "source": "DEV Community",
+    "date": "2026-07-08T02:16:32.000Z",
+    "summary": "Using an analogy of friends mailing letters across cities, the article explains computer networks through IP addresses and data packets as postal delivery at massive scale. The foundational explanation makes networking concepts accessible through relatable real-world comparison.",
+    "content": "Imagine três amigos: Lucas, Jhonatan e Natalia.\nCada um deles mora em uma cidade diferente, mas isso nunca foi um problema para manter a amizade. Como eles gostam de conversar, decidiram se comunicar por meio de cartas.\nSempre que um deles deseja enviar uma mensagem para outro, basta escrever uma carta, informar quem é o destinatário e escrever o endereço correto.\nPor exemplo, quando o Lucas deseja enviar uma mensagem para o Jhonatan, ele escreve a carta, coloca o endereço da casa do Jhonatan e entrega tudo aos Correios.\nDa mesma forma, quando a Natalia quer enviar uma mensagem para o Lucas, ela faz exatamente o mesmo processo: escreve a carta, informa o endereço do Lucas e a envia.\nNesse cenário, podemos perceber duas coisas importantes:\nCada pessoa possui um endereço único.\n\n\nA carta precisa conter o endereço correto para chegar ao destino.\n\n\n\nÉ exatamente assim que uma rede de computadores funciona.\nNa Internet, os computadores também possuem um endereço, chamado Endereço IP. Em vez de cartas, eles enviam pequenas partes de informação chamadas pacotes de dados.\nCada pacote contém informações sobre quem enviou e para quem deve ser entregue. Os equipamentos da rede analisam esse endereço e encaminham o pacote até que ele chegue ao computador correto.\nEm outras palavras, a Internet é como um enorme sistema de entrega de cartas, só que milhões de vezes mais rápido.\nAgora que entendemos a história, vamos relacionar cada elemento com o mundo da tecnologia.\nNa nossa analogia, cada casa representa um computador conectado a uma rede.\nAssim como cada pessoa mora em uma casa, cada computador ocupa um lugar dentro da rede e pode se comunicar com outros computadores.\nNa nossa analogia, o endereço da casa representa o Endereço IP de um computador.\nAssim como uma casa precisa de um endereço para que uma carta chegue ao destino correto, um computador também precisa de um endereço para que os dados enviados pela rede cheguem até ele.\nEsse endereço é chamado de Endereço IP (Intern",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "什么是网络以及互联网如何运作？",
+        "summary": "文章通过朋友们在城市间寄信的比喻来解释计算机网络，将IP地址和数据包解释为大规模的邮件传递。这个基础性的解释通过可关联的现实世界比较使网络概念易于理解。"
+      }
+    }
+  },
+  {
+    "title": "AI Builders Do Not Need More Cold Outreach. They Need Private Introductions.",
+    "slug": "ai-builders-need-private-introductions",
+    "url": "https://dev.to/usepairoa/ai-builders-do-not-need-more-cold-outreach-they-need-private-introductions-1pbo",
+    "source": "DEV Community",
+    "date": "2026-07-08T02:15:12.000Z",
+    "summary": "Early AI product builders struggle not with development but finding the right people—early users, design partners, cofounders—which cold outreach handles poorly when specific criteria matter. Private introductions matched to particular needs work better than broad public amplification for early-stage AI products.",
+    "content": "Most early AI products do not fail because nobody can write the code.\nThey fail in a quieter place.\nThe builder ships something real, then spends the next few weeks trying to find the right people:\nearly users\ndesign partners\ncollaborators\ntechnical cofounders\nhiring candidates\nopen source partners\nbuyers with a very specific pain\nThe product may be useful. The demo may work. The repository may be clean. The landing page may be clear enough.\nBut the next step still looks strangely manual:\nPost publicly. Send cold DMs. Ask in Discord. Browse profiles. Keep a spreadsheet. Hope one reply is not just politeness.\nThat workflow feels increasingly out of place.\nAI agents can now help us inspect repos, read docs, run browser flows, and reason through product work. But when the builder needs the right person, the internet still mostly hands them a megaphone or a search box.\nThat is not always what the problem needs.\nSometimes the missing layer is not more outreach.\nIt is a better introduction.\nCold outreach works best when the ask is simple, public, and obviously relevant.\nThat is not the usual shape of early builder needs.\nThe useful version of the ask is often specific:\nI am building an AI workflow tool for small teams that already use Claude Code or Cursor. I need design partners who run painful QA or release checks and are willing to give structured feedback for four weeks.\nThat is a much better ask than:\nAnyone want to try my new AI tool?\nBut it is also harder to blast publicly.\nIt reveals what the product does, who the target customer is, where the builder is weak, what kind of help they need, and how early the project really is.\nThe same is true for offers.\nSomeone might be open to helping with:\nfull-stack engineering\nAI product feedback\ndistribution advice\nsecurity review\ndesign partnership\nrecruiting introductions\nearly customer discovery\nBut that does not mean they want to be searchable by everyone.\nGood intent is often real but quiet.\nCold outreach ignores that. I",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI产品建设者不需要更多冷邮件。他们需要私人介绍。",
+        "summary": "早期AI产品构建者的困难不在于开发，而在于找到合适的人——早期用户、设计伙伴、联合创始人——冷邮件在特定标准很重要时效果不佳。私人介绍匹配特定需求比广泛公开宣传更适合早期AI产品。"
+      }
+    }
+  },
+  {
+    "title": "Liveness vs Readiness: Health Check Endpoints That Wont Restart-Loop Your Service",
+    "slug": "liveness-vs-readiness-health-endpoints",
+    "url": "https://dev.to/apikumo/liveness-vs-readiness-health-check-endpoints-that-wont-restart-loop-your-service-4bba",
+    "source": "DEV Community",
+    "date": "2026-07-08T02:08:37.000Z",
+    "summary": "Production services need separate liveness endpoints that verify a process is alive without external checks and readiness endpoints that confirm traffic-handling capability. Confusing these causes restart loops when transient issues like database slowness are incorrectly treated as process failures requiring restart.",
+    "content": "Liveness vs. Readiness\n\n\nA single /health endpoint that returns 200 OK feels like enough — until your orchestrator restarts a perfectly healthy pod because its database was slow for two seconds. The fix is to stop treating \"health\" as one boolean and split it into two questions.\nLiveness asks: is this process broken beyond repair? If the answer is yes, the only cure is a restart. A deadlocked event loop or a corrupted in-memory state qualifies. A missing database connection does not — restarting won't bring the database back.\nReadiness asks: can this instance serve traffic right now? A service that just booted and hasn't warmed its caches, or one whose database is temporarily unreachable, is alive but not ready. The load balancer should route around it without killing it.\nGetting this distinction wrong is the single most common cause of restart loops in production.\nLiveness must not depend on anything external. If it checks the database, a database blip triggers a restart storm across every instance at once. Keep it dumb:\n// Express\napp.get('/livez', (req, res) => {\n  res.status(200).json({ status: 'ok' });\n});\n\nIf this endpoint responds at all, the process can accept connections and run JavaScript. That is exactly what liveness is meant to prove — nothing more.\nReadiness is where you actually verify the things a request needs: the database, a cache, a downstream API. Run the checks in parallel, give each a short timeout, and return 503 if any critical one fails.\nconst { Pool } = require('pg');\nconst pool = new Pool();\n\nasync function checkDb() {\n  const c = await pool.connect();\n  try { await c.query('SELECT 1'); return true; }\n  finally { c.release(); }\n}\n\napp.get('/readyz', async (req, res) => {\n  const checks = {};\n  try {\n    await Promise.race([\n      checkDb(),\n      new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 2000)),\n    ]);\n    checks.database = 'ok';\n  } catch (e) {\n    checks.database = 'failing';\n  }\n\n  const healthy = Object.values(c",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "存活性与就绪性：不会导致服务重启循环的健康检查端点",
+        "summary": "生产服务需要单独的存活性端点来验证进程活跃且无需外部检查，以及就绪性端点来确认处理流量的能力。混淆这两者会导致重启循环，当数据库缓慢等暂时性问题被错误地视为需要重启的进程故障时。"
+      }
+    }
+  },
+  {
+    "title": "Why I'm Betting on CrewAI for Multi-Agent Orchestration (And Where It Falls Short)",
+    "slug": "betting-crewai-multi-agent-orchestration",
+    "url": "https://dev.to/ashg2099/why-im-betting-on-crewai-for-multi-agent-orchestration-and-where-it-falls-short-23oe",
+    "source": "DEV Community",
+    "date": "2026-07-08T02:02:36.000Z",
+    "summary": "CrewAI sits between lower-level frameworks like LangGraph and higher abstractions like LangChain, excelling at rapid prototyping of multi-agent workflows with good structure. The author recommends selecting tools contextually—CrewAI for fast prototyping and LangGraph for production systems requiring fine-grained control.",
+    "content": "I've been deep-diving into CrewAI lately, and here's my honest technical breakdown.\nWhat is CrewAI?\nSingle LLM vs CrewAI, where it breaks down:\nHow it compares to other frameworks:\nThe verdict: CrewAI sits in the sweet spot, higher-level than LangGraph, more structured than AutoGen, more agent-native than LangChain.\nWhere CrewAI genuinely shines:\nReal limitations:\nFor prototyping agentic workflows fast, CrewAI is hard to beat.\nFor production-grade, fine-grained control, reach for LangGraph.\nThe best engineers I've seen aren't loyal to one framework. They know when to use each one. \nI'm still learning, but this is the mental map I'm building.\n\n\n  \n  \n  CrewAI #AIAgents #MultiAgent #DataScience #AIEngineering #LLM #LangChain #LangGraph",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么我押注CrewAI进行多智能体编排（以及它的不足之处）",
+        "summary": "CrewAI介于LangGraph等低级框架和LangChain等高层抽象之间，在快速原型设计具有良好结构的多智能体工作流方面表现出色。作者建议根据上下文选择工具——CrewAI用于快速原型设计，LangGraph用于需要细粒度控制的生产系统。"
+      }
+    }
+  },
+  {
+    "title": "Why Agent Payment Security Is an Architecture Problem, Not a Monitoring Problem",
+    "slug": "agent-payment-security-architecture",
+    "url": "https://dev.to/agentwallex/why-agent-payment-security-is-an-architecture-problem-not-a-monitoring-problem-7pi",
+    "source": "DEV Community",
+    "date": "2026-07-08T02:00:00.000Z",
+    "summary": "AI agents are being successfully compromised via prompt injection to execute unauthorized cryptocurrency payments, exposing critical vulnerabilities as the agent economy scales with major platforms enabling autonomous transactions. Traditional fraud monitoring cannot address the speed, finality, and scale of agent-executed blockchain transfers, requiring architectural solutions like multi-party computation.",
+    "content": "This week, the AI agent economy got its first real security wake-up call.\nResearchers confirmed what many feared: AI agents are being successfully compromised via prompt injection attacks — and tricked into making unauthorized cryptocurrency payments. Attackers used malicious websites to poison agent context, manipulating decision-making to redirect funds.\nThe vulnerability isn't new. But it's no longer theoretical.\nThe timing is notable. Major infrastructure players are rushing into agent payments:\nStripe (via Privy) reports 1/3 of new developers are building AI agents\nVisa is testing autonomous agent purchases with banks like BBVA\nCloudflare launched stablecoin payment solutions for agents\nCatena Labs just raised $30M and filed for a national trust bank charter specifically for AI agents\nThe race is on to arm agents with wallets. But most approaches treat the agent itself as the security boundary. That assumption just failed in production.\nThe card industry playbook is fraud monitoring: let transactions through, detect anomalies, issue chargebacks.\nThat model breaks for autonomous agents in three ways:\nSpeed. Agents authorize and settle in milliseconds. There's no float period for fraud detection.\nFinality. Blockchain transfers are instant and irreversible. No chargeback mechanism exists.\nScale. Agents will execute thousands of micro-transactions. Monitoring every decision in real-time doesn't scale — and still only catches fraud after it happens.\nWhen an agent gets prompt-injected into sending USDC to an attacker address, monitoring tells you what you lost. It doesn't prevent the loss.\nAgentWallex was built for this threat model from day one. Not as a response to exploits — as a structural assumption.\nTraditional wallet architecture gives the agent a private key. If the agent is compromised, the key is exposed.\nAgentWallex uses multi-party computation (MPC) via our Paratro infrastructure. Agents request signatures. They don't hold keys. A 2-of-3 threshold signing",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么代理支付安全是架构问题，而不是监控问题",
+        "summary": "AI代理正通过提示注入成功被破坏以执行未授权的加密货币支付，随着主要平台支持自主交易，代理经济规模扩大时暴露了关键漏洞。传统欺诈监控无法应对代理执行的区块链转账的速度、最终性和规模，需要多方计算等架构解决方案。"
+      }
+    }
+  },
+  {
+    "title": "Toward an AI Operating System: Context Engineering as the First Runtime Primitive",
+    "slug": "toward-ai-operating-system-context",
+    "url": "https://dev.to/orieken/toward-an-ai-operating-system-context-engineering-as-the-first-runtime-primitive-58go",
+    "source": "DEV Community",
+    "date": "2026-07-08T01:55:33.000Z",
+    "summary": "Rather than simply adding more agents, an AI Operating System model with context engineering as its first runtime primitive manages what agents see, which resources they access, and context budget consumption. This framework treats the context window as a managed OS resource like memory allocation.",
+    "content": "After publishing the first few posts about ai-assistant-dot-files, the obvious next question is:\nWhere does this go?\nThe tempting answer is \"more agents.\"\nI do not think that is the right answer.\nThe more interesting direction is an AI Operating System: not an OS in the kernel-and-device-driver sense, but a runtime model for governed agentic work.\nThat distinction matters. The goal is not to wrap every task in bigger orchestration theater. The goal is to ask what runtime primitives agentic systems actually need if they are going to be useful, inspectable, and safe enough to trust with real software work.\nThe first primitive is context.\nIn the current framework, Context Engineering is already doing operating-system-shaped work.\nThe context-engineer agent builds a context-manifest.md before the delivery pipeline starts. That manifest scopes relevant files, prior deliveries, Knowledge Items, ADRs, and token budget pressure.\nThat is not just prompt hygiene.\nIt is resource management.\nAn operating system decides what a process can see, which resources it can access, and how much room it has to work before it starts corrupting other work. Context Engineering plays a similar role for agents.\nIt answers:\nWhat should this agent see?\nWhat should it not see?\nWhich prior knowledge is relevant?\nWhich stale artifact should be summarized instead of loaded in full?\nHow much of the context budget should this phase consume?\nThat is why I keep coming back to the phrase: treat the context window like a budget, not a junk drawer.\nIf an AOS exists, context is one of its schedulable resources.\nThe repo today is a Context Engineering Framework.\nIt has one canonical shared/ layer, 24 agents, 53 skills, inter-agent contracts, a memory lifecycle, and platform projections for Claude Code, Cursor, Windsurf, GitHub Copilot, Gemini/Antigravity, and Codex.\nThat is real.\nThe AOS idea is earlier.\nThe notes in docs/aos/AOS_Governance_Design_Pack.zip describe design seeds: capability, governance, lear",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "迈向AI操作系统：将上下文工程作为第一个运行时原语",
+        "summary": "AI操作系统模型不是简单地添加更多代理，而是将上下文工程作为第一个运行时原语，管理代理看到什么、访问哪些资源以及上下文预算消耗。该框架将上下文窗口视为像内存分配一样的托管操作系统资源。"
+      }
+    }
+  },
+  {
+    "title": "Pick your first AI model from evidence, not memory",
+    "slug": "pick-first-ai-model-evidence-not-memory",
+    "url": "https://dev.to/edward_li_71f26791eac62b8/pick-your-first-ai-model-from-evidence-not-memory-1c33",
+    "source": "DEV Community",
+    "date": "2026-07-08T01:51:11.000Z",
+    "summary": "Teams should choose their first production AI model based on tested results with representative tasks rather than brand recognition or pricing tables. Building a small model matrix with request logging and comparing actual costs, latency, and downstream results provides better decision-making than comparing marketing claims.",
+    "content": "Most teams do not need the perfect AI model on day one. They need a first model they can explain.\nThe mistake is starting from brand memory: choose a famous model, wire it into the app, wait for users, then discover later that cost, latency, context length, or response shape does not fit the workflow.\nA better first production test is smaller and more boring:\nChoose one representative task.\nRun it through one project key.\nTest one free or low-cost candidate first.\nInspect the request log before changing the app.\nOnly then compare a second model.\nThe question is not \"which model is best?\" The useful question is \"which model leaves a request receipt that makes this workflow explainable?\"\nBefore your team standardizes on a model, check the fields that will matter after launch:\nrequested model;\nserved model or route;\nprompt and completion tokens;\nlatency;\ncharge;\nerror or retry markers;\nproject key or customer segment;\nwhether the output passed the next business step.\nA model that looks cheap on a pricing table can become expensive if it needs longer context, repeated retries, or manual cleanup. A model that looks expensive can be the better default if it reduces retries or produces a cleaner downstream result.\nThat tradeoff is invisible if you only compare names.\nFor a first integration, build a tiny model matrix instead of a big migration plan:\none task;\ntwo candidate models;\none short prompt;\none expected output shape;\none request log per candidate;\none visible charge per candidate;\none decision note.\nIf you cannot explain the difference after two requests, adding five more models usually adds noise, not clarity.\nModel catalogs change quickly. Pricing, free candidates, and provider availability can shift between the time you draft a plan and the time you run it.\nAs of this run, TackleKey's public pricing endpoint lists 215 models and 7 current free candidates. Treat those as a live snapshot, not a promise that the same set will stay fixed.\nThe right workflow is to re",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "根据证据而非记忆选择你的第一个AI模型",
+        "summary": "团队应根据代表性任务的测试结果而非品牌认可或价格表来选择第一个生产AI模型。构建具有请求日志的小型模型矩阵，比较实际成本、延迟和下游结果，比比较营销声明能提供更好的决策。"
+      }
+    }
+  }
+]
