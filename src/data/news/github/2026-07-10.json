@@ -1,5 +1,197 @@
 [
   {
+    "title": "Every AI provider fails in its own way. I stopped checking status codes and built an error model instead.",
+    "slug": "every-ai-provider-fails-in-its-own-way",
+    "url": "https://dev.to/manolito99/every-ai-provider-fails-in-its-own-way-i-stopped-checking-status-codes-and-built-an-error-model-25do",
+    "source": "DEV Community",
+    "date": "2026-07-10T09:33:00.000Z",
+    "summary": "The author built an API gateway spanning OpenAI, Anthropic, and Gemini, discovering that each provider returns errors in different formats with different meanings. Instead of forwarding raw provider errors, they built an internal classification system that normalizes all responses into consistent categories like rate_limited or quota_exceeded. This prevents provider-specific error handling logic from spreading throughout the application.",
+    "content": "I built an API gateway that routes between OpenAI, Anthropic and Gemini. I figured integrating both providers would be the hard part.\nIt wasn't. Calling their APIs is maybe an afternoon of work each. The hard part showed up later, the first time something went wrong.\nEarly on, my error handling was basically: catch whatever the provider throws, forward the status code, move on.\n} catch (error) {\n  res.status(error.status || 500).json({ error: error.message })\n}\n\nThis worked fine until I actually looked at what each provider sends back when something goes wrong.\nOpenAI wraps its errors in an object with a type and sometimes a code. Anthropic wraps its errors differently, with its own type field that means something else entirely. A 429 from one provider might mean \"you're sending too fast, back off.\" A 429 from another context might mean something closer to \"we're out of capacity right now, this isn't really about your rate at all.\"\nIf you're just forwarding error.status and error.message straight through, none of that nuance survives. Your own error handling ends up being provider-specific whether you meant it to be or not, because the shape of the failure is different depending on who you called.\nInstead of trusting each provider's raw error shape, every call now normalizes into the same internal error model before it reaches the response:\n} catch (error) {\n  const classified = classifyProviderError(error)\n\n  res.status(classified.httpStatus).json({\n    error: 'AI provider error. Please try again.',\n    error_class: classified.error_class,\n    provider: classified.provider\n  })\n}\n\nerror_class is one of a small fixed set: rate_limited, overloaded, quota_exceeded, invalid_request, authentication_error, server_error. That's true regardless of which provider actually failed. The raw provider error still gets logged for me to debug, but what the caller sees is the category of failure, not the provider's specific wire format.\nThe point isn't that this retries anything au",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "每个 AI 提供商都以自己的方式失败。我停止检查状态代码，转而构建了一个错误模型",
+        "summary": "作者构建了一个跨越 OpenAI、Anthropic 和 Gemini 的 API 网关，发现每个提供商以不同格式和含义返回错误。他们没有转发原始提供商错误，而是构建了一个内部分类系统，将所有响应规范化为一致的类别，如 rate_limited 或 quota_exceeded。这防止了特定提供商的错误处理逻辑传播到整个应用程序。"
+      }
+    }
+  },
+  {
+    "title": "Node.js Internals Explained by Uncle to Nephew — Part 4: Express Plumbing, Error Handling & The Full Roadmap",
+    "slug": "nodejs-internals-express-plumbing-error-handling",
+    "url": "https://dev.to/surajrkhonde/nodejs-internals-explained-by-uncle-to-nephew-part-4-express-plumbing-error-handling-the-4c3n",
+    "source": "DEV Community",
+    "date": "2026-07-10T09:29:33.000Z",
+    "summary": "This Node.js internals article explains Express middleware patterns and clarifies how incoming events (HTTP requests) and outgoing async operations (file reads) flow in opposite directions through libuv and the event loop. Understanding these core mechanics helps developers debug async failures and write more reliable code.",
+    "content": "Bonus round. Parts 1–3 covered why Node exists, what's happening inside it, and the full request journey. This part mops up the pieces that didn't fit anywhere else — the Express plumbing, error handling, and a checklist to test yourself against.\nNephew: Uncle, one more round? I promise this is the last one for a while.\nUncle: pours chai — you said that last time too. Fine, what's bugging you now?\nNephew: Small things, actually. express.json(), cookie-parser, express.Router() — I use all of them, copy-pasted from old projects, but I couldn't explain any of them if you asked me directly.\nUncle: That's exactly the right instinct — the things you copy-paste without understanding are always the things that break at 2 AM. Let's fix that.\nUncle: Before plumbing, one small but important idea that ties Parts 2 and 3 together. Everything Node does falls into exactly two directions.\nDIRECTION 1 — Incoming Events\n\"The outside world is telling Node something happened\"\n\n   OS  →  libuv  →  Event Loop  →  Your JavaScript\n\nExamples: HTTP request arrives, TCP connection opens, WebSocket message arrives\n\n\nDIRECTION 2 — Outgoing Async Operations\n\"Your JavaScript is asking Node to go do something\"\n\n   JavaScript  →  libuv  →  Worker Thread  →  OS  →  Disk/DB\n                                 ↓\n                     result comes back through libuv → Event Loop → your callback\n\nExamples: fs.readFile(), crypto.pbkdf2(), dns.lookup()\n\nNephew: So an incoming HTTP request and a fs.readFile() call both eventually pass through libuv and the event loop — but they enter from completely opposite directions?\nUncle: Exactly. One is the world pushing something at Node. The other is Node reaching out to go get something. Same event loop handles both, but the journey to get there is different — an HTTP request never touches the thread pool; a file read almost always does.\nIncoming HTTP Request:            File Reading:\nBrowser                           JavaScript\n   |                                  |",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Node.js 内部机制详解——第四部分：Express 管道、错误处理和完整路线图",
+        "summary": "这篇 Node.js 内部机制文章解释了 Express 中间件模式，阐明了传入事件（HTTP 请求）和传出异步操作（文件读取）如何通过 libuv 和事件循环以相反的方向流动。理解这些核心机制有助于开发人员调试异步故障并编写更可靠的代码。"
+      }
+    }
+  },
+  {
+    "title": "Two Sum and the use of Dictionary (Easy) | LeetCode Practice #1",
+    "slug": "two-sum-dictionary-leetcode",
+    "url": "https://dev.to/secondlastsleep/two-sum-and-the-use-of-dictionary-leetcode-practice-1-44mb",
+    "source": "DEV Community",
+    "date": "2026-07-10T09:23:30.000Z",
+    "summary": "The Two Sum problem demonstrates why data structure choice matters: a brute-force double-loop runs in O(n²) at 2100ms, while a hash map solution achieves O(n) in 0ms by storing seen values and checking complements in one pass. This exemplifies fundamental algorithmic optimization principles essential for coding interviews.",
+    "content": "Two Sum\n\n\n\nGiven an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.\n(You may assume that each input would have exactly one solution, and you may not use the same element twice. You can return the answer in any order.)\n####Double FOR Loops (Runtime: 2100ms, Memory: 13.3MB)\n    #DECLARE nums: ARRAY of INTEGER\n    #DECLARE target: INTEGER\nclass Solution:\n    def twoSum(self, nums, target):\n        Length = len(nums)\n        for i in range(Length - 1):\n            for j in range((i + 1), Length):\n                if nums[i] + nums[j] == target:\n                    return i, j\n        return None\n\n\n\n####Hashing Algorithm (Runtime: 0ms, Memory: 12.9MB)\n    #DECLARE nums: ARRAY of INTEGER\n    #DECLARE target: INTEGER\nclass Solution:\n    def twoSum(self, nums, target):\n        Seen = {}\n        for i, Value in enumerate(nums):\n            if (target - Value) in Seen:\n                return Seen[target - Value], i\n            Seen[Value] = i\n        return None",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "两数之和与字典的使用（简单）| LeetCode 练习 #1",
+        "summary": "两数之和问题展示了数据结构选择的重要性：蛮力双循环在 2100 毫秒时以 O(n²) 运行，而哈希映射解决方案通过存储已见值并在一次遍历中检查补数，在 0 毫秒时实现 O(n)。这体现了编码面试中必需的基础算法优化原则。"
+      }
+    }
+  },
+  {
+    "title": "Trust Is an Engineering Output",
+    "slug": "trust-is-an-engineering-output",
+    "url": "https://dev.to/sakurasky/trust-is-an-engineering-output-4g06",
+    "source": "DEV Community",
+    "date": "2026-07-10T09:21:55.000Z",
+    "summary": "A data platform with technically sound access controls still failed a union's trust audit because access logs and deletion records were scattered across systems, making it impossible to demonstrate compliance. The article argues that trust requires the ability to show proof—not just assert correctness—when data governance is at stake.",
+    "content": "A players' union arrived at the athlete-data platform to investigate how its members' data was being handled. The platform had nothing to hide, its access controls were sound, its data accurate, its sharing rules strictly enforced, and its deletion process reliable. By every internal measure, it ran well.\nNone of that matters, when the customer had not come to be told the system was correct, it had come to be shown. Trust turned out to be the one thing the engineering team could not produce on demand.\nWhat follows is a composite, but anyone who has sat on the engineering side of a meeting like it will recognise the pattern.\nThe union's representative opened with a simple question. The platform held biometric and performance data on every player he represented, and he wanted to know who could see it. The engineering lead had a good answer, access was role-based and enforced in the system rather than written in a policy and hoped for: medical staff saw medical data, coaching staff saw performance data, and nobody reached anything they were not entitled to. He said he believed her, and then he asked her to show him. For one named player, on one date, who had accessed his data, and why.\nThat was where the good answers ran out. \nThe records existed, but they lived across several systems, and assembling them into a single account would take the team a day or two. He moved on. Could she prove the player's data had never been shared with a betting partner, or with a club he was about to be transferred to? It would not have been, she said, because that sharing was not permitted. Not permitted, he pointed out, is a policy and not a proof, and he was asking whether she could demonstrate it had not happened. She would have to go and check.\nThe last question was about deletion. The player had asked for last season's data to be removed, and it had been, in the primary database. What about the backups, the analytics copies, and the model that had already been trained on it? Those",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "信任是工程的输出",
+        "summary": "一个在技术上控制完善的数据平台仍然未通过工会的信任审计,因为访问日志和删除记录分散在各个系统中,无法证明合规性。文章论证,信任需要能够出示证明——而非仅仅断言正确——尤其是在数据治理面临风险时。"
+      }
+    }
+  },
+  {
+    "title": "One shared AI API key is not a team workflow",
+    "slug": "one-shared-ai-api-key-not-team-workflow",
+    "url": "https://dev.to/edward_li_71f26791eac62b8/one-shared-ai-api-key-is-not-a-team-workflow-4kcd",
+    "source": "DEV Community",
+    "date": "2026-07-10T09:21:11.000Z",
+    "summary": "Teams sharing a single API key lose visibility into which project or customer owns each request and cost. Moving to per-project keys with server-side storage and request logging enables cost attribution and debugging. The article outlines a lightweight workflow where usage logs become the team's ledger for financial accountability.",
+    "content": "A shared AI API key feels fast when a team is still experimenting.\nOne teammate builds a customer demo. Another wires an internal support bot. Someone tests an agent loop. A founder adds a small AI feature to production.\nEverything works until the first confusing bill, rate limit, or model error appears.\nThen the team has to answer questions the shared key never recorded clearly:\nWhich project made the request?\nWhich customer demo used the budget?\nWhich workflow triggered retries?\nWhich model call belonged to an internal test?\nWhich feature should own the cost?\nWhich key should be paused when something goes wrong?\nThe fix does not need enterprise bureaucracy.\nA lightweight workflow is enough:\nCreate a project key for each client, product, or environment.\nKeep keys server-side.\nStart with a tiny request.\nCheck the request log before adding traffic.\nSeparate demo, internal, staging, and production usage.\nTreat usage logs as the team ledger.\nThis matters especially for agencies and freelancers. If you build AI features for multiple clients, your first job is not only to make the model answer. It is to keep every request explainable later.\nTackleKey is an OpenAI-compatible API workspace built around project keys, current model references, usage logs, and cost-aware first-call validation.\nStart with one project key:\nhttps://tacklekey.com/india/ai-api-for-developers?utm_source=devto&utm_medium=article&utm_campaign=india_dev_api_first_call&utm_content=shared_key_team_workflow",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "共享单一AI API密钥不是团队工作流程",
+        "summary": "共享单一API密钥的团队无法了解每个请求和成本属于哪个项目或客户。转向按项目密钥并使用服务器端存储和请求日志记录,可以实现成本归属和调试。文章概述了一个轻量级工作流程,其中使用日志成为团队的财务责任分类账。"
+      }
+    }
+  },
+  {
+    "title": "Tool calling Returns HTTP 200, But I “Assumed” the Tool Ran — Have You Seen This?",
+    "slug": "tool-calling-returns-http-200-assumed-tool-ran",
+    "url": "https://dev.to/gwenj/tool-calling-returns-http-200-but-i-assumed-the-tool-ran-have-you-seen-this-50h9",
+    "source": "DEV Community",
+    "date": "2026-07-10T09:21:11.000Z",
+    "summary": "LLM applications often fail silently when tool calls return HTTP 200 but tools never execute or results aren't injected back. Failures typically occur in argument validation, execution, result injection, or agent state management, while success-only monitoring misses the breakdown. Tracking tool_call_id lifecycles reveals which step breaks.",
+    "content": "I’ve been building LLM apps and keep running into a really nasty failure mode:\nThe request looks successful (HTTP 200 / response structure is “valid”)\nThe model outputs tool_calls\n\nBut the UI or the next assistant step behaves like the tool never actually ran (missing info, the model “fills in the blanks,” or it just skips the tool-related part)\nThe most annoying part is that this kind of failure is often silent. If you only monitor “request success,” you’ll never see the real break point.\nA real, completed tool-calling chain should include (at minimum) these steps:\nModel requests the tool (tool_calls are emitted)\nYour backend executes the tool (the function actually runs)\nYou inject the tool result back into the next LLM step\nThe final assistant output is generated (based on the tool result)\nIn my experience, “silent tool failures” usually mean one of steps 2/3/4 quietly breaks, while everything still looks fine on the surface.\nI’m genuinely curious: in your setup, what usually breaks? Which one shows up most?\nArgument parsing/validation failure: the tool arguments aren’t what you expect, but your system still returns 200\nExecution failure / timeout: the tool errors, but the error never makes it back as a proper tool result—so the model continues (or guesses)\nInjection failure: the tool result exists, but it never gets included in the next prompt (or gets truncated)\nLoop control bug: your state machine stops too early, so the agent never completes the “tool -> next -> final answer” loop\nIf you’re willing, share the most “hilarious” worst case you’ve seen. I’m trying to collect patterns and turn them into a solid troubleshooting checklist.\nMy rule is: every tool call must produce logs with a stable tool_call_id, and you should be able to see the lifecycle:\nrequested: tool name + when the model asked for it\nexecuted: server-side execution time + success/failure\ninjected: whether the tool result was successfully fed into the next LLM step (this is the one many people",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "工具调用返回HTTP 200,但我\"假设\"工具已运行——你见过这个吗?",
+        "summary": "LLM应用程序经常默默失败,当工具调用返回HTTP 200但工具从未执行或结果未被注入。故障通常发生在参数验证、执行、结果注入或代理状态管理,而仅监控成功会错过故障。跟踪tool_call_id生命周期可以揭示哪个步骤出现问题。"
+      }
+    }
+  },
+  {
+    "title": "How Spotify Streams Audio and Builds Discover Weekly",
+    "slug": "how-spotify-streams-audio-builds-discover-weekly",
+    "url": "https://dev.to/roni_das_b1b76c5ee6583027/how-spotify-streams-audio-and-builds-discover-weekly-51po",
+    "source": "DEV Community",
+    "date": "2026-07-10T09:20:53.000Z",
+    "summary": "Spotify's streaming uses CDNs with adaptive bitrate chunks and prefetching to eliminate latency across poor networks, while its recommendation system uses collaborative filtering to surface long-tail content. These systems solve different constraints—streaming minimizes latency, recommendations fight the cold catalog—through appropriate architecture rather than raw speed.",
+    "content": "Press play and music starts in under a second, anywhere in the world, on a phone that keeps switching between wifi and cellular. Once a week, a playlist appears that somehow knows you like a band you have never heard of. These are two very different systems wearing the same app, and both are worth understanding.\nStreaming has two enemies: startup latency and rebuffering. A user will forgive a slightly lower bitrate, but not silence. So the goal is to start fast and never stop, even when the network gets worse mid-song. Recommendation has a different enemy: the cold catalog. You have tens of millions of tracks and most of them almost never get played, so you cannot rank by popularity alone or you would recommend the same hits to everyone.\nServe audio from a CDN, not from origin. Tracks are static files. Encode each one into several bitrates ahead of time, push them to edge servers close to users, and let the client pick a bitrate based on measured throughput. The origin is only touched on a cache miss.\nChunk the audio and adapt. The client requests small segments rather than one long file. If bandwidth drops, the next segment is fetched at a lower bitrate. This is the same adaptive idea video streaming uses, applied to audio, where segments are small and switching is nearly inaudible.\nPrefetch the next track. The player usually knows what comes next in a queue or playlist, so it fetches the first segments early. That is how the gap between songs feels like zero.\nCache aggressively on device. Recently played and downloaded tracks live in local storage, which cuts both latency and bandwidth cost, and makes offline playback possible.\nThe recommendation side is a batch pipeline, not a live request. It runs on a schedule and writes a playlist per user that the app simply reads.\nCollaborative filtering as the backbone. Build a large matrix of users and the tracks they play. Factor it into user vectors and track vectors so that similar listening habits sit near each other i",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Spotify 如何进行音频流传输并构建 Discover Weekly",
+        "summary": "Spotify 的音频流传输利用 CDN、自适应比特率分块和预取来消除跨低质量网络的延迟,而其推荐系统使用协作过滤来发现长尾内容。这些系统通过恰当的架构而非单纯的速度解决不同的约束——流传输最小化延迟,推荐应对冷启动问题。"
+      }
+    }
+  },
+  {
+    "title": "How Airbnb Search and Booking Avoid Double-Booking",
+    "slug": "how-airbnb-search-booking-avoid-double-booking",
+    "url": "https://dev.to/roni_das_b1b76c5ee6583027/how-airbnb-search-and-booking-avoid-double-booking-3omf",
+    "source": "DEV Community",
+    "date": "2026-07-10T09:20:50.000Z",
+    "summary": "Airbnb prevents double-booking by modeling availability as date ranges enforced through database exclusion constraints, and separating the fast eventually-consistent search index from the strongly-consistent booking database. This shows that preventing race conditions requires pushing conflict detection into the database transaction, not application logic.",
+    "content": "Two guests open the same listing at the same second. Both see the same free week in June. Both tap Reserve. Only one of them can win. Get this wrong and you have an angry guest, a refund, and a host who trusts you less. This is the single hardest correctness problem in a lodging marketplace, and it hides behind a search box that looks simple.\nBooking is a distributed race condition. The read path (search) and the write path (reserve) want opposite things. Search wants to be fast, cached, and eventually consistent across millions of listings. Reserve wants to be strongly consistent for one listing on specific dates. You cannot serve both with the same storage strategy, so you split them.\nA naive design stores availability as a boolean per listing and checks it in application code: read \"is it free\", then write \"now it is booked\". Those two steps are not atomic. Between the read and the write, another request can slip in and read the same \"free\" value. Both proceed. You just double-booked.\nModel availability as date ranges, not a single flag. A reservation is a half-open interval [check_in, check_out). Two reservations conflict when their intervals overlap. Postgres can enforce this directly with an exclusion constraint using a GiST index over a daterange plus the listing id. The database rejects the second overlapping insert. No application-level check, no race.\nPush the conflict check into the database, not the app. Application-level \"check then set\" is where double-booking lives. Whether you use an exclusion constraint, a unique constraint on (listing_id, date) with one row per night, or SELECT FOR UPDATE on the listing row, the winner is decided by the database inside a single transaction. Pick one and let it be the source of truth.\nSeparate the search index from the booking store. Search runs against a denormalized index (Elasticsearch or a read replica) filtered by location, dates, price, and guest count. That index can lag by seconds and nobody cares, because s",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Airbnb 搜索和预订如何避免重复预订",
+        "summary": "Airbnb 通过将可用性建模为日期范围(通过数据库排除约束强制执行),以及将快速的最终一致性搜索索引与强一致性预订数据库分开来防止重复预订。这表明防止竞态条件需要将冲突检测放在数据库事务中,而不是应用程序逻辑中。"
+      }
+    }
+  },
+  {
+    "title": "The hidden cost of \"stepping up\" (why it's a trap and what to do instead)",
+    "slug": "hidden-cost-of-stepping-up",
+    "url": "https://dev.to/adrianani-com/the-hidden-cost-of-stepping-up-why-its-a-trap-and-what-to-do-instead-h0i",
+    "source": "DEV Community",
+    "date": "2026-07-10T09:19:10.000Z",
+    "summary": "Engineers who \"step up\" to architectural responsibility without time or guidance incur hidden costs: deferred tech debt, burnout, and fragile systems. A case study shows intentional choices in framework, components, and documentation enabled four-month delivery at high capacity, proving foundation work is the prerequisite for sustainable velocity.",
+    "content": "Companies expect engineers to \"step up\" and take on architectural responsibility, without defining what that means, giving them time for it, or providing guidance. The engineers absorb the cost silently: sprint goals slip, tech debt piles up, burnout follows, and when things break there's no map to fix them.\nDeferring 2-3 sprints of foundation work to hit a deadline routinely costs months of development time later, once the system breaks and the team has no structure left to recover with.\nAt my last job before consultancy, we inherited a codebase from a contractor: an AI-generated application with no thought for DRY, security, or performance. It worked on the surface. Underneath: duplicated code with no component abstraction, circular dependencies, memory leaks, console errors, no documentation.\nWe rewrote it. The stack was chosen for the business, not preference: Nuxt 4 with CSR (no SEO needed behind a login), reka-ui for accessible components, Tailwind for speed, TanStack Query for sane networking against a separate .NET API, and a docs/ folder that made the codebase navigable by humans and AI both.\nResult: 80% of what the client had planned for one year, delivered in four months. That took 120% capacity, which isn't sustainable long-term, but the structure is what made it possible to push hard without the codebase collapsing under the team.\nAssessment. Audit for circular dependencies, memory leaks, console errors, duplication. Quantify it: how many pages, how much duplication, how many dependencies. Frame it to product as cost (fragility, onboarding friction, delivery speed), not aesthetics.\nFoundation, 2-3 sprints of non-feature work. Pick the stack from business constraints: rendering strategy from SEO needs, component library from accessibility requirements, state management from data complexity, styling from team size. Write the docs. Build the first features as examples.\nScaling. Onboard against the docs and examples. Deliver features on the clean foundation",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "\"升级\"的隐性成本(为什么这是个陷阱,以及如何应对)",
+        "summary": "不经过充分的时间或指导而主动承担架构责任的工程师会产生隐性成本:延迟的技术债务、工作倦怠和脆弱的系统。一个案例研究表明,对框架、组件和文档的有意选择使得团队能够在四个月内以高生产力完成交付,证明基础性工作是实现可持续速度的先决条件。"
+      }
+    }
+  },
+  {
+    "title": "Hugging Face + SageMaker, Vercel's OCI Registry, sqlite-utils 4.0",
+    "slug": "hugging-face-sagemaker-vercel-oci-registry",
+    "url": "https://dev.to/devsignal/hugging-face-sagemaker-vercels-oci-registry-sqlite-utils-40-2il4",
+    "source": "DEV Community",
+    "date": "2026-07-10T09:17:25.000Z",
+    "summary": "Recent releases reduce ML deployment friction: Hugging Face links to SageMaker Studio with pre-configured IAM, Vercel launched its OCI registry with cold-start optimization, and sqlite-utils 4.0 improved consolidation. Reducing setup overhead accelerates experimentation and removes the multi-step friction that kills rapid iteration.",
+    "content": "This week's releases cluster around two themes: reducing the gap between model discovery and production deployment, and consolidating tooling so you're not duct-taping five services together to run a workload. Vercel in particular shipped a dense set of infrastructure updates that, taken together, start to look like a coherent full-stack runtime story. Here's what's worth your attention.\nHugging Face now surfaces direct links into SageMaker Studio on supported model pages. Click it, and your AWS session pre-loads the model context, auto-attaches the necessary IAM permissions, and drops you into Studio without touching the console to configure a domain, request GPU quota, or wire up access policies manually.\nThis matters because the friction wasn't in fine-tuning or deployment—it was in the ten steps before you could even start. Discovering a model on Hugging Face, opening a separate console, creating a SageMaker domain, sorting out IAM, and hunting down GPU quota availability is the kind of death-by-setup that kills rapid experimentation before it starts. Collapsing that into a single authenticated click is a meaningful workflow change for anyone doing frequent model evaluation across providers.\nThe catch is narrow but real: you need an AWS account, and the feature is live only on supported models today. That set will expand, but check before building a workflow assumption around it.\nVerdict: Ship. If you're already on AWS and evaluating models regularly, this is live and costs you nothing to try. No configuration required on your end.\nVercel now runs its own OCI-compliant container registry at vcr.vercel.com. You push with standard docker push, pull with standard tooling, and VCR handles snapshot pre-optimization for Fluid Compute execution server-side—eliminating the compilation latency that typically hits at cold start. Auth integrates with existing Vercel access controls via OIDC or project-scoped tokens.\nThe practical impact is removing Docker Hub, ECR, or GCR",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Hugging Face + SageMaker、Vercel的OCI注册表、sqlite-utils 4.0",
+        "summary": "最近的版本发布降低了机器学习部署的摩擦：Hugging Face与SageMaker Studio相集成，配置了预设的IAM权限，Vercel推出了OCI注册表并优化了冷启动性能，sqlite-utils 4.0改进了数据整合。减少设置成本加快了实验速度，消除了阻碍快速迭代的多步摩擦。"
+      }
+    }
+  },
+  {
+    "title": "Alberta Ran 50 AI Agents in Parallel. Everyone Shared the Same Number.",
+    "slug": "alberta-ran-50-ai-agents-parallel-shared-number",
+    "url": "https://dev.to/itskondrat/alberta-ran-50-ai-agents-in-parallel-everyone-shared-the-same-number-2g6",
+    "source": "DEV Community",
+    "date": "2026-07-10T09:15:46.000Z",
+    "summary": "Alberta's 50 specialized agents scanned 466 million lines in 20 hours, but the real challenge isn't throughput—it's designing clear handoff contracts between agents. Individual agent failures are visible, but handoff failures are silent and compound downstream. Multi-agent systems require explicit interface definitions at each boundary, not just parallelization.",
+    "content": "Alberta published a case study last week about scanning 466 million lines of code across 1,280 applications using around 50 specialized Claude agents - red-team agents mapping exploit paths, blue-team agents writing remediation plans, code-quality agents, content-clarity agents - all running in parallel. The scan that would have taken six years traditionally took 20 hours.\nEveryone shared the 466 million number. The throughput is impressive.\nBut that's not the number I kept thinking about.\nThe number I kept thinking about: how many of those 50 agents needed to trust the output of another agent before they could do their job?\nAnd the question nobody asked: who owned that handoff?\nWhen you run one agent, you supervise it directly. You read the output, spot the gap, course-correct. The failure mode is visible. The loop closes fast.\nWhen you run a fleet of specialized agents, something changes. You're not supervising each agent anymore. You're designing how they relate to each other. You're thinking in interfaces, not prompts.\nIn Alberta's setup, a red-team agent identifies a vulnerability. That finding becomes the input to a blue-team agent that writes a remediation plan. Two specialized agents, two distinct roles, one handoff between them.\nThe first time I chained two agents in my own setup, the second one confidently built on the first one's mistake - because I never defined what \"done\" meant at the handoff. The first agent's output looked complete. It wasn't. The second agent had no way to know.\nThat's the asymmetry a fleet creates. Individual agents fail loudly. Handoffs fail quietly.\nWhen agents work in sequence, one agent's output becomes the next agent's input. On the surface this looks like efficiency - specialization, parallelism, faster throughput. Underneath, it creates a compounding problem.\nEach agent is good at its slice. The red-team agent knows how to map exploit paths. The blue-team agent knows how to write remediation plans. Neither agent is responsib",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "阿尔伯塔并行运行50个AI代理。所有人都共享同一个数字。",
+        "summary": "阿尔伯塔的50个专用代理在20小时内扫描了4.66亿行代码，但真正的挑战不是吞吐量，而是设计代理之间清晰的交接协议。单个代理故障是可见的，但交接故障是无声的，会在下游产生累积影响。多代理系统需要在每个边界处明确定义接口，而不仅仅是并行化。"
+      }
+    }
+  },
+  {
+    "title": "Designing a payment system that never loses a cent",
+    "slug": "designing-payment-system-never-loses-cent",
+    "url": "https://dev.to/roni_das_b1b76c5ee6583027/designing-a-payment-system-that-never-loses-a-cent-4k9p",
+    "source": "DEV Community",
+    "date": "2026-07-10T09:14:38.000Z",
+    "summary": "Payment systems ensure correctness under inevitable failure using idempotency keys to safely retry the same transaction and immutable append-only ledgers to audit every money movement. These mechanisms are non-negotiable because network failures and server crashes are guaranteed, and a payment bug causes real financial harm to real people.",
+    "content": "Most systems can tolerate being a little bit wrong. A like count that is off by one, a feed that is a few seconds stale, a search result slightly out of order. Nobody gets hurt. A payment system does not have that luxury, because being wrong means charging someone twice or moving money into a void, and that is real harm to a real person. So the design goal is not just fast or scalable. It is correct under failure, and failure is guaranteed, because networks time out and servers crash in the middle of things.\nThe first problem to solve is duplicates. Imagine a user taps pay, the request reaches your server, you charge their card, and then the response back to their phone is lost to a flaky network. Their app, having heard nothing, retries. Now you are about to charge them a second time for one purchase. This is not a rare edge case, it is the normal behavior of unreliable networks, and any payment design that ignores it is broken. The answer is idempotency. The client attaches a unique key to the payment request, and the server records that key the first time it processes the request. If a request arrives with a key the server has already seen, it does not charge again. It returns the result of the original attempt. So a retry is safe, because the retry is recognized as the same operation, not a new one. Getting idempotency right is arguably the single most important decision in the whole system.\nThe second problem is knowing the truth about money, and this is where the ledger comes in. The wrong model is to keep a single balance number and mutate it up and down, because a mutable number tells you the current value but not how you got there, and when something looks wrong you have no way to reconstruct what happened. The right model is a ledger: an append only record where every movement of money is a new immutable entry. You never edit or delete an entry. To reverse a mistake you add a compensating entry. A balance is then not a stored number you trust, it is someth",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "设计一个永不丢失一分钱的支付系统",
+        "summary": "支付系统通过使用幂等性密钥安全地重试相同交易，以及使用不可修改的仅附加账本审计每笔资金转移，从而在不可避免的故障中确保正确性。这些机制是不可协商的，因为网络故障和服务器崩溃是必然的，支付错误会对真实用户造成真实的经济伤害。"
+      }
+    }
+  },
+  {
     "title": "I Did the Math on GPT-5.6. The $2.50 Terra Tier Is the One I'd Ship First.",
     "slug": "gpt-5-6-pricing-terra-tier-production",
     "url": "https://dev.to/tokenmixai/i-did-the-math-on-gpt-56-the-250-terra-tier-is-the-one-id-ship-first-1aja",
