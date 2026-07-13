@@ -1,5 +1,197 @@
 [
   {
+    "title": "CORS + Auth Worked Perfectly Locally, Then Broke the Moment I Deployed (Here's Why)",
+    "slug": "cors-auth-deployment-failure-fix",
+    "url": "https://dev.to/hasnainjaffer/cors-auth-worked-perfectly-locally-then-broke-the-moment-i-deployed-heres-why-ee3",
+    "source": "DEV Community",
+    "date": "2026-07-13T14:29:58.000Z",
+    "summary": "A developer shares how CORS misconfiguration caused authentication to fail in production despite working locally; the issue was using `origin: '*'` which prevents credential headers from being sent. The fix involves coordinating explicit origins with SameSite and Secure cookie attributes.",
+    "content": "I ran into this bug recently and it took me longer to fix than I'd like to admit: my React + Express app worked flawlessly on localhost, but the moment I deployed it, authenticated requests started silently failing. No errors in my own code — just requests that looked like they went out, but the backend never seemed to receive the session/token.\nReact frontend and Express backend deployed to separate origins (different domains/subdomains)\nWhat actually happened\nMy CORS config allowed origin: '*' — which silently breaks anything using credentials, since browsers won't send cookies/auth headers when the origin is a wildcard.\nLocally, same-origin-ish behavior papered over all three problems at once.\nSet CORS to an explicit origin (not *) and credentials: true on the Express side\nOnce all three were aligned, everything that had been \"randomly failing\" in production started working immediately.\nTakeaway: if your auth works locally but silently fails after deploy, check CORS origin config, cookie SameSite/Secure attributes, and whether the frontend is actually sending credentials — together, not just one of them.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "CORS + 身份验证在本地完全正常，部署时立即崩溃（原因如下）",
+        "summary": "一位开发者分享了 CORS 配置错误如何导致生产环境中身份验证失败，尽管在本地正常工作；问题在于使用 `origin: '*'` 阻止了凭证头的发送。解决方案涉及协调显式源与 SameSite 和 Secure cookie 属性。"
+      }
+    }
+  },
+  {
+    "title": "Ingest invoices and receipts into an agent mailbox",
+    "slug": "ai-agent-mailbox-invoice-processing",
+    "url": "https://dev.to/mqasimca/ingest-invoices-and-receipts-into-an-agent-mailbox-4mjm",
+    "source": "DEV Community",
+    "date": "2026-07-13T14:28:54.000Z",
+    "summary": "This guide explains how to build an AI-powered accounts payable system using a dedicated agent mailbox where vendors email invoices, triggering automated extraction and processing. The Nylas Agent Account approach avoids mixing business operations with personal email while maintaining standard API grants.",
+    "content": "Most \"AI accounts payable\" demos point a model at someone's personal inbox and ask it to find the invoices. That works in a screenshot. It falls apart the moment you want the thing to be an account — a real, addressable mailbox that vendors can send to, that doesn't share a thread with your CFO's lunch plans, and that you can wipe and re-provision without anyone losing their email.\nThe cleaner shape is to give the pipeline its own inbox. Vendors email invoices@yourcompany.com. A webhook fires the second a message lands. Your code pulls the message, walks its attachments, downloads the PDFs, and hands them to whatever extraction logic you've got — an LLM, an OCR service, a regex over the email body for the small stuff. The parsed records go into your own database, keyed however your AP system wants them.\nThat dedicated inbox is a Nylas Agent Account. I work on the Nylas CLI, so the terminal commands below are the exact ones I reach for when I'm wiring this up; the curl calls next to them are what the CLI is doing under the hood, so you can drop either into your stack.\nHere's the part worth internalizing before you write a line of code: an Agent Account is just a grant. Same grant_id, same /v3/grants/{grant_id}/* endpoints, same Authorization: Bearer <NYLAS_API_KEY> header as any connected Gmail or Microsoft mailbox. There's no separate SDK, no special document-ingestion API, no new auth dance. If you've ever listed messages or downloaded an attachment from a Nylas grant, you already know the data plane for this entire post.\nWhat's different is the control plane. There's no human OAuth, no refresh token to babysit — you provision the mailbox yourself on a domain you own (or a *.nylas.email trial subdomain), and Nylas hosts it. For an AP pipeline that's exactly what you want: an inbox that belongs to the system, not to a person who might leave the company and take their refresh token with them.\nThe honest tradeoff to flag up front: Agent Accounts don't support custom m",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "将发票和收据导入代理邮箱",
+        "summary": "本指南解释了如何使用专用代理邮箱构建 AI 驱动的应收账款系统，供应商通过电子邮件发送发票，触发自动提取和处理。Nylas Agent Account 方法避免将业务操作与个人电子邮件混合，同时保持标准的 API 授权。"
+      }
+    }
+  },
+  {
+    "title": "Send daily digest emails from your AI agent",
+    "slug": "ai-agent-daily-digest-email-system",
+    "url": "https://dev.to/mqasimca/send-daily-digest-emails-from-your-ai-agent-31ac",
+    "source": "DEV Community",
+    "date": "2026-07-13T14:28:35.000Z",
+    "summary": "Rather than flooding users with per-event emails, this article demonstrates building a daily digest system using Nylas Agent Accounts that consolidates events into one actionable message and enables direct replies to the agent. Digests dramatically improve user engagement by respecting inbox attention.",
+    "content": "Most \"AI sends you email\" demos fire a message on every event. The agent processes a record, sends an email. It finishes a task, sends an email. It notices something, sends an email. By Tuesday afternoon your users have eleven messages from a bot, they've muted the thread, and the one notification that actually mattered is buried under ten that didn't. Per-event email is how you train people to ignore your agent.\nThe fix is boring and it works: collect the day's events, summarize them once, and send a single digest. One email people actually open. And because it comes from a real mailbox the agent owns, the recipient can hit Reply — \"re-run the failed sync\" or \"who approved this?\" — and that reply lands somewhere the agent can read and act on. That last part is what separates a digest from a glorified cron log. It's a conversation starter, not a dead end.\nThis post builds exactly that with a Nylas Agent Account: where the digest content comes from (your app, not Nylas), how to send it, two honest ways to schedule it, and how replies come back. I work on the Nylas CLI, so the terminal commands below are the ones I actually reach for — and I'll show both angles for every operation, the nylas command and the raw curl, because your batch job will probably shell out to one and your services hit the other.\nBefore any code, it's worth being clear about what you're trading. Per-event email has exactly one advantage: latency. The user hears about a thing the instant it happens. For most agent activity, that latency is a cost, not a feature — nobody needs a separate email the moment each of forty overnight records syncs. They need to know, once, in the morning, that forty synced and two failed.\nA digest gets you:\nOne open instead of eleven ignores. Inbox attention is finite. Spend it on a single well-structured summary and people read it. Spend it on a stream and they filter you to a folder they never check.\nActual synthesis. A digest can say \"37 succeeded, 2 failed, here are",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "从您的 AI 代理发送每日摘要电子邮件",
+        "summary": "与其向用户发送大量的单个事件电子邮件，本文演示了如何使用 Nylas Agent Accounts 构建每日摘要系统，将事件整合成一条可操作的消息，并支持对代理的直接回复。摘要通过尊重收件箱注意力来显著提高用户参与度。"
+      }
+    }
+  },
+  {
+    "title": "How to Use the New Auth0 Vercel Native Integration (Full Next.js Walkthrough)",
+    "slug": "auth0-vercel-native-integration-nextjs",
+    "url": "https://dev.to/auth0/how-to-use-the-new-auth0-vercel-native-integration-full-nextjs-walkthrough-f4a",
+    "source": "DEV Community",
+    "date": "2026-07-13T14:25:06.000Z",
+    "summary": "Auth0's new Vercel native integration automates provisioning of separate Auth0 tenants for development, staging, and production environments, eliminating manual environment variable management. The integration enables instant credential access in Next.js applications without configuration overhead.",
+    "content": "Manually syncing environment variables across your Dev, Staging, and Production environments is a massive developer velocity killer. In this tutorial, Michael Liendo breaks down the brand-new Auth0 Vercel Native Integration. Learn how to automatically provision separate Auth0 tenants for your development lifecycle, securely generate your client credentials, and pull them instantly into your Next.js application without manual configuration overhead.\n🚀 What You’ll Learn:\nHow the Auth0 + Vercel Native Integration automates environment setup.\nProvisioning separate Dev, Staging, and Production Auth0 tenants from the Vercel dashboard.\nConfiguring the Next.js SDK using automated project snippets.\nVerifying real-time user authentication via Google OAuth2 locally.\nManaging branch-specific environment variables for flawless deployments.\n🔗 Resources:\nAuth0 Vercel Native Integration\nAnnouncement and Step-by-Step Walkthrough Blog Post\nAuth0 and Vercel Documentation\nSaaStart: Auth0 + Next.js SaaS Starter Kit",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何使用新的 Auth0 Vercel 原生集成（完整 Next.js 演练）",
+        "summary": "Auth0 新的 Vercel 原生集成自动化了为开发、测试和生产环境配置独立 Auth0 租户的过程，消除了手动环境变量管理。该集成使 Next.js 应用程序能够无需配置开销即可即时访问凭证。"
+      }
+    }
+  },
+  {
+    "title": "The Best Free AI Tools You Can Start Using Today",
+    "slug": "best-free-ai-tools-2026",
+    "url": "https://dev.to/treshbaba/the-best-free-ai-tools-you-can-start-using-today-3791",
+    "source": "DEV Community",
+    "date": "2026-07-13T14:22:55.000Z",
+    "summary": "A guide to free AI platforms like Replicate, Arena AI, Hugging Face, and Gradio that enable developers to test models, generate content, and prototype AI applications without cost. While free tiers excel at learning and exploration, production usage typically requires paid services.",
+    "content": "AI is moving fast.\nA few months ago, experimenting with advanced AI meant having expensive software or models, powerful hardware, or access to enterprise platforms.\nToday, developers, creators, and researchers can test AI models, generate content, build prototypes, and experiment with powerful AI workflows using free platforms.\nFree versions are not always enough for production, but they are more than enough to learn, explore ideas, and understand what modern AI can do.\nThis guide covers some of the best free AI platforms you can start using, what they are useful for, and the limitations you should understand before building with them.\nFree AI platforms are one of the fastest ways to understand modern artificial intelligence.\nThey allow you to:\nTest ideas quickly before investing money into infrastructure.\nLearn prompting and AI workflows through real experimentation.\nPrototype applications without building everything from scratch.\nCompare different AI models and understand their strengths.\nExplore open-source AI tools and developer ecosystems.\nHowever, free does not mean unlimited.\nMost free AI platforms are designed for learning, testing, and exploration. As your usage grows, you may need paid APIs, dedicated infrastructure, or your own hardware.\n\n\n\nPlatform\nBest For\nFree Access\nMain Limitation\n\n\n\n\nReplicate\nTesting and running AI models\nLimited credits and model access\nHeavy usage requires payment\n\n\nArena AI\nComparing AI models\nFree model comparisons\nNot designed for production workloads\n\n\nHugging Face\nOpen-source AI development\nModels, datasets, and demos\nSome models require technical setup\n\n\nStable Diffusion Ecosystem\nCustom AI image generation\nOpen-source models and community tools\nMore control requires technical knowledge\n\n\nGradio\nBuilding AI prototypes\nFree demos and interfaces\nNot intended for large production apps\n\n\n\nReplicate\n\n\n\n  \n  \n  Best for: Testing different AI models quickly\n\n\nReplicate is a platform that allows you to run different AI models witho",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你现在可以开始使用的最佳免费 AI 工具",
+        "summary": "一份关于免费 AI 平台（如 Replicate、Arena AI、Hugging Face 和 Gradio）的指南，使开发者能够免费测试模型、生成内容和原型 AI 应用。虽然免费版本在学习和探索方面表现出色，但生产环境通常需要付费服务。"
+      }
+    }
+  },
+  {
+    "title": "The Integration Decision Tree: Plugin vs MCP Server vs CLI Bridge",
+    "slug": "integration-architecture-plugin-mcp-cli",
+    "url": "https://dev.to/ev3lynx727/the-integration-decision-tree-plugin-vs-mcp-server-vs-cli-bridge-124p",
+    "source": "DEV Community",
+    "date": "2026-07-13T14:21:29.000Z",
+    "summary": "An architectural analysis of three integration patterns—plugins, MCP servers, and CLI bridges—showing how tight coupling through plugins causes process restart issues and silent failures. MCP servers and CLI bridges provide better alternatives for building resilient, auditable systems.",
+    "content": "Hook\n\n\nWhen building local-first architectures, the instinct is often to tightly couple everything. If a system needs a new shell execution tool or a data filter, the default move is to drop it in as an in-memory plugin. It feels like the cleanest path: it runs in the same process, shares the same lifecycle, and requires zero initial configuration.\nBut that tight coupling is exactly where local systems fracture.\nAs the environment grows, the plugin model starts exposing its limits. You lose process ancestry when a local daemon restarts. You hit cold caches on reconnections. You lose your audit trail because plugins can't log independently from the host process, burying critical observability.\nWhat starts as a simple 20-line feature turns into an architectural bottleneck.\nThe problem isn't the code itself — it is the execution boundaries. The difference between a fragile monolithic local setup and a resilient, modular ecosystem comes down to the architectural decision made before the first line of code is written: Should this be a Plugin, a standalone MCP Server, or a CLI Bridge?\nThe pattern we followed at first was: new capability equals new plugin. It was the obvious path — OpenCode's plugin system is well-documented, auto-discovered from ~/.config/opencode/plugins/, zero deployment. Drop a .ts file, restart, it works.\nThe first plugin was fine. The second was fine. By the sixth, we had the same two bugs across three different frameworks:\nProcess ancestry loss. Every plugin inherits OpenCode's process table. When the daemon restarts (config change, crash, update), every plugin restarts with it — cold cache, empty connection pools, every in-flight task evaporated.\nSilent death. A plugin crash doesn't surface. The parent process catches the exception, logs it to its own log, and continues. The plugin is gone. No one knows until the next session fails to find the tool.\nThe first time I noticed was when ark-delegator stopped routing tasks. No error. No alert. Just a si",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "集成决策树：插件 vs MCP 服务器 vs CLI 桥接",
+        "summary": "三种集成模式（插件、MCP 服务器和 CLI 桥接）的架构分析，展示了通过插件的紧耦合如何导致进程重启问题和静默失败。MCP 服务器和 CLI 桥接为构建有弹性的、可审计的系统提供了更好的替代方案。"
+      }
+    }
+  },
+  {
+    "title": "Test a Pocket AI Device Across Battery, Offline, and Permission Loss",
+    "slug": "test-pocket-ai-device-battery-offline",
+    "url": "https://dev.to/roronoa_/test-a-pocket-ai-device-across-battery-offline-and-permission-loss-33dm",
+    "source": "DEV Community",
+    "date": "2026-07-13T14:16:14.000Z",
+    "summary": "This framework for testing edge AI devices measures performance across battery levels, network conditions, permissions, and lifecycle states rather than single happy-path scenarios. Proper testing records success rates, latency, energy consumption, and recovery behavior across realistic user journeys.",
+    "content": "Pocket computers and first-PCB build stories are attracting attention today. For an AI-enabled edge device, a demo while plugged into Wi-Fi proves very little.\nDefine a test envelope before comparing models:\npower: [100-percent, 20-percent, thermal-throttle]\nnetwork: [wifi, high-latency, offline, reconnect]\npermission: [granted, revoked-during-task]\nlifecycle: [foreground, screen-off, restart]\nmodel: [bundled, downloaded, corrupt-update]\n\nFor every combination that represents a real user journey, record task success, p50/p95 latency, energy consumed, peak temperature, memory, bytes transferred, and recovery outcome. Averages hide the failure a person remembers.\nThe device must make placement visible: which operations stay local, which require cloud access, what is retained, and how queued work is cancelled. Test permission revocation mid-recording and connectivity loss after an upload begins. On restart, the UI should distinguish resumed, safely failed, and unknown state.\nUse a power monitor when possible; battery percentage is too coarse for short tasks. Pin firmware, model, quantization, ambient temperature, and screen brightness so another tester can reproduce the envelope.\nAn edge-AI release is credible when it describes the operating boundary, not when it shows one fast happy-path demo.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "跨电池、离线和权限丧失测试便携式AI设备",
+        "summary": "这个边缘AI设备测试框架在不同电池电量、网络条件、权限和生命周期状态下测量性能，而非仅限于单一成功路径场景。适当的测试在真实用户旅程中记录成功率、延迟、能耗和恢复行为。"
+      }
+    }
+  },
+  {
+    "title": "Benchmark an AI Agent Migration Without Believing One Speedup Number",
+    "slug": "benchmark-ai-agent-migration-rigorous",
+    "url": "https://dev.to/robinzzz/benchmark-an-ai-agent-migration-without-believing-one-speedup-number-33jd",
+    "source": "DEV Community",
+    "date": "2026-07-13T14:16:13.000Z",
+    "summary": "A methodology for rigorously benchmarking AI agent migrations using paired workloads stratified by repository characteristics, measuring median and tail latency, task success, regression rates, and total cost. The approach emphasizes confidence intervals and predeclared acceptance criteria over single speedup claims.",
+    "content": "Model migrations and dramatic agent speedups are recurring headlines. A single “2.2x faster” number cannot tell you whether your production workflow improves.\nBuild a paired workload from real, redacted tasks. Stratify by repository size, language, tool count, context size, and task type. Run old and new systems against the same pinned commit in isolated workspaces, randomize order, and repeat enough times to expose variance.\n{\n  \"task_id\": \"fix-017\",\n  \"system\": \"candidate\",\n  \"success\": true,\n  \"tests_passed\": 184,\n  \"wall_ms\": 91200,\n  \"model_cost_usd\": 0.42,\n  \"tool_calls\": 19,\n  \"human_rework_min\": 6\n}\n\nReport median and tail latency, task success, regression count, human rework, tokens, retries, and total cost. Include timeouts and invalid patches in the denominator. Separate model latency from queue, tool, checkout, and test time.\nBefore launch, replay failures: duplicate tool results, network loss after a side effect, worker restart, context overflow, and cancellation. A faster system that repeats writes or cannot recover is not cheaper.\nUse a predeclared acceptance rule, for example: no correctness regression above one percentage point, p95 at least 20% lower, and total cost per accepted task lower. Publish confidence intervals and the workload definition.\nThe benchmark should make a decision reproducible—not decorate one already made.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "不盲目相信单一加速数字的AI代理迁移基准测试",
+        "summary": "一种严格基准测试AI代理迁移的方法，使用按存储库特征分层的配对工作负载，测量中位数和尾部延迟、任务成功率、回归率和总成本。该方法强调置信区间和预先声明的验收标准，而非单一加速声称。"
+      }
+    }
+  },
+  {
+    "title": "Build a 30-Line Provenance Log for AI-Generated Code",
+    "slug": "provenance-log-ai-generated-code",
+    "url": "https://dev.to/rivera123/build-a-30-line-provenance-log-for-ai-generated-code-32bi",
+    "source": "DEV Community",
+    "date": "2026-07-13T14:16:11.000Z",
+    "summary": "An append-only JSONL provenance log technique for tracking AI-generated code decisions, recording task, constraints, model, commits, and human review without storing secrets. The log creates an auditable chain from intent to implementation, enabling safer code regeneration and model migrations.",
+    "content": "“Control the ideas, not the code” is trending today. For a small team, the practical question is how to preserve decisions when code becomes cheap to regenerate.\nUse an append-only JSONL log. It should record the task, constraints, model or tool, input commit, accepted output commit, verification command, and human decision—never raw secrets or an entire private prompt.\nimport { appendFileSync } from \"node:fs\";\nimport { execFileSync } from \"node:child_process\";\n\nconst git = (...args) => execFileSync(\"git\", args, { encoding: \"utf8\" }).trim();\nconst entry = {\n  at: new Date().toISOString(),\n  task: process.argv[2],\n  constraints: process.argv[3].split(\",\"),\n  input: git(\"rev-parse\", \"HEAD\"),\n  verify: process.argv[4],\n  decision: \"pending\"\n};\nappendFileSync(\".provenance.jsonl\", JSON.stringify(entry) + \"\\n\");\n\nCommit the log beside an architecture decision record. After review, add a second event containing the output commit, test result, reviewer, and accept/reject reason. Events are safer than rewriting history because retries and reversals remain visible.\nThis does not prove authorship, correctness, or license compatibility. It creates a searchable chain from intent to evidence. That chain lets you replace a model, regenerate an implementation, or explain why a strange constraint exists six months later.\nThe durable asset is not a pile of generated lines. It is the verified intent that makes those lines replaceable.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为AI生成代码构建30行来源日志",
+        "summary": "一种仅追加的JSONL来源日志技术，用于跟踪AI生成代码决策，记录任务、约束、模型、提交和人工审核，无需存储机密信息。该日志创建了从意图到实现的可审计链条，支持更安全的代码再生和模型迁移。"
+      }
+    }
+  },
+  {
+    "title": "Turn the Linux GhostLock Report Into a Fleet Patch Plan",
+    "slug": "ghostlock-linux-fleet-patch-plan",
+    "url": "https://dev.to/odd_background_328/turn-the-linux-ghostlock-report-into-a-fleet-patch-plan-1i3g",
+    "source": "DEV Community",
+    "date": "2026-07-13T14:16:07.000Z",
+    "summary": "Rather than immediately patching all systems for the GhostLock kernel vulnerability, this approach systematically inventories affected hosts using kernel version detection and vendor backport tracking, then validates patches on canary systems before rolling out with rollback capabilities. Operational exposure assessment requires evidence-based classification.",
+    "content": "GhostLock, reported as a long-lived Linux kernel stack use-after-free, is trending again today. Do not jump from a research headline directly to “all servers are vulnerable.” Turn the report into an exposure decision.\nFirst record the affected subsystem, required privileges, reachable interfaces, fixed commits, backports, and distribution advisories. Kernel version strings alone are insufficient because vendors backport fixes.\nInventory evidence can start with:\nuname -r\ncat /etc/os-release\nsystemd-detect-virt || true\nfind /sys/module -maxdepth 1 -type d -printf '%f\\n' | sort\n\nJoin that data with image IDs, workload role, reboot constraints, and vendor package metadata. Classify hosts as confirmed affected, confirmed fixed, potentially exposed, or unknown. Unknown is a queue, not a safe state.\nBefore rollout, test the vendor kernel on a canary for boot, storage, network, security agents, container runtime, and representative workload latency. Define automatic rollback signals and keep the previous boot entry available. Patch internet-facing and multi-tenant systems first when the exploit path supports that priority.\nAfter reboot, verify the running kernel—not merely the installed package—and preserve evidence: host, old/new package, reboot time, health checks, exceptions, and owner.\nResearch explains the bug. Operations closes the exposure with vendor-specific evidence and a reversible rollout.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "将Linux GhostLock报告转化为车队补丁计划",
+        "summary": "与其立即为所有系统修补GhostLock内核漏洞，这种方法通过使用内核版本检测和供应商反向移植跟踪来系统地对受影响的主机进行清点，然后在金丝雀系统上验证补丁，再进行具有回滚能力的推广。运营暴露评估需要基于证据的分类。"
+      }
+    }
+  },
+  {
+    "title": "Learn Emulators by Writing One CHIP-8 Instruction",
+    "slug": "learn-emulators-chip8-instruction",
+    "url": "https://dev.to/magickong/learn-emulators-by-writing-one-chip-8-instruction-4a83",
+    "source": "DEV Community",
+    "date": "2026-07-13T14:16:05.000Z",
+    "summary": "A tutorial on learning emulator architecture by implementing a single CHIP-8 instruction correctly—including big-endian fetch, program counter management, and bit masking—rather than copying a complete implementation. The incremental approach teaches core concepts and the value of deterministic testing.",
+    "content": "Tiny Emulators is popular today because small systems make invisible computer behavior visible. You do not need to build a complete emulator to learn the central loop.\nCHIP-8 instructions are two bytes. The instruction 6xkk stores byte kk in register Vx.\nmemory = bytearray(4096)\nV = [0] * 16\npc = 0x200\n\ndef step():\n    global pc\n    opcode = (memory[pc] << 8) | memory[pc + 1]\n    pc += 2\n    if opcode & 0xF000 == 0x6000:\n        x = (opcode >> 8) & 0xF\n        V[x] = opcode & 0xFF\n    else:\n        raise ValueError(f\"unsupported opcode {opcode:04x}\")\n\nmemory[0x200:0x204] = bytes([0x61, 0x2A, 0x6F, 0xFF])\nstep(); step()\nassert V[1] == 42 and V[15] == 255 and pc == 0x204\n\nThe important details are already here: big-endian fetch, program-counter movement, bit masks, register selection, and a deterministic failure for unknown instructions.\nNext, add 7xkk (addition), then write a table-driven test for overflow. Only after the CPU state is trustworthy should you add timers, keyboard input, or graphics. Compare behavior against a public CHIP-8 test ROM and document which interpreter quirks you support.\nAn emulator is a specification made executable. One instruction with a precise test teaches more than copying a finished 1,000-line implementation.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "通过编写一条CHIP-8指令来学习模拟器",
+        "summary": "一个通过正确实现单条CHIP-8指令（包括大端序获取、程序计数器管理和位掩码）而不是复制完整实现来学习模拟器架构的教程。这种增量方法教授核心概念和确定性测试的价值。"
+      }
+    }
+  },
+  {
+    "title": "Test HTML-to-DOCX Export as a Contract, Not a Screenshot",
+    "slug": "test-html-docx-export-contract",
+    "url": "https://dev.to/kongkong1/test-html-to-docx-export-as-a-contract-not-a-screenshot-1l06",
+    "source": "DEV Community",
+    "date": "2026-07-13T14:16:02.000Z",
+    "summary": "A guide to testing HTML-to-DOCX converters by treating them as compiler specifications with XML validation, semantic assertions, and cross-suite visual verification rather than screenshot checks. Comprehensive testing includes round-trip editing validation and explicit handling of unsupported CSS.",
+    "content": "DOM-docx, an MIT-licensed HTML-to-native-Word project, is trending today. “Looks right in one screenshot” is not enough for an export feature. The contract spans structure, editing, pagination, and interoperability.\nCreate a golden fixture containing headings, nested lists, a table, links, inline styles, an image, code, page breaks, and non-Latin text. Export it, then inspect the DOCX package as ZIP/XML.\nimport { readFile } from \"node:fs/promises\";\nimport JSZip from \"jszip\";\n\nconst zip = await JSZip.loadAsync(await readFile(\"out.docx\"));\nconst xml = await zip.file(\"word/document.xml\").async(\"string\");\nfor (const text of [\"Heading One\", \"東京\", \"example.com\"]) {\n  if (!xml.includes(text)) throw new Error(`missing: ${text}`);\n}\n\nAdd four test layers: schema/package validation; semantic assertions on headings, lists, and links; visual snapshots rendered by at least two office suites; and an edit round-trip where a user changes text, saves, and reopens the file.\nDefine unsupported CSS explicitly. A deterministic warning for position: fixed is better than silently producing a misleading document. Set limits for image size, document length, memory, and export time. Sanitize remote URLs and never let HTML reference arbitrary local files.\nTreat the exporter as a compiler: HTML is input, OOXML is output, warnings are part of the API, and fixtures are compatibility tests.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "将HTML转DOCX导出作为契约进行测试，而不是截图",
+        "summary": "一份通过将HTML转DOCX转换器视为编译器规范、使用XML验证、语义断言和交叉套件视觉验证而不是截图检查来测试HTML转DOCX转换器的指南。综合测试包括往返编辑验证和对不支持CSS的显式处理。"
+      }
+    }
+  },
+  {
     "title": "When Upgrading Your AI Model Makes It Both Faster and Cheaper",
     "slug": "when-upgrading-ai-model-faster-cheaper",
     "url": "https://dev.to/basavaraj_sh_1ea7d95f0f2e/when-upgrading-your-ai-model-makes-it-both-faster-and-cheaper-5abp",
@@ -188,6 +380,54 @@
       "zh": {
         "title": "🚀 揭秘智能代理AI：掌握LangGraph基础知识，告别行话",
         "summary": "LangGraph教程通过节点（代理）、边（交接）和状态（共享上下文）解释代理工作流。与顺序管道不同，LangGraph使代理能够重试、循环和通过分支传递工作，直到满足条件。"
+      }
+    }
+  },
+  {
+    "title": "Zig Creator Calls Spade a Spade, Anthropic Blows Smoke",
+    "slug": "zig-creator-anthropic-commentary",
+    "url": "https://raymyers.org/post/zed-creator-calls-spade-a-spade/",
+    "source": "Hacker News",
+    "date": "2026-07-13T08:39:39.000Z",
+    "summary": "Commentary on the Zig creator's critique of industry messaging, with criticism of Anthropic's responses to the discussion. The post has garnered significant engagement on Hacker News.",
+    "content": "Article URL: https://raymyers.org/post/zed-creator-calls-spade-a-spade/\nComments URL: https://news.ycombinator.com/item?id=48889637\nPoints: 868\n# Comments: 436",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Zig 创建者直言不讳，Anthropic 言辞虚伪",
+        "summary": "关于 Zig 创建者对行业营销的批评评论，批评 Anthropic 对讨论的回应。该帖子在黑客新闻上获得了大量关注。"
+      }
+    }
+  },
+  {
+    "title": "Sam Neill has died",
+    "slug": "sam-neill-actor-died-78",
+    "url": "https://www.theguardian.com/film/2026/jul/13/sam-neill-death-actor-dies-aged-78",
+    "source": "Hacker News",
+    "date": "2026-07-13T06:02:11.000Z",
+    "summary": "Veteran actor Sam Neill, renowned for his roles in Jurassic Park and other films, passed away at age 78. His death marks the loss of a celebrated figure in cinema.",
+    "content": "Article URL: https://www.theguardian.com/film/2026/jul/13/sam-neill-death-actor-dies-aged-78\nComments URL: https://news.ycombinator.com/item?id=48888468\nPoints: 320\n# Comments: 75",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "萨姆·尼尔去世",
+        "summary": "资深演员萨姆·尼尔因在《侏罗纪公园》和其他电影中的角色而闻名，于 78 岁时去世。他的去世标志着电影界失去了一位备受推崇的人物。"
+      }
+    }
+  },
+  {
+    "title": "The Graph That Should Be Front-Page News",
+    "slug": "graph-front-page-news",
+    "url": "https://www.lyrebirddreaming.com/post/the-graph-that-should-be-front-page-news",
+    "source": "Hacker News",
+    "date": "2026-07-13T05:35:27.000Z",
+    "summary": "A Hacker News discussion highlighting a significant data visualization that merits wider public attention and front-page coverage. The post has generated substantial community engagement.",
+    "content": "Article URL: https://www.lyrebirddreaming.com/post/the-graph-that-should-be-front-page-news\nComments URL: https://news.ycombinator.com/item?id=48888331\nPoints: 277\n# Comments: 171",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "应该成为头条新闻的图表",
+        "summary": "黑客新闻的讨论，强调了一个值得更广泛关注和头版报道的重要数据可视化。该帖子引发了大量社区参与。"
       }
     }
   },
