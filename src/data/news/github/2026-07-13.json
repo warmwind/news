@@ -1,5 +1,213 @@
 [
   {
+    "title": "CVE-2026-42271: How a Popular AI Gateway Became an RCE Vector — And What to Audit in Your Stack",
+    "slug": "cve-2026-42271-litellm-rce-vulnerability",
+    "url": "https://dev.to/alejandxr/cve-2026-42271-how-a-popular-ai-gateway-became-an-rce-vector-and-what-to-audit-in-your-stack-2718",
+    "source": "DEV Community",
+    "date": "2026-07-13T19:17:01.000Z",
+    "summary": "LiteLLM, a widely-used open-source AI gateway (v1.74.2-1.83.6), contains a critical command-injection vulnerability (CVE-2026-42271, CVSS 8.8) in MCP-server endpoints that allows authenticated attackers to execute arbitrary OS commands with the process's privileges. The flaw has been confirmed in active exploitation and added to CISA's Known Exploited Vulnerabilities catalog, making it a significant supply-chain risk for any team using LiteLLM to normalize API calls or integrate tool-calling features.",
+    "content": "The Vulnerability\n\n\nOn May 8, 2026, BerriAI disclosed CVE-2026-42271, a command-injection flaw in LiteLLM — one of the most widely deployed open-source AI gateways. The vulnerability scored CVSS 8.8 and affects every release from version 1.74.2 to before 1.83.7. By June 9, CISA had added it to the Known Exploited Vulnerabilities (KEV) catalog, confirming active exploitation in the wild.\nThe root cause lives in two MCP-server preview endpoints: POST /mcp-rest/test/connection and POST /mcp-rest/test/tools/list. These endpoints accept a full server configuration in the request body — including the command, args, and env fields used by the stdio transport. When an authenticated user (or an attacker who chains this with the separate Starlette host-header bypass, CVE-2026-48710) sends a crafted payload, the injected command executes on the host with the privileges of the LiteLLM process. No sandboxing. No allowlist. Direct OS-level command execution.\nLiteLLM has become the default glue layer for teams building AI-powered products. It normalizes API calls across OpenAI, Anthropic, Google, and dozens of open-weight models. If you've deployed an LLM feature in the last 12 months, there's a non-trivial chance LiteLLM sits somewhere in your stack — in front of your RAG pipeline, your agent framework, or your internal tool-calling layer.\nThat popularity is exactly what makes this an attack-surface problem, not just a single-CVE problem. The MCP (Model Context Protocol) integration that the vulnerable endpoints serve is the same pattern teams use to connect LLMs to external tools: databases, code execution sandboxes, file systems, APIs. Every MCP server you plug in via stdio transport carries its own command and args. If the gateway doesn't strictly validate those fields, the tool-calling feature becomes a command-injection feature.\nThe Hacker News reported that the flaw chains to unauthenticated RCE when combined with the Starlette host-header bypass — meaning an attacker who c",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "CVE-2026-42271：热门AI网关如何成为远程代码执行漏洞——以及如何审计您的技术栈",
+        "summary": "LiteLLM是一个广泛使用的开源AI网关（v1.74.2-1.83.6），在MCP服务器端点中存在关键命令注入漏洞（CVE-2026-42271，CVSS 8.8），允许经过身份验证的攻击者以进程权限执行任意操作系统命令。该漏洞已被确认正在被积极利用，并已添加到CISA的已知被利用漏洞目录中，对任何使用LiteLLM来规范化API调用或集成工具调用功能的团队来说都是重大的供应链风险。"
+      }
+    }
+  },
+  {
+    "title": "EF Core Mapping for DDD — for Dummies",
+    "slug": "ef-core-mapping-ddd",
+    "url": "https://dev.to/stevsharp/ef-core-mapping-for-ddd-for-dummies-26fp",
+    "source": "DEV Community",
+    "date": "2026-07-13T19:12:37.000Z",
+    "summary": "This guide demonstrates how to implement Domain-Driven Design principles in C# using Entity Framework Core by separating business logic from ORM requirements through mapping configuration. Developers can preserve encapsulation, private properties, and factory methods without exposing implementation details while still persisting models to the database.",
+    "content": "You built a nice domain model with rules and private properties — but EF Core wants simple classes with public get; set;.\nDon't worry. This guide shows you how to save DDD models to the database without messing up your code. Short sentences. Real examples. No jargon overload.\nBefore you start: know basic C# and what EF Core is. DDD just means putting business rules inside your C# classes instead of scattering them everywhere.\nDDD (Domain-Driven Design) is a fancy name for a simple idea: put your business rules inside your C# classes.\nFor example, \"you can't ship an empty order\" should live on the Order class — not in some random service file.\nEF Core is the tool that saves your C# objects to SQL Server. It works great with simple classes that have public { get; set; } on everything.\nBut DDD classes are different — they use:\nprivate set\nfactory methods like Order.Create()\n\nhidden lists\nThat's where mapping comes in: a separate config file that tells EF Core \"here's how to read and write my class\" — without changing the class itself.\nThe bad one is easy for EF Core but anyone can break the rules. The good one protects itself — EF Core just needs a little help to save it.\n// ❌ BAD — no rules, anyone can change anything\npublic class Order\n{\n    public Guid Id { get; set; }\n    public string Status { get; set; } = \"\";\n    public List<OrderLine> Lines { get; set; } = [];\n    // Someone can write: order.Status = \"Shipped\" on an empty order. Oops.\n}\n\n// ✅ GOOD — rules live here, properties are protected\npublic sealed class Order\n{\n    public OrderId Id { get; private set; }\n    public OrderStatus Status { get; private set; }\n    private readonly List<OrderLine> _lines = [];\n    public IReadOnlyCollection<OrderLine> Lines => _lines.AsReadOnly();\n\n    private Order() { } // EF Core needs this empty constructor — you never call it\n\n    public static Order Create(CustomerId customerId) { /* ... */ }\n    public void AddLine(ProductId productId, int qty, Money price) { /* checks",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "EF Core在DDD中的映射——傻瓜教程",
+        "summary": "本指南演示了如何在C#中使用Entity Framework Core通过分离业务逻辑和ORM要求来实现域驱动设计原则。开发人员可以保持封装、私有属性和工厂方法，而不会暴露实现细节，同时仍然可以将模型持久化到数据库。"
+      }
+    }
+  },
+  {
+    "title": "I built a VS Code extension that reads your code aloud and narrates git diffs with AI",
+    "slug": "vs-code-markdown-tts-ai-narration",
+    "url": "https://dev.to/abhishek_sharma_a9792aee8/i-built-a-vs-code-extension-that-reads-your-code-aloud-and-narrates-git-diffs-with-ai-31b4",
+    "source": "DEV Community",
+    "date": "2026-07-13T19:07:58.000Z",
+    "summary": "Markdown TTS is a VS Code extension that parses and speaks markdown and code, offering offline literal reading with native OS voices and optional AI-powered narration via OpenAI, Anthropic, or Groq. It includes a git-diff summarization feature for pre-commit review, supporting multiple LLM providers and keeping basic functionality completely offline.",
+    "content": "I do a lot of doc-heavy and review-heavy work, and I kept losing time re-reading dense markdown and PRs instead of just listening to them. \"Just use a screen reader\" doesn't really work for code — it reads asterisks and pound signs literally instead of understanding markdown structure. So I built Markdown TTS, a VS Code extension that actually parses the content first, then speaks it.\nTwo distinct modes:\n1. Literal reading — strips markdown syntax properly (headings become \"Heading level 2: ...\", tables read as CSV, code blocks skipped, links keep their text) and reads it aloud via your OS's built-in voice — SAPI on Windows, say on macOS. Fully offline, no API key, no account. There's also an optional Microsoft Edge neural voice mode if you want higher quality and don't mind the request leaving your machine.\n2. AI narration (bring your own key) — instead of reading a file verbatim, an LLM explains what it does in plain English, then narrates that explanation. There's also a command that runs git diff locally and speaks an AI summary of your uncommitted changes or last commit, which I now use as a last check before committing instead of re-reading a wall of red and green text. Works with OpenAI, Anthropic, or Groq (free tier, no card needed). Only these two commands ever contact an API — literal reading stays completely offline.\nIt also does voice input into Copilot Chat, triggering your OS's native dictation (Win+H on Windows, Start Dictation on macOS) instead of implementing its own speech recognition.\nSingle-file extension, ~1100 lines, no framework\nWindows local TTS is done by spawning PowerShell running System.Speech.Synthesis.SpeechSynthesizer. Pause/resume goes through a control file, since SAPI has no native pause primitive exposed from that surface\nThe Edge neural voice path splits text into ~1.5KB chunks and prefetches two chunks ahead over parallel WebSockets, so long files start speaking in seconds instead of blocking on a multi-minute synth job\nVoice inp",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个VS Code扩展，可以为代码朗读并通过AI叙述git差异",
+        "summary": "Markdown TTS是一个VS Code扩展，可以解析和朗读Markdown和代码，提供带有本地操作系统语音的离线逐字朗读和可选的通过OpenAI、Anthropic或Groq的AI驱动叙述。它包括用于提交前审查的git差异摘要功能，支持多个LLM提供商，并保持基本功能完全离线。"
+      }
+    }
+  },
+  {
+    "title": "Where usability files actually break — and what I do about it",
+    "slug": "usability-files-medical-device-failures",
+    "url": "https://dev.to/jwithfield_qa/where-usability-files-actually-break-and-what-i-do-about-it-27aa",
+    "source": "DEV Community",
+    "date": "2026-07-13T19:06:44.000Z",
+    "summary": "Usability files in regulated medical devices often fail to connect design decisions to real-world safety evidence, with recurring gaps in user representation, hazard traceability, and testing realism. The author identifies concrete failure patterns and pragmatic fixes to ensure documentation demonstrates actual device safety rather than serving as a compliance artifact.",
+    "content": "I stopped treating the usability file as a compliance artifact years ago — it’s where product design and real people collide. When it’s done badly, the consequences are more than an audit finding: increased use errors, higher CAPA rates, and slower time‑to‑market. Below are the concrete places I see Human Factors (HF) work fail in Class II products and pragmatic steps I've used to keep the usability file useful, auditable, and tied into risk control.\nStandards and guidance (IEC 62366‑1, FDA Human Factors Guidance) frame the work, but the goal is safer use. The usability file should:\nShow you understood who will use the device and how (context of use).\nDemonstrate that you analysed use‑related hazards and applied risk controls (link to ISO 14971).\nProvide evidence that controls work (formative + summative testing).\nIf those links are missing, you may have a 40‑page file that still doesn’t prove safety in the real world.\nThese are patterns I repeatedly encounter in reviews and audits:\nScoping too late\n\n\nHF starts after detailed hardware/GUI decisions are locked. Result: recommendations that are impractical to implement.\nShallow context-of-use\n\n\n“Nurses” or “patients” listed as users without role breakdown, environment, training level, or typical workload.\nTask analysis that’s too abstract\n\n\nHigh‑level steps (“prepare device”, “administer dose”) without identifying critical subtasks and error‑prone interactions.\nFormative testing that isn’t formative\n\n\nSmall, unstructured sessions that produce observations but no iterative design response.\nSummative testing that lacks realism\n\n\nLab conditions, scripted tasks, or non‑representative users — testers who aren’t the real world’s problem.\nPoor linkage to risk management\n\n\nHF findings aren’t traced to hazards, risk controls, or residual risk acceptability criteria.\nDocumentation gaps\n\n\nMissing test scripts, consent forms, moderator notes; unclear pass/fail criteria leading to auditor questions.\nNo feedback loop\n\n\nPost‑market",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "可用性文件实际上在哪里失效——以及我如何应对",
+        "summary": "受监管的医疗设备中的可用性文件往往无法将设计决策与真实世界的安全证据相联系，在用户代表、危害可追溯性和测试现实性方面存在反复出现的差距。作者识别了具体的失败模式和实用的修复方法，以确保文档证明了实际的设备安全性，而不是仅仅作为合规工件存在。"
+      }
+    }
+  },
+  {
+    "title": "How to Use AI for Sprint Planning (And Stop Guessing Deadlines)",
+    "slug": "ai-sprint-planning-deadline-prediction",
+    "url": "https://dev.to/muhammad_azhar_3826652565/how-to-use-ai-for-sprint-planning-and-stop-guessing-deadlines-40ln",
+    "source": "DEV Community",
+    "date": "2026-07-13T19:06:10.000Z",
+    "summary": "Modern AI-powered sprint planning tools replace estimation poker with automated task decomposition and predictive velocity modeling, forecasting deadline risk based on historical team performance. By identifying bottlenecks and preventing overloaded sprints before they start, teams reduce estimation bias and improve execution predictability.",
+    "content": "If your team is still estimating sprint tickets by sitting in a 2-hour meeting and holding up fingers for \"Planning Poker,\" you are living in the past.\nDespite decades of Agile coaches telling us how to estimate software projects, the reality remains unchanged: humans are terrible at estimating time. We suffer from optimism bias. We assume we won't get stuck debugging a weird CORS issue for two days, and we never account for the 4 urgent Slack messages we will get from the CEO on Thursday.\nThis is why sprints fail. But in 2026, you don't have to guess anymore. You can use AI.\nHere is how modern engineering teams are replacing gut-feeling estimations with AI-driven sprint planning.\nThe biggest reason a \"3-day ticket\" takes 2 weeks is that the ticket was too vague. \"Add Stripe Integration\" is not a task; it's an entire epic.\nModern AI project management tools allow product managers to write a natural language goal. The AI then automatically breaks that goal down into technical sub-tasks: \nSetup webhooks\nCreate database migration for customer IDs\nBuild frontend checkout UI\nWrite unit tests for failure edge-cases\nBy using AI to instantly break down tickets, you eliminate the \"unknowns\" before the sprint even starts.\nWhat if, instead of asking a developer \"Will this be done by Friday?\", an AI could just tell you the statistical probability of it happening?\nTools like Rahnuma.io do exactly this. Instead of a basic Kanban board, Rahnuma analyzes your team's historical velocity—how fast you actually code, not how fast you say you code. \nWhen you drag a ticket into the sprint, the AI prediction engine calculates the risk. If you overload a developer who already has a high failure rate on frontend tasks, the system warns the manager: \"68% Risk of Missing Deadline.\" \nYou fix the sprint before it fails, not during a painful retrospective.\nAnother major sprint killer is the \"bottleneck developer.\" This is usually the Senior Engineer who has to review every PR, unblock the junior",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何在冲刺规划中使用人工智能（并停止猜测截止日期）",
+        "summary": "现代人工智能驱动的冲刺规划工具用自动化任务分解和预测速度建模取代估计扑克游戏，根据历史团队绩效预测截止日期风险。通过识别瓶颈并在冲刺开始前防止工作过载，团队减少估计偏差并提高执行可预测性。"
+      }
+    }
+  },
+  {
+    "title": "Let Me Show You Which AI Model Actually Writes the Best Code",
+    "slug": "ai-models-code-writing-benchmark",
+    "url": "https://dev.to/gentlenode/let-me-show-you-which-ai-model-actually-writes-the-best-code-3epa",
+    "source": "DEV Community",
+    "date": "2026-07-13T19:00:44.000Z",
+    "summary": "A benchmark of ten LLMs across five coding tasks found DeepSeek V4 Flash to offer the best cost-to-quality ratio at $0.25/M tokens, while DeepSeek-R1 excels at complex algorithmic problems despite higher cost. The analysis demonstrates that model selection significantly impacts both code quality and operational expenses for AI-assisted development.",
+    "content": "Let Me Show You Which AI Model Actually Writes the Best Code\nI've been obsessed with AI coding assistants lately. Like, embarrassingly obsessed. I keep finding excuses to throw real-world problems at different models just to see what sticks. So last month I did something that ate up way more of my weekend than I'd like to admit — I ran 10 of the top LLMs through five coding tasks and tracked every result like a slightly unhinged spreadsheet nerd.\nWhy? Because picking the wrong model for code generation is expensive. Not just in dollars (though we'll talk about that), but in the time you spend cleaning up garbage outputs. So here's how I figured out which AI actually deserves a spot in your dev workflow.\nLet's dive in.\nIf you want the short version and don't have time for my rambling: DeepSeek V4 Flash is the sweet spot for most people. It scored an 8.7 on my coding battery, costs $0.25 per million output tokens, and produced the highest value-to-quality ratio I've seen. Qwen3-Coder-30B is the dedicated code-specialist winner at $0.35/M. And when you're wrestling with genuinely tricky algorithmic problems? DeepSeek-R1 at $2.50/M earns every penny.\nBut you didn't come here for the TL;DR — you came for the receipts. So let me show you exactly how I got there.\nI didn't cherry-pick. I grabbed ten models spanning everything from rock-bottom budget picks to premium reasoning beasts. Here's the full lineup:\n\n\n\nModel\nProvider\nOutput ($/M)\nSpecialty\n\n\n\n\nDeepSeek V4 Flash\nDeepSeek\n$0.25\nGeneral (strong code)\n\n\nDeepSeek Coder\nDeepSeek\n$0.25\nCode-specialized\n\n\nQwen3-Coder-30B\nQwen\n$0.35\nCode-specialized\n\n\nDeepSeek V4 Pro\nDeepSeek\n$0.78\nPremium general\n\n\nDeepSeek-R1\nDeepSeek\n$2.50\nReasoning\n\n\nKimi K2.5\nMoonshot\n$3.00\nPremium general\n\n\nGLM-5\nZhipu\n$1.92\nPremium general\n\n\nQwen3-32B\nQwen\n$0.28\nGeneral purpose\n\n\nHunyuan-Turbo\nTencent\n$0.57\nGeneral purpose\n\n\nGa-Standard\nGA Routing\n$0.20\nSmart routing\n\n\n\nThe price spread is wild. You've got $0.20 on one end and $3.00 on the other — tha",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "让我告诉你哪个人工智能模型实际上能写出最好的代码",
+        "summary": "对十个大语言模型在五个编码任务上的基准测试发现，DeepSeek V4 Flash以$0.25/M代币的价格提供了最佳的成本质量比，而DeepSeek-R1在复杂算法问题上表现出色，尽管成本更高。该分析表明，模型选择对人工智能辅助开发的代码质量和运营成本都有重大影响。"
+      }
+    }
+  },
+  {
+    "title": "Serving Agent Traffic Without Breaking Your Origin",
+    "slug": "agent-traffic-caching-retail-strategy",
+    "url": "https://dev.to/abdalsalaam_halawa_bdca77/serving-agent-traffic-without-breaking-your-origin-fhf",
+    "source": "DEV Community",
+    "date": "2026-07-13T18:59:35.000Z",
+    "summary": "Retailers can accommodate AI agent traffic cost-effectively by edge-caching static product surfaces while keeping pricing data fresh, combined with rate-limiting only unverified spoofers. The strategy recognizes that live agent queries tied to human users require different economics than scheduled crawls, favoring smart caching over blanket blocking.",
+    "content": "You keep an origin healthy while staying open to AI agents by caching the cheap, near-static surfaces agents read most and reserving your compute for the offer data that has to be fresh, not by blocking the agents that would have selected you.\nA live, user-triggered agent fetch hits your origin at question time while a shopper waits, so the cost of being open is real, but the answer is caching, not blocking.\nRetail is one of the sectors AI crawlers hit hardest, and crawl-to-refer ratios can be extremely lopsided, so plan for the fetch load instead of being surprised by the bill.\nEdge-cache the near-static machine surfaces (llms.txt, Markdown mirrors, feeds, mostly-static product pages) and keep price and availability on a short leash so an agent never quotes a stale offer.\nAccess control (throttling unverified spoofers) is not content variation (serving different content by user-agent, which is cloaking); allowlist the verified agents and rate-limit only the fakes.\nThis chapter is about affording openness, not blocking agents. Every load figure below is a reason to cache smarter, never a reason to slam the door on an agent that would have selected you. Rate-limiting here targets unverified spoofers only. The verified shopping and answer agents should always get through.\nA scheduled search crawler and a live shopping agent load your server on opposite economics. A classic index crawler visits on its own timetable, so its cost is smooth and predictable: fetch once, and the engine can send you many shoppers off that one visit. A live agent fetch is the reverse. It fires the moment a real person asks a question, it is tied to that person waiting for an answer, and nothing guarantees the work sends a visitor back.\nThat second mode is growing fast. Cloudflare recorded \"user action\" crawling, meaning bots that simulate a human action rather than run a scheduled index, growing more than 15x across 2025, and more than 21x from the start of January to early December. (Cloudfl",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在不破坏源服务器的情况下处理代理流量",
+        "summary": "零售商可以通过边缘缓存静态产品信息并保持价格数据更新，结合对未验证爬虫的速率限制，以具有成本效益的方式处理AI代理流量。该策略认识到与人类用户相关的实时代理查询需要与计划爬取不同的经济模型，倾向于智能缓存而不是全面阻止。"
+      }
+    }
+  },
+  {
+    "title": "They Asked for My AI Rules. But I Could Not Just Hand Them Over.",
+    "slug": "ai-rules-project-specific-adaptation",
+    "url": "https://dev.to/jeelvankhede/they-asked-for-my-ai-rules-but-i-could-not-just-hand-them-over-3lhb",
+    "source": "DEV Community",
+    "date": "2026-07-13T18:53:06.000Z",
+    "summary": "AI development rules lose effectiveness when copied directly between projects because they embed specific repository structures and conventions unique to each codebase. While guidelines can serve as references, their real value emerges through project-specific adaptation rather than generic application.",
+    "content": "A team lead announces that the team will start using AI-assisted development. Everyone nods. Nobody asks what that actually means on Monday morning.\nSome times ago I was in that position. A project I was working on needed to start using AI-assisted development, and the team was new to it. Nobody had rules written down for an agent to follow. Nobody had skills defined for it to load. There was no shared idea of how this should work inside our specific repo. Someone had to go first. That someone was me.\nI spent time curating a set of rules and skills for that project. Not generic ones. I shaped them tightly around how that repo was actually structured, its conventions, its layout, the things a new engineer usually has to learn by asking around. I wanted an agent working inside that codebase to already know what a human teammate would have picked up in the first two weeks.\nI gave a demo. It landed well. Well enough that it got shared further across team, as something other teams could learn from.\nI gave the demo again. Same reaction. Then a few developers reached out for the actual rules and skills files.\nI said sure, and then I actually looked at what I would be handing them.\nIt was not copy-paste-able. The rules referenced folder names, module boundaries, and patterns specific to one repo. Handing them over as-is would have meant handing over advice that was wrong for their project, dressed up as a shortcut.\nSo I told them to use it as a reference. Look at the structure, understand the reasoning, adapt it to your own repo.\nThat is correct advice. I watched people nod at it and then quietly missing it.\nI had been thinking about this as a documentation problem. Write good rules, explain them well, let people copy the idea. What I actually had was a generation problem. The rules that worked were the ones rendered specifically for a stack, not the ones written generically and left for someone to translate.\nThe thing that was supposed to spread across other teams did not",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "他们要我的AI规则。但我无法直接交给他们。",
+        "summary": "AI开发规则在直接复制到不同项目时会失效，因为它们嵌入了特定于每个代码库的特定仓库结构和约定。虽然指南可以作为参考，但它们的真正价值来自于项目特定的适配，而不是通用的应用。"
+      }
+    }
+  },
+  {
+    "title": "Hyperscalers Are Building the Digital World Like It’s 2015 — And It Shows",
+    "slug": "hyperscaler-architecture-gaps-vendor-lock",
+    "url": "https://dev.to/claireg/hyperscalers-are-building-the-digital-world-like-its-2015-and-it-shows-5318",
+    "source": "DEV Community",
+    "date": "2026-07-13T18:50:36.000Z",
+    "summary": "Across AWS, Azure, Google Cloud, and Meta, fundamental architectural gaps in identity, state, and execution management create cascading vendor lock-in and single points of failure in critical infrastructure. As organizations grapple with these vulnerabilities, the conversation is shifting from technical complaints to sovereignty and resilience risks.",
+    "content": "I didn’t set out to diagnose hyperscalers. I wasn’t doing a grand industry analysis. I wasn’t mapping global architecture. I wasn’t trying to understand cloud strategy.\nI was just trying to use a popular software provider — and everything kept breaking.\nEvery time something failed, I followed the thread. And every thread led to the same architectural gap. Eventually I realised I hadn’t been analysing hyperscalers at all. I’d accidentally mapped the substrate failure across the entire industry.\nOnce you see the pattern, you can’t unsee it.\nAcross Microsoft, AWS, Google, and Meta, the same structural drift appears:\nmeaning drift\nidentity drift\ntrust drift\nstate drift\nexecution drift\nprovenance drift\nagentic drift\nDifferent companies. Different stacks. Different histories. Same substrate gap.\nAnd it’s not just me. The world is waking up to these problems too.\nVendor lock in isn’t just a technical nuisance anymore — it’s becoming a public conversation. People are asking why their money keeps disappearing into the same handful of providers. Organisations are asking why their systems collapse the moment they try to leave. Governments are asking why critical infrastructure depends on architectures they cannot inspect, cannot govern, and cannot reproduce.\nWhat started as a personal frustration with a popular software provider turns out to be the same structural issue everyone else is now discovering.\nAnd sovereignty is entering the conversation — not as a political slogan, but as an architectural question. When national systems depend on fragmented substrates owned by a tiny cluster of vendors, sovereignty becomes a structural issue. The question isn’t “who controls the cloud?” It’s “who controls the substrate the cloud is built on?”\nFollow the thread far enough and you reach a scenario nobody wants to think about: what happens in a moment of global stress when a hyperscaler’s fragmented substrate becomes a single point of failure?\nNot a political crisis — a structural one.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "超大规模云服务商像在2015年一样构建数字世界——问题显而易见",
+        "summary": "在AWS、Azure、Google Cloud和Meta中，身份、状态和执行管理中的根本性架构缺陷导致级联的供应商锁定和关键基础设施中的单点故障。随着组织应对这些漏洞，讨论正在从技术抱怨转向主权和复原力风险。"
+      }
+    }
+  },
+  {
+    "title": "Codegraph",
+    "slug": "codegraph-function-dependency-tool",
+    "url": "https://dev.to/likitha_gujari_6352fbf376/codegraph-837",
+    "source": "DEV Community",
+    "date": "2026-07-13T18:40:12.000Z",
+    "summary": "CodeGraph parses a codebase with tree-sitter to build an interactive knowledge graph showing function dependencies and call relationships, allowing developers to visualize impact before making changes. Built with Python, FastAPI, and Neo4j, it transforms code navigation from textual search to visual dependency exploration.",
+    "content": "How I Built CodeGraph: A Living Knowledge Graph That Tells You What Breaks Before You Break It\nThe Problem That Frustrated Me\nWhat CodeGraph Does\nParses every function in the codebase using tree-sitter\nThe result: paste a GitHub URL, see your entire codebase as an interactive graph, click any function, and instantly know what breaks if you change it.\nThe Tech Stack\nPython + FastAPI (REST API server)\nFrontend:\nNext.js 15 with TypeScript\nWhy Neo4j AuraDB — Not PostgreSQL, Not MongoDB\n// Every call between functions is a relationship\nHow I Built It — Step by Step\nEvery function definition (name + file + line number)\npythondef walk(node, current_function=None):\nif node.type == \"call\":\n    func_node = node.child_by_field_name(\"function\")\n    called_name = source_code[func_node.start_byte:func_node.end_byte]\n    if current_function:\n        result[\"calls\"].append({\n            \"caller\": current_function,\n            \"callee\": called_name.split(\".\")[-1]\n        })\n\nOne important detail: I filter out Python built-ins (print, strip, len, etc.) before storing them in Neo4j. Otherwise print would appear as the most-called function in every codebase, which is meaningless noise.\ndef store_call(caller_name, callee_name):\nChallenges I Faced\nThe Results\nWhat I'd Build Next\nTry It Yourself\nLive demo: [https://codegraph-nine.vercel.app/]\nhttps://github.com/likitha2003-ctrl/codegraph]\nhttps://codegraph-backend-u0qq.onrender.com]\nTo run locally:\nhttps://github.com/likitha2003-ctrl/codegraph.git\npip install -r requirements.txt\nhttp://localhost:8000\" > .env.local\nhttp://localhost:3000 and paste any public GitHub URL.\nFinal Thoughts\nBuilt with ❤️ for HACKHAZARDS '26\nTags: #neo4j #graphdatabase #auradb #hackathon #developertools #python #nextjs #ai #llm #graphrag #treesitter #groq #hackhazards",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Codegraph",
+        "summary": "CodeGraph 使用 tree-sitter 解析代码库，构建展示函数依赖和调用关系的交互式知识图，让开发者能在进行更改前可视化其影响。该工具采用 Python、FastAPI 和 Neo4j 构建，将代码导航从文本搜索转变为可视化依赖探索。"
+      }
+    }
+  },
+  {
+    "title": "The Everyday Backend Engineer: Step 10 — The Observer Pattern",
+    "slug": "observer-pattern-nodejs-event-driven",
+    "url": "https://dev.to/aabiskar/the-everyday-backend-engineer-step-10-the-observer-pattern-1k6k",
+    "source": "DEV Community",
+    "date": "2026-07-13T18:37:40.000Z",
+    "summary": "The Observer Pattern decouples primary business logic from secondary side-effects by triggering independent event subscribers instead of cascading procedure calls, preventing core services from becoming fragile webs of dependencies. In Node.js event-driven architectures, this pattern enables clean scaling of new requirements without modifying transaction logic.",
+    "content": "Welcome back to The Everyday Backend Engineer: Practical Design Patterns. In our last post, we made our core algorithms interchangeable using the Strategy Pattern. Today, we close out our design patterns roadmap with arguably the most native pattern in the entire Node.js ecosystem: The Observer Pattern.\nLet’s look at how to master event-driven decoupling to trigger secondary workflows seamlessly without bloat.\nImagine you are writing a video processing engine or a simple order fulfillment system. When a specific event happens—such as an order being finalized—multiple unrelated departments want a piece of the action:\nThe Notification Service needs to send an SMS and Email receipt.\nThe Logistics Service needs to generate a warehouse fulfillment ticket.\nThe Analytics Service needs to update marketing tracking boards.\nIf you don't decouple these events, your primary execution service ends up managing a giant web of secondary micro-services:\n// ❌ Bad Practice: The primary service is drowning in secondary dependencies\nconst EmailService = require('../services/email');\nconst WarehouseService = require('../services/warehouse');\nconst AnalyticsTracker = require('../services/analytics');\n\nclass OrderProcessor {\n    async finalizeOrder(order) {\n        console.log(\"Saving primary order to the database...\");\n        // Core business logic ends here\n\n        // The codebase smell: Procedural cascading dependencies\n        await EmailService.sendReceipt(order.userEmail);\n        await WarehouseService.createShipment(order.id);\n        await AnalyticsTracker.trackSale(order.totalAmount);\n    }\n}\n\nmodule.exports = OrderProcessor;\n\n\nYour core OrderProcessor is now structurally dependent on three separate systems. If the AnalyticsTracker throws a network timeout error or if the warehouse API changes its interface, your core transaction fails or hangs. Furthermore, adding a fourth side-effect (like an auditing logger) means breaking open this core file yet again.\nThe Observer Pattern",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "日常后端工程师：第 10 步 — 观察者模式",
+        "summary": "观察者模式通过触发独立的事件订阅者而非级联过程调用，将主业务逻辑与次要副作用解耦，防止核心服务陷入脆弱的依赖网络。在 Node.js 事件驱动架构中，该模式能在不修改事务逻辑的前提下，干净地扩展新需求。"
+      }
+    }
+  },
+  {
+    "title": "4 self-hosting failures that return success",
+    "slug": "self-hosting-failures-silent-success",
+    "url": "https://dev.to/mbaelde/4-self-hosting-failures-that-return-success-1go5",
+    "source": "DEV Community",
+    "date": "2026-07-13T18:32:19.000Z",
+    "summary": "Self-hosting failures that report success—such as reverse proxies serving error pages as HTTP 200 or services passing healthchecks while broken—are costlier to debug than errors because they hide problems behind green signals. The author documents four real cases where monitoring and orchestration tools masked critical failures while appearing healthy.",
+    "content": "The failures that cost me the most in three years of self-hosting were never the ones that threw an error. An error is a gift: it tells you where to look. The expensive ones are the failures that report success while being broken. A page that returns 200 OK. A healthcheck that says the container is fine. A backup that exits cleanly. A command that prints nothing wrong. Everything green, everything lying.\nHere are four of them, all from the same box (a 2016 desktop, i7-6700 / 32 GB, Docker behind Caddy, reachable only over Tailscale). Each fails by handing you a success signal. Each cost me an evening the first time. The fixes are boring once you know them, the point is knowing the failure exists.\nSanitized skeleton with all the config at the end.\nThis one I could find nothing written about, so it cost me the most.\nTo keep the box quiet, I run the heavy services on-demand: Sablier stops idle containers and starts them on the first request. Caddy (with the Sablier plugin) gates a virtual host behind a container group, serves a \"please wait, starting up\" page while the group boots, then proxies through:\nmyhost.my-tailnet.ts.net:8081 {\n    route {\n        sablier http://sablier:10000 {\n            group office\n            session_duration 30m\n        }\n        reverse_proxy nextcloud:80\n    }\n}\n\nI gate my whole Nextcloud vhost, WebDAV included, this way. And here is the silent failure: if the gated group is not healthy, Sablier serves that HTML loading page for every request, and it serves it with 200 OK. A browser shows a spinner, fine. But my Obsidian vault syncs over WebDAV, and a WebDAV client asking for a directory listing got a 200 with a chunk of HTML instead of the XML it expected. Sync died with a cryptic no root multistatus found. Nextcloud itself was up and perfectly healthy the whole time. Every uptime check I had was green, because the gate in front kept answering 200.\nThe structural lesson: the moment you put a service on-demand behind a reverse proxy, tha",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "4 个返回成功的自托管失败",
+        "summary": "报告成功的自托管失败——如反向代理将错误页面作为 HTTP 200 返回或服务在损坏状态下通过健康检查——比实际错误更难调试，因为它们将问题隐藏在绿灯信号后面。作者记录了四个真实案例，其中监控和编排工具掩盖了关键故障，同时表现出健康状态。"
+      }
+    }
+  },
+  {
+    "title": "DOGE is done. What happened to its records?",
+    "slug": "doge-government-records-preservation",
+    "url": "https://www.ms.now/opinion/doge-government-efficiency-records-job-cuts-elon-musk-foia",
+    "source": "Hacker News",
+    "date": "2026-07-13T15:56:39.000Z",
+    "summary": "This Hacker News discussion examines what happened to Department of Government Efficiency records and documentation after its operations concluded, raising questions about institutional memory and government information preservation.",
+    "content": "Article URL: https://www.ms.now/opinion/doge-government-efficiency-records-job-cuts-elon-musk-foia\nComments URL: https://news.ycombinator.com/item?id=48894641\nPoints: 247\n# Comments: 197",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "DOGE结束了。它的记录怎样了？",
+        "summary": "这个Hacker News讨论审视了政府效率部门的记录和文档在其运营结束后发生了什么，引发了关于机构记忆和政府信息保存的问题。"
+      }
+    }
+  },
+  {
     "title": "CORS + Auth Worked Perfectly Locally, Then Broke the Moment I Deployed (Here's Why)",
     "slug": "cors-auth-deployment-failure-fix",
     "url": "https://dev.to/hasnainjaffer/cors-auth-worked-perfectly-locally-then-broke-the-moment-i-deployed-heres-why-ee3",
@@ -188,6 +396,38 @@
       "zh": {
         "title": "将HTML转DOCX导出作为契约进行测试，而不是截图",
         "summary": "一份通过将HTML转DOCX转换器视为编译器规范、使用XML验证、语义断言和交叉套件视觉验证而不是截图检查来测试HTML转DOCX转换器的指南。综合测试包括往返编辑验证和对不支持CSS的显式处理。"
+      }
+    }
+  },
+  {
+    "title": "Grok uploaded my user directory to xAI's servers",
+    "slug": "grok-xai-directory-upload-privacy",
+    "url": "https://twitter.com/a_green_being/status/2076598897779020159",
+    "source": "Hacker News",
+    "date": "2026-07-13T13:39:59.000Z",
+    "summary": "A user reports that Grok, xAI's AI chatbot, uploaded their local user directory contents to xAI's servers without explicit consent, raising privacy and data handling concerns about default behavior.",
+    "content": "Article URL: https://twitter.com/a_green_being/status/2076598897779020159\nComments URL: https://news.ycombinator.com/item?id=48892512\nPoints: 478\n# Comments: 15",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Grok将我的用户目录上传到了xAI的服务器",
+        "summary": "一位用户报告称，xAI的AI聊天机器人Grok未经明确同意就将其本地用户目录内容上传到xAI的服务器，引发了对默认行为中隐私和数据处理的关切。"
+      }
+    }
+  },
+  {
+    "title": "A voxel Tokyo in real Japan time – ride the Yamanote line and study Japanese",
+    "slug": "voxel-tokyo-yamanote-japanese-learning",
+    "url": "https://jivx.com/densha",
+    "source": "Hacker News",
+    "date": "2026-07-13T11:18:30.000Z",
+    "summary": "This interactive educational tool simulates real-time Tokyo environments using voxel graphics, allowing learners to ride the Yamanote train line and study Japanese language and culture in a gamified setting.",
+    "content": "Article URL: https://jivx.com/densha\nComments URL: https://news.ycombinator.com/item?id=48890959\nPoints: 278\n# Comments: 47",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "实时日本的体素东京——乘坐山手线学习日语",
+        "summary": "这个交互式教育工具使用体素图形模拟实时东京环境，允许学习者乘坐山手线学习日语和文化，采用游戏化的设置。"
       }
     }
   },
