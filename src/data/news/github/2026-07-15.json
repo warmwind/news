@@ -1,5 +1,213 @@
 [
   {
+    "title": "Why did my benchmark stop at N=22? A debugging story in nine bugs",
+    "slug": "why-did-my-benchmark-stop-at-n22",
+    "url": "https://dev.to/xbill/why-did-my-benchmark-stop-at-n22-a-debugging-story-in-nine-bugs-3m2l",
+    "source": "DEV Community",
+    "date": "2026-07-15T18:56:45.000Z",
+    "summary": "A debugging investigation uncovered why a benchmark was mysteriously capped at N=22: CPython 3.11's 4,300-digit integer-to-string conversion limit caused crashes at N=24 when computing large Mersenne primes. Removing unnecessary string conversions and switching to monotonic timing functions fixed the issue and revealed previously missing performance data.",
+    "content": "Submission for DEV's Summer Bug Smash — Smash Stories track.\nThere was a file in my repo called run_benchmark_1_22.py.\nNot 1 to 24, which is what the harness was written to do. Not 1 to 26, which is how many Mersenne exponents the agents know. Twenty-two. A chart in the README — a2a_latency_times_1_22.png — agreed. At some point, past-me had decided the benchmark ends at 22, committed the evidence, and moved on.\nThis summer, hunting for a Bug Smash target, I finally asked: why 22?\na2a-benchmark compares A2A agent performance across four languages. Python and Go sit behind Gemini tool-calling (ADK); Node and Rust are bare HTTP handlers. Each computes Mersenne primes with Lucas–Lehmer; a harness sweeps N from 1 to 24 and draws two charts.\nI ran the full sweep. At N=24, the Python column printed N/A. Every other language returned data. There it was — not a decision, a crash, worked around by shortening the run until it stopped hurting.\n\nThe Python agent's response at N=24 wasn't even subtle about it:\n\"Exceeds the limit (4300 digits) for integer string conversion;\n use sys.set_int_max_str_digits() to increase the limit\"\n\nCPython 3.11 added a default cap on int→str conversion — 4,300 digits — as a denial-of-service mitigation. My agent stringified every prime it found. The 24th Mersenne prime, 2^19937−1, has 6,002 digits.\nHere's the part that made me laugh out loud: the stringified list was never returned. The tool reports only its elapsed time. The line that had silently amputated my benchmark at N=23 was decorative. The fix was git rm energy: delete the str(), keep the raw int. Go had the identical dead weight (val.String()) inside its timed region — it just happened not to crash.\nOne deleted expression, and a column of data that had never existed came into being: N=24, Python, 2,425.9 ms.\nWith the agents finally running, I kept pulling the thread. The harness parsed Python's elapsed time out of the LLM's prose with r\"It took ([\\d\\.\\-e]+) seconds\". Gemini, in my captur",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么我的基准测试停在了N=22?九个错误的调试故事",
+        "summary": "一项调试调查发现了基准测试被神秘地限制在N=22的原因:CPython 3.11的4,300位数字转换为字符串的限制在计算大梅森素数时在N=24处导致崩溃。删除不必要的字符串转换并切换到单调计时函数解决了问题，并揭示了以前缺失的性能数据。"
+      }
+    }
+  },
+  {
+    "title": "My benchmark's Python column was N/A for a year — CPython's 4300-digit limit, and eight other bugs",
+    "slug": "my-benchmarks-python-column-was-na-for-a-year",
+    "url": "https://dev.to/xbill/my-benchmarks-python-column-was-na-for-a-year-cpythons-4300-digit-limit-and-eight-other-bugs-1hgk",
+    "source": "DEV Community",
+    "date": "2026-07-15T18:56:09.000Z",
+    "summary": "A multi-language A2A benchmark was stuck at N=22 for a year due to CPython's integer conversion limit crashing on the 24th Mersenne prime. The author fixed nine related bugs across Python, Go, Node, and Rust implementations, restoring complete benchmark data and improving measurement accuracy.",
+    "content": "Submission for DEV's Summer Bug Smash — Clear the Lineup track.\na2a-benchmark is my multi-language A2A (Agent-to-Agent) performance suite: four agents — Python and Go behind Gemini tool-calling via ADK, Node.js and Rust as direct handlers — each compute Mersenne primes with the Lucas–Lehmer test, while a harness sweeps N=1–24 and charts calculation time and round-trip time.\nThe committed results stopped at N=22. I never questioned that. I should have.\nCPython 3.11+ limits int→str conversion to 4,300 digits by default (a DoS mitigation). My Python agent stringified each prime it found:\nmersenne_primes.append(str((1 << p) - 1))\n\nThe 24th Mersenne exponent is p=19937, and 2^19937−1 has 6,002 digits. So for any request of 24+ primes, the tool raised ValueError — and the A2A response dutifully delivered the stack-trace text instead of a result:\n\"text\": \"Exceeds the limit (4300 digits) for integer string conversion;\n         use sys.set_int_max_str_digits() to increase the limit\"\n\nThe benchmark's Python column was structurally incapable of producing data at N≥24. The kicker: the stringified list was never used. The tool returns only elapsed_time. The fix is deleting the str() — which also removes formatting work from the timed region that the Node and Rust agents never paid (Go had the same dead val.String() call).\nFix: PR #1 — plus a switch from time.time() (wall clock, non-monotonic) to time.perf_counter(), and a regression test at count=24.\nBefore/after, N=24 row:\n\n\n\n\nNode.js\nRust\nGo\nPython\n\n\n\n\nbefore\n1633.01 ms\n812.57 ms\n1451.49 ms\nN/A (crash)\n\n\nafter\n1616.13 ms\n824.10 ms\n1531.10 ms\n2425.9 ms\n\n\n\n\nThe Python agent's timing came back in two places: a structured elapsed_time in the tool artifact, and the model's prose. The harness regexed the prose first:\nm = re.search(r\"It took ([\\d\\.\\-e]+) seconds\", text)\n\nIn live runs, Gemini said \"Calculating the first 5 Mersenne primes took 4.9591064453125e-05 seconds.\" one time and \"The calculation took 2.40715261301375 seconds.\" t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我的基准测试的Python列一年来是N/A——CPython的4,300位限制和其他八个错误",
+        "summary": "由于CPython的整数转换限制在第24个梅森素数上崩溃，多语言A2A基准测试在N=22处被卡住了一年。作者修复了Python、Go、Node和Rust实现中的九个相关错误，恢复了完整的基准测试数据并提高了测量精度。"
+      }
+    }
+  },
+  {
+    "title": "I spent a week trying to intercept Slack push notifications from a Chrome extension. Here's why it's impossible.",
+    "slug": "chrome-extension-slack-push-notifications-impossible",
+    "url": "https://dev.to/mbilalkhan192003/i-spent-a-week-trying-to-intercept-slack-push-notifications-from-a-chrome-extension-heres-why-9mc",
+    "source": "DEV Community",
+    "date": "2026-07-15T18:55:52.000Z",
+    "summary": "A Chrome extension developer investigated intercepting Slack push notifications and found it's impossible: service workers run in isolated threads completely separate from the page context where content scripts operate. This architectural isolation explains why extensions cannot hook into service-worker-based notifications.",
+    "content": "After I published my last article about building a Chrome extension that speaks browser notifications aloud, a commenter asked a question I didn't have a good answer to.\nHe pointed out that a lot of web apps — Slack, Gmail, most modern tools — fire their notifications from a service worker via registration.showNotification(), not from the page's JavaScript context. My MAIN world override of window.Notification would never reach those.\nHe was right. And I told him I'd look into it.\nI spent a week researching whether there was any way to close that gap. There isn't. But the reason why is more interesting than a simple \"no.\"\nTwo ways a website can show you a notification\nWhen a website sends you a browser notification, it can do it in one of two ways.\nThe first is the constructor path. The page's own JavaScript calls new Notification(\"You have a message\") directly. This is common for in-tab alerts, real-time updates when you're actively on the site, or any notification triggered by something you just did.\nThe second is the push path. The browser receives a push event from the website's server, wakes up the website's service worker in the background, and the service worker calls self.registration.showNotification() from inside its own scope. This is what happens when Slack notifies you of a new message while the tab is closed or backgrounded. The page never runs. No page JavaScript ever fires.\nMy extension catches the first path. The MAIN world content script overrides window.Notification before any page code runs. But the service worker never touches the page's window. It has no window. It runs in a completely isolated thread, completely separate from the page, and calls showNotification on itself.\nThe override is never reached.\nWhy can't the extension reach the service worker?\nThis is the part that took me a week to fully accept.\nChrome extensions can inject content scripts into web pages. They can run code in the MAIN world or the ISOLATED world of a page. They can o",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我花了一周时间试图从Chrome扩展程序拦截Slack推送通知。以下是为什么它是不可能的。",
+        "summary": "一位Chrome扩展程序开发者调查了拦截Slack推送通知的可能性，发现这是不可能的:服务工作者运行在与内容脚本运行的页面上下文完全分离的隔离线程中。这种架构隔离解释了为什么扩展程序无法连接到基于服务工作者的通知。"
+      }
+    }
+  },
+  {
+    "title": "How to Summarize PDFs Programmatically in 2026 (+ a Free No-Code Option)",
+    "slug": "how-to-summarize-pdfs-programmatically-2026",
+    "url": "https://dev.to/aitools_overview/how-to-summarize-pdfs-programmatically-in-2026-a-free-no-code-option-4kej",
+    "source": "DEV Community",
+    "date": "2026-07-15T18:54:52.000Z",
+    "summary": "A practical guide to programmatically summarizing PDFs covers three approaches, addressing challenges like OCR for scanned documents and chunking to handle length limits. The author demonstrates implementation using pypdf and OpenAI's API with a hierarchical summarization strategy.",
+    "content": "You've got a folder of PDFs and you want summaries — not by hand. Here are three approaches that actually work in 2026, roughly from \"most control\" to \"least effort,\" plus an honest note on when you shouldn't build this at all.\nBefore any AI sees your PDF, two things bite you:\nText extraction. Native PDFs give you text directly. Scanned PDFs are images — you need OCR first.\nLength. A 200-page report is way more than a single model call wants to swallow. Dump it all in and you'll hit context limits, get truncated tails, or pay for tokens you didn't need to send.\nSo the real pipeline is: extract → (OCR if needed) → chunk → summarize → reduce.\nGood when you want full control over chunking, formatting, and cost.\nimport os\nfrom pypdf import PdfReader\nfrom openai import OpenAI\n\nclient = OpenAI(api_key=os.environ[\"OPENAI_API_KEY\"])\n\ndef extract_text(path: str) -> str:\n    reader = PdfReader(path)\n    return \"\\n\".join((page.extract_text() or \"\") for page in reader.pages)\n\ndef chunk(text: str, size: int = 12000, overlap: int = 500):\n    step = size - overlap\n    return [text[i:i + size] for i in range(0, len(text), step)]\n\ndef summarize_chunk(text: str) -> str:\n    resp = client.chat.completions.create(\n        model=\"gpt-4o-mini\",\n        messages=[\n            {\"role\": \"system\", \"content\": \"Summarize the text into concise bullet points. Keep names, numbers, and conclusions.\"},\n            {\"role\": \"user\", \"content\": text},\n        ],\n    )\n    return resp.choices[0].message.content\n\ndef summarize_pdf(path: str) -> str:\n    text = extract_text(path)\n    if len(text.strip()) < 50:\n        raise ValueError(\"Almost no text extracted — this PDF is probably scanned. Run OCR first (see Approach 2).\")\n    partials = [summarize_chunk(c) for c in chunk(text)]\n    # Reduce step: summarize the summaries\n    combined = \"\\n\\n\".join(partials)\n    return summarize_chunk(\"Combine these section summaries into one structured summary:\\n\\n\" + combined)\n\nif __name__ == \"__main__\":\n    print(sum",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "2026年如何编程方式总结PDF（+免费无代码选项）",
+        "summary": "编程总结PDF的实用指南涵盖三种方法，解决扫描文档的OCR和处理长度限制的分块等挑战。作者使用pypdf和OpenAI API展示了具有分层总结策略的实现方式。"
+      }
+    }
+  },
+  {
+    "title": "Turn redacted HarnessDelta findings into native CI review artifacts",
+    "slug": "turn-redacted-harnessdelta-findings-into-native-ci",
+    "url": "https://dev.to/nekoautomata/turn-redacted-harnessdelta-findings-into-native-ci-review-artifacts-1dco",
+    "source": "DEV Community",
+    "date": "2026-07-15T18:54:06.000Z",
+    "summary": "HarnessReport converts HarnessDelta security findings into standardized CI formats—SARIF, GitHub Actions annotations, and GitLab Code Quality JSON—enabling security checks to integrate into existing code review workflows without custom dashboards. It normalizes input while preserving actionability.",
+    "content": "A specialist check is most useful when its findings arrive where a team already reviews code. For coding-agent configuration, that usually means a SARIF upload, an inline workflow annotation, or a GitLab Code Quality artifact—not another bespoke dashboard.\nHarnessReport converts HarnessDelta's already-redacted JSON into three deterministic CI formats:\nSARIF 2.1.0;\nGitHub Actions workflow annotations; and\nGitLab Code Quality JSON.\nIt is an adapter, not another scanner. HarnessDelta detects semantic risk in Codex and Claude Code configuration changes. HarnessReport does not rescan a repository, inspect Git history, widen the input scope, or reinterpret the finding.\nnpm install --global \\\n  --registry=https://codeberg.org/api/packages/automa-tan/npm/ \\\n  harnessdelta@0.1.1 harnessreport@0.3.0\n\nharnessdelta . --json | harnessreport --format sarif > harnessdelta.sarif\n\nCritical and high findings become SARIF errors, medium findings warnings, and low findings notes. Rules are deduplicated and sorted, repository paths become source-root-relative artifact locations, and stable partial fingerprints help review systems correlate unchanged findings.\nharnessdelta . --json | harnessreport --format github --fail-on high\n\nWorkflow-command control characters are escaped before annotations are written. --fail-on accepts critical, high, medium, low, or none and writes the complete output before exiting 2 when the selected threshold is met.\nThe default is none. Conversion by itself does not quietly turn a report into a merge gate.\nharnessdelta . --json | \\\n  harnessreport --format gitlab > gl-code-quality-report.json\n\nGitLab requires an integer source line in this artifact format. HarnessDelta findings are deliberately file-level, so HarnessReport anchors them at line 1 for display and does not claim the issue originated on that line.\nHarnessReport accepts a small documented set of finding fields: severity, code, repository-relative path, and redacted message. Invalid codes, severitie",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "将HarnessDelta发现转换为本机CI审查工件",
+        "summary": "HarnessReport将HarnessDelta安全发现转换为标准化CI格式——SARIF、GitHub Actions注释和GitLab代码质量JSON——使安全检查能够集成到现有代码审查工作流中，无需自定义仪表板。它在规范化输入的同时保持可操作性。"
+      }
+    }
+  },
+  {
+    "title": "Find the pauses. Plan the words: audio-description timing from SRT and WebVTT",
+    "slug": "audio-description-timing-from-srt-and-webvtt",
+    "url": "https://dev.to/nekoautomata/find-the-pauses-plan-the-words-audio-description-timing-from-srt-and-webvtt-3j0d",
+    "source": "DEV Community",
+    "date": "2026-07-15T18:54:05.000Z",
+    "summary": "PauseCue analyzes caption timing from SRT and WebVTT files to identify potential windows for audio description narration, calculating word budgets and providing dialogue context. The tool assists accessibility professionals in planning voice-over placement without requiring manual media inspection.",
+    "content": "Audio-description planning has an awkward scheduling problem before anyone writes a line: where might narration fit, and roughly how many spoken words can each opening carry?\nCaption files already contain one useful—but incomplete—piece of evidence: timed dialogue occupancy. PauseCue turns SRT or WebVTT timing into candidate narration windows, word budgets, dialogue context, and handoff files.\nThe important word is candidate. A gap between captions is not proof of silence. It can contain uncaptured speech, music, sound effects, or original audio that should not be covered. PauseCue is a planning aid, not an accessibility checker, description writer, or substitute for watching and listening to the media.\nPauseCue:\nparses valid caption cues;\nsorts and merges overlapping cue occupancy;\napplies configurable safety padding;\nmeasures the remaining intervals; and\nestimates a word budget from duration and speaking pace.\nThat is deliberately less ambitious than inspecting the media or generating prose. The output stays explainable: every proposed interval comes from visible timing arithmetic that a writer or editor can challenge.\nnpx --yes --registry=https://codeberg.org/api/packages/automa-tan/npm/ \\\n  pausecue --duration 40 examples/demo.vtt\n\nThe included demo is a wholly synthetic four-caption scene. A real production pass can tune the minimum gap, padding, and speaking pace:\npausecue --min-gap 2.5 --padding 0.3 --wpm 145 captions.srt\npausecue --duration 01:42:16 --format csv -o windows.csv captions.vtt\npausecue --format vtt -o description-draft.vtt captions.vtt\n\nThe same plan can leave PauseCue in four forms:\ntext for a quick review table;\njson for another local tool or script;\ncsv for a cue sheet or spreadsheet handoff; and\nvtt for an empty description-writing track with timing and word-budget prompts.\nEach window includes neighboring dialogue context, so reviewers do not have to reason from timestamps alone. Parse warnings stay visible, and --fail-on-warning can stop a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "找到停顿。规划词语：来自SRT和WebVTT的音频描述时序",
+        "summary": "PauseCue分析SRT和WebVTT文件中的字幕时序，以识别音频描述叙述的潜在时间窗口，计算词语预算并提供对话背景。该工具协助无障碍专业人士规划配音位置，无需手动媒体检查。"
+      }
+    }
+  },
+  {
+    "title": "I Built a Dashboard to Make Security Reports Easier to Read",
+    "slug": "dashboard-to-make-security-reports-easier-to-read",
+    "url": "https://dev.to/devfendforge/i-built-a-dashboard-to-make-security-reports-easier-to-read-33e9",
+    "source": "DEV Community",
+    "date": "2026-07-15T18:51:31.000Z",
+    "summary": "A developer created a browser-based dashboard for visualizing security reports from tools like Trivy and npm audit, processing all data locally without uploads. The tool normalizes different scanner formats into a unified data model to simplify vulnerability exploration.",
+    "content": "****When working with security tools like \"Trivy\" and \"npm\" audit, I realized that their primary goal is to generate detailed reports that can be consumed by automation, CI/CD pipelines, and other security tools.\nFor developers, however, there are times when you simply want a quick visual overview of a report.\nQuestions like:\nHow many critical vulnerabilities are there?\nWhich packages need immediate attention?\nWhich vulnerabilities already have a fix available?\nWhat should I investigate first?\ncan require navigating through a large JSON report or terminal output.\nOf course,Trivy already provides excellent terminal output, and there are powerful enterprise platforms that provide comprehensive security  dashboards.\nI wasn't trying to recreate those tools or copy their ideas.\nInstead, I wanted to explore a different question:\nWhat if viewing a security report was as simple as opening a web page?\nMy goal was to build a lightweight, browser-only application where developers can simply:\nDrag & Drop a JSON report\nPaste a JSON report\nClick Analyze Report\n\n\n\nThat's it.\nNo installation.\nWithin seconds, the report is transformed into an interactive dashboard.\nThe focus isn't on replacing existing security platforms—it's on providing a simple, fast, and privacy-friendly way to explore security reports.\nSecurity reports often contain sensitive information about a project.\nevery report should be processed locally inside the browser.\nNothing is uploaded.\nOne thing I learned very quickly is that different security scanners don't speak the same language.\nInstead of building separate interfaces for every scanner, I introduced a normalization layer.\nEach supported report is converted into a common data model before it reaches the UI.\nOnce normalized, the dashboard can display vulnerabilities using the same components regardless of the original scanner.\nBesides simplifying the frontend, this also makes supporting additional scanners much easier in the future.\nThis project taught me muc",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个仪表板来简化安全报告的阅读",
+        "summary": "一位开发者创建了一个基于浏览器的仪表板，用于可视化来自Trivy和npm audit等工具的安全报告，所有数据都在本地处理，无需上传。该工具将不同扫描器的格式规范化为统一的数据模型，以简化漏洞探索。"
+      }
+    }
+  },
+  {
+    "title": "100 Days of DevOps and Cloud (AWS), Day 11: A WAR File Deploys Itself, and an ENI Is a Network Card You Can Move",
+    "slug": "war-file-deploys-itself-tomcat-aws-ec2",
+    "url": "https://dev.to/ndcodes/100-days-of-devops-and-cloud-aws-day-11-a-war-file-deploys-itself-and-an-eni-is-a-network-card-45o0",
+    "source": "DEV Community",
+    "date": "2026-07-15T18:51:09.000Z",
+    "summary": "A hands-on tutorial demonstrates deploying a Java WAR application to Tomcat and attaching a second network interface to an EC2 instance. The article shows that Tomcat automatically expands and runs applications placed in its webapps directory, making deployment as simple as file placement.",
+    "content": "Deploying a Java web app to Tomcat sounds like it should need a deploy tool. It does not. You copy one file into one folder, and Tomcat does the rest. Day 11 was a good reminder that a lot of what people call deployment is just putting the right file in the right place.\nOne Linux task, one AWS task. Install and configure Tomcat, then deploy a WAR file to it, and attach a second network interface to an EC2 instance. The tasks come from the KodeKloud Engineer platform.\nTomcat is a servlet container, the thing that actually runs Java web applications. Install it from the package manager, and you get the service plus a standard directory layout under /usr/share/tomcat:\nsudo su -\nyum update -y\nyum install -y tomcat zip\n\n# Enable, start, verify\nsystemctl enable tomcat\nsystemctl start tomcat\nsystemctl status tomcat\n\nThe HTTP port lives in server.xml:\nvi /usr/share/tomcat/conf/server.xml\n# Find the Connector with protocol=\"HTTP/1.1\" and change its port\nsystemctl restart tomcat\n\nChange the Connector with protocol=\"HTTP/1.1\", and only that one. There is a second Connector for the AJP protocol further down, leave it alone, it is not your HTTP port. Restart Tomcat to apply the change. Then deploy the application:\n# Copy the WAR into Tomcat's webapps directory\ncp /tmp/ROOT.war /usr/share/tomcat/webapps/\n\n# Optionally expand it in place to inspect or edit files\ncd /usr/share/tomcat/webapps\nunzip ROOT.war\n\n# Test\ncurl -i http://localhost:<port>\n\nHere is the part that surprises people. Deploying is copying the WAR into the webapps directory. Tomcat watches that folder and automatically expands and deploys anything you drop in. A WAR named ROOT.war becomes the application at the root path. Unzipping it yourself is optional, handy when you want to look inside or change a file, but Tomcat would have expanded it on its own.\nIf the app server has no direct internet access, you move the WAR onto it from a jump server with scp, which is how the file got there to begin with. That jump-serv",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "DevOps和云100天（AWS），第11天：WAR文件自动部署，ENI是可以移动的网卡",
+        "summary": "一个动手实践教程演示了如何将Java WAR应用程序部署到Tomcat并为EC2实例附加第二个网络接口。该文章展示了Tomcat自动扩展并运行放在其webapps目录中的应用程序，使部署就像文件放置一样简单。"
+      }
+    }
+  },
+  {
+    "title": "Five Local-First Mac Apps I Built to Fix Everyday Workflow Problems",
+    "slug": "five-local-first-mac-apps-built-workflow-problems",
+    "url": "https://dev.to/quietware/five-local-first-mac-apps-i-built-to-fix-everyday-workflow-problems-4e8o",
+    "source": "DEV Community",
+    "date": "2026-07-15T18:48:10.000Z",
+    "summary": "A developer describes five single-purpose macOS applications built with a local-first, one-time-purchase model, including ScreenShelf for visual project organization and PopNote for time-based reminders. Each app addresses specific workflow friction without requiring subscriptions or cloud accounts.",
+    "content": "Over the last few months, I’ve been turning small workflow problems I encounter on my Mac into focused utilities.\nRather than building one enormous productivity suite, I wanted each app to solve a specific frustration well.\nI also wanted to build software the way I prefer to use it: local-first, available through a one-time purchase, and usable without creating another account or paying for another subscription.\nHere are five of the apps I’ve built so far.\nMy desktop used to become a temporary storage zone for screenshots, folders, documents, links, and files I needed for active projects.\nFolders helped with long-term storage, but they were not always useful for things I wanted to keep visible and nearby.\nScreenShelf creates a customizable visual shelf for:\nFiles and folders\nScreenshots and images\nLinks\nText\nApplications\nFrequently used project materials\nYou can organize items across separate pages, customize the appearance of each page, and keep different groups of materials available for different projects.\nIt also includes a Recents area that surfaces recent screenshots, which is helpful when the small screenshot preview disappears before you can interact with it.\nScreenShelf is essentially the space between a cluttered desktop and a deeply nested folder system.\nLearn more about ScreenShelf\nSome reminders are too small for a full task-management system.\nYou might need to remember to send a file in twenty minutes, check something after lunch, or complete one small step before ending the day.\nPopNote is a lightweight menu bar app that creates timed pop-up reminders on your Mac.\nThe reminders appear as small visual bubbles rather than traditional notification banners. You can choose a time, add an icon, and let the note reappear when you need it.\nIt is designed for temporary reminders that should remain noticeable without becoming another project to organize.\nLearn more about PopNote\nI frequently download, save, rename, copy, and move files throughout the day.\nThe p",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我为解决日常工作流问题而构建的五个本地优先Mac应用",
+        "summary": "一位开发者描述了五个采用本地优先、一次性购买模式的单一用途macOS应用，包括用于视觉项目组织的ScreenShelf和用于基于时间提醒的PopNote。每个应用都解决了特定的工作流摩擦，无需订阅或云账户。"
+      }
+    }
+  },
+  {
+    "title": "find command finds things",
+    "slug": "find-command-finds-things",
+    "url": "https://dev.to/echen4628/find-command-finds-things-506",
+    "source": "DEV Community",
+    "date": "2026-07-15T18:47:13.000Z",
+    "summary": "An introduction to the Unix `find` command demonstrates how to recursively locate files across multiple directories with filtering options like name patterns, size, and modification date. The author highlights its utility for testing code that creates nested directory structures.",
+    "content": "Recently I learned: find is a useful command to find files in your directories.\nfind folder1 folder2 folder3\n\nThis dumps every file and directory under those folders.\nIt also supports flags such as -name \"*.txt\" to find files matching a particular pattern. There are also filters for size, permissions, and last modified date.\nI'm thinking this would be a great tool for sanity-testing code that creates nested directories (like a new Docker container's filesystem). This command will give me a full flat listing of the resulting tree (like a deeply nested ls command`).\nThe downside is of course it can dump a lot of output, but in sanity-testing scenarios, there shouldn't be that many files anyways.\nSomething interesting is that this command will take multiple folders before the flags. I'm used to thinking of programs where the arguments are all positionally ordered, so if you don't pass a flag it just assumes the next thing is a regular argument. In this case, find checks whether an argument looks like a flag (starts with -) before deciding whether to treat it as a path or as part of the expression. I wonder if this is a common pattern across other Linux commands. (Claude says find is  special case, but I need to look more into this.)",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "find 命令查找文件",
+        "summary": "介绍 Unix 的 `find` 命令如何跨多个目录递归查找文件，支持按文件名模式、大小和修改日期等选项进行过滤。作者强调了该命令在测试创建嵌套目录结构的代码时的实用性。"
+      }
+    }
+  },
+  {
+    "title": "MVVM (Model-View-ViewModel) Architecture",
+    "slug": "mvvm-model-view-viewmodel-architecture",
+    "url": "https://dev.to/kiransm/mvvm-model-view-viewmodel-architecture-5eh5",
+    "source": "DEV Community",
+    "date": "2026-07-15T18:45:39.000Z",
+    "summary": "An explanation of MVVM architecture separates user interface from business logic into Model (data/API), View (UI), and ViewModel (state/logic) layers, commonly used in Angular, Vue, and mobile frameworks. The pattern improves testability and maintainability through clear separation of concerns.",
+    "content": "🏗️ MVVM (Model-View-ViewModel) Architecture — Explained for Frontend Developers\n\n\nMVVM is a popular architectural pattern used to separate UI from business logic, making applications easier to build, test, and maintain.\nIt is commonly used in:\nAngular\nVue.js\nMobile frameworks like Android, SwiftUI, Flutter\nReact projects (conceptually, although React doesn't enforce MVVM)\nMVVM stands for:\nM → Model\nV → View\nVM → ViewModel\n\nIt separates responsibilities into three layers.\n           User\n             │\n             ▼\n        ┌─────────┐\n        │  View   │\n        │ (UI)    │\n        └────┬────┘\n             │ User actions\n             ▼\n      ┌─────────────┐\n      │ ViewModel   │\n      │ Business    │\n      │ Logic       │\n      └────┬────────┘\n           │\n           ▼\n      ┌─────────────┐\n      │   Model     │\n      │ Data/API    │\n      └─────────────┘\n\nThe Model is responsible for data.\nIt knows:\nAPI calls\nDatabase\nBusiness entities\nValidation\nLocal storage\nExample:\nexport async function fetchUsers() {\n  const res = await fetch(\"/api/users\");\n  return res.json();\n}\n\nThe Model doesn't know anything about the UI.\nThe View is what the user sees.\nExample:\nfunction UserList() {\n  return (\n    <div>\n      {/* Render users */}\n    </div>\n  );\n}\n\nThe View should:\n✔ Display data\n✔ Handle user interactions\n❌ Not contain business logic\nThe ViewModel connects the View and Model.\nResponsibilities:\nCalls APIs\nStores UI state\nFormats data\nHandles loading\nHandles errors\nExposes actions to the View\nExample:\nfunction useUsersViewModel() {\n  const [users, setUsers] = useState([]);\n  const [loading, setLoading] = useState(false);\n\n  async function loadUsers() {\n    setLoading(true);\n\n    const data = await fetchUsers();\n\n    setUsers(data);\n    setLoading(false);\n  }\n\n  return {\n    users,\n    loading,\n    loadUsers\n  };\n}\n\nNotice:\nThe component doesn't know how users are fetched.\nReact doesn't officially implement MVVM.\nBut many teams structure code like this:\nsrc/\n│\n├── models/",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "MVVM（模型-视图-视图模型）架构",
+        "summary": "MVVM 架构解释将用户界面与业务逻辑分离为模型（数据/API）、视图（UI）和视图模型（状态/逻辑）三层，常用于 Angular、Vue 和移动框架。该模式通过清晰的关注点分离改善了可测试性和可维护性。"
+      }
+    }
+  },
+  {
+    "title": "Built an autonomous dependency upgrader using Loop Engineering and LangGraph",
+    "slug": "autonomous-dependency-upgrader-using-loop-engineering",
+    "url": "https://dev.to/sagar_sr_65f558d4eef3b46b/built-an-autonomous-dependency-upgrader-using-loop-engineering-and-langgraph-22a3",
+    "source": "DEV Community",
+    "date": "2026-07-15T18:44:51.000Z",
+    "summary": "loopgrade is a Python tool that autonomously upgrades project dependencies one at a time, running tests after each upgrade and reverting failed changes. The approach solves dependency rot by providing visibility into which packages break the build and why, avoiding the risk of simultaneous upgrades.",
+    "content": "You have a project with 20 dependencies. Half of them are outdated. Running ncu -u or pip install --upgrade upgrades all of them at once — and when something breaks, you have no idea which package caused it.\nSo you don't upgrade. The deps rot. Security patches pile up.\nloopgrade fixes this.\nIt upgrades one dependency at a time, runs your test suite after each upgrade, commits if it passes, reverts if it fails, and moves on to the next one. When it's done, it gives you a full report of what was upgraded, what failed, and why.\nGitHub: https://github.com/Sagar-S-R/loopgrade\nhttps://pypi.org/project/loopgrade/\nOpen for Contributors\n\n\n  \n  \n  #Python #LangGraph #opensource",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用 Loop Engineering 和 LangGraph 构建自主依赖升级工具",
+        "summary": "loopgrade 是一个 Python 工具，可以自主地逐个升级项目依赖，在每次升级后运行测试并回滚失败的更改。该方法通过提供对哪些包会导致构建失败以及原因的可见性来解决依赖过时问题，避免了同时升级多个包的风险。"
+      }
+    }
+  },
+  {
+    "title": "GitHub for Beginners: Your roadmap to mastering the GitHub essentials",
+    "slug": "github-for-beginners-roadmap-mastering-essentials",
+    "url": "https://github.blog/developer-skills/github/github-for-beginners-your-roadmap-to-mastering-the-github-essentials/",
+    "source": "GitHub Blog",
+    "date": "2026-07-15T17:29:31.000Z",
+    "summary": "A beginner's guide to GitHub explains fundamental concepts including version control, repositories, and pull requests to help newcomers work confidently on the platform. The resource covers GitHub essentials as a foundational reference.",
+    "content": "New to GitHub? This beginner's guide explains version control, repositories, and pull requests—plus everything else you need to start working confidently on GitHub.\nThe post GitHub for Beginners: Your roadmap to mastering the GitHub essentials appeared first on The GitHub Blog.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "GitHub初学者指南：掌握GitHub基础知识的路线图",
+        "summary": "初学者GitHub指南解释了基本概念，包括版本控制、存储库和拉取请求，帮助新手在平台上自信地工作。该资源涵盖GitHub基础知识作为基础参考。"
+      }
+    }
+  },
+  {
     "title": "Your AI built something private. A public link is the wrong way to share it.",
     "slug": "ai-private-sharing-email-verification",
     "url": "https://dev.to/thryvate/your-ai-built-something-private-a-public-link-is-the-wrong-way-to-share-it-138j",
@@ -188,6 +396,38 @@
       "zh": {
         "title": "Python PostgreSQL与asyncpg：异步数据库操作",
         "summary": "asyncpg是Python最快的PostgreSQL驱动程序，提供纯asyncio执行，相比psycopg2性能提升高达3倍，并消除了线程开销。该文章提供了连接池的设置模式，演示了用于高性能后端的异步数据库操作。"
+      }
+    }
+  },
+  {
+    "title": "SpaceX bond worth 10% less than issue price – heading for junk bond status",
+    "slug": "spacex-bond-10-percent-less-issue-price-junk-status",
+    "url": "https://www.ft.com/content/3a023b95-66c3-41e1-b0ce-df752a499541",
+    "source": "Hacker News",
+    "date": "2026-07-15T12:59:09.000Z",
+    "summary": "A SpaceX bond offering has declined 10% below its issue price and appears to be approaching junk bond status, signaling market concerns about the company's creditworthiness. The development reflects broader financial sentiment toward the aerospace company.",
+    "content": "Article URL: https://www.ft.com/content/3a023b95-66c3-41e1-b0ce-df752a499541\nComments URL: https://news.ycombinator.com/item?id=48920181\nPoints: 487\n# Comments: 437",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "SpaceX债券价值低于发行价格10% – 趋向垃圾债券地位",
+        "summary": "SpaceX债券发行下跌10%，低于发行价格，似乎即将达到垃圾债券地位，表明市场对该公司信用度的担忧。该发展反映了对航空航天公司更广泛的财务情绪。"
+      }
+    }
+  },
+  {
+    "title": "Sleep regularity is a stronger predictor of mortality risk than sleep duration (2023)",
+    "slug": "sleep-regularity-stronger-predictor-mortality-risk",
+    "url": "https://academic.oup.com/sleep/article/47/1/zsad253/7280269",
+    "source": "Hacker News",
+    "date": "2026-07-15T11:46:06.000Z",
+    "summary": "A 2023 academic study finds that sleep schedule consistency is a stronger predictor of mortality risk than total sleep duration, challenging the common public health focus on sleep quantity. The research suggests sleep regularity deserves greater emphasis in health recommendations.",
+    "content": "Article URL: https://academic.oup.com/sleep/article/47/1/zsad253/7280269\nComments URL: https://news.ycombinator.com/item?id=48919363\nPoints: 571\n# Comments: 280",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "睡眠规律是比睡眠时间更强的死亡率风险预测指标（2023年）",
+        "summary": "2023年的一项学术研究发现，睡眠时间表的一致性是比总睡眠时间更强的死亡率风险预测指标，这挑战了公众对睡眠数量的关注。该研究表明睡眠规律在健康建议中应得到更大重视。"
       }
     }
   },
