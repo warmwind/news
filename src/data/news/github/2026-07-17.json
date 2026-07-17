@@ -1,0 +1,194 @@
+[
+  {
+    "title": "My AI QA agent said \"all features working.\" The canvas was blank. Here's what it was actually seeing.",
+    "slug": "ai-qa-hidden-tabs-false-positives",
+    "url": "https://dev.to/mxhlix/my-ai-qa-agent-said-all-features-working-the-canvas-was-blank-heres-what-it-was-actually-1pl5",
+    "source": "DEV Community",
+    "date": "2026-07-17T02:12:49.000Z",
+    "summary": "An AI QA agent falsely approved a tool with a blank canvas because it was testing in a hidden tab where browsers disable requestAnimationFrame rendering while allowing code execution. The author identified that hidden-tab environments prevent visual frame updates, causing AI agents to pass animation features that aren't actually rendering.",
+    "content": "Back when I first delegated QA to an AI agent, it signed off on a tool with \"all features working, pass.\" I opened the tool myself. The canvas was blank.\nThe AI wasn't lying. In the environment it was looking at, the tool genuinely appeared to work.\nI run visual QA across a large fleet of web tools using Claude + Chrome MCP, and this class of false positive traced back to exactly two causes.\nChrome MCP typically operates in hidden (background) tabs. And browsers throttle requestAnimationFrame aggressively in hidden tabs to save power.\nQA a canvas or animation feature in that environment and here's what happens: the JS executes, no errors fire, event handlers respond — and the render finishes at zero frames. The AI looks at a screenshot plus clean JS results and concludes \"animation started, no errors, pass.\" Code executing and pixels rendering are different events, and a hidden tab erases the distinction.\nI didn't want this to be a \"back in my day\" post, so I re-ran the measurement right before publishing. Opened a tab via Chrome MCP, ran an rAF counter:\n\n\n\nMeasurement\nResult\n\n\n\n\ndocument.visibilityState\nhidden\n\n\nrAF fires in 3.37s\n0\n\n\nsetInterval(100ms) fires, same window\n4 (expected: 33)\n\n\nsetTimeout(3000ms) actual delay\n3373ms\n\n\n\nrAF wasn't throttled. It was stopped — zero frames.\nAnd as a bonus finding: setInterval was decimated to roughly 1/8 of its expected rate, and even setTimeout drifted. So it's not just rAF-based animation; timer-driven logic in general cannot be trusted in a hidden tab.\nOpen tabs with active: true so they're visible\nTrigger the interaction in a visible tab, wait a few seconds, then screenshot and confirm the rendered output actually exists\nIf you must evaluate in a hidden tab, the report has to say \"dynamic rendering not visually observed.\" Never silently pass it\nThe second trap shows up in AI QA reports as pass rationale like this:\nonclick wiring confirmed. Zero JS errors. Library loaded. → PASS\nAll of that describes code-path health, n",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我的AI质量保证代理说'所有功能都在工作'，但画布是空白的。以下是它实际看到的内容。",
+        "summary": "一个AI质量保证代理错误地批准了一个空白画布的工具，因为它在隐藏标签页中进行测试，该页面禁用了requestAnimationFrame渲染，但允许代码执行。作者发现隐藏标签页环境阻止了视觉帧更新，导致AI代理通过了实际未呈现的动画功能。"
+      }
+    }
+  },
+  {
+    "title": "Solid Queue has no alerting, so I built QueuePulse",
+    "slug": "queuepulse-solid-queue-alerting",
+    "url": "https://dev.to/michiya59/solid-queue-has-no-alerting-so-i-built-queuepulse-1lfm",
+    "source": "DEV Community",
+    "date": "2026-07-17T02:00:40.000Z",
+    "summary": "QueuePulse addresses a critical gap in Solid Queue by adding alerting for job failures, queue latency, stuck jobs, and dead workers—capabilities absent from the default Mission Control dashboard. It requires no new infrastructure, reads from existing database tables, and notifies via Slack, email, or webhooks.",
+    "content": "Rails 8 made Solid Queue the default Active Job backend, and it's excellent: database-backed, no Redis, and Mission Control Jobs gives you a dashboard.\nBut there's a gap nobody talks about: nothing tells you when things break. Mission Control is a window you have to remember to look through. It has no alerting and no historical metrics. In practice that means one of two things happens:\nYou find out your jobs have been failing for three days when a customer emails you, or\nYou bolt on Datadog/New Relic — a heavyweight APM subscription to answer \"did my background jobs fail?\"\nFor small and mid-size Rails apps, neither is great. So I built QueuePulse.\nQueuePulse reads Solid Queue's existing tables — read-only, no migration, no extra service, no agent process — and notifies you the moment one of five things happens:\n\n\n\nCheck\nFires when\n\n\n\n\n🔴 Job failures\na job lands in failed_executions\n\n\n\n🟠 Queue latency\nthe oldest ready job has waited past your threshold\n\n\n🟠 Queue depth\na queue backs up beyond N jobs\n\n\n🟠 Stuck jobs\na job has been \"running\" far longer than it should\n\n\n🔴 Dead workers\nno worker/dispatcher heartbeat — nothing is processing\n\n\n\nAlerts go to Slack, email, or any webhook.\n# Gemfile\ngem \"queue_pulse\"\n\n# config/initializers/queue_pulse.rb\nQueuePulse.configure do |config|\n  config.add_notifier QueuePulse::Notifiers::Slack.new(webhook_url: ENV[\"SLACK_WEBHOOK_URL\"])\nend\n\nThen schedule the check with Solid Queue's own recurring tasks:\n# config/recurring.yml\nqueue_pulse_check:\n  class: QueuePulse::CheckJob\n  schedule: every minute\n\nThat's it. Every setting (thresholds, cooldowns) has a sensible default you can override.\nNo new infrastructure. It piggybacks on tables you already have. Dedupe state lives in Rails.cache.\nSafe by default. Read-only queries; every check and notifier is exception-isolated, so QueuePulse can never take down your app. Raw job arguments are never sent unless you opt in.\nQuiet. Cooldowns + burst-collapsing (one alert for 500 identical fai",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Solid Queue没有告警功能，所以我构建了QueuePulse",
+        "summary": "QueuePulse通过为工作失败、队列延迟、卡住的工作和僵死的工作者添加告警功能，解决了Solid Queue中的关键缺陷——这些功能在默认的Mission Control仪表板中不存在。它不需要新的基础设施，从现有的数据库表读取，并通过Slack、电子邮件或webhooks进行通知。"
+      }
+    }
+  },
+  {
+    "title": "Sveltekit การทำงานกับ remote function [Part 3]",
+    "slug": "sveltekit-remote-functions-forms",
+    "url": "https://dev.to/nnutnonn/sveltekit-kaarthamngaankab-remote-function-part-3-5218",
+    "source": "DEV Community",
+    "date": "2026-07-17T02:00:00.000Z",
+    "summary": "This SvelteKit tutorial covers form-based remote functions for sending and mutating data via FormData, part 3 of a series exploring server-side interactions. It establishes fundamentals for validation, rendering, and redirects in form handling.",
+    "content": "สวัสดีครับเพื่อนๆ! 👋 กลับมาเจอกันอีกแล้วในซีรีส์ SvelteKit Remote function! จากบทความก่อนๆ ที่เราลุยตระกูล query กันไปแบบจัดเต็ม ทั้งดึงข้อมูลธรรมดา มัดรวมรีเควสต์ (batch) และดึงแบบเรียลไทม์ (live) หวังว่าเพื่อนๆ คงจะสนุกกับการ \"ดึง\" ข้อมูลกันไปแล้วนะครับ 😎\nแต่วันนี้... เราจะมาเปลี่ยนโหมดกันบ้าง! เพราะเมื่อมี \"ดึง\" ก็ต้องมี \"ดัน\"!! เอยย \"ส่ง\" ถูกไหมครับ? 😅 ถ้าเราอยากจะส่งข้อมูล เพื่อบันทึก (POST) หรืออัปเดต (PUT) อะไรบางอย่างกลับไปที่ Server ผ่าน FormData ล่ะจะต้องทำยังไง?\nขอต้อนรับทุกคนเข้าสู่โลกของ Remote function ประเภท form 📝 เจ้าตัวนี้เกิดมาเพื่อช่วยเราจัดการกับการส่งข้อมูลโดยเฉพาะ (Mutation) โดยในบทความนี้ เราจะมาค่อยๆ ปูพื้นฐานทำความเข้าใจกันตั้งแต่เรื่องการจัดการช่องรับข้อมูล (Fields) กันก่อนสำหรับบทความนี้ และในบทความถัดๆไปจะเล่าถึงการ Validate ข้อมูลใน form, การนำค่าใน form มาแสดงผล รวมถึงการจัดการกับข้อมูลที่ถูกส่งกลับมาหรือการเปลี่ยนเส้นทางไปยังส่วนอื่นๆของเว็บ (Returns and redirects) กันอีกทีนะครับ\nเอาละ!! พร้อมที่จะบอกลาความยุ่งยากของการจัดการฟอร์มแบบเดิมๆ แล้วหรือยังครับ? ถ้าพร้อมแล้ว เตรียมนิ้วให้พร้อมโค้ดแล้วลุยกันเลย! 🚀\n📄form\n\n\nด้วยฟังก์ชัน form ของเราอย่างที่บอกมันเกิดมาเพื่อจัดการกับการส่งข้อมูลไปยัง server โดยเฉพาะซึ่งโดยหลักแล้ว ตัว callback function ที่มันรับมาจะมี parameter ที่รับค่าจาก form ที่ส่งเข้ามาเป็นประเภทข้อมูล FormData \nimport * as v from 'valibot';\nimport { error, redirect } from '@sveltejs/kit';\nimport { form } from '$app/server';\nimport * as db from '$lib/server/database';\nimport * as auth from '$lib/server/auth';\n\nexport const createPost = form(\n        // ส่วนของ Validation schema\n    v.object({\n        title: \"v.pipe(v.string(), v.nonEmpty()),\"\n        content:v.pipe(v.string(), v.nonEmpty())\n    }),\n        //Callback function ที่รับค่า data ที่เป็น FormData เข้ามา\n    async ({ title, content }) => {\n        // เช็ค auth เรื่องของ User ว่าถูกต้องไหม\n        const user = await auth.getUser();\n        if (!user) error(401, 'Unauthorized');\n\n        const slug = title.toLowerCase().replace(/ /g, '-');\n\n        // ทำการ Ins",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "SvelteKit与远程函数的协作 [第3部分]",
+        "summary": "本SvelteKit教程介绍了基于表单的远程函数，用于通过FormData发送和变更数据，是探索服务器端交互系列教程的第3部分。它为表单处理中的验证、渲染和重定向奠定了基础。"
+      }
+    }
+  },
+  {
+    "title": "You Almost Never Think. That's Why Your Brain Doesn't Crash.",
+    "slug": "thinking-vs-inference-cognitive-limits",
+    "url": "https://dev.to/synthaicode_commander/you-almost-never-think-thats-why-your-brain-doesnt-crash-218a",
+    "source": "DEV Community",
+    "date": "2026-07-17T01:59:02.000Z",
+    "summary": "Most daily work involves inference—executing within established premises—rather than true thinking, which means choosing premises themselves. AI reasoning traces reveal organizational problems (too many inference-only tasks) rather than model capabilities.",
+    "content": "Recall your workday yesterday. You reviewed a PR. You traced a bug. You weighed two designs. All of it felt like thinking.\nNow count something specific: how many things did you decide for the first time — decisions nobody in your organization had ever made before, that you made and now own?\nFor most of us, on most days, the honest answer is zero. And yet the day felt full of thought.\nThis article takes that discrepancy seriously and follows it all the way down. The destination is a strange one: thinking is required far more rarely than it feels — and that scarcity is not a defect. It is the reason your brain doesn't crash. Along the way, it explains why your AI agent's long reasoning traces are a bug report about your organization, not a feature of the model.\nThis is a chain argument. Each section leans on the previous one. Sampled in the middle, it will read as assertion; walked from the start, it is a derivation.\nTwo words, two operations.\nInference derives conclusions from given premises. It is closed under the premise set. It is computation, and given complete premises, it is mechanizable. A reasoning model's \"thinking\" is literally this — more tokens buy a deeper walk through the same premise space, never an exit from it.\nThinking includes choosing and creating the premises themselves. Which question to pose, which axis to cut along, which trade-off to accept. Nothing outside the premises can be reached by inferring harder; what comes out instead is the most articulate rendering of the training distribution's centroid.\nSo the first fixed point: long inference is not a substitute for thinking. Thinking is the act of choosing the space in which inference runs — not the act of walking that space for a long time.\nBut \"creating premises\" is vague. Let's sharpen it in stages.\nFirst refinement: thinking is the act of drafting a quality definition against a goal — and the draft is a proposal, something you put in front of stakeholders. It is not yet a decision.\nTwo thi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你几乎从不真正思考。这就是为什么你的大脑不会崩溃。",
+        "summary": "大多数日常工作涉及推理——在既定前提下执行——而非真正的思考，即选择前提本身。人工智能推理追踪揭示组织问题（过多仅推理的任务）而非模型能力。"
+      }
+    }
+  },
+  {
+    "title": "Owning your AI: why I self-host a personal assistant with long-term memory",
+    "slug": "self-hosted-ai-assistant-local-memory",
+    "url": "https://dev.to/samadhi_tattoo_7ed1c0d05b/owning-your-ai-why-i-self-host-a-personal-assistant-with-long-term-memory-3488",
+    "source": "DEV Community",
+    "date": "2026-07-17T01:54:43.000Z",
+    "summary": "Self-hosting a personal AI assistant with persistent, local memory provides data sovereignty and avoids vendor lock-in inherent to cloud-hosted alternatives. A local SQLite database keeps facts and preferences under user control, with a swappable model layer enabling provider changes without data loss.",
+    "content": "For the past few months I've been running my personal AI assistant on my own hardware instead of a third-party cloud. Here's why — and what I learned.\nEvery message, every preference, every bit of context you share with a hosted assistant lives on someone else's servers. You don't control retention, you can't inspect the memory, and you can't move it. For a tool that's supposed to know you, that's a lot of trust to outsource.\nMemory stays local. Facts, preferences and conversation history live in a local SQLite database, with backups I control.\nRuns on my own hardware. A cheap VPS or a mini-PC at home — no vendor lock-in.\nThe model is swappable. The assistant layer is decoupled from the underlying LLM, so I can change providers without losing my data.\nMine lives in Telegram, keeps long-term memory, and exposes skills (calendar, notes, browser automation, reminders). One example of this approach is avelina.ai — a self-hosted personal assistant with persistent memory, designed for people who want to own their data rather than rent it.\nSelf-hosting an AI assistant isn't about distrust of any one company — it's about data sovereignty. If an assistant is going to accumulate a model of who you are, it makes sense for that model to live somewhere you control.\nHappy to answer questions about the architecture in the comments.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "拥有你的AI：为什么我自托管具有长期记忆的个人助手",
+        "summary": "自托管具有持久本地记忆的个人AI助手提供数据主权，避免云托管替代方案固有的供应商锁定。本地SQLite数据库将事实和偏好置于用户控制下，可交换的模型层支持提供商更改而不丢失数据。"
+      }
+    }
+  },
+  {
+    "title": "Can YAMNet Detect Unseen Sudden Sounds in Real Time? A 48-Stream Evaluation",
+    "slug": "yamnet-unseen-sounds-detection-evaluation",
+    "url": "https://dev.to/kiarina/can-yamnet-detect-unseen-sudden-sounds-in-real-time-a-48-stream-evaluation-49d7",
+    "source": "DEV Community",
+    "date": "2026-07-17T01:53:43.000Z",
+    "summary": "A real-time evaluation of YAMNet's ability to detect unexpected acoustic events achieved only 45.8% recall using simple distance metrics on audio embeddings. Results suggest that distance-based detection cannot reliably identify unseen sudden sounds without explicit model training.",
+    "content": "Hello, everyone.\nThere are many situations where we may want to monitor sounds that happen without warning, such as breaking glass or a car horn. Registering every possible sound in advance, however, is not realistic.\nToday, I am testing whether YAMNet can detect that a sound stream has changed, without first specifying which sound it should recognize.\nThe short answer is that the best configuration detected 22 of 48 events, for 45.8% recall. Processing was easily fast enough, but the results did not support the hypothesis that a simple distance over YAMNet embeddings can reliably detect unseen sudden sounds.\nYAMNet is an audio classification model that Google added to TensorFlow Models on November 21, 2019. It was trained on AudioSet and predicts 521 acoustic event classes, including speech, rain, vehicles, and animals.\nThe network uses MobileNet V1, a convolutional architecture designed to reduce computation on mobile hardware. It reads roughly 0.96 seconds of 16 kHz mono audio at a time and returns:\nscores (521 dimensions): confidence for each class\nembedding (1,024 dimensions): a compact numerical representation of the sound\nspectrogram (64 bands): frequency content over time\nThis experiment needs the embedding as well as the class scores, so I used the SavedModel version on TensorFlow Hub.\nThe relevant licenses are:\nTensorFlow Models, including YAMNet: Apache License 2.0\nTensorFlow: Apache License 2.0\nESC-50: Creative Commons Attribution-NonCommercial 3.0 (CC BY-NC 3.0)\nESC-50 includes a noncommercial restriction. The model and dataset have separate licenses, so both need to be considered for redistribution or product use.\nThe goal was to determine whether the detectors could notice a new sound mixed into a normal background, without being told the event label.\nWhether a simple frequency-change detector can catch sudden events\nWhether YAMNet scores or embeddings represent the change more clearly\nWhether distance from the previous sound works better than distanc",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "YAMNet能实时检测未见过的突发声音吗？48流评估",
+        "summary": "对YAMNet检测意外声学事件能力的实时评估，使用音频嵌入的简单距离指标仅达到45.8%的召回率。结果表明基于距离的检测无法在没有显式模型训练的情况下可靠地识别未见过的突发声音。"
+      }
+    }
+  },
+  {
+    "title": "A passing test can still prove nothing",
+    "slug": "passing-test-wrong-reason",
+    "url": "https://dev.to/lksvn/a-passing-test-can-still-prove-nothing-2p16",
+    "source": "DEV Community",
+    "date": "2026-07-17T01:42:52.000Z",
+    "summary": "A PostgreSQL integration test passed despite exercising the wrong code path because its assertion lived in a conditional branch that never executed. The lesson: verify that tests actually reach and can fail within the intended logic, not just that they complete without errors.",
+    "content": "Today I had a PostgreSQL integration test passing for the wrong reason.\nThe test was supposed to prove that updating a missing Company returned a successful \"not found\" result.\nI passed an id like: company-missing\nBut the database column was a UUID.\nPostgreSQL rejected the malformed value before Prisma could determine whether the Company existed. The repository returned a failure instead of the expected missing-record outcome.\nThe test still passed.\nWhy?\nIts assertion was inside a conditional success branch. Because the result was a failure, the branch never ran. The test completed with no failing assertion.\nThe correction was small but important:\ngenerate a valid UUID that was never inserted\nassert the complete Result object directly\nexpect success with undefined data\nThat made the test exercise Prisma's real missing-record behavior instead of an invalid-input error.\nThe lesson\nA green test is not automatically evidence.\nCheck that the intended branch was reached and that the assertion could actually fail.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "通过的测试仍然可能什么都证明不了",
+        "summary": "一个PostgreSQL集成测试通过了，尽管它执行了错误的代码路径，因为它的断言位于一个永远不会执行的条件分支中。教训是：验证测试是否实际到达了预期的逻辑并且能够在其中失败，而不仅仅是完成而不出错。"
+      }
+    }
+  },
+  {
+    "title": "Git worktrees aren't enough for parallel AI agents",
+    "slug": "git-worktrees-parallel-agents-merge-conflicts",
+    "url": "https://dev.to/rollnuts/git-worktrees-arent-enough-for-parallel-ai-agents-38b7",
+    "source": "DEV Community",
+    "date": "2026-07-17T01:40:41.000Z",
+    "summary": "Git worktrees isolate each agent's file modifications but not semantic conflicts—agents can change related code that clashes only after both PRs merge to main. A large study found 27.67% merge-conflict rates in agent pull requests, showing spatial isolation is insufficient for semantic safety.",
+    "content": "Worktrees isolate each AI agent's working directory, but two agents in separate worktrees can still write code that only collides when both PRs merge to main.\nIf you run several AI coding agents at once, you have probably reached for git worktrees. It is the standard answer, and it is a good one: give each agent its own worktree, and no agent overwrites another agent's files mid-run. Each agent gets a clean, isolated checkout on its own branch, off the same shared repo.\nUse worktrees. They solve a real problem. But they solve the execution problem, not the merge problem — and for parallel agents, the merge problem is the one that bites.\nWhat worktrees actually isolate\nA worktree gives each agent a separate working directory. Agent A editing files in its worktree cannot clobber the files Agent B is editing in a different one. No half-written file from one run leaks into another. No branch-switch thrash. The agents stop stepping on each other's filesystem.\nThat is genuinely valuable, and if you were previously running multiple agents against a single checkout, worktrees will feel like a night-and-day upgrade.\nWhat worktrees don't isolate\nHere is the gap. Two agents in two isolated worktrees can still change related code — code that reads clean in each branch on its own, and only clashes when both branches land on main.\nThe isolation is spatial: separate directories. It is not semantic. Nothing about a worktree knows that Agent A's change to a shared helper and Agent B's new caller of that helper assume different things about how it behaves. Each PR compiles. Each PR passes its own tests. Each PR looks correct in review. The problem lives in the relationship between the two open PRs, and no single worktree can see the other one.\nThis is not a rare edge case. AgenticFlict, a large-scale study of merge conflicts in AI coding agent pull requests (arXiv, 142k+ agent PRs across 59k+ repositories), found a 27.67% merge-conflict rate — and textual git conflicts are only the v",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Git工作树对并行AI代理来说还不够",
+        "summary": "Git工作树隔离了每个代理的文件修改，但无法隔离语义冲突——代理可以修改相关代码，这些修改只有在两个PR合并到主分支后才会发生冲突。一项大型研究发现代理拉取请求的合并冲突率为27.67%，表明空间隔离不足以保证语义安全。"
+      }
+    }
+  },
+  {
+    "title": "A Full 3D Live Weather World in One HTML File — No Frameworks, No Build Step.",
+    "slug": "3d-weather-html-vanilla-javascript",
+    "url": "https://dev.to/phoenix_analysis_593be33c/a-full-3d-live-weather-world-in-one-html-file-no-frameworks-no-build-step-4n83",
+    "source": "DEV Community",
+    "date": "2026-07-17T01:31:59.000Z",
+    "summary": "A developer built a responsive 3D live weather dashboard in a single HTML file using vanilla JavaScript and CSS filters instead of heavy frameworks. The project demonstrates that modern browsers can deliver polished visuals and real-time data without build pipelines or external dependencies.",
+    "content": "Live Engine: https://bruvic62.github.io/weather-diorama/\nhttps://github.com/bruvic62/weather-diorama\nI deliberately stayed inside very tight constraints (single file, no frameworks, no build step) and still got something that feels premium. Here's how, and here's why more people should remember this is still possible.\"\nTo be clear, I'm not knocking modern tools like React or WebGL pipelines. They are great for massive applications. But I’m running on a 2.5-year-old i5 laptop with integrated graphics, and I just wanted to see what could be done if I slowed down and worked purely with the raw materials of the browser.\nI used a live weather dashboard as the test case because it gave me rich, real-time data to drive the visuals. When I looked into adding a 3D-styled UI or realistic sun tracking, the default advice was always to pull in a heavy library. I didn't want to weigh down my machine for a background app, so I just kept digging for lighter alternatives.\nInstead of heavy 3D models, it just relies on CSS backdrop filters. Instead of a physics engine, it uses standard Vanilla JS math to track celestial coordinates and update the sky's CSS colors based on local time.\nIt’s just one HTML file. Zero dependencies. Zero build steps.\nI’m sharing this because the final performance genuinely surprised me. It’s a reminder that the browser is still a very capable engine on its own if you’re willing to work directly with it.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "一个HTML文件中的完整3D实时天气世界——无框架，无构建步骤",
+        "summary": "一位开发者用单个HTML文件使用原生JavaScript和CSS过滤器而不是重型框架构建了一个响应式的3D实时天气仪表板。该项目证明了现代浏览器可以在没有构建管道或外部依赖的情况下提供精美的视觉效果和实时数据。"
+      }
+    }
+  },
+  {
+    "title": "What if your UI had a memory?",
+    "slug": "adaptive-ui-user-memory",
+    "url": "https://dev.to/sidhanshumonga/what-if-your-ui-had-a-memory-551",
+    "source": "DEV Community",
+    "date": "2026-07-17T01:26:45.000Z",
+    "summary": "Interfaces that learn from individual user behavior and adapt to familiarity levels could offer more personalized experiences than systems treating all users identically. The premise explores how UI could evolve with users rather than simply responding to them.",
+    "content": "As a UX Engineer, I spend a lot of time thinking about how people learn software.\nA new user needs guidance.\nBut most interfaces treat both users exactly the same.\nThe UI remembers your data.\nWhat if interfaces could understand your familiarity and evolve with you?\nMaybe the next generation of UI won't just respond to users.\nMaybe it will learn from them.\nCurious — what is one product you use every day that you wish understood you better?",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如果你的UI有记忆会怎样？",
+        "summary": "学习个人用户行为并根据熟悉程度调整的界面，可以比平等对待所有用户的系统提供更个性化的体验。这个概念探讨了UI如何随着用户演进，而不仅仅是对用户做出反应。"
+      }
+    }
+  },
+  {
+    "title": "I built a Cloudflare Worker so you can give the public free AI, without ever getting a surprise bill",
+    "slug": "cloudflare-worker-free-ai-relay",
+    "url": "https://dev.to/mister_buds_4874bbe643dda/i-built-a-cloudflare-worker-so-you-can-give-the-public-free-ai-without-ever-getting-a-surprise-1042",
+    "source": "DEV Community",
+    "date": "2026-07-17T01:21:58.000Z",
+    "summary": "Free-Tier AI Relay is a Cloudflare Worker enabling developers to offer free AI features to the public with guaranteed cost ceilings by routing through free-tier providers and enforcing per-device quotas. The design keeps API keys server-side and requires zero infrastructure beyond Cloudflare's free plan.",
+    "content": "I built a Cloudflare Worker so you can give the public free AI without ever getting a surprise bill\nEvery time I wanted to add an AI feature to one of my apps and let anyone try it  no login, no \"enter your card,\" just here, use it the same thing stopped me: the bill.\nThe moment your API key is reachable by the public, you're one traffic spike, one bored person with a for loop, or one leaked key away from waking up to a four-figure invoice. So most of us do one of two things: bolt a login onto something that was supposed to be free, or just… never ship it.\nI got tired of that trade-off, so I built the piece that was missing.\nWhat it is\nFree-Tier AI Relay is a ~20 KB Cloudflare Worker plus a zero-dependency browser client that sits between your app and the AI providers. You drop it in, drag it to Cloudflare's free plan, and you've got a public AI endpoint that can't run away with your money.\nThe whole design is built around one idea: ration a free allowance to anonymous strangers, and guarantee a spend ceiling.\nHow it actually works\nYour key stays server-side. The browser only ever talks to your Worker — the provider key never touches the client.\nProviders are tried in cost order, not reliability order. This is the part that's different from a normal gateway. It calls your cheapest option firs free tiers before anything paid. As shipped, that's Google Gemini's free tier, then free community models on OpenRouter. A paid model is only ever reached if you deliberately uncomment one. Out of the box, it calls only free tiers, so it costs $0 to run.\nFree usage is capped three ways, every day, and a request has to pass all three:\nper anonymous device (a UUID) soft fairness so one person can't hog it,\nIt's one config file. Providers, cost order, caps, and endpoints all live in a single file. Adding a provider or a whole new AI feature needs zero code changes. There's also a one-toggle kill switch that pauses the entire free tier instantly, no redeploy.\n\"So do I ever actually",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个Cloudflare Worker，让你能向公众提供免费AI，无需担心意外账单",
+        "summary": "Free-Tier AI Relay是一个Cloudflare Worker，使开发者通过免费层提供商路由并实施按设备配额，向公众提供免费AI功能并保证成本上限。该设计将API密钥保存在服务器端，除Cloudflare免费计划外无需任何基础设施。"
+      }
+    }
+  },
+  {
+    "title": "corpus-scrub 0.1.0: detecta y redacta PII y secretos en corpus de entrenamiento antes del entrenamiento LLM",
+    "slug": "corpus-scrub-pii-secrets-training-data",
+    "url": "https://dev.to/magopredator/corpus-scrub-010-detecta-y-redacta-pii-y-secretos-en-corpus-de-entrenamiento-antes-del-432h",
+    "source": "DEV Community",
+    "date": "2026-07-17T01:21:29.000Z",
+    "summary": "corpus-scrub is a local-first CLI tool that scans training datasets to detect and redact personally identifiable information, secrets, and API keys before LLM training, complying with GDPR and EU AI Act restrictions on unstructured personal data.",
+    "content": "corpus-scrub 0.1.0: detecta y redacta PII y secretos en corpus de entrenamiento antes del entrenamiento\n\n\n\nLos modelos memorizan y filtran lo que hay en los datos de entrenamiento. corpus-scrub los limpia antes de entrenar: detecta PII (email, teléfono, IBAN, tarjeta, nombres) y secretos (API keys, tokens) y los redacta localmente, sin enviar nada a ningún servicio.\nLos corpus raspados de la web contienen rutinariamente datos personales y credenciales. La literatura lo deja claro:\nModelos de síntesis de imágenes que retroalimentan riesgos de privacidad amplificados en mezclas real-sintético (arXiv 2607.13541)\nMemorización no intencionada de información sensible en fine-tuning (arXiv 2601.17480)\nDirecciones de activación universales para fuga de PII (UniLeak) (arXiv 2602.16980)\nGDPR y el art. 10 de la EU AI Act prohíben datos personales no estructurados en conjuntos de entrenamiento sin consentimiento. La solución barata es limpiar el corpus antes de entrenar.\ncorpus-scrub es una CLI local-first (AGPL-3.0-or-later) que escanea JSONL/TXT/Parquet y:\nPII: Presidio (NER spaCy en_core_web_lg para PERSON) + regex propios para EMAIL / IBAN / CARD / PHONE que no dependen de modelo y funcionan en cualquier idioma.\nSecretos: un ruleset de 16 reglas portadas verbatim de gitleaks (commit fijado 4c232b5), verificadas regla por regla contra el gitleaks.toml original en los tests.\nRedacción: mask (<TYPE>), hash (sha256 truncado) o drop.\nReporte: JSON de auditoría con conteo por tipo y localizaciones.\nMulti-idioma para nombres (ES/DE/FR) vía modelos spaCy _lg dedicados, con fallback multilingüe explícito y tests que fallan si el fallback se usa por accidente.\n# Instalar\npython -m venv .venv && source .venv/bin/activate\npip install -e .\n# el primer run descarga spaCy en_core_web_lg (~400 MB)\n\n# Escanear y enmascarar\ncorpus-scrub scan --input corpus.jsonl --policy mask --out redacted.jsonl --report report.json\n\n# Solo inglés en el MVP; otros idiomas error explícito\ncorpus-scrub scan -",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "corpus-scrub 0.1.0: 在LLM训练前检测和编辑训练数据中的个人身份信息和密钥",
+        "summary": "corpus-scrub是一款本地优先的CLI工具，在LLM训练前扫描训练数据集以检测和编辑个人身份信息、密钥和API密钥，符合GDPR和欧盟AI法案对非结构化个人数据的限制。"
+      }
+    }
+  }
+]
