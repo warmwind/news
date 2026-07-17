@@ -1,5 +1,213 @@
 [
   {
+    "title": "Generator Internals: Why They Are Lazy and What That Actually Means",
+    "slug": "generator-internals-lazy-evaluation",
+    "url": "https://dev.to/ameer_abdullah_68d48c8496/generator-internals-why-they-are-lazy-and-what-that-actually-means-1eh1",
+    "source": "DEV Community",
+    "date": "2026-07-17T13:32:00.000Z",
+    "summary": "Python generators defer code execution until values are requested, creating an interleaved execution model where functions suspend at yield points and resume on demand. This lazy evaluation enables memory-efficient sequence handling and powers iterator-based patterns across the language.",
+    "content": "Tracing a generator's execution reveals a fundamentally different way Python can run code.\nA generator function looks like a regular function but behaves in a fundamentally different way. Understanding that difference requires tracing through what Python actually does when it executes one.\nA regular function runs to completion when called. A generator function returns an iterator object immediately without running any of its code.\ndef regular():\n    print(\"regular function running\")\n    return 42\n\ndef generator():\n    print(\"generator running\")\n    yield 42\n\nr = regular()      # prints \"regular function running\"\ng = generator()    # prints nothing\n\nWhen you call generator(), Python creates a generator object and returns it. None of the code inside the function has executed yet. The print statement does not run until you ask the generator for its first value.\ndef count_to_three():\n    print(\"about to yield 1\")\n    yield 1\n    print(\"about to yield 2\")\n    yield 2\n    print(\"about to yield 3\")\n    yield 3\n    print(\"generator finished\")\n\ngen = count_to_three()\n\nprint(\"calling next the first time\")\nvalue = next(gen)\nprint(f\"got {value}\")\n\nprint(\"calling next the second time\")\nvalue = next(gen)\nprint(f\"got {value}\")\n\nTrace the execution:\ncount_to_three() — creates generator object, no code runs\n\n\nprint(\"calling next the first time\") — prints\n\n\nnext(gen) — generator starts executing\n\n\nprint(\"about to yield 1\") — prints\n\n\nyield 1 — suspends execution, returns 1 to the caller\n\n\nprint(f\"got 1\") — prints\n\n\nprint(\"calling next the second time\") — prints\n\n\nnext(gen) — generator resumes from where it stopped\n\n\nprint(\"about to yield 2\") — prints\n\n\nyield 2 — suspends again, returns 2\n\n\n\nOutput:\ncalling next the first time\nabout to yield 1\ngot 1\ncalling next the second time\nabout to yield 2\ngot 2\n\nThe generator's execution is interleaved with the calling code. It runs up to a yield, suspends, and resumes from exactly that point when asked for the next value.\ndef small_gen():\n    y",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "生成器内部机制：为什么是惰性的及其实际含义",
+        "summary": "Python生成器将代码执行延迟到请求值时，创建一个交错执行模型，其中函数在yield点暂停并按需恢复。这种惰性求值能够实现内存高效的序列处理，并在整个语言中支持基于迭代器的模式。"
+      }
+    }
+  },
+  {
+    "title": "Godot 4 hitbox and hurtbox the easy way (damage, teams, i-frames, knockback)",
+    "slug": "godot-4-hitbox-hurtbox-collision-design",
+    "url": "https://dev.to/saltmire/godot-4-hitbox-and-hurtbox-the-easy-way-damage-teams-i-frames-knockback-1ccj",
+    "source": "DEV Community",
+    "date": "2026-07-17T13:31:30.000Z",
+    "summary": "Godot action games separate hitboxes (scanning attack areas) from hurtboxes (detectable targets) using collision layers, with team filtering and invincibility frames enabling efficient collision detection. This architecture simplifies extending combat with damage types and knockback.",
+    "content": "Almost every action game needs the same thing: something that deals damage, and\nArea2D + CollisionShape2D,\nA Hitbox is an Area2D on your attack (a sword swing, a bullet, a stomp).\nIt only scans — it never needs to be detected.\nA Hurtbox is an Area2D on anything that can be damaged. It only needs to\nbe detected — it never scans.\nThat split is the trick most tutorials skip, and it's why layers get confusing.\ncollision_layer is what you are; collision_mask is what you look for. So:\n# hurtbox: I exist on layer 20, and I look for nothing.\ncollision_layer = 0\nset_collision_layer_value(20, true)\ncollision_mask = 0\nmonitorable = true\nmonitoring = false\n\n# hitbox: I exist on nothing, and I look for layer 20.\ncollision_layer = 0\ncollision_mask = 0\nset_collision_mask_value(20, true)\nmonitoring = true\n\nNow a hitbox sees hurtboxes and only hurtboxes — no stray collisions with\nGive each box a team integer and refuse same-team hits:\nfunc _on_area_entered(area):\n    if area is Hurtbox and area.team != team:\n        area.receive(damage, self)\n\narea_entered only fires when two areas start overlapping. If your hitbox turns\nfunc activate():\n    active = true\n    for area in get_overlapping_areas():\n        _try_hit(area)\n\nAfter a hit, ignore further hits for a moment, and push the target away:\nfunc receive(damage, source):\n    if _invincible: return\n    var dir = (global_position - source.global_position).normalized()\n    hurt.emit(damage, dir * knockback_strength)\n    if invincible_time > 0.0:\n        _invincible = true\n        get_tree().create_timer(invincible_time).timeout.connect(\n            func(): _invincible = false)\n\nThat's a complete, correct hitbox/hurtbox: layers handled, friendly fire blocked,\nIf you'd rather drop in two nodes and move on, Saltmire Hitbox packages exactly\nHitbox2D / Hurtbox2D with zero layer setup, plus damage types, crits,\nLite core too if you just want the basics.\nIf you'd rather drop this in than build it, Saltmire Hitbox does it as a ready-made tool:",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Godot 4 hitbox和hurtbox的简单方法（伤害、队伍、无敌帧、击退）",
+        "summary": "Godot动作游戏使用碰撞层将hitbox（扫描攻击区域）与hurtbox（可检测目标）分开，通过队伍过滤和无敌帧实现高效碰撞检测。这种架构简化了使用伤害类型和击退扩展战斗系统的过程。"
+      }
+    }
+  },
+  {
+    "title": "Porting Gemma-4 12B (the encoder-free multimodal one) to AWS Inferentia2",
+    "slug": "gemma-4-12b-aws-inferentia2-port",
+    "url": "https://dev.to/xbill/porting-gemma-4-12b-the-encoder-free-multimodal-one-to-aws-inferentia2-5f19",
+    "source": "DEV Community",
+    "date": "2026-07-17T13:30:09.000Z",
+    "summary": "Google's Gemma-4 12B encoder-free multimodal model was ported to AWS Inferentia2 with token-perfect accuracy to CPU reference, achieving 101ms prefill through tensor parallelism. The port required three targeted fixes for global attention sharding and softcap handling in the unified architecture.",
+    "content": "The middle child of the series. The 12B is the first Gemma-4 that's neither a MatFormer \"effective\"\n* model with an encoder that isn't there, and its attention overflows a Neuron hardware\n in a way the smaller models never did. This is the short, clean port that only needed three\n\n\n\n\n\n\n\n\n\nModel\n\ngoogle/gemma-4-12B-it — dense, model_type: gemma4_unified\n\n\n\nHardware\nAWS Inferentia2 — one inf2.8xlarge (1 chip / 2 cores / 32 GB HBM), TP=2\n\n\n\nResult\nGreedy decode token-for-token identical to the CPU fp32 reference (SEQ_MATCH True); prefill ~101 ms; \"…Paris.\"\n\n\n\nFootprint\n~12 GB / rank, bf16, KV 256/64\n\n\n\ngoogle/gemma-4-12B-it doesn't load as Gemma4ForConditionalGeneration like the E-family — it's\nGemma4UnifiedForConditionalGeneration, model_type: gemma4_unified. \"Unified\" means it's the\nno audio or vision encoder. It's an\nencoder-free multimodal model: all the multimodal plumbing in the class, none of the encoders.\nFor an Inferentia text port that's actually good news — you take model.language_model and ignore\nknow to reach past the unified wrapper, and\nThe 12B reuses the E4B ModelBuilder device-prefill recipe almost wholesale: single-rank compile +\nNo Per-Layer Embeddings. hidden_size_per_layer_input = 0 — feed plain inputs_embeds, delete\nthe PLE path (same simplification the 31B enjoys).\nNo cross-layer KV-sharing. Every layer owns its KV.\nMixed sliding + global attention, sliding_window = 1024, GQA (16 q / 8 kv), softcap 30.\nThen three fixes, each of which cost a compile cycle to find.\nThe global (full_attention) layers have 1 KV head (num_key_value_heads-per-global = 1). Under\ncan shard them — but you shard the query heads and keep the single KV head grouped\ngroups = nq // TP. Get the grouping wrong and the global layers silently attend to the\nnkv=4 and must be replicated — 12B's nkv=1 can shard. Same question, opposite\nGemma caps its final logits with 30 · tanh(logits / 30). On the host reference you apply it. On the\ndon't — softcap is monotonic, so it doesn't change",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "将Gemma-4 12B（无编码器多模态）迁移到AWS Inferentia2",
+        "summary": "Google的Gemma-4 12B无编码器多模态模型被迁移到AWS Inferentia2，相对于CPU参考实现实现了token级精度的完全一致，通过张量并行实现101ms预填充。这一迁移需要三项针对性修复，用于处理统一架构中的全局注意力分片和softcap。"
+      }
+    }
+  },
+  {
+    "title": "My Inferentia port matched its reference token-for-token — and still output garbage",
+    "slug": "gemma-4-31b-inferentia-identical-output",
+    "url": "https://dev.to/xbill/my-inferentia-port-matched-its-reference-token-for-token-and-still-output-garbage-16d4",
+    "source": "DEV Community",
+    "date": "2026-07-17T13:29:49.000Z",
+    "summary": "Porting Gemma-4 31B to AWS Inferentia2 achieved token-identical correctness but exposed compilation infrastructure limits: 8-way tensor parallelism either causes out-of-memory or deadlocks, requiring ModelBuilder's rank-serialized approach. The technical barrier revealed gaps in vendor stack tooling for large models.",
+    "content": "I ported Google's biggest open Gemma-4 — the 30-billion-parameter dense model — to AWS Inferentia2.\ntoken-for-token identical to the\nThis is the sequel to porting the smaller Gemma-4 models (E2B/E4B/12B). Those were hard because of\narchitecture — Per-Layer Embeddings, cross-layer KV-sharing, MatFormer nesting. The 31B throws all\nscale. And a trap.\n\n\n\n\n\n\n\n\n\nModel\n\ngoogle/gemma-4-31B-it — dense, 60 layers, model_type: gemma4\n\n\n\nHardware\n\ninf2.24xlarge — 6 chips / 12 cores / 384 GB host, TP=8\n\n\n\nSoftware\n\ntorch-neuronx 2.8.0 · neuronx-distributed · transformers 5.13.0\n\n\nResult\nDevice greedy decode == CPU fp32 reference (SEQ_MATCH True); prefill ~115 ms; \"The capital of France is Paris.\"\n\n\n\nCompile\nSingle-rank NxD ModelBuilder, ~39 min, host peak 182 GB, neffs 108 GB\n\n\n\n31B is architecturally boring, and that's the point. enable_moe_block: False — dense.\nhidden_size_per_layer_input: 0 — no PLE. num_kv_shared_layers: 0 — every layer owns its KV. It's\n30 billion parameters, which is about\n60 GB in bf16, which does not fit on one 16 GB NeuronCore. The moment you reach for tensor\nbuild the graph changes — and the\nFor E4B and 12B I hand-drove neuronx_distributed's parallel_model_trace — I owned the ranks, the\ntwo different ways, and both were\nAll 8 ranks trace in one process → OOM. The model is ~15 GB/rank in bf16. Eight simultaneous\nfp32 compile graphs blew past 300 GB and killed the 384 GB box. That's not the model being big.\nThat's the tracer being 8× parallel.\nSerialize the ranks (max_parallel_compilations=1) → deadlock. Memory drops to 83 GB, a single\nrank reaches Compiler status PASS, and then the multi-rank weight-collection rendezvous hangs —\nworker blocked on pipe_read, CPU idle, 25 minutes, nothing.\nThe N=22 of this story. You can route around it — but the thing you route around is the thing that\nhand-driving the tracer is the bug.\nNxD's ModelBuilder is the designed large-model path. It compiles one rank, then loads\nper-rank from a checkpoint_loader — no 8× compile",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我的Inferentia移植版与参考版逐字令牌匹配——却仍输出垃圾数据",
+        "summary": "将Gemma-4 31B移植到AWS Inferentia2实现了逐令牌的完全正确性，但暴露了编译基础设施的局限：8路张量并行会导致内存溢出或死锁，需要ModelBuilder的等级序列化方法。这一技术障碍揭示了供应商堆栈工具对大型模型支持的缺陷。"
+      }
+    }
+  },
+  {
+    "title": "Porting a 128-expert MoE (Gemma-4 26B-A4B) to AWS Inferentia2 — where every rank weighted the wrong experts",
+    "slug": "gemma-4-moe-26b-a4b-inferentia-port",
+    "url": "https://dev.to/xbill/porting-a-128-expert-moe-gemma-4-26b-a4b-to-aws-inferentia2-where-every-rank-weighted-the-wrong-2ege",
+    "source": "DEV Community",
+    "date": "2026-07-17T13:29:28.000Z",
+    "summary": "Gemma-4 26B-A4B's 128-expert mixture-of-experts model was successfully ported to AWS Inferentia2 by fixing expert-routing weight misalignment across tensor-parallel ranks, delivering token-perfect output with 77ms prefill. Sparse architecture required careful management of shared MLPs and per-expert scaling.",
+    "content": "Of the five Gemma-4 models I ported to AWS Inferentia2, the 26B-A4B was the one that was supposed to\nMixture of Experts. It compiled on the first try — then produced nothing. The\nThis is the MoE entry in the series. The dense models (E2B/E4B/12B/31B) are hard because of\nsparse — 128 experts, top-8 routing — and none of the\n\n\n\n\n\n\n\n\n\nModel\n\ngoogle/gemma-4-26B-A4B-it — MoE, ~4B active / 26B total, model_type: gemma4\n\n\n\nHardware\n\ninf2.24xlarge — 12 NeuronCores / 192 GB HBM, TP=8\n\n\n\nResult\nDevice greedy decode == CPU fp32 reference (SEQ_MATCH True); prefill 77 ms; \"The capital of France is Paris.\"\n\n\n\nArtifacts\nDocker Hub xbill9/gemma4-optb-26b · HF xbill9/gemma-4-26B-A4B-it-inferentia2\n\n\n\n\nThe name says 26B-A4B: ~4 billion active parameters per token. That sounds like a 4B model. It\n128 experts (~49 GB) must be resident in HBM — top-8 routing only reduces compute, not\nfootprint. So you budget for a 26B, not a 4B, and it needs the 24xlarge's 192 GB, same class as the\nI inspected the transformers-5.13 module on a meta device before writing a line of port code, and it's\nEvery one of the 30 layers runs a shared dense MLP in parallel\n, combined and passed through four feed-forward layernorms:\nresidual (post-attention)\n├─ dense: pre_feedforward_layernorm  → mlp (2112)                → post_feedforward_layernorm_1  ─┐\n└─ moe:   pre_feedforward_layernorm_2 → router → 128 experts (704) → post_feedforward_layernorm_2 ─┤\n                                            hidden = dense + moe ────────────────────────────────────┘\n   → post_feedforward_layernorm → + residual → × layer_scalar\n\nRouter (Gemma4TextRouter): its own RMSNorm + a scale + a per_expert_scale, then\nsoftmax(128, fp32) → top-8 → renormalize → × per_expert_scale.\nExperts (Gemma4TextExperts): a fused gate_up_proj [128,1408,2816] + down_proj\n[128,2816,704], and its forward is a sparse gather/scatter loop (torch.where, index_add_).\nAttention is the same mixed sliding/global layout as the 31B (which I'd already solved).\nThat",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "将128专家MoE(Gemma-4 26B-A4B)移植到AWS Inferentia2——每个排名的专家权重都错了",
+        "summary": "Gemma-4 26B-A4B的128专家混合模型通过修复张量并行排名间的专家路由权重错位，成功移植到AWS Inferentia2，在77毫秒的预填充时间内实现了完美的逐令牌输出。稀疏架构需要谨慎管理共享MLP和每个专家的缩放。"
+      }
+    }
+  },
+  {
+    "title": "Five Gemma-4 models, one accelerator: what porting E2B 31B to AWS Inferentia2 taught me",
+    "slug": "five-gemma-4-models-inferentia2-ports",
+    "url": "https://dev.to/xbill/five-gemma-4-models-one-accelerator-what-porting-e2b-31b-to-aws-inferentia2-taught-me-2980",
+    "source": "DEV Community",
+    "date": "2026-07-17T13:29:07.000Z",
+    "summary": "All five Gemma-4 models (E2B, E4B, 12B, 31B, 26B-A4B MoE) port to AWS Inferentia2 with token-for-token correctness, revealing shared patterns: tied embeddings, GQA, mixed attention, and softcap. The series shows vendor stacks lack support for architectural diversity, requiring custom implementations.",
+    "content": "I ported the whole Gemma-4 family — E2B, E4B, 12B, 31B, and the 26B-A4B MoE — to run on AWS\n* port.*\n\n\n\n\nE2B\nE4B\n12B\n31B\n26B-A4B\n\n\n\n\nParams (total / active)\n~5B / 2B\n~8B / 4B\n12B\n31B\n26B / ~4B\n\n\n\nDense or sparse\ndense\ndense\ndense\ndense\nMoE (128 exp, top-8)\n\n\nPer-Layer Embeddings\n✅\n✅\n—\n—\n—\n\n\nCross-layer KV-sharing\n✅\n✅\n—\n—\n—\n\n\nMatFormer (\"effective\" size)\n✅\n✅\n—\n—\n—\n\n\nModel class\nGemma4ForConditionalGeneration\nsame\n\n…Unified (encoder-free)\nGemma4ForConditionalGeneration\nsame\n\n\nHardware\n1 core (inf2.xlarge)\ninf2.8xlarge\ninf2.8xlarge\ninf2.24xlarge\ninf2.24xlarge\n\n\nTensor parallelism\nTP=1\nTP=2\nTP=2\nTP=8\nTP=8\n\n\nRecipe\ntorch_neuronx.trace\ntp_alias\nModelBuilder\nModelBuilder\nModelBuilder + MoE\n\n\nCorrectness\nSEQ_MATCH ✅\nSEQ_MATCH ✅\nSEQ_MATCH ✅\nSEQ_MATCH ✅\nSEQ_MATCH ✅\n\n\nSpeed\n~44 tok/s\n~34 tok/s\nprefill ~101 ms\nprefill ~115 ms\nprefill ~77 ms\n\n\n\nAll five decode token-for-token identically to their CPU fp32 reference, and all five answer \"The\n That equality bar — not \"looks fluent\" — is the thread that ties the\n1. The vendor stack can't do any of them. optimum-neuron and the Neuron vLLM backend have no\n, and their graph builders can't express the architecture (KV-sharing on the\nsomething and served\ntransformers-5.13's own forward.\n2. The same skeleton underneath. Softcap 30, a 262,144-token vocabulary, tied embeddings, GQA,\nsliding + global attention show up across the family. So does the serving shape:\nhost-side word embeddings, a device prefill + decode with an on-device KV cache, greedy\n3. The same environment quirks. The aws_neuronx_venv_pytorch_2_8_nxd_inference venv +\npip install transformers==5.13.0, a transformers.utils.fx shim so neuronx_distributed imports under\nexport PATH=$VENV/bin:/opt/aws/neuron/bin (that PATH bit fixes a\nlibneuronpjrt-path import error that will waste your afternoon).\n4. Softcap is a host-only concern. 30·tanh(x/30) is monotonic, so it never changes the greedy\nargmax. Every port drops it from the device graph (no tanh over 262K logits) and re-applie",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "五个Gemma-4模型，一个加速器：将E2B 31B移植到AWS Inferentia2所学到的经验",
+        "summary": "所有五个Gemma-4模型(E2B、E4B、12B、31B、26B-A4B MoE)都能以逐令牌的正确性移植到AWS Inferentia2，揭示了共同模式：绑定嵌入、GQA、混合注意力和softcap。该系列表明供应商堆栈缺乏对架构多样性的支持，需要自定义实现。"
+      }
+    }
+  },
+  {
+    "title": "The Silent Crash: How Hallucinated Tool Breaks AI Agents",
+    "slug": "silent-crash-hallucinated-tool-breaks-ai",
+    "url": "https://dev.to/keerat_rashid/the-silent-crash-how-hallucinated-tool-breaks-ai-agents-34cc",
+    "source": "DEV Community",
+    "date": "2026-07-17T13:27:35.000Z",
+    "summary": "AI agents hallucinate tools in three ways: calling non-existent functions, passing malformed parameters, or fabricating results on silent failures—the last being most dangerous because false premises propagate downstream without error signals. Silent failures leave no alarm in transcripts despite breaking downstream reasoning.",
+    "content": "There isn't one version of this failure, there are three distinct patterns, and they cause different kinds of damage.\nCalling a tool that doesn't exist. The agent invokes a function name that was never registered, sometimes because it was described in an earlier turn, sometimes because the model generalizes from a similar tool it has genuinely used before. If the orchestration layer doesn't validate the tool name before execution, this can crash the pipeline outright — or worse, silently no-op.\n\n\nInventing arguments that don't match a schema. The tool exists, but the agent passes parameters that were never defined, get the wrong type, or omit something required. This is less catastrophic when strict schema validation rejects the call immediately, but if validation is loose, malformed arguments can execute against a real system with unpredictable effects.\n\n\nFabricating a result when a call fails silently. The tool call goes out, something goes wrong on the way, for instance: a timeout, a dropped connection, a malformed response, and instead of surfacing an error, the agent generates a plausible-sounding result and continues as though the action succeeded.\n\n\n\nThe Third Pattern Is the Real Problem\nThe first two failure types are usually loud. A missing tool or a schema mismatch tends to throw an error somewhere in the stack, which gives you a chance to catch it. The third type is quiet by design, the whole danger is that it doesn't look wrong.\nFrom the outside, a fabricated result and a genuine one are often indistinguishable in the transcript. The agent says the file was written, the API call succeeded, the record was updated, and moves on to the next step, reasoning from that claim as if it were fact. Every subsequent action in the chain now inherits a false premise, and because nothing in the flow raised an alarm, there's no natural point where a human or a monitoring system would think to check.\nThis is what makes it a genuine \"agentic crash\" rather than just an er",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "静默崩溃：幻觉工具如何破坏AI代理",
+        "summary": "AI代理以三种方式幻觉工具：调用不存在的函数、传递格式错误的参数或在静默失败时伪造结果——最后一种最危险，因为错误的前提会在没有错误信号的情况下向下游传播。静默失败在记录中没有警报，尽管破坏了下游推理。"
+      }
+    }
+  },
+  {
+    "title": "Messing with multi agent orchestration? just tell your AI to think long term, this will do 80% of the job in 1% of the effort.",
+    "slug": "multi-agent-orchestration-long-term-thinking",
+    "url": "https://dev.to/tomerbendavid/messing-with-multi-agent-orchestration-just-tell-your-ai-to-think-long-term-this-will-do-80-of-ff7",
+    "source": "DEV Community",
+    "date": "2026-07-17T13:25:26.000Z",
+    "summary": "Instructing multi-agent systems to reason long-term provides disproportionate robustness gains with minimal effort, delivering 80% of orchestration benefits without complex frameworks. A high-leverage alternative to sophisticated multi-agent coordination patterns.",
+    "content": "<p><a href=\"https://media2.dev.to/dynamic/image/width=800%2Cheight=%2Cfit=scale-down%2Cgravity=auto%2Cformat=auto/https%3A%2F%2Fdev-to-uploads.s3.us-east-2.amazonaws.com%2Fuploads%2Farticles%2Fmgwn2gsxj9syrc8ta9nz.png\" class=\"article-body-image-wrapper\"><img src=\"https://media2.dev.to/dynamic/image/width=800%2Cheight=%2Cfit=scale-down%2Cgravity=auto%2Cformat=auto/https%3A%2F%2Fdev-to-uploads.s3.us-east-2.amazonaws.com%2Fuploads%2Farticles%2Fmgwn2gsxj9syrc8ta9nz.png\" alt=\" \" width=\"799\" height=\"291\"></a></p>",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在多代理编排方面遇到困难？只需告诉你的AI进行长期思考，这将以1%的努力完成80%的工作",
+        "summary": "指导多代理系统进行长期推理以最小的努力提供了不成比例的健壮性收益，无需复杂的框架就能提供80%的编排优势。这是复杂的多代理协调模式的高杠杆替代方案。"
+      }
+    }
+  },
+  {
+    "title": "Arrêtez d'utiliser des \"Chatbots\" pour formater du JSON : L'avènement des SLMs spécialisés",
+    "slug": "specialized-slms-json-parsing-not-chat",
+    "url": "https://dev.to/quentin_merle/arretez-dutiliser-des-chatbots-pour-formater-du-json-lavenement-des-slms-specialises-3njf",
+    "source": "DEV Community",
+    "date": "2026-07-17T13:24:15.000Z",
+    "summary": "Chat-based LLMs fail reliably at JSON output due to conversational training, producing parsing errors despite prompt engineering; specialized small language models like FunctionGemma provide native solutions. Deterministic structured tasks demand specialized models over general-purpose LLMs forced to obey constraints.",
+    "content": "Après avoir sécurisé nos agents avec du Human-in-the-Loop la semaine dernière, il reste un ennemi intime du développeur IA : le parsing.\nSi vous avez déjà mis un LLM en production, vous la connaissez. L'angoisse de la \"ligne 42\".\nVous avez passé des heures à peaufiner votre prompt : \"Tu dois absolument répondre au format JSON strict. N'ajoute pas de texte avant ou après.\"\nSyntaxError: Unexpected token 'V', \"Voici votr\"... is not valid JSON\nParce que le modèle, dans son infinie politesse, a décidé de commencer sa réponse par \"Voici votre objet JSON :\". \nC'est le problème fondamental des modèles conversationnels (comme Llama 3 ou ChatGPT) : ils sont entraînés pour discuter, pas pour être des machines déterministes. Utiliser un modèle de chat pour extraire des variables, c'est utiliser un poète pour faire de la comptabilité.\nLa solution ne réside pas dans des prompts plus agressifs. La solution, ce sont les modèles spécialisés comme FunctionGemma.\nAvant d'arriver à la vraie solution, l'industrie a bricolé des rustines :\nLe JSON Mode de l'API : On force l'API (OpenAI, Ollama) à n'accepter que du JSON. Pratique, mais le modèle \"veut\" toujours discuter et peut halluciner ses propres clés.\nLe \"Prefill\" ({) : On pré-remplit la réponse de l'assistant avec une accolade ouvrante pour le forcer à démarrer un objet.\nLe XML : On supplie le modèle de cracher du XML entre des balises <output> parce qu'il a avalé tellement de code HTML à l'entraînement qu'il y est plus obéissant.\nL'intercepteur JS (L'extracteur) : On laisse le LLM bavarder (\"Voici le JSON :\"), mais on code une fonction JavaScript qui vient découper la chaîne (du premier { au dernier }) avec un try/catch brutal avant d'appeler JSON.parse() (J'ai documenté ce cas pratique dans cet article).\nToutes ces astuces relèvent du \"Prompt Engineering\". C'est de la prière, pas de l'ingénierie.\nAujourd'hui, l'industrie a enfin trouvé une solution native. Les grands fournisseurs (OpenAI, Anthropic) et les moteurs locaux (Ollama) s",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "停止使用\"聊天机器人\"进行JSON格式化：专业SLM的出现",
+        "summary": "基于对话的LLM由于对话训练而在JSON输出方面可靠地失败，尽管进行了提示工程仍会产生解析错误；FunctionGemma等专业小型语言模型提供了原生解决方案。确定性结构化任务需要专业模型，而不是被迫遵守约束的通用LLM。"
+      }
+    }
+  },
+  {
+    "title": "Deja de Entrecerrar los Ojos con los Stack Traces de .NET: Depúralos con Claude en Visual Studio",
+    "slug": "dotnet-stack-trace-debugging-claude",
+    "url": "https://dev.to/jgomezdev/deja-de-entrecerrar-los-ojos-con-los-stack-traces-de-net-depuralos-con-claude-en-visual-studio-4cp1",
+    "source": "DEV Community",
+    "date": "2026-07-17T13:23:04.000Z",
+    "summary": "Claude integration in Visual Studio automates diagnosis of complex .NET stack traces by isolating root causes beneath framework noise and asynchronous machinery, ordering probable causes and linking to user code. Surfaces actual bugs rather than requiring manual parsing through symbol-heavy traces.",
+    "content": "Deja de Entrecerrar los Ojos con los Stack Traces de .NET: Depúralos con Claude en Visual Studio\n\n\nSalta una excepción no controlada y Visual Studio te suelta cuarenta líneas de stack trace en el regazo. Treinta y ocho viven en Microsoft.EntityFrameworkCore.* o en System.Private.CoreLib, una es un frame de máquina de estados asíncrona con un nombre tipo <<Main>$>b__0_0, y exactamente una apunta a código que escribiste tú. Tu trabajo es encontrar esa línea, entender por qué explotó y arreglar la causa real — no el síntoma.\nTodos hemos pegado un trace en el buscador y recibido a cambio una sola pregunta de Stack Overflow de 2015, cero respuestas, y un único comentario que dice \"¿al final lo resolviste?\". Hay una forma mejor, y ahora vive dentro de Visual Studio: le pasas el trace a Claude y recibes un diagnóstico ordenado por probabilidad, atado a tu línea, con un arreglo que de verdad puedes razonar.\n\nLos stack traces no son difíciles por ser largos. Son difíciles porque el código moderno de .NET casi nunca corre en línea recta, y el trace refleja la maquinaria, no tu intención.\nDesenrollado asíncrono. Un await compila a una máquina de estados. Cuando una excepción cruza un await, los frames que ves son llamadas a MoveNext() y ExecutionContext.Run, no la cadena de llamadas ordenada que escribiste. El método aparece como <AlgoAsync>d__4, y la línea que lógicamente lanzó puede estar tres await más arriba.\nExcepciones internas (inner exceptions). El mensaje de arriba suele ser el menos útil. La causa real está anidada — un DbUpdateException envolviendo un SqliteException, o un TargetInvocationException envolviendo lo que de verdad importa. Si solo lees la primera línea, estás depurando el envoltorio.\nAggregateException. Cualquier cosa con Task.WhenAll o paralelismo puede empaquetar varios fallos en uno. El mensaje externo dice \"Se produjeron uno o más errores\" — gracias, utilísimo.\nFrames inlineados y de framework. El JIT hace inline de métodos pequeños, así que hay fra",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "不再眯眼看 .NET 堆栈跟踪：在 Visual Studio 中使用 Claude 调试",
+        "summary": "Visual Studio 中的 Claude 集成通过隔离框架噪声和异步机制下的根本原因，自动诊断复杂的 .NET 堆栈跟踪，对可能原因排序并链接到用户代码。能发现实际的 bug，而无需手动解析符号密集的跟踪。"
+      }
+    }
+  },
+  {
+    "title": "Chaining a segmentation model, a compositing model, and an LLM behind one API call for product photos",
+    "slug": "product-studio-api-chaining-photo",
+    "url": "https://dev.to/kunstudio/chaining-a-segmentation-model-a-compositing-model-and-an-llm-behind-one-api-call-for-product-5h1e",
+    "source": "DEV Community",
+    "date": "2026-07-17T13:09:29.000Z",
+    "summary": "A unified API chains three specialized models—birefnet for background removal, Bria for lifestyle compositing, GPT-4o-mini for SEO copy—into one call rather than forcing separate uploads. Combining purpose-built models outperforms generalist models, reinforcing lessons from LLM agent design.",
+    "content": "Chaining a segmentation model, a compositing model, and an LLM behind one API call for product photos\n\n\nMost \"AI product photo\" tools do one thing: cut the background out, or generate a lifestyle scene, or write the listing copy. I built Product Studio to chain all three behind a single payment-gated call, because in practice an Etsy or Amazon seller needs all three from the same photo, and doing them as three separate tools means three separate uploads.\nproduct photo → fal-ai/birefnet/v2        (clean transparent cutout)\n             → fal-ai/bria/product-shot   (lifestyle scene, optional)\n             → gpt-4o-mini                (SEO listing copy, optional)\n\nbirefnet/v2 is a dedicated background-removal/segmentation model. It runs unconditionally on every request because a clean cutout is the baseline deliverable regardless of what else the user paid for.\nbria/product-shot is a compositing model purpose-built for placing a product into a photoreal scene — not a general image-to-image model prompted to \"add a nice background.\" It takes the original photo plus a scene_description and produces the lifestyle shot directly, which is a meaningfully different (and more reliable) task than asking a generalist model to hallucinate a coherent scene around an existing product.\ngpt-4o-mini handles the SEO copy because it's a text-structuring problem (title/bullets/description/backend-keywords/tags in strict JSON, following Amazon A10 and Etsy tag conventions), not an image problem — there's no reason to route it through an image model.\nSplitting these three concerns across three purpose-built models instead of trying to get one model to do everything is a smaller version of the same lesson everyone rediscovers with LLM agents: a narrow tool that's good at one thing beats a generalist prompted six different ways.\nThe lifestyle-shot step doesn't take an arbitrary scene description from the user — it offers four presets (marble, wood, studio, outdoor), each a fully-specified sc",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在单个 API 调用中链接分割、合成模型和 LLM 处理产品照片",
+        "summary": "统一的 API 将三个专用模型链接在一起——birefnet 用于背景移除，Bria 用于生活方式合成，GPT-4o-mini 用于 SEO 文案——整合为一次调用，而非强制进行多次上传。将专用模型组合使用优于通用模型，强化了 LLM 代理设计的经验。"
+      }
+    }
+  },
+  {
+    "title": "Making AI dating photos that don't look AI-generated (the negative prompt matters more than the model)",
+    "slug": "ai-dating-photos-negative-prompts",
+    "url": "https://dev.to/kunstudio/making-ai-dating-photos-that-dont-look-ai-generated-the-negative-prompt-matters-more-than-the-358h",
+    "source": "DEV Community",
+    "date": "2026-07-17T13:09:28.000Z",
+    "summary": "AI dating photos avoid the telltale plastic skin appearance through aggressive negative prompts—more effective than model choice—combined with texture-restoring upscaling as a finishing pass. Obvious-AI skin matters more than structural errors for photoreal conversion on dating profiles.",
+    "content": "Making AI dating photos that don't look AI-generated (the negative prompt matters more than the model)\n\n\nI already wrote about why identity-preservation models like fal.ai's flux-pulid beat LoRA fine-tuning for keeping a face recognizable. Building AI Dating Photos on the same model surfaced a different, harder problem: keeping the skin recognizable. Identity-preserving generation solves \"does this still look like the same person.\" It does nothing for \"does this look like a real photograph,\" and for a dating profile picture, the second failure mode is the one that gets someone unmatched — that telltale waxy, over-smoothed, poreless AI skin is instantly recognizable to anyone who's swiped past a few AI-generated profiles already.\nEvery generation is two fal.ai calls, not one:\nfal-ai/flux-pulid — generates the styled photo from the reference selfie, tuned with num_inference_steps: 26 (above the model's 20-step default) and id_weight: 1.0 for a hard face lock.\nfal-ai/clarity-upscaler — a finishing pass with creativity: 0.3, resemblance: 1.5, run purely to reintroduce real skin texture and kill plastic/CGI artifacts, not to increase resolution as a goal in itself.\nThe negative prompt carried through both stages is doing most of the actual work against the \"looks AI\" problem: waxy skin, plastic skin, airbrushed, over-smooth skin, poreless skin, beauty filter, oversaturated sit right alongside the more expected deformed, extra fingers, blurry. Most negative-prompt lists you'll find in tutorials stop at the structural failure modes (extra limbs, wrong eye count) because those are the obviously broken outputs. The skin-texture terms exist because a structurally correct face with plastic skin is arguably the more common failure mode for a photoreal use case, and it's the one that actually kills conversion on a dating-photo product specifically.\nThe Cloudflare Pages Function behind this doesn't generate a full batch of every style in one request — it generates one style per c",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "制作不显示 AI 痕迹的约会照片（负面提示比模型选择更重要）",
+        "summary": "AI 约会照片通过积极使用负面提示来避免明显的塑料皮肤外观——这比模型选择更有效——结合纹理恢复超分作为最后处理。对约会资料的真实照片转换而言，明显的 AI 皮肤问题比结构错误更关键。"
+      }
+    }
+  },
+  {
+    "title": "Blatant AI slop just won a 25k USD DeepMind Kaggle Grand Prize",
+    "slug": "ai-slop-kaggle-deepmind-prize",
+    "url": "https://www.kaggle.com/competitions/kaggle-measuring-agi/discussion/724918#3498423",
+    "source": "Hacker News",
+    "date": "2026-07-17T11:30:00.000Z",
+    "summary": "A Kaggle competition entry heavily reliant on AI-generated content won a $25K DeepMind Grand Prize, raising questions about evaluation criteria for AGI benchmarks when minimal original contribution is rewarded. Highlights tension between automation leverage and demonstrated understanding.",
+    "content": "Article URL: https://www.kaggle.com/competitions/kaggle-measuring-agi/discussion/724918#3498423\nComments URL: https://news.ycombinator.com/item?id=48946010\nPoints: 263\n# Comments: 140",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "明目张胆的AI垃圾内容赢得了2.5万美元DeepMind Kaggle大奖",
+        "summary": "一个严重依赖AI生成内容的Kaggle竞赛作品赢得了2.5万美元的DeepMind大奖，这引发了关于AGI基准评估标准的质疑——当最少的原创贡献也能获奖时。突显了自动化优势和实际理解能力之间的矛盾。"
+      }
+    }
+  },
+  {
     "title": "I Automated My Entire Dev Workflow with AI Agents Running 24/7 on a Mac Mini",
     "slug": "automated-dev-workflow-ai-agents-mac-mini",
     "url": "https://dev.to/samhartley_dev/i-automated-my-entire-dev-workflow-with-ai-agents-running-247-on-a-mac-mini-1ikc",
@@ -380,6 +588,22 @@
       "zh": {
         "title": "corpus-scrub 0.1.0: 在LLM训练前检测和编辑训练数据中的个人身份信息和密钥",
         "summary": "corpus-scrub是一款本地优先的CLI工具，在LLM训练前扫描训练数据集以检测和编辑个人身份信息、密钥和API密钥，符合GDPR和欧盟AI法案对非结构化个人数据的限制。"
+      }
+    }
+  },
+  {
+    "title": "The human-in-the-loop is tired",
+    "slug": "human-in-the-loop-tired",
+    "url": "https://pydantic.dev/articles/the-human-in-the-loop-is-tired",
+    "source": "Hacker News",
+    "date": "2026-07-17T00:21:09.000Z",
+    "summary": "Human-in-the-loop systems face fatigue and scaling challenges that make them impractical for production-grade AI oversight, questioning their viability as a long-term middle ground between full automation and manual review. The approach struggles with deployment at scale.",
+    "content": "Article URL: https://pydantic.dev/articles/the-human-in-the-loop-is-tired\nComments URL: https://news.ycombinator.com/item?id=48942000\nPoints: 268\n# Comments: 162",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "人工循环已经疲惫不堪",
+        "summary": "人工循环系统面临疲劳和扩展性挑战，使其对于生产级AI监督而言不切实际，质疑其作为完全自动化和手动审查之间长期折中方案的可行性。该方法在规模部署中举步维艰。"
       }
     }
   }
