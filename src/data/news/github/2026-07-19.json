@@ -1,5 +1,213 @@
 [
   {
+    "title": "<InSource> argo-workflows #14615",
+    "slug": "argo-workflows-template-ref-retry-timing-issue",
+    "url": "https://dev.to/hchsu/argo-workflows-14615-3koo",
+    "source": "DEV Community",
+    "date": "2026-07-19T13:13:59.000Z",
+    "summary": "An ArgoWorkflows issue reveals that workflows fail immediately when referencing non-existent WorkflowTemplates, preventing retry strategies from triggering. The problem stems from template resolution occurring too early in the reconciliation process, before retry logic can be evaluated.",
+    "content": "解析 #14615 這個 issue: Workflow 用 spec.workflowTemplateRef 指向一個還不存在或 informer cache 還沒同步到的 WorkflowTemplate 時，controller 直接呈現最終 Error 的狀態。\nxyz-init-workflow   Error    2m3s   workflowtemplates.argoproj.io \"xyz-workflow-template\" not found\n\nUser 在 issue 中有提到的細節內容:\nThis is because the workflow is deployed before the workflowtemplate. But even if we deploy it in the correct order, ArgoWF actually takes some time to process the workflowtemplate and know about it. \n而且 User 直覺的表示是「retryStrategy 邏輯壞了」，因為配置的 retryStrategy 完全沒有觸發:\nNaturally, the retryStrategy should make the workflow retry in such scenarios. But it doesn't do retries.\napiVersion: argoproj.io/v1alpha1\nkind: Workflow\nmetadata:\n  name: xyz-init-workflow\nspec:\n  workflowTemplateRef:\n    name: xyz-workflow-template\n  retryStrategy:\n    limit: 3\n    retryPolicy: \"Always\"\n\n深挖一番整個呼叫鏈後發現，真正的問題不在 retryStrategy 邏輯壞了，而是根本沒有走到 retry，workflow operate()就已經判定整個 workflow 是有錯誤並直接報錯。\noperate()                                    operator.go:194   ← reconcile 入口\n  │  defer persistUpdates()                  operator.go:199   ← 不管成敗，最後一定把 status 寫回 k8s\n  │\n  ├─ setExecWorkflow(ctx)                    operator.go:217   ← ★ 模板解析在這裡，極早期\n  │    └─ setStoredWfSpec(ctx)               operator.go:4343\n  │         └─ fetchWorkflowSpec(ctx)        operator.go:4454 → 4299\n  │              └─ Lister().Get(name)       operator.go:4316  ← ★★ 錯誤源頭：NotFound\n  │\n  │   〔若 err〕→ markWorkflowError           operator.go:4345  ← ★★★ 無條件打成 Error（終態）\n  │   〔若 err〕→ return（early exit）         operator.go:220\n  │\n  └─（以下完全到不了）\n     executeTemplate() → processNodeRetries() ← retryStrategy 在這層，永遠走不到\n\n詳細的 Call Chain\nfetchWorkflowSpec，operator.go:4316\n\n\n我們先找到錯誤 workflowtemplates.argoproj.io \"xyz\" not found 的源頭:\n// operator.go:4314-4320\n} else {\n    woc.controller.metrics.CountWorkflowTemplate(...)\n    specHolder, err = woc.controller.wftmplInformer.Lister().\n   WorkflowTemplates(woc.wf.Namespace).Get(woc.wf.Spec.WorkflowTemplateRef.Name) // :4316\n}\nif err != nil",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "ArgoWorkflows模板引用失败与重试时序问题",
+        "summary": "ArgoWorkflows问题显示，当引用不存在的WorkflowTemplate时工作流会立即失败，导致重试策略无法触发。该问题源于模板解析在调和过程中发生过早，在重试逻辑评估之前。"
+      }
+    }
+  },
+  {
+    "title": "Angular Selectorless Support",
+    "slug": "angular-selectorless-components-virtual-nodes",
+    "url": "https://dev.to/wszgrcy/angular-selectorless-support-1gai",
+    "source": "DEV Community",
+    "date": "2026-07-19T13:10:14.000Z",
+    "summary": "A new Angular technique enables selectorless components using virtual nodes, eliminating custom component tags from the DOM. The approach requires configuration via DomRendererFactory2 and has limitations around directive binding and scoped styling.",
+    "content": "Preface\n\n\n\nRecently, while implementing the Angular adapter for opentui, the special mechanism of opentui made it necessary to rewrite the renderer. This led to the discovery that virtual nodes can reduce the rendering of custom component tags. Therefore, I attempted to extract this approach for standalone use in the browser.\nInstall @cyia/ngx-common/service\n\nConfiguration\n\n\n\n\nimport { ApplicationConfig, provideBrowserGlobalErrorListeners, RendererFactory2 } from '@angular/core';\nimport { provideRouter } from '@angular/router';\n\nimport { routes } from './app.routes';\nimport { DomRendererFactory2 } from '@cyia/ngx-common/service';\nexport const appConfig: ApplicationConfig = {\n  providers: [\n    provideBrowserGlobalErrorListeners(),\n    provideRouter(routes),\n    // Add this configuration\n    { provide: RendererFactory2, useClass: DomRendererFactory2 },\n  ],\n};\n\nImplementing styles inside components is forbidden, because styles require an outermost element with attributes to define the scope, while selectorless components have no outermost element.\nElements must be manually marked as selectorless because the implementation operates at the application layer, and element rendering is decoupled from component binding, so manual specification is required.\n\n\n\n\nimport { selectorlessExcludeTag } from '@cyia/ngx-common/service';\nselectorlessExcludeTag('app-t1');\n\nDirectives that bind to and manipulate the DOM cannot be implemented. Normal directive binding still works, but if a directive internally performs operations that involve obtaining an ElementRef, they cannot be realized.\ncyia-ngx-common",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Angular无选择器组件支持",
+        "summary": "一项新的Angular技术使用虚拟节点实现无选择器组件，消除DOM中的自定义组件标签。该方法需要通过DomRendererFactory2配置，在指令绑定和作用域样式方面有限制。"
+      }
+    }
+  },
+  {
+    "title": "I built a Chrome extension that reads AI usage limits, and MV3 cookies nearly broke me",
+    "slug": "chrome-mv3-samsite-cookies-authentication-fix",
+    "url": "https://dev.to/jsdevspace/i-built-a-chrome-extension-that-reads-ai-usage-limits-and-mv3-cookies-nearly-broke-me-3fce",
+    "source": "DEV Community",
+    "date": "2026-07-19T13:09:22.000Z",
+    "summary": "A Chrome extension developer discovered that Manifest V3 service workers cannot access SameSite cookies from cross-site requests, causing authentication failures on AI tool usage endpoints. The fix requires using content scripts running in the page context instead of background workers.",
+    "content": "I use six AI tools every day. Claude, ChatGPT, Codex, Cursor, Grok, Perplexity. Each one has limits, and each one hides them somewhere different. So I built a Chrome extension to pull all of it into one view.\nThe idea was trivial. The implementation taught me three things about Manifest V3 that I wish someone had put in a blog post. So here is that post.\nThe extension is called AI Karma Tracker. This is not a sales pitch, it is a build log. The link is at the bottom if you want it.\nMy first mental model was simple. A service worker wakes up on an alarm, fetches each provider's usage endpoint, parses the JSON, updates storage. Clean, centralized, easy to test.\nHere is roughly what I wrote:\n// background.ts (the version that did not work)\nasync function pollCursor() {\n  const res = await fetch(\"https://www.cursor.com/api/usage\", {\n    credentials: \"include\",\n  });\n  return res.json();\n}\n\nIt returned 401. Every time.\nI spent an embarrassing amount of time assuming my endpoint was wrong. It was not. The request was unauthenticated, even though I was clearly logged into Cursor in the same browser.\nHere is the part that is easy to miss. In Manifest V3, your background logic runs in a service worker. When that worker makes a cross site fetch, the request originates from the extension context, not from the provider's own tab.\nMost of these usage endpoints are protected by session cookies marked SameSite=Lax or SameSite=Strict. Those cookies are attached when the request looks like it comes from the site itself. A fetch fired from an extension service worker does not meet that bar, so the cookie is silently omitted, and the server hands you a 401.\ncredentials: \"include\" does not save you here. The cookie is not being blocked by CORS. It is simply never being sent.\nThe fix is to stop fetching from the worker and start fetching from where the cookies actually live: a content script running in the page, in the same origin as the provider.\n// content script, injected on the prov",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我开发了一个Chrome扩展读取AI使用限制，MV3 Cookies差点坏事了",
+        "summary": "Chrome扩展开发者发现Manifest V3 Service Workers无法访问跨站请求的SameSite Cookies，导致AI工具使用端点的身份验证失败。解决方案是使用在页面上下文中运行的内容脚本而非后台Worker。"
+      }
+    }
+  },
+  {
+    "title": "Reading a Rust crate's capabilities out of its compiled symbols",
+    "slug": "rust-crate-symbol-analysis-capabilities-audit",
+    "url": "https://dev.to/booyaka101/reading-a-rust-crates-capabilities-out-of-its-compiled-symbols-58pb",
+    "source": "DEV Community",
+    "date": "2026-07-19T13:05:51.000Z",
+    "summary": "By examining demangled compiled symbols with nm and rustfilt, developers can audit what system calls a Rust crate actually makes, revealing capabilities like socket connections and process spawning. However, this technique cannot catch malicious code hidden in build scripts.",
+    "content": "Cargo tells you once_cell 1.19.0 → 1.20.2. It doesn't tell you whether the new\nI kept chewing on this after xz. Not the specific attack so much as its shape: the\ndo?\nYou can get further than I expected just by reading what the compiler emits.\nRust's v0 symbol mangling demangles back to real paths. Build a crate, look at\nRUSTFLAGS=\"-C symbol-mangling-version=v0\" cargo build --release\nnm target/release/deps/libnetcap-*.rlib \\\n  | awk '{print $NF}' | grep '^_R' | rustfilt | sort -u\n\nFor a crate that opens a socket and spawns a process, some of what falls out:\n<std::process::Command>::spawn\n<std::sys::net::connection::socket::TcpStream>::connect::inner\n<str as std::net::socket_addr::ToSocketAddrs>::to_socket_addrs\n\nMy first cut used nm --defined-only, and it found nothing. Took me longer than\nown functions. It's in the calls it makes out to std, and those are the\nundefined symbols in the object files. --defined-only throws away the whole\nTcpStream\nTwo nice properties fall out of v0 specifically. Demangling drops the per-crate\ncomm -13 the old and new sets. And forcing\n-C symbol-mangling-version=v0 means you don't care what the toolchain default is;\nSo the core is boring in a good way: for each crate whose version moved in\nCargo.lock, build old and new, diff the demangled symbols, and look at what got\nThen I hit the thing that actually keeps me up, and it's the xz-shaped one. A build\nseparate binary that Cargo runs at build time. None of that\nbuild.rs that decodes a blob\n~/.cargo/bin, and the symbol diff stays perfectly quiet.\n// build.rs — runs on your machine, at compile time\nfn main() {\n    println!(\"cargo:rerun-if-changed=build.rs\");\n    let _ = std::process::Command::new(\"sh\")\n        .arg(\"-c\").arg(payload())   // symbol analysis never sees this\n        .status();\n}\n\nThe only way to catch it is to read the source, not the artifact. One Rust detail\n~/.cargo/registry/src/.../<crate>-<version>/ during resolution, before it\nbuild.rs, catch a flip to\nproc-macro = true,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "从编译符号中读取 Rust 库的功能",
+        "summary": "通过使用 nm 和 rustfilt 检查已解析的编译符号，开发者可以审计 Rust 库实际进行的系统调用，揭示套接字连接和进程生成等功能。但是，这种技术无法捕获隐藏在构建脚本中的恶意代码。"
+      }
+    }
+  },
+  {
+    "title": "Stop Using 'password123': A Developer's Guide to Strong Passwords",
+    "slug": "strong-password-generation-length-randomness-guide",
+    "url": "https://dev.to/zhihu_wu_dea1d82af01a04d7/stop-using-password123-a-developers-guide-to-strong-passwords-1on1",
+    "source": "DEV Community",
+    "date": "2026-07-19T13:05:44.000Z",
+    "summary": "Password length, not complexity, is the primary factor in cryptographic strength—a 16-character lowercase password is exponentially harder to crack than an 8-character one with symbols. Developers should use cryptographically secure random generators rather than human-chosen patterns.",
+    "content": "Every developer knows the drill: create an account, type a \"temporary\" password, and promise to change it later. Months go by, and that password — often something painfully predictable — is still protecting your production database, your CI/CD pipeline, or your cloud console.\nLet's fix that. Here's what actually makes a password strong, and how to generate one you can trust.\nPeople obsess over adding symbols and uppercase letters, but length is the single biggest factor in password strength. A 16-character all-lowercase password takes centuries to brute-force with today's hardware. An 8-character password with symbols takes hours.\nEvery additional character multiplies the search space exponentially. A 12-character password using only lowercase letters has 26¹² ≈ 95 quadrillion combinations. Add just 4 more characters, and you jump to 26¹⁶ ≈ 43 sextillion. That's the difference between crackable and effectively uncrackable.\nYour brain is terrible at randomness. \"CorrectHorseBatteryStaple\" is predictable because it uses dictionary words. \"P@ssw0rd!\" is in every rainbow table ever compiled. The only reliable way to generate a truly strong password is to let a cryptographically secure random number generator do it.\nIn the browser, that means crypto.getRandomValues() — the Web Crypto API backed by your OS's entropy source. It's the same API that password managers like 1Password and Bitwarden use under the hood.\nNot all \"strong\" passwords are equal. A good password generator should show a strength indicator based on:\nLength (the biggest factor — aim for 16+)\nCharacter variety (lowercase + uppercase + numbers + symbols = 4 character pools)\nTrue randomness (no human-chosen patterns)\nI use a free password generator that shows real-time strength feedback and lets you customize length and charsets. Everything runs locally via crypto.getRandomValues() — the generated password never touches a server.\nAPI keys/tokens: use 32-64 character alphanumeric strings (no symbols — some sy",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "停止使用\"password123\"：开发者强密码指南",
+        "summary": "密码长度而非复杂性是密码加密强度的主要因素——16 个小写字母的密码比 8 个带符号的密码指数级更难破解。开发者应该使用密码学安全的随机生成器，而不是人工选择的模式。"
+      }
+    }
+  },
+  {
+    "title": "Orchestrating 16 Cursor subagents in a single session — what actually stuck",
+    "slug": "cursor-parallel-subagents-orchestration-project",
+    "url": "https://dev.to/baolin_tikool_43da6f2b56f/orchestrating-16-cursor-subagents-in-a-single-session-what-actually-stuck-546m",
+    "source": "DEV Community",
+    "date": "2026-07-19T13:02:31.000Z",
+    "summary": "A developer successfully coordinated 16 Claude subagents in parallel to complete a complex B2B API integration project in six hours. By dividing tasks across concurrent subagents running fast models, they produced 500 KB of documentation and four production-ready products.",
+    "content": "I did a count that afternoon. From 2pm to 8pm — six hours — I opened 16 subagents in Cursor. Four waves of four each, all running in parallel. Combined output: about 500 KB of documentation, roughly the size of a novella.\nOn the product side, a Cloudflare Worker upgraded from Stripe-only to Stripe + Creem parallel checkout. Four real products live in production. All 12 webhook event types verified end-to-end.\nI did all of this by myself. But I didn't do it alone.\nCursor (also Claude Code, Cline, Aider) can spawn subagents from a main agent. Each subagent gets an independent task prompt, independent context window, independent model instance. It can call tools, read files, write files.\nWhen done, it returns the result to the main agent, which integrates.\nThe critical property is parallelism. Four subagents running simultaneously — each for 30 minutes — the main agent gets 120 minutes of output in 30 real-time minutes.\nThe project is datenix.xyz, a B2B data API. The main line was wiring Creem payment into a Cloudflare Worker. That's specific, technical, one-person-can-do work.\nBut at the same time I needed to:\nStudy Creem's full API (43 endpoints, 12 webhook types, various payload shapes)\nCompare Creem vs Stripe, decide which is primary\nAnalyze existing worker code, decide integration point\nDesign pricing tiers\nWrite complete test suite\nWrite admin CLI\nWrite monitor script\nRewrite the landing page (add Trust & Safety block, About page, Contact page, refund badges)\nResearch KYC approval patterns (Creem's public case studies, rejection cases)\nWrite launch runbook (post-KYC 6 commands)\nWrite SESSION_HANDOFF (for the next agent to pick up)\nDecide if there's a fleet-layer abstraction worth building\nDecide whether to migrate to TypeScript\nIf I did all of this by myself, it's three days. If I gave it all to a single subagent, its context window would explode.\nDivide and conquer. Each subagent takes one focused task, uses the 4.7-fast model, completes in 30–40 minutes. Four i",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在单一会话中协调 16 个 Cursor 子代理——实际有效的方法",
+        "summary": "一名开发者成功在 6 小时内协调 16 个 Claude 子代理并行完成了一个复杂的 B2B API 集成项目。通过将任务分配给运行快速模型的并发子代理，他们生成了 500 KB 的文档和四个生产就绪的产品。"
+      }
+    }
+  },
+  {
+    "title": "Sending Gmail from behind China's Great Firewall — six attempts that failed",
+    "slug": "gmail-smtp-china-firewall-technical-analysis",
+    "url": "https://dev.to/baolin_tikool_43da6f2b56f/sending-gmail-from-behind-chinas-great-firewall-six-attempts-that-failed-1khf",
+    "source": "DEV Community",
+    "date": "2026-07-19T13:02:29.000Z",
+    "summary": "Sending Gmail from mainland China fails across standard SMTP ports due to deep packet inspection, with solutions like proxies and PySocks encountering additional protocol obstacles. The article documents each technical failure mode and attempted workaround.",
+    "content": "Last night I needed to send one email to support@creem.io from Guangzhou, China. Simple email — 15 minutes to draft. Sending it took over an hour.\nHere's what I learned about the six most common ways to send Gmail from mainland China programmatically, and what finally worked.\nHabitual first try — Python smtplib with the Gmail app password:\nimport smtplib, ssl\ns = smtplib.SMTP_SSL('smtp.gmail.com', 465, context=ssl.create_default_context())\ns.login(user, app_password)\ns.send_message(msg)\n\nssl.SSLEOFError: EOF occurred in violation of protocol\nSwitched to 587 STARTTLS. SMTPServerDisconnected: Connection unexpectedly closed.\nNot surprising. China Telecom / China Unicom / China Mobile backbone routers have been doing deep packet inspection on smtp.gmail.com for years across all three SMTP ports (25, 465, 587). The SMTPS handshake exposes the SNI in plaintext — GFW sees smtp.gmail.com and resets the connection.\nI figured switching to a proxy would fix it. Wrong.\nLocal Clash proxy was already running on port 7897. Standard Windows curl.exe:\ncurl.exe -x http://127.0.0.1:7897 \\\n  --url smtps://smtp.gmail.com:465 --ssl-reqd \\\n  --mail-from ... --mail-rcpt ... \\\n  --user user:pass --upload-file email.txt\n\nClash side works fine — HTTP/1.1 200 Connection established. Then:\n* schannel: failed to receive handshake, SSL/TLS connection failed\ncurl: (35) schannel: failed to receive handshake, SSL/TLS connection failed\n\nWindows curl.exe ships with schannel (Windows native TLS). schannel has poorly supported tunneled-TLS-after-HTTP-CONNECT for years. Known issue, no clean fix without swapping to a git-for-windows curl or building from source. Not doing that at 11pm.\nimport socks\nsocks.set_default_proxy(socks.HTTP, '127.0.0.1', 7897)\nsocket.socket = socks.socksocket\nimport smtplib\n\nOSError: [Errno 9] Bad file descriptor\nPySocks has a socket-wrap bug when SSL is wrapped on top on Windows Python 3.9. Never fully fixed.\nWent lower — open my own socket, hand-craft the HTTP CONNECT, then wr",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在中国防火墙后发送Gmail——六次失败的尝试",
+        "summary": "从中国大陆发送Gmail因深度包检查在标准SMTP端口上失败，代理和PySocks等解决方案会遇到额外的协议障碍。该文章记录了每个技术故障模式和尝试的解决方法。"
+      }
+    }
+  },
+  {
+    "title": "Advanced Prompt Engineering: Techniques That Transform AI Response Quality",
+    "slug": "prompt-engineering-structured-tags-quality-improvement",
+    "url": "https://dev.to/andr_diasmoreiraprol_b/advanced-prompt-engineering-techniques-that-transform-ai-response-quality-47m6",
+    "source": "DEV Community",
+    "date": "2026-07-19T13:01:29.000Z",
+    "summary": "Structuring prompts with explicit role, context, task, and constraint tags dramatically improves AI response quality—one team achieved 91% accuracy in vulnerability detection versus 62% with unstructured prompts. Adding uncertainty clauses reduces hallucination by roughly 40%.",
+    "content": "After two decades leading technology teams and, more recently, integrating AI into blockchain forensics workflows, I've noticed something counterintuitive: the gap between a mediocre AI output and a brilliant one rarely lies in the model itself. It lies in how we talk to it. The same GPT-4 or Claude instance can produce vague generalities or surgical precision—the difference is engineering.\nLet me share the techniques that have measurably transformed response quality in my own projects, from tokenization audits on Stellar to automated incident reports.\nThe single biggest quality lever I've found is treating the prompt as a data structure, not a sentence. Models respond dramatically better when context is compartmentalized with explicit delimiters.\nIn one Soroban smart contract review pipeline, my team went from 62% to 91% accuracy in vulnerability detection simply by restructuring prompts into tagged sections:\n<role>You are a Soroban security auditor</role>\n<context>Contract handles asset issuance on Stellar mainnet</context>\n<task>Identify reentrancy and overflow risks</task>\n<constraints>Cite line numbers. Flag uncertainty explicitly.</constraints>\n\nThe lesson André Dias Moreira Prol repeats to every junior engineer: models don't fail because they lack knowledge—they fail because we bury the actual request inside ambiguous prose. Separating role, context, task, and constraints forces the model to allocate attention correctly.\nConcrete tip: add an explicit uncertainty clause (\"If you are not confident, say so\"). In forensic contexts, this reduced hallucinated findings by roughly 40% in our internal tests, because it gives the model permission to abstain instead of confabulating.\nAsking a model for an answer is amateur hour. Asking it to reason first, then answer is where quality compounds.\nFor complex reasoning—say, tracing a suspicious token flow across multiple Stellar accounts—I never request the conclusion directly. Instead:\nThink step by step. First, list each",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "高级提示工程：改变AI响应质量的技巧",
+        "summary": "使用明确的角色、上下文、任务和约束标签来构建提示可以显著改善AI响应质量——一个团队在漏洞检测中实现了91%的准确率，而非结构化提示仅为62%。添加不确定性条款可将幻觉减少约40%。"
+      }
+    }
+  },
+  {
+    "title": "Removing Duplicates from a integer list (Easy) | LeetCode Practice #7",
+    "slug": "leetcode-remove-duplicates-sorted-array",
+    "url": "https://dev.to/secondlastsleep/removing-duplicates-from-a-integer-list-easy-leetcode-practice-7-35l6",
+    "source": "DEV Community",
+    "date": "2026-07-19T12:56:21.000Z",
+    "summary": "LeetCode's remove-duplicates problem can be efficiently solved using a head-pointer approach that runs in 7ms by moving unique elements to the front while leaving the rest disorganized. This works because the problem specifies only elements up to index k need be valid.",
+    "content": "Remove Duplicates From Sorted Array\n\n\n\nGiven an integer array nums sorted in non-decreasing order, remove the duplicates in-place such that each unique element appears only once. The relative order of the elements should be kept the same. Consider the number of unique elements in nums to be k​​​​​​​​​​​​​​. After removing duplicates, return the number of unique elements k.\nThe first k elements of nums should contain the unique numbers in sorted order. The remaining elements beyond index k - 1 can be ignored.\n####Pop Elements(Runtime: 57ms, Memory: 13MB)\n    #DECLARE nums: ARRAY of INTEGER\nclass Solution(object):\n    def removeDuplicates(self, nums):\n        i = 1\n        while i < len(nums):\n            if nums[i] == nums[i-1]:\n                nums.pop(i)\n            else:\n                i += 1\n        return len(nums)\n\n\n\n####Insert to Head(Runtime: 7ms, Memory: 13.7MB)\n    #DECLARE nums: ARRAY of INTEGER\nclass Solution(object):\n    def removeDuplicates(self, nums):\n        head_pointer = 1\n        for i in range(1, len(nums)):\n            if nums[i] != nums[i-1]:\n                nums[head_pointer] = nums[i]\n                head_pointer += 1\n        return head_pointer\n\nThe question is simple. The only catch: we need to accept that the array can become messy, because after moving the unique elements to the front, anything after index k will be unorganized. However, since the question already states that \"anything beyond index k-1 will not be considered\", I think LeetCode is hinting at this approach.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "从整数列表中移除重复项（简单）| LeetCode练习 #7",
+        "summary": "LeetCode的移除重复项问题可以使用头指针方法有效地解决，该方法在7毫秒内运行，将唯一元素移到前面，其余元素保持无序。这之所以有效是因为问题仅指定索引k之前的元素需要有效。"
+      }
+    }
+  },
+  {
+    "title": "From a Simple JavaScript Calculator to a Useful Real-World Tool",
+    "slug": "real-world-calculator-validation-requirements",
+    "url": "https://dev.to/neolle/from-a-simple-javascript-calculator-to-a-useful-real-world-tool-16jn",
+    "source": "DEV Community",
+    "date": "2026-07-19T12:54:41.000Z",
+    "summary": "Real-world calculators require validated inputs, edge case handling, domain-specific rules, and transparent result breakdowns beyond basic arithmetic. A UAE end-of-service gratuity calculator demonstrates proper calculation structure with validation and detailed output.",
+    "content": "Most developers build a calculator while learning JavaScript.\nThe first version usually accepts two numbers, performs an operation, and displays the result. That is useful for practising functions, events, and DOM manipulation.\nBut what changes when a calculator is expected to solve a real problem?\nA practical calculator needs more than arithmetic. It must also deal with:\nclear and validated inputs\nincomplete or invalid data\nrules that change according to the user’s circumstances\npartial periods\ncalculation limits\nan understandable result breakdown\nlinks to reliable sources\nA useful example is a UAE end-of-service gratuity calculator.\nFor a standard mainland private-sector calculation, the tool may need the employee’s basic monthly salary, employment dates and unpaid-leave period.\nA simplified calculation function could look like this:\nfunction estimateGratuity({\n  basicMonthlySalary,\n  eligibleServiceYears\n}) {\n  if (\n    !Number.isFinite(basicMonthlySalary) ||\n    basicMonthlySalary <= 0\n  ) {\n    throw new Error(\"A valid basic monthly salary is required.\");\n  }\n\n  if (\n    !Number.isFinite(eligibleServiceYears) ||\n    eligibleServiceYears < 0\n  ) {\n    throw new Error(\"A valid service period is required.\");\n  }\n\n  if (eligibleServiceYears < 1) {\n    return {\n      estimatedGratuity: 0,\n      reason: \"Minimum service requirement not completed.\"\n    };\n  }\n\n  const dailyBasicWage = basicMonthlySalary / 30;\n\n  const firstFiveYears = Math.min(eligibleServiceYears, 5);\n  const laterYears = Math.max(eligibleServiceYears - 5, 0);\n\n  const firstPeriodAmount =\n    firstFiveYears * 21 * dailyBasicWage;\n\n  const laterPeriodAmount =\n    laterYears * 30 * dailyBasicWage;\n\n  const uncappedAmount =\n    firstPeriodAmount + laterPeriodAmount;\n\n  const maximumAmount = basicMonthlySalary * 24;\n\n  return {\n    dailyBasicWage,\n    firstPeriodAmount,\n    laterPeriodAmount,\n    estimatedGratuity: Math.min(\n      uncappedAmount,\n      maximumAmount\n    )\n  };\n}\n\nThis is only the calcula",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "从简单的JavaScript计算器到实用的现实工具",
+        "summary": "现实应用中的计算器需要输入验证、边界情况处理、特定领域规则和透明的结果分解，远不仅仅是基本算术。一个阿联酋离职遣散费计算器展示了包含验证和详细输出的适当计算结构。"
+      }
+    }
+  },
+  {
+    "title": "I Built a Fully Autonomous AI Reverse-Engineering Agent in Go",
+    "slug": "jurig-autonomous-reverse-engineering-agent",
+    "url": "https://dev.to/abdulm/i-built-a-fully-autonomous-ai-reverse-engineering-agent-in-go-257k",
+    "source": "DEV Community",
+    "date": "2026-07-19T12:53:09.000Z",
+    "summary": "JURIG is a standalone autonomous reverse-engineering agent written in Go that analyzes APKs and binaries without human interaction. It supports multiple LLM backends and integrates 25+ tools including jadx, radare2, and Frida in a portable hacker-focused TUI.",
+    "content": "Jurig (Sundanese: ghost) — an autonomous AI agent that haunts your binaries.\n .-.         ██ ██    ██ ██████  ██  ██████\n(o o)        ██ ██    ██ ██   ██ ██ ██\n| u |        ██ ██    ██ ██████  ██ ██   ███\n|   |   ██   ██ ██    ██ ██   ██ ██ ██    ██\n'~-~'    █████   ██████  ██   ██ ██  ██████\n        autonomous reverse-engineering agent · android · binary · frida\n\nPoint it at an APK, XAPK, or native binary and it plans, decompiles, searches,\n13,367\n, grepped the sources, and surfaced a hardcoded AES key with a\n plus the full API endpoint map — then asked me whether it should go\nThis post is the build story: the architecture, the design bets, and the three\nRepo: https://github.com/ReverserID/JURIG\nExisting \"AI reverse engineering\" is mostly a pile of MCP servers you wire into a\nAutonomous, not chat — it drives a real toolchain end to end.\nA single portable binary — no Python venv soup, no MCP daemons.\nMulti-model — my Claude subscription, OpenRouter, local Ollama, Kimi, Qwen.\nA TUI that feels like a hacker tool, not a log dump.\nSo: Go. Charmbracelet for the TUI (Bubble Tea + Lipgloss + Glamour). And a hard\nno MCP. Every capability is a native Go function that shells out to a\n┌─ agent loop ─┐   plan → ask scope → recon → locate → dynamic → report\n│              │\n│  LLM router  │   anthropic · openai-compat (openrouter/ollama/kimi/qwen) · claude-cli\n│              │\n│  25+ tools   │   jadx · apktool · radare2 · ghidra · frida · adb · proxy\n│              │   + secret_scan · url_extract · manifest · elf/pe_info · search_code\n│              │\n│  TUI         │   animated ghost header · code cards · model picker · NET panel\n└──────────────┘\n\nThe whole thing speaks the Anthropic Messages protocol internally. A router\nanthropic — native Messages API.\nopenai — an adapter that translates Messages ↔ OpenAI Chat Completions\n(tool calls included). This single adapter covers OpenRouter, Ollama, Kimi\n(Moonshot), and Qwen (Alibaba DashScope) — they're all OpenAI-compatible.\nclaude-",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我用Go语言构建了一个完全自主的AI逆向工程代理",
+        "summary": "JURIG是一个用Go语言编写的独立自主逆向工程代理，可在没有人工干预的情况下分析APK和二进制文件。它支持多个LLM后端，并在便携式黑客专用TUI中集成了包括jadx、radare2和Frida在内的25个以上工具。"
+      }
+    }
+  },
+  {
+    "title": "Python quickstart: nutrition data in 10 lines",
+    "slug": "dietly-nutrition-api-python-quickstart",
+    "url": "https://dev.to/dietly/python-quickstart-nutrition-data-in-10-lines-5ff4",
+    "source": "DEV Community",
+    "date": "2026-07-19T12:52:34.000Z",
+    "summary": "Dietly's public nutrition API enables food searches with a single GET request, returning flat objects containing macronutrient data per 100g. The guide covers field meanings, null value handling, and conversion methods for different serving sizes.",
+    "content": "Python quickstart: nutrition data in 10 lines\n\n\nYou can search Dietly's public nutrition catalog with one GET request to https://api.getdietly.com/search. The response is a JSON array of foods, not an object with a results property. Install requests, run the example below, and you have a working nutrition lookup. The rest of this page turns that single call into something dependable: a client class, correct field handling, and retries that respect the rate limit.\nThe only required parameter is q (minimum two characters). Use limit to cap results between 1 and 50. Ten is plenty while you explore.\nimport requests\n\nr = requests.get(\"https://api.getdietly.com/search\",\n    params={\"q\": \"greek yogurt\", \"limit\": 5}, timeout=10)\nr.raise_for_status()\nfoods = r.json()\nfor food in foods:\n    print(food[\"name\"], food.get(\"protein_g\"))\n\nEach result is a flat object. Nutrient values are per 100 g of the product unless noted, and any nutrient can be null when the source label did not list it. Treat null as unknown, never as zero.\n\n\n\nField\nMeaning\n\n\n\n\nid\nStable Dietly food ID, used for direct lookups\n\n\n\nname, brand\n\nProduct name and brand when known\n\n\ncalories_kcal\nEnergy per 100 g\n\n\n\nprotein_g, fat_g, carbs_g\n\nMacronutrients per 100 g\n\n\n\nfiber_g, sugar_g, saturated_fat_g, sodium_mg\n\nDetail nutrients per 100 g, often null\n\n\n\nserving_size_g, serving_desc\n\nOne serving in grams and its label wording, when provided\n\n\n\nsource, confidence\n\nWhere the record came from and how sure Dietly is\n\n\nstatic_url\nPath to the food's page on getdietly.com, when one exists\n\n\n\nTo convert a per-100 g value to a portion, multiply by grams and divide by 100. For a 150 g serving of a food with 10 g protein per 100 g, that is 10 * 150 / 100 = 15 g.\nAn empty search is [], which is a normal outcome rather than an error. Guard for it, and keep null nutrients as null in your own model.\nfood = foods[0] if foods else None\nif food is None:\n    print(\"No close match\")\nelse:\n    protein = food.get(\"protein_g\")\n    pr",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Python快速入门：10行代码获取营养数据",
+        "summary": "Dietly的公共营养API可通过单个GET请求进行食物搜索，返回包含每100克宏量营养素数据的扁平对象。该指南涵盖了字段含义、空值处理和不同份量的转换方法。"
+      }
+    }
+  },
+  {
+    "title": "Qwen3.8 is launching and going open-weight soon",
+    "slug": "qwen-3-8-open-weight-model-launch",
+    "url": "https://twitter.com/Alibaba_Qwen/status/2078759124914098291",
+    "source": "Hacker News",
+    "date": "2026-07-19T08:44:57.000Z",
+    "summary": "Alibaba's Qwen3.8 model is launching with plans to release as open-weight, making the model available for broader research and deployment use cases.",
+    "content": "Article URL: https://twitter.com/Alibaba_Qwen/status/2078759124914098291\nComments URL: https://news.ycombinator.com/item?id=48966120\nPoints: 264\n# Comments: 134",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Qwen3.8 即将推出并开源",
+        "summary": "阿里巴巴的Qwen3.8模型即将推出，计划发布为开源权重，使该模型可用于更广泛的研究和部署用例。"
+      }
+    }
+  },
+  {
     "title": "I built 31 developer tools in a weekend — here's what I learned",
     "slug": "built-31-developer-tools-weekend",
     "url": "https://dev.to/chenghui_wu_1613965a032b1/i-built-31-developer-tools-in-a-weekend-heres-what-i-learned-1f3h",
@@ -380,6 +588,38 @@
       "zh": {
         "title": "AgentPool：编码代理的Stack Overflow",
         "summary": "AgentPool为AI编码代理提供了一个共享知识池，捕捉并排列以前解决的问题的解决方案，允许代理找到经验证的修复而不是在单独的会话中重新发现解决方案。该系统使用基于嵌入的语义搜索排名，结合社区投票和内容审核以确保质量。这个基础设施解决了一个基本的效率问题，即每个新的代理会话开始时都无法访问先前的解决方案。"
+      }
+    }
+  },
+  {
+    "title": "AI Mania Is Eviscerating Global Decision-Making",
+    "slug": "ai-mania-global-decision-making-impact",
+    "url": "https://ludic.mataroa.blog/blog/ai-mania-is-eviscerating-global-decision-making/#fnref:3",
+    "source": "Hacker News",
+    "date": "2026-07-19T01:29:19.000Z",
+    "summary": "A blog post examines how uncritical AI enthusiasm is degrading the quality of decision-making processes globally, attracting significant community discussion on the societal implications.",
+    "content": "Article URL: https://ludic.mataroa.blog/blog/ai-mania-is-eviscerating-global-decision-making/#fnref:3\nComments URL: https://news.ycombinator.com/item?id=48964185\nPoints: 259\n# Comments: 102",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI热潮正在破坏全球决策制定",
+        "summary": "一篇博文探讨了不加批判的人工智能热情如何降低全球决策过程的质量，引起了社区对社会影响的重大讨论。"
+      }
+    }
+  },
+  {
+    "title": "Better and Cheaper Than IPTV",
+    "slug": "castor-iptv-alternative-project",
+    "url": "https://github.com/stupside/castor",
+    "source": "Hacker News",
+    "date": "2026-07-19T00:59:55.000Z",
+    "summary": "Castor is a GitHub project presenting an alternative to traditional IPTV that claims better performance and lower cost for streaming media distribution.",
+    "content": "Article URL: https://github.com/stupside/castor\nComments URL: https://news.ycombinator.com/item?id=48964015\nPoints: 233\n# Comments: 65",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "比IPTV更好更便宜",
+        "summary": "Castor是一个GitHub项目，提供传统IPTV的替代方案，声称在流媒体分发中具有更好的性能和更低的成本。"
       }
     }
   },
