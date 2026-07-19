@@ -1,5 +1,213 @@
 [
   {
+    "title": "A One-Second Static Check for E2E Selector Drift",
+    "slug": "one-second-static-check-e2e-selector-drift",
+    "url": "https://dev.to/cydavid/a-one-second-static-check-for-e2e-selector-drift-21gf",
+    "source": "DEV Community",
+    "date": "2026-07-19T19:00:10.000Z",
+    "summary": "A developer built a ~500-line Node script that cross-checks every test selector against source code in one second, catching drift before expensive test execution. On first run against a fully passing test suite, it found eight real automation defects, preventing hours of wasted feedback-loop time.",
+    "content": "Every E2E test run has a price tag, and it's paid in feedback-loop minutes.\nHere's a classic example. Someone renames a data-test attribute during a refactor, not knowing ten specs reference it. Best case: a 15-minute (or more) pre-merge run fails near the end and tells them. Worst case: the rename slips through the merge and the nightly job fails at 3:30am. The next morning, someone burns an hour establishing that the \"failure\" is not a bug, not an outage, not flake, just a selector that was renamed three days ago.\nEither way, you paid minutes or hours of test execution to learn something that was knowable in one second, before a browser ever launched.\nOur team decided to finally stop paying that tax.\nThe solution? I wrote a ~500-line Node script that cross-checks every selector our specs reference against every selector our app source can produce, and fails the offending PR in about a second. No browser, no app boot, no AI. We built it for our Cypress suite (Vue 3 frontend, ~200 spec files, ~6,300 selector call sites), but nothing about the idea is Cypress-specific. It works for Playwright, WebdriverIO, or anything else because the thing being checked isn't the test framework. It's a naming contract.\nAnd here's the best part: on its first run against our fully green test suite, it found eight real automation defects.\nA selector like cy.getByDataTest('orders-table') is a reference to something defined elsewhere, exactly like a function call. When someone deletes the function, the compiler tells you immediately. In contrast, when someone deletes an attribute, the tooling says nothing; instead you find out whenever a test that happens to touch that element happens to run.\nWhen discussing this issue, we explicitly did not want runtime \"self-healing\" selectors, where AI guesses which element you probably meant. We believe self-healing can be useful but typically hides drift, so we wanted the opposite: fail the PR that caused the drift, loudly and deterministically. We",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "E2E选择器漂移的一秒静态检查",
+        "summary": "一个开发者编写了约500行Node脚本，可在一秒内交叉检查每个测试选择器和源代码，在昂贵的测试执行前捕捉漂移。在首次针对完全通过的测试套件运行时，它发现了8个真实的自动化缺陷，防止了数小时的反馈循环时间浪费。"
+      }
+    }
+  },
+  {
+    "title": "How We Distribute Video Events Across Regions With NATS JetStream",
+    "slug": "distribute-video-events-regions-nats-jetstream",
+    "url": "https://dev.to/ahmet_gedik778845/how-we-distribute-video-events-across-regions-with-nats-jetstream-oam",
+    "source": "DEV Community",
+    "date": "2026-07-19T19:00:01.000Z",
+    "summary": "TrendVidStream replaced inline video processing with NATS JetStream to decouple discovery from downstream tasks (indexing, caching, sitemap generation) across eight regions. This event-driven architecture eliminated partial failures, polling latency tradeoffs, and writer-lock contention.",
+    "content": "When a new video shows up in one of our regional crawlers, three things need to happen almost immediately: the SQLite FTS5 search index for that region needs a new row, the discovery ranking cache needs to be invalidated, and the sitemap generator needs to know a URL was born. For a long time we did all of this inline, inside the same cron process that fetched the video. It worked until it didn't. A slow FTS5 rebuild would stall the fetch loop, a sitemap write would fail silently, and a crash halfway through meant one region had the video indexed and another didn't. The fetch and the fan-out were fused together, and every failure was a partial failure.\nThe fix was to stop treating \"a video was discovered\" as a function call and start treating it as an event. At TrendVidStream we run discovery across 8 regions, and the moment we introduced NATS JetStream as the spine between the crawler and the downstream consumers, the whole system got calmer. This post is the concrete version of how we did it: the stream config, the publishers, the consumers, and the mistakes we made that you can skip.\nWe already had SQLite everywhere, so the obvious move was a jobs table. We tried it. The problems showed up fast:\nPolling latency vs. load tradeoff. Poll every second and you hammer the DB with mostly-empty SELECT queries across 8 regions. Poll every 30 seconds and your search index lags noticeably behind your crawler.\nNo fan-out. One row, one worker. If the sitemap generator and the FTS5 indexer both need the same event, you either duplicate rows or invent a consumed_by bitmask. Both are ugly.\nLocking. SQLite's writer lock means the queue table and the actual data table start contending under the multi-region cron bursts we run.\nCross-region delivery. Our regions aren't all on the same box. A queue table doesn't cross machines without you building a replication story on top.\nJetStream solves all four: push-based delivery (no polling), multiple independent consumers off one stream, i",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我们如何使用NATS JetStream跨地域分发视频事件",
+        "summary": "TrendVidStream用NATS JetStream替换了内联视频处理，以将发现与下游任务（索引、缓存、站点地图生成）在八个地域解耦。这种事件驱动架构消除了部分故障、轮询延迟权衡和写入器锁争用。"
+      }
+    }
+  },
+  {
+    "title": "Week 2: I Found the Best Free Blockchain Course on the Internet — Here's My Honest Review",
+    "slug": "week-2-best-free-blockchain-course-review",
+    "url": "https://dev.to/bassey_01/week-2-i-found-the-best-free-blockchain-course-on-the-internet-heres-my-honest-review-5096",
+    "source": "DEV Community",
+    "date": "2026-07-19T18:47:47.000Z",
+    "summary": "A developer learning blockchain reviewed Cyfrin Updraft and found its Tenderly virtual testnet approach superior to traditional faucet-based testing, offering instant private blockchains with unlimited test ETH. The platform excels at teaching decentralized solutions to real-world problems like account freezes and transaction blocking.",
+    "content": "My Zero to Blockchain Engineer journey — Week 2 update\nLast week I announced I was teaching myself blockchain engineering from zero.\nThis week I went deep into Cyfrin Updraft — and I have to be honest, it changed how I think about learning Web3.\nHere's everything I covered, what surprised me, and why I think this platform is the best free resource for anyone serious about becoming a blockchain developer.\nWhat I covered this week\nI'm currently 45% through the Blockchain Basics course on Cyfrin Updraft. Here's exactly what the lessons covered:\nSection 1 — What Is A Blockchain?\nThis section answered the question properly — not in a surface-level way, but by starting with the problem blockchain solves.\nThe lesson on centralized control hit differently. Think about it in a Nigerian context — banks freezing accounts, payment processors blocking transactions, elections where results can't be independently verified. These aren't hypothetical problems. They're things we live with.\nBlockchain's answer: a shared ledger where truth is verified by math, not by a middleman.\nThat framing made everything click for me.\nKey lessons I completed:\nWhat Is A Blockchain — centralized problems vs decentralized solutions\nSection 2 — Sending Transactions\nThis is where things got hands-on — and where Cyfrin pulled ahead of every other platform I've tried.\nKey lessons:\nWhat Is A Wallet — your public address as a digital mailbox\nThe thing that genuinely surprised me: the faucet\nIf you've tried to learn blockchain development before, you know the pain of testnet faucets.\nA faucet is a website that gives you free test ETH so you can practice sending transactions without spending real money. On most platforms — including LearnWeb3.io — you have to hunt for a working faucet, deal with rate limits, wait hours, sometimes get nothing.\nCyfrin Updraft uses Tenderly virtual testnets instead.\nYou spin up your own private blockchain in seconds. Infinite test ETH. No waiting. No faucet hunting. No frustrati",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第2周：我在网上找到最好的免费区块链课程——以下是我的诚实评价",
+        "summary": "一个学习区块链的开发者评测了Cyfrin Updraft，发现其Tenderly虚拟测试网方法优于传统基于水龙头的测试，提供具有无限测试ETH的即时私有区块链。该平台擅长教授分散化解决方案，以解决账户冻结和交易阻止等真实问题。"
+      }
+    }
+  },
+  {
+    "title": "On-Premise AI Code Review: How We Deployed Claude Locally in an Air-Gapped Environment (Setup Guide)",
+    "slug": "on-premise-ai-code-review-claude-air-gapped",
+    "url": "https://dev.to/dextralabs/on-premise-ai-code-review-how-we-deployed-claude-locally-in-an-air-gapped-environment-setup-guide-5f6h",
+    "source": "DEV Community",
+    "date": "2026-07-19T18:44:52.000Z",
+    "summary": "Guide for deploying AI code review (Claude) entirely on-premise in air-gapped, classified networks without external APIs. Covers hardware sizing, model quantization, inference server setup, CI/CD integration, and security architecture for defense contractors and similar environments.",
+    "content": "The security officer said no.\nNot \"maybe with some modifications.\" Not \"let us review the data handling policy.\" No. Cloud-hosted AI code review was not going to happen in their environment. The codebase contained classified material. The network was air-gapped. No data leaves the building. End of conversation.\nThis was a defence contractor. Their development team was writing code that couldn't touch any external API, any cloud service, any SaaS platform. But they were also writing 200,000+ lines of code per year with a team that was struggling to maintain review quality across twelve engineers, the exact problem that AI code review solves.\nThe challenge: deploy AI code review capability that runs entirely on-premise, in an air-gapped network, with no external connectivity, while meeting the security and compliance requirements of a classified computing environment.\nThis is the guide we wish existed when we started that project. It covers hardware requirements, model selection, inference server setup, CI/CD integration and the security architecture that made it pass the compliance review.\nWhy air-gapped AI code review is different from everything else\n\n\nMost AI code review guides assume cloud connectivity. The model runs on the provider's infrastructure. The code is sent via API. The review comes back. The security question is about data handling policies, encryption in transit and vendor trust.\nIn an air-gapped environment, none of that applies. The model runs on hardware you control. The code never leaves your network. There is no vendor to trust because there is no vendor in the loop.\nThis sounds simpler from a security perspective. In some ways it is. In other ways it's significantly more complex because you're now responsible for the entire stack, model selection, quantisation, inference hardware, deployment, monitoring, updating and maintaining the system that in a cloud deployment is someone else's problem.\nHardware requirements\n\n\nThe hardware question is the",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "本地AI代码审查：我们如何在隔离网络环境中本地部署Claude（设置指南）",
+        "summary": "在隔离的分类网络中完全本地部署AI代码审查（Claude）的指南，无需外部API。涵盖硬件配置、模型量化、推理服务器设置、CI/CD集成以及国防承包商等类似环境的安全架构。"
+      }
+    }
+  },
+  {
+    "title": "What Is a Pointer in C? A Beginner's Guide",
+    "slug": "what-is-pointer-c-beginners-guide",
+    "url": "https://dev.to/codefacility_54ecdc081e01/what-is-a-pointer-in-c-a-beginners-guide-3ddb",
+    "source": "DEV Community",
+    "date": "2026-07-19T18:43:22.000Z",
+    "summary": "Pointers in C store memory addresses instead of values, enabling efficient function parameters and in-function variable modification. Proper use requires understanding the & (address-of) and * (dereference) operators, which beginners often confuse.",
+    "content": "What Is a Pointer in C? A Beginner's Guide\n\n\nIf you're learning C and pointers are the moment things suddenly feel harder, you're not alone. Pointers trip up more beginners than almost any other concept in the language. But the core idea is simpler than it looks once you strip away the confusing syntax: a pointer is just a variable that stores an address instead of a value.\nWhen you write int age = 25;, C sets aside a small chunk of memory, gives it a label called age, and stores the number 25 inside it. Every variable in your program lives somewhere in memory, and every location in memory has an address, similar to a house having a street address.\nMost of the time you don't think about that address at all. You just use the variable name and C handles the memory bookkeeping behind the scenes.\nA pointer is a variable, but instead of holding a regular value like a number or character, it holds the memory address of another variable. Here's what that looks like:\nint age = 25;\nint *agePointer = &age;\n\nThe & symbol means \"give me the address of,\" and * when declaring a variable means \"this variable is a pointer.\" So agePointer doesn't contain 25. It contains the address where 25 is stored.\nIf you want to see the value at that address, you dereference the pointer using * again: printf(\"%d\", *agePointer); would print 25, not the address.\nThis is the question that trips up most beginners, and it's a fair one. If you already have age, why bother with a pointer to it?\nThe real value of pointers shows up in a few common situations:\nPassing large data to functions. When you pass a variable to a function in C, it normally gets copied. For a single integer that's cheap, but for a large array or struct, copying is wasteful. Passing a pointer instead means the function works with the original data directly, without duplicating it.\nModifying a variable inside a function. Normally, changes made to a parameter inside a function don't affect the original variable outside it. Pointers l",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "C语言中的指针是什么？初学者指南",
+        "summary": "C语言中的指针存储内存地址而不是值，可以实现高效的函数参数和函数内变量修改。正确使用需要理解&（取地址）和*（解引用）运算符，初学者经常将其混淆。"
+      }
+    }
+  },
+  {
+    "title": "Multi-Agent Interview Coach",
+    "slug": "multi-agent-interview-coach",
+    "url": "https://dev.to/mitrakumar/multi-agent-interview-coach-5glm",
+    "source": "DEV Community",
+    "date": "2026-07-19T18:41:06.000Z",
+    "summary": "Multi-agent system using Google ADK extracts resume skills, generates personalized interview questions, and validates quality through an iterative loop. Agents communicate sequentially—profiler → interviewer → judge—rejecting generic questions until only resume-specific challenges remain.",
+    "content": "This post is my submission for DEV Education Track: Build Multi-Agent Systems with ADK.\nPreparing for technical interviews can be overwhelming. I wanted to build a tool that doesn't just give generic questions, but actually analyzes my specific resume to challenge my unique skill set. This led me to build a multi-agent system using the ADK. This multi-agent system, will take user resume and extracts their profile for generating Interview Questions specialized to the candidate profile. The agents communicate in a sequential loop: The Profiler extracts data -> The Interviewer generates questions -> The Judge validates them. If the Judge rejects a question, the Interviewer re-drafts it, ensuring only high-quality, resume-relevant questions make it to the user.\nReceives a resume PDF GCS path, downloads it in-memory, parses the text content, and builds a summary of skills.\nReads the candidate summary and drafts 3 technical interview questions designed to test the boundaries of their experience.\nAnalyzes the drafted questions. Passes the iteration if they are resume-specific; rejects/fails them if they are too generic. \nThis project was a fantastic weekend challenge. Working through the Google Codelab gave me a solid grasp of agent-based architectures, specifically implementing Agent, LoopAgent, and SequentialAgent to create a robust workflow.\nA few key technical takeaways included:\nManaging Statelessness: Learning to handle agent sessions in a Cloud Run environment was a great lesson in explicit session lifecycle management.\n\n\nCloud Integration: Integrating Google Cloud Storage for file handling taught me how to bridge in-memory document processing with persistent cloud storage efficiently.\n\n\nDeployment Architecture: Mastering the transition from local development to a containerized, production-ready Cloud Run deployment provided deep insights into modern backend orchestration.\n\n\n\n\n\n\nCheck the Code from Github: https://github.com/MitraKumar/interview-coach",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "多智能体面试教练",
+        "summary": "使用Google ADK的多智能体系统提取简历技能、生成个性化面试问题，并通过迭代循环验证质量。智能体按顺序沟通—简历分析器→面试官→评判官—拒绝通用问题，直到只保留与简历相关的挑战。"
+      }
+    }
+  },
+  {
+    "title": "Does Prisma respect Supabase RLS? No — here's why",
+    "slug": "does-prisma-respect-supabase-rls",
+    "url": "https://dev.to/emil_alander_7c/does-prisma-respect-supabase-rls-no-heres-why-k53",
+    "source": "DEV Community",
+    "date": "2026-07-19T18:39:22.000Z",
+    "summary": "Prisma and Drizzle connect to Postgres as the owner role with BYPASSRLS privileges, bypassing Supabase Row Level Security entirely. Use a dedicated non-owner role instead to enforce RLS policies on ORM queries.",
+    "content": "Prisma and Drizzle connect as the postgres role and bypass Supabase RLS entirely, so your policies never protect ORM queries. Here's the fix.\nTL;DR: No. Prisma and Drizzle open their own direct Postgres connection and log in as the postgres role, which owns your tables and carries BYPASSRLS — so Row Level Security is skipped on every ORM query. Point your app's connection at a dedicated, non-owner NOBYPASSRLS role (and keep the auth check in your code), not at postgres.\nIf you built your Supabase project assuming RLS is a safety net on the data itself, adding an ORM quietly punches a hole straight through it. Your policies are still there. They just never run for the ORM's connection. Here's the mechanism, the myth to unlearn, and three fixes in order of how much you should reach for them.\nNo. RLS is not a global property of the database — Postgres enforces it per role, per statement. A policy only bites for a role that is (a) not the table's owner, (b) has no BYPASSRLS attribute, and (c) is not a superuser. The Supabase JS client satisfies all three because it reaches Postgres through PostgREST, which runs your query as the unprivileged anon or authenticated role. Prisma and Drizzle satisfy none of them: they read DATABASE_URL and open a raw SQL connection as postgres, which owns virtually every table you migrated and holds BYPASSRLS. Either fact alone is enough for Postgres to skip your policies.\nSo the same query that returns one tenant's rows through supabase-js returns every tenant's rows through Prisma. That is not a bug in your policy — it's the connection role.\nThere are two completely different paths to your data, and they authenticate as different roles.\nThe supabase-js path (RLS enforced). supabase-js talks HTTP to PostgREST, not to Postgres directly. PostgREST connects as authenticator, validates the request JWT, and does a SET ROLE into anon or authenticated for the statement. Those are deliberately unprivileged, non-owning roles, so policies get evalua",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Prisma 是否遵守 Supabase RLS? 不,原因如下",
+        "summary": "Prisma 和 Drizzle 以所有者角色连接到 Postgres,具有 BYPASSRLS 特权,完全绕过 Supabase 行级安全。应该使用专用的非所有者角色来在 ORM 查询上强制执行 RLS 策略。"
+      }
+    }
+  },
+  {
+    "title": "The Ultimate Guide: Moving From Closed Testing to Production",
+    "slug": "moving-closed-testing-production-play-console",
+    "url": "https://dev.to/12testershub/the-ultimate-guide-moving-from-closed-testing-to-production-5fh5",
+    "source": "DEV Community",
+    "date": "2026-07-19T18:37:19.000Z",
+    "summary": "Walkthrough of Google Play Console's closed-to-production promotion process, covering the 14-day testing requirement, manual review questionnaire, version code management, and safe rollout strategies for public app launches.",
+    "content": "The waiting is over, thank you 12TestersHub. You survived the brutal 14-day continuous testing streak without dropping below the minimum tester threshold. You managed to avoid the lethal mistakes that lead to an automatic rejection. The Google Play Console finally shows that beautiful, green \"Apply for Production\" button.\nBut the journey isn't quite finished. Moving an app from a closed testing track to the global public store involves more than just clicking a button. You need to handle version codes, manage your production release rollout percentage, and ensure your final App Bundle is polished.\nIn this comprehensive playbook, we are going to walk you through exactly what happens after day 14, how to promote your release, and how to safely navigate your first public launch.\nBefore you can actually touch the Production track, you have to pass the manual human review. Clicking \"Apply for Production\" opens up a detailed questionnaire.\nThis is Google’s final check to ensure you actually used the testing period properly. You will need to detail exactly how you gathered testers, what specific feedback they gave you (bugs, UI issues, feature requests), and what changes you made in response. If you just type \"It works good,\" you will be rejected. Be sure to use our proven questionnaire answer templates to guarantee you pass this stage.\nOnce submitted, your account enters a \"Pending Review\" status. This can take anywhere from 1 to 7 days. Crucial rule: Do not stop your closed test during this period. Keep your testers engaged until you receive the final approval email.\nPhase 2: Preparing Your Final App Bundle\nHere is your pre-flight checklist for the final code:\nIncrement your Version Code: If your last closed testing build was versionCode 5, your production build must be at least versionCode 6. The Play Console will throw an error if you try to upload a duplicate version code.\nPhase 3: Promoting to Production (Step-by-Step)\nLog into your Google Play Console and select you",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "终极指南:从封闭测试迁移到生产环境",
+        "summary": "Google Play Console 从封闭测试到生产环境推广流程的详细介绍,涵盖 14 天测试要求、手动审查问卷、版本代码管理和公开应用发布的安全推出策略。"
+      }
+    }
+  },
+  {
+    "title": "Error Analysis",
+    "slug": "error-analysis-nx-expo-gradle",
+    "url": "https://dev.to/fadialatia/error-analysis-83a",
+    "source": "DEV Community",
+    "date": "2026-07-19T18:36:39.000Z",
+    "summary": "Demonstrates error analysis techniques using an Nx/Expo Android build example, showing how to read diagnostic output from Gradle configuration, Firebase dependency resolution, and plugin application to troubleshoot multi-project builds.",
+    "content": "To learn how to analyze an error, we are going to use the error below as an example:\nnx run mobile:android\n\n   ✔  7/7 dependent project tasks succeeded [6 read from cache]\n\n   Hint: you can run the command with --verbose to see the full dependent project outputs\n\n—————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————\n\n> nx run mobile:android\n\n> npx expo run:android\n\n› Opening emulator Medium_Phone\n› Building app...\nStarting a Gradle Daemon (subsequent builds will be faster)\nConfiguration on demand is an incubating feature.\n\n> Configure project :\n[ExpoRootProject] Using the following versions:\n  - buildTools:  36.0.0\n  - minSdk:      24\n  - compileSdk:  36\n  - targetSdk:   36\n  - ndk:         27.1.12297006\n  - kotlin:      2.1.20\n  - ksp:         2.1.20-2.0.1\n\n> Configure project :app\n ℹ️  Applying gradle plugin 'expo-max-sdk-override-plugin'\n  [expo-max-sdk-override-plugin] This plugin will find all permissions declared with `android:maxSdkVersion`. If there exists a declaration with the `android:maxSdkVer\nsion` annotation and another one without, the plugin will remove the annotation from the final merged manifest. In order to see a log with the changes run a clean build of the app.                                                                                                                                                           ℹ️  Applying gradle plugin 'expo-dev-launcher-gradle-plugin'\n\n> Configure project :react-native-firebase_app\n:react-native-firebase_app package.json found at /home/user/projects/my-app/node_modules/@react-native-firebase/app/package.json\n:react-native-firebase_app:firebase.bom using default value: 34.10.0dencies of :app:debugRuntimeClasspath > :react-native-firebas\n:react-native-firebase_app:play.play-services-auth using default value: 21.5.0\n:react-native-firebase_app package.json found at /home/user/projects/my-app/node_modules/@react-native-firebase/app/packa",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "错误分析",
+        "summary": "使用 Nx/Expo Android 构建示例演示错误分析技术,展示如何读取 Gradle 配置的诊断输出、Firebase 依赖解析和插件应用,以排查多项目构建的问题。"
+      }
+    }
+  },
+  {
+    "title": "Learning Software Engineering in the Era of AI",
+    "slug": "learning-software-engineering-era-ai",
+    "url": "https://dev.to/fadialatia/learning-software-engineering-in-the-era-of-ai-1iif",
+    "source": "DEV Community",
+    "date": "2026-07-19T18:36:08.000Z",
+    "summary": "AI tools like GitHub Copilot, ChatGPT, and Claude are changing software engineering education beyond traditional programming skills. Job postings now expect prompt engineering and AI collaboration expertise, reshaping how developers learn and work.",
+    "content": "Learning software engineering in the past was a straight forward process, you learn the programming language, you build projects in your portfolio, apply to companies, get a job and life goes on.\nDoing that in the current times might be a little bit different, as when applying for jobs, you can see some new requirements other than your programming skills and portfolio project such as Prompt Engineering, Work with Agents, Claude Code, and others. You may ask yourself, what are those? And if I am new to Software Engineering, will that change my learning path? Lets discuss all this below.\nFor a long time, the path into software engineering was clear. You picked a language, maybe Java, Python, or JavaScript. You spent a few months learning the syntax, then the fundamentals: data structures, algorithms, how a database works, how the web sends and receives data.\nAfter that, you built things such as A todo app,  weather app, clone of a website you liked. These projects went into a portfolio, usually a GitHub profile and a simple personal site. Then you applied to companies, passed a technical interview, and started your first job, so the skills you needed were stable, if you learned React in 2018, React was still useful in 2021.\nTools changed, frameworks came and went, but the core idea stayed the same: you write the code, you understand what you wrote, and you fix it when it breaks.\nThe shift did not happen in one day. It came in steps.\nThe first step was autocomplete, around 2021, tools like GitHub Copilot started suggesting the next line of code while you typed. Most developers saw it as a nice helper, nothing more. It saved you from writing boilerplate, but you were still the one thinking. The second step was chat, when ChatGPT and Claude became popular, developers started using them to explain errors, review code, and write small functions. Still a helper, but a much stronger one. At this point, \"AI skills\" were not in job descriptions. They were just a personal produ",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在AI时代学习软件工程",
+        "summary": "GitHub Copilot、ChatGPT和Claude等AI工具正在改变软件工程教育，超越传统编程技能。招聘信息现在期望开发者具备提示工程和AI协作专业知识，重塑开发者的学习和工作方式。"
+      }
+    }
+  },
+  {
+    "title": "12 GitHub Actions Workflows That Will Quietly Save Your DevOps Team Hours Every Week",
+    "slug": "12-github-actions-workflows-devops-automation",
+    "url": "https://dev.to/amayo_clinton/12-github-actions-workflows-that-will-quietly-save-your-devops-team-hours-every-week-2j6d",
+    "source": "DEV Community",
+    "date": "2026-07-19T18:35:11.000Z",
+    "summary": "Practical GitHub Actions automation patterns for CI/CD, linting, testing, and deployment that move beyond basic test-on-push. Includes copy-paste examples for conditional deployments, enforced style checks, and DevOps workflows that save teams hours weekly.",
+    "content": "If your team is still manually running tests, tagging releases, or nudging people about stale PRs — you're leaving a lot of free automation on the table. GitHub Actions has matured into a genuinely capable automation layer that goes way beyond \"run tests on push,\" and most teams only scratch the surface of it.\nThis is a practical rundown of automation patterns that actually pull weight in production, organized by the problem they solve rather than as a generic feature list. Copy-paste, adapt, ship.\nThe baseline pattern everyone starts with, but worth doing properly: don't just run tests — make deployment conditional on them passing, and separate build/test from deploy into distinct jobs so you get clean status checks on PRs.\nname: CI/CD Pipeline\non:\n  push:\n    branches: [main]\n  pull_request:\n    branches: [main]\n\njobs:\n  build-and-test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with:\n          node-version: '20'\n          cache: 'npm'\n      - run: npm ci\n      - run: npm test\n\n  deploy:\n    needs: build-and-test\n    if: github.ref == 'refs/heads/main' && github.event_name == 'push'\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: ./deploy.sh\n\nTrade-off worth knowing: npm ci instead of npm install in CI — it's stricter (fails if package-lock.json is out of sync) and faster since it skips dependency resolution. Small change, meaningfully more reliable builds.\nCatching style and correctness issues before a human reviewer has to. The key move here isn't just running the linter — it's making it a required status check in your branch protection rules so it can't be merged around.\nname: Lint\non: [push, pull_request]\n\njobs:\n  lint:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with:\n          node-version: '20'\n      - run: npm ci\n      - run: npx eslint . --max-warnings=0\n\n--max-warnings=0 is d",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "12个GitHub Actions工作流，每周为DevOps团队节省数小时",
+        "summary": "用于CI/CD、代码检查、测试和部署的实用GitHub Actions自动化模式，超越基本的test-on-push。包括条件部署、强制风格检查和DevOps工作流的复制粘贴示例，每周为团队节省数小时。"
+      }
+    }
+  },
+  {
+    "title": "Optimizing RAG at Scale: Chunking, Retrieval, and the Bayesian Search That Cut Latency 40%",
+    "slug": "optimizing-rag-chunking-retrieval-bayesian-search",
+    "url": "https://dev.to/imus_d7584cbc8ee9b0336256/optimizing-rag-at-scale-chunking-retrieval-and-the-bayesian-search-that-cut-latency-40-16kd",
+    "source": "DEV Community",
+    "date": "2026-07-19T18:27:46.000Z",
+    "summary": "Optimizing retrieval-augmented generation through adaptive chunking (fixed, recursive, semantic, agentic) and Bayesian search achieves 95% recall@10 while cutting latency 40%. Strategy selection depends on document type—legal contracts, API docs, and tickets each require different handling.",
+    "content": "Optimizing RAG at Scale: Chunking, Retrieval, and the Bayesian Search That Cut Latency 40%\n\n\nHow we moved from \"semantic search + hope\" to a measured, tunable retrieval pipeline with 95% recall@10\nEveryone ships RAG the same way: chunk by 512 tokens, embed with text-embedding-3-small, top-k=5, stuff into context. It works for demos.\nThen you hit production:\nLegal contracts: 512 tokens splits clauses mid-sentence\nAPI docs: 1000-token chunks drown signal in noise\nCustomer tickets: Conversational context needs overlap, not fixed windows\nLatency: 500ms embedding + 200ms vector search + 300ms LLM = 1s+ per query\nWe rebuilt our retrieval layer from first principles. Here's what actually moves metrics.\n# rag/chunking.py\nfrom abc import ABC, abstractmethod\nfrom dataclasses import dataclass\n\n@dataclass\nclass Chunk:\n    text: str\n    metadata: dict\n    token_count: int\n    chunk_id: str\n\nclass ChunkingStrategy(ABC):\n    @abstractmethod\n    def chunk(self, document: str, metadata: dict) -> list[Chunk]: ...\n\nclass FixedTokenChunker(ChunkingStrategy):\n    \"\"\"Baseline. Good for homogeneous content.\"\"\"\n    def __init__(self, chunk_size=512, overlap=50):\n        self.chunk_size = chunk_size\n        self.overlap = overlap\n\nclass RecursiveChunker(ChunkingStrategy):\n    \"\"\"Respects structure: markdown headers, code blocks, paragraphs.\"\"\"\n    def __init__(self, separators=[\"\\n## \", \"\\n### \", \"\\n\\n\", \"\\n\", \" \"], chunk_size=512):\n        self.separators = separators\n        self.chunk_size = chunk_size\n\nclass SemanticChunker(ChunkingStrategy):\n    \"\"\"Uses embedding similarity to find natural boundaries.\"\"\"\n    def __init__(self, model=\"text-embedding-3-small\", threshold=0.7):\n        self.model = model\n        self.threshold = threshold\n\nclass AgenticChunker(ChunkingStrategy):\n    \"\"\"LLM decides boundaries. Expensive but highest quality for complex docs.\"\"\"\n    def __init__(self, model=\"gpt-4o-mini\"):\n        self.model = model\n\nOur production config by document type:\n\n\n\nDocument Type\nSt",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "大规模优化RAG：分块、检索和将延迟降低40%的贝叶斯搜索",
+        "summary": "通过自适应分块（固定、递归、语义、代理）和贝叶斯搜索优化检索增强生成，实现95% recall@10同时将延迟减少40%。策略选择取决于文档类型——法律合同、API文档和工单各需不同处理方式。"
+      }
+    }
+  },
+  {
+    "title": "Show HN: I replaced a $120k bowling center system with $1,600 in ESP32s",
+    "slug": "replaced-120k-bowling-system-1600-esp32s",
+    "url": "https://news.ycombinator.com/item?id=48968606",
+    "source": "Hacker News",
+    "date": "2026-07-19T14:41:16.000Z",
+    "summary": "SRE replaced a $120k bowling alley scoring system with ~$200–400 per lane using ESP32 microcontrollers and modern computer vision. Modern hardware ecosystems and open source made the $80–120k vendor replacement cost absurdly outdated.",
+    "content": "I might be the only SRE on Earth with his own bowling center. It's a more in-depth gig than you'd think.\nMy family and I bought an abandoned 8-lane bowling center in the rural mid-west. In our small town there weren't many recreation options for families. You've heard of a food desert? This is an R&R desert.\nIt had been abandoned for a good reason. The roof leaks, the electrical system was constantly surging, and my 70-year-old bowling equipment (still) doesn't work perfectly. The system that keeps your score is particularly interesting to me. It's the thing you watch during your game, but it fades into the background beyond that. Turns out these things are really cool, but absurdly expensive.\nOurs was installed in 2008 and cost six figures. It's calculating ball speed and trajectory, camera-based pin detection (object detection and trig, on ICs!), runs the fouling, the animations, the pinsetting machine and ball return. Very cool stuff for its age.\nFrom the business perspective, my facility only cost me $105k. To forklift-replace the score keeping system runs anywhere between $80-$120k, depending on features, vendor, and unit age. No upgrades or service contracts, mind you, and every feature and customization is a new line item. That's for a 1:1 replacement on a system installed in 2008. Incredible, given how fast the tech world moves.\nReplacement parts cost a shocking $4000 per pair of lanes. But wait, the bowling machines themselves are 70 years old, so what's this \"advanced\" system actually doing back there? Actuating a single relay to trigger that big old machine. Everything else is strictly mechanical. Meanwhile I've got a six-figure invoice in my hand. I'm upset.\nGiven the state of open hardware, computer vision, real-time event streaming, and open source running megascale products worldwide, there had to be a way to do this myself.\nSo far I've built an equivalent prototype for about $200 per lane-pair, $400 if you're fancy. ESP32 and ESPNow with an RS485 fal",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "展示 HN：我用 1,600 美元的 ESP32 替换了价值 12 万美元的保龄球中心系统",
+        "summary": "一位 SRE 工程师用 ESP32 微控制器和现代计算机视觉技术将价值 12 万美元的保龄球记分系统替换为每条道路成本约 200-400 美元的系统。现代硬件生态系统和开源技术使得 8-12 万美元的供应商替换成本显得过时。"
+      }
+    }
+  },
+  {
     "title": "<InSource> argo-workflows #14615",
     "slug": "argo-workflows-template-ref-retry-timing-issue",
     "url": "https://dev.to/hchsu/argo-workflows-14615-3koo",
@@ -188,6 +396,38 @@
       "zh": {
         "title": "Python快速入门：10行代码获取营养数据",
         "summary": "Dietly的公共营养API可通过单个GET请求进行食物搜索，返回包含每100克宏量营养素数据的扁平对象。该指南涵盖了字段含义、空值处理和不同份量的转换方法。"
+      }
+    }
+  },
+  {
+    "title": "What I learned selling 2,500 MIDI recorders: Hardware is not so hard",
+    "slug": "selling-2500-midi-recorders-hardware-accessible",
+    "url": "https://chipweinberger.com/articles/20260719-hardware-is-not-so-hard",
+    "source": "Hacker News",
+    "date": "2026-07-19T10:34:58.000Z",
+    "summary": "Insights from manufacturing and selling 2,500 MIDI recorder hardware units, demonstrating that modern tools, supply chains, and documentation make hardware development more accessible than many engineers perceive.",
+    "content": "Article URL: https://chipweinberger.com/articles/20260719-hardware-is-not-so-hard\nComments URL: https://news.ycombinator.com/item?id=48966713\nPoints: 322\n# Comments: 149",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "销售 2,500 台 MIDI 录音机学到的东西：硬件没有那么难",
+        "summary": "制造并销售 2,500 台 MIDI 录音机硬件的见解，表明现代工具、供应链和文档使硬件开发比许多工程师认为的更容易获得。"
+      }
+    }
+  },
+  {
+    "title": "Claude Code uses Bun written in Rust now",
+    "slug": "claude-code-bun-rust-runtime",
+    "url": "https://simonwillison.net/2026/Jul/19/claude-code-in-bun-in-rust/",
+    "source": "Hacker News",
+    "date": "2026-07-19T10:03:23.000Z",
+    "summary": "Claude Code now runs on Bun, a JavaScript runtime written in Rust, representing a significant tooling infrastructure update that improves performance and reliability.",
+    "content": "Article URL: https://simonwillison.net/2026/Jul/19/claude-code-in-bun-in-rust/\nComments URL: https://news.ycombinator.com/item?id=48966569\nPoints: 286\n# Comments: 368",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Claude Code 现在使用用 Rust 编写的 Bun",
+        "summary": "Claude Code 现在运行在 Bun 上，一个用 Rust 编写的 JavaScript 运行时，代表了一次重要的工具基础设施更新，改善了性能和可靠性。"
       }
     }
   },
