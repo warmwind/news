@@ -1,5 +1,245 @@
 [
   {
+    "title": "AI coding agents still write your SDK's old API — so I built a type-checker to measure it",
+    "slug": "ai-coding-agents-sdk-old-api-type-checker",
+    "url": "https://dev.to/kalpitrathore/ai-coding-agents-still-write-your-sdks-old-api-so-i-built-a-type-checker-to-measure-it-alk",
+    "source": "DEV Community",
+    "date": "2026-07-20T19:32:26.000Z",
+    "summary": "AI coding assistants frequently generate code using outdated API versions from their training data, causing compilation failures. The author built SDKProof, a type-checker that objectively measures this gap using actual compiler diagnostics rather than LLM evaluation. This matters because reliable AI-assisted development requires quantifying real-world correctness, not subjective assessments.",
+    "content": "Here's a bug I kept hitting. I'd ask an AI assistant to write some code against a library — Prisma, the Vercel AI SDK, Zod — and the code would look completely right. Clean, idiomatic, exactly the shape I expected. Then I'd run it, and it wouldn't compile.\nThe reason was always the same: the library had shipped a new major version, and the model was writing the previous major's API from memory. parameters instead of inputSchema. required_error instead of error. A new PrismaClient({ datasources }) call that no longer exists. Small things — but enough to break the build on the first try.\nModels are frozen at their training cutoff. Libraries are not. So there's a gap between \"the API the model reaches for\" and \"the API you actually have installed\" — and that gap is widest right after a library ships a breaking change.\nI wanted to know: how big is that gap, exactly — and can I measure it objectively? So I built SDKProof.\nThe trick to measuring this without hand-waving is to not use an LLM to grade an LLM. Instead:\nGenerate. Have a model solve 10–15 realistic tasks for a given SDK (\"define a tool that returns the weather\", \"make an optional field with a custom error message\").\nType-check. Drop each solution into a fixture that has the real, current package installed, and run tsc --noEmit.\nScore. Pass = compiles clean. Fail = the compiler's own diagnostics, classified into failure patterns.\nNo LLM judge. No \"looks plausible.\" The installed package's type definitions are the ground truth, and tsc is the referee. A pass means the code would actually build against the version you have.\nOne design detail that matters: the prompts name the functions but never the option names. I ask for \"a tool with a description and an input schema,\" not \"use inputSchema.\" That way I'm measuring what the model naturally reaches for — not whether it can echo back a name I already handed it.\nRunning claude-opus-4-8 across three SDKs:\n\n\n\nSDK\nPackage\nScore\nWhere it breaks\n\n\n\n\nPrisma 7\n@prisma/cli",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI编程助手仍在编写你的SDK的旧API——所以我构建了一个类型检查器来衡量它",
+        "summary": "AI编程助手经常使用训练数据中过时的API版本生成代码,导致编译失败。作者构建了SDKProof,一个类型检查器,可以使用实际的编译器诊断而不是LLM评估来客观衡量这一差距。这很重要,因为可靠的AI辅助开发需要量化真实世界的正确性,而不是主观评估。"
+      }
+    }
+  },
+  {
+    "title": "I Built an Agent That Refuses to Act — Here's Why Qwen Made It Possible",
+    "slug": "agent-refuses-to-act-qwen",
+    "url": "https://dev.to/demba09/i-built-an-agent-that-refuses-to-act-heres-why-qwen-made-it-possible-ce0",
+    "source": "DEV Community",
+    "date": "2026-07-20T19:31:54.000Z",
+    "summary": "A data-driven agent analyzes SaaS metrics and either executes protective actions or explicitly abstains when conditions aren't met, reducing decision latency from 4.5 hours to 2 seconds. The system uses statistical rigor (z-tests, p≤0.01) and named failure conditions to prevent costly false positives. This matters because principled restraint in automation prevents more errors than aggressive action.",
+    "content": "Monday, 9am. Conversion drops 3.2%. The PM pings Slack: \"What happened?\"\n~$900 per\n. This happens 2-3 times a week at any SaaS company with\n$3,200/week — over $150K/year — spent answering\n$0.004.\nWhen a metric drops, here's what your data engineer and analyst actually do:\nQuery the data. Engineer pulls two snapshots from the warehouse — last\nweek vs. this week, segmented by dimensions. 30 minutes.\nBuild segment breakdowns. Analyst computes per-segment rates,\ncontribution shares, significance thresholds. 2 hours.\nEvaluate significance. Is that drop on the paid channel real, or is the\nsample too small? 30 minutes.\nCheck for confounding. Did the rate actually change, or did the\npopulation mix shift? Another 30 minutes.\nDecide. Act or escalate? 30 minutes.\nTotal: ~4.5 hours. $900. And no guarantee they got it right.\nHere's what prove-or-abstain does with that same data:\nPOST /investigate { \"panel\": \"clean\" }\n→ 2 seconds\n→ ASSERT segment=paid (p < 0.001)\n→ EXECUTE: webhook fires, campaign paused\nSame raw data. Same conclusion. 22,500 times faster. 50,000 times cheaper.\n\n\n\n\n\n\n\n  \n  \n  How it knows when to act — and when to shut up\n\n\nThis isn't a prompt you ask nicely. The agent routes every candidate dimension\nMaterial — the drop is at least 2%. Noise isn't worth a human's time.\nLocalized — one segment accounts for ≥55% of the drop. If every channel\ndipped equally, no single action fixes it.\nSignificant — a real two-proportion z-test, p ≤ 0.01. Same perfectly\nconcentrated drop passes on 6,000 users, fails on 60. Your analyst would\ndo the same check — the agent just does it instantly.\nClean — rate and mix effects aren't entangled. No confusing a\ncomposition shift with a real rate change.\nAny gate fails → ABSTAIN. The agent escalates to a human with the exact\nfailing condition named. Not \"I don't know.\" \"Interaction share 0.63 > 0.50 —\nrate and mix effects are entangled; this needs a human.\"\nThis is the cost-saving mechanism. An ABSTAIN means: I just saved you from\nacting o",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个拒绝采取行动的AI代理——以下是为什么Qwen使其成为可能",
+        "summary": "一个数据驱动的代理分析SaaS指标,在条件满足时执行保护措施或显式放弃,将决策延迟从4.5小时减少到2秒。该系统使用统计严谨性(z检验,p≤0.01)和命名的失败条件来防止代价高昂的假阳性。这很重要,因为自动化中的有原则的克制比激进行动能防止更多的错误。"
+      }
+    }
+  },
+  {
+    "title": "Repository Harness, Part 2: 30 Runs Later, It Wasn’t Cheaper. It Was More Predictable.",
+    "slug": "repository-harness-predictable-ai-agents",
+    "url": "https://dev.to/lepsistemas/repository-harness-part-2-30-runs-later-it-wasnt-cheaper-it-was-more-predictable-1d8p",
+    "source": "DEV Community",
+    "date": "2026-07-20T19:24:35.000Z",
+    "summary": "Testing a modularized repository knowledge system showed that routing context by task classification didn't reduce token costs but dramatically improved agent behavior predictability across 30 runs. The harness replaces monolithic AGENTS.md with selective context loading based on task type. This matters because predictability is often more valuable than raw efficiency gains in production.",
+    "content": "This is the follow-up to Coding Agents Evolved. Our Repositories Didn’t..\nMy first Repository Harness benchmark produced an uncomfortable result.\nThe Harness completed the task faster than a monolithic AGENTS.md, but it used more fresh input tokens.\nThat could have meant the idea was wrong.\nIt could also have meant that my first implementation of progressive disclosure was not strict enough.\nSo I changed the routing model, rebuilt the benchmark baseline, and ran the experiment again.\nThis time, I ran 30 measured executions.\nThe result was not a dramatic reduction in token usage.\nIt was something more useful:\nThe Repository Harness made the agent’s behavior substantially more predictable.\nMost repositories expose their knowledge through a mix of:\nREADME files;\narchitecture documents;\ncontribution guides;\nscripts;\ntribal knowledge;\none increasingly large AGENTS.md.\nA monolithic instruction file works, but every task receives the complete repository handbook, even when most of it is irrelevant.\nThe Repository Harness replaces that model with a small entry point and routed context:\nAGENTS.md\n    ↓\n.harness/\n├── harness.yaml\n├── project-specific guidance\n├── engineering guidance\n└── asset guidance\n\nThe root file explains how to use the Harness.\nThe manifest classifies the task and selects the repository guidance required for that task.\nThe original hypothesis was:\nSelective context routing should preserve implementation quality while reducing unnecessary context.\nThe first benchmark did not prove that.\nThe first Harness used broad loading rules such as:\nload_when:\n  - implementation\n  - feature\n  - validation\n\nThose labels were too general.\nAlmost every coding task is an implementation. Many tasks are features. Every completed task needs validation.\nThe agent therefore had a reasonable incentive to load most of the documentation.\nI had modularized the repository knowledge.\nI had not created strict routing.\nThe second version added:\nrepository-defined concerns;\ndirectory",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "存储库框架,第2部分:30次运行后,成本没有降低。但它变得更可预测。",
+        "summary": "对模块化存储库知识系统的测试表明,按任务分类路由上下文不会降低令牌成本,但在30次运行中显著提高了代理行为的可预测性。该框架用基于任务类型的选择性上下文加载替换单片AGENTS.md。这很重要,因为在生产中,可预测性通常比原始效率收益更有价值。"
+      }
+    }
+  },
+  {
+    "title": "Proposed API Reference",
+    "slug": "proposed-api-reference-reactive-dependency",
+    "url": "https://dev.to/doeixd/-appendix-proposed-api-reference-108o",
+    "source": "DEV Community",
+    "date": "2026-07-20T19:23:22.000Z",
+    "summary": "This technical specification proposes a minimal reactive-dependency API for JavaScript with Sources (invalidation announcements), lazy cached Derivations, and explicit dependency tracking. It deliberately avoids writable signals, automatic tracking, and scheduling to maintain framework diversity. This matters because standardizing reactivity boundaries affects all JavaScript frameworks long-term.",
+    "content": "This appendix defines the concrete API surface and observable semantics of the explicit reactive-dependency proposal.\nThe API is intentionally low-level. It provides invalidation sources, lazy cached derivations, synchronous notification, and deterministic disposal. It does not provide writable value cells, ambient dependency tracking, effects, scheduling, equality-aware propagation, batching, ownership, or asynchronous computation semantics.\nThe proposal introduces a global Reactive namespace with three factory functions:\nReactive.createSource()\nReactive.derive(dependencies, compute)\nReactive.deriveDynamic(selectionDependencies, resolveDependencies, compute)\n\nThe factories produce two kinds of built-in objects:\n\n\n\nObject\nPurpose\n\n\n\n\nSource\nA valueless announcement that associated state may have changed\n\n\nDerivation\nA lazy cached computation over explicit dependencies\n\n\n\nBoth objects implement the Dependency protocol through onInvalidate().\ndeclare namespace Reactive {\n  type Unsubscribe = () => void;\n\n  interface Dependency {\n    onInvalidate(listener: () => void): Unsubscribe;\n  }\n\n  interface Source extends Dependency {\n    invalidate(): void;\n    [Symbol.dispose](): void;\n  }\n\n  interface Derivation<T> extends Dependency {\n    get(): T;\n    invalidate(): void;\n    [Symbol.dispose](): void;\n  }\n\n  function createSource(): Source;\n\n  function derive<\n    const D extends readonly Dependency[],\n    T,\n  >(\n    dependencies: D,\n    compute: (dependencies: D) => T,\n  ): Derivation<T>;\n\n  function deriveDynamic<\n    const S extends readonly Dependency[],\n    const D extends readonly Dependency[],\n    T,\n  >(\n    selectionDependencies: S,\n    resolveDependencies: (\n      selectionDependencies: S,\n    ) => D,\n    compute: (dependencies: D) => T,\n  ): Derivation<T>;\n}\n\nThese declarations are informative. ECMAScript does not expose the generic types.\nA Dependency is an object with a callable onInvalidate method that follows the contract defined below.\nA dependency does not",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "提议的API参考",
+        "summary": "该技术规范为JavaScript提议了一个极简响应式依赖API，具有源（失效通知）、惰性缓存派生和显式依赖追踪。它刻意避免可写信号、自动追踪和调度，以保持框架多样性。这很重要，因为标准化响应式边界会长期影响所有JavaScript框架。"
+      }
+    }
+  },
+  {
+    "title": "Optimizing RAG at Scale: Chunking, Retrieval, and the Bayesian Search That Cut Latency 40%",
+    "slug": "optimizing-rag-scale-chunking-retrieval-latency",
+    "url": "https://dev.to/imus_d7584cbc8ee9b0336256/optimizing-rag-at-scale-chunking-retrieval-and-the-bayesian-search-that-cut-latency-40-1g66",
+    "source": "DEV Community",
+    "date": "2026-07-20T19:22:53.000Z",
+    "summary": "Moving beyond naive 512-token chunking, a production RAG system achieved 95% recall and 40% latency reduction through context-aware strategies (semantic, recursive, agentic chunking) and Bayesian retrieval optimization. The approach replaces the \"embed and hope\" pattern with measured, tunable pipelines. This matters because RAG is fundamental to LLM applications and optimization directly impacts UX and costs.",
+    "content": "Optimizing RAG at Scale: Chunking, Retrieval, and the Bayesian Search That Cut Latency 40%\n\n\nHow we moved from \"semantic search + hope\" to a measured, tunable retrieval pipeline with 95% recall@10\nEveryone ships RAG the same way: chunk by 512 tokens, embed with text-embedding-3-small, top-k=5, stuff into context. It works for demos.\nThen you hit production:\nLegal contracts: 512 tokens splits clauses mid-sentence\nAPI docs: 1000-token chunks drown signal in noise\nCustomer tickets: Conversational context needs overlap, not fixed windows\nLatency: 500ms embedding + 200ms vector search + 300ms LLM = 1s+ per query\nWe rebuilt our retrieval layer from first principles. Here's what actually moves metrics.\n# rag/chunking.py\nfrom abc import ABC, abstractmethod\nfrom dataclasses import dataclass\n\n@dataclass\nclass Chunk:\n    text: str\n    metadata: dict\n    token_count: int\n    chunk_id: str\n\nclass ChunkingStrategy(ABC):\n    @abstractmethod\n    def chunk(self, document: str, metadata: dict) -> list[Chunk]: ...\n\nclass FixedTokenChunker(ChunkingStrategy):\n    \"\"\"Baseline. Good for homogeneous content.\"\"\"\n    def __init__(self, chunk_size=512, overlap=50):\n        self.chunk_size = chunk_size\n        self.overlap = overlap\n\nclass RecursiveChunker(ChunkingStrategy):\n    \"\"\"Respects structure: markdown headers, code blocks, paragraphs.\"\"\"\n    def __init__(self, separators=[\"\\n## \", \"\\n### \", \"\\n\\n\", \"\\n\", \" \"], chunk_size=512):\n        self.separators = separators\n        self.chunk_size = chunk_size\n\nclass SemanticChunker(ChunkingStrategy):\n    \"\"\"Uses embedding similarity to find natural boundaries.\"\"\"\n    def __init__(self, model=\"text-embedding-3-small\", threshold=0.7):\n        self.model = model\n        self.threshold = threshold\n\nclass AgenticChunker(ChunkingStrategy):\n    \"\"\"LLM decides boundaries. Expensive but highest quality for complex docs.\"\"\"\n    def __init__(self, model=\"gpt-4o-mini\"):\n        self.model = model\n\nOur production config by document type:\n\n\n\nDocument Type\nSt",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "大规模优化RAG：分块、检索和将延迟降低40%的贝叶斯搜索",
+        "summary": "超越朴素的512token分块，一个生产级RAG系统通过上下文感知策略（语义、递归、代理分块）和贝叶斯检索优化实现了95%的召回率和40%的延迟降低。该方法用可测量、可调整的管道取代了\"嵌入并希望\"模式。这很重要，因为RAG是LLM应用的基础，优化直接影响用户体验和成本。"
+      }
+    }
+  },
+  {
+    "title": "Building Production-Grade LLM Evaluation Pipelines: From Vibes to Metrics",
+    "slug": "production-grade-llm-evaluation-pipelines",
+    "url": "https://dev.to/imus_d7584cbc8ee9b0336256/building-production-grade-llm-evaluation-pipelines-from-vibes-to-metrics-50g1",
+    "source": "DEV Community",
+    "date": "2026-07-20T19:22:51.000Z",
+    "summary": "A RAG-based customer support assistant hallucinated in production due to missing automated evaluation; the team rebuilt with judge ensembles, domain-specific metrics, and CI/CD gates that catch 92% of hallucinations. The pipeline replaces manual \"looks good\" testing with systematic evaluation. This matters because automation is essential for safe LLM deployment.",
+    "content": "Building Production-Grade LLM Evaluation Pipelines: From Vibes to Metrics\n\n\nHow we replaced \"looks good to me\" with automated evaluation catching 92% of hallucinations before deployment\nThree months ago, our team shipped a RAG-based customer support assistant. It worked great in testing — we'd ask it questions, read the answers, and say \"yeah, that looks right.\"\nThen it hit production.\nA customer asked about their billing cycle. The assistant confidently cited a policy that didn't exist. Another asked about API rate limits and got numbers from a competitor's documentation. By the time we caught it, 500+ users had seen hallucinated responses.\nThe post-mortem was brutal: we had zero automated evaluation. Our test process was literally \"ask 5 questions, read answers, thumbs up.\"\nAcademic benchmarks (MMLU, HellaSwag) don't tell you if your system works for your use case. Production evaluation needs:\nDomain-specific judges — Your criteria, not generic \"helpfulness\"\nSpeed — Evaluation must run in CI/CD, not overnight\nRegression detection — Know immediately when a prompt change breaks things\nCI/CD integration — Block merges that degrade quality\nGolden dataset management — Versioned, stratified, growing test cases\n┌─────────────┐     ┌──────────────┐     ┌────────────────────┐     ┌──────────────┐\n│ Test Cases  │────▶│  LLM Under   │────▶│   Judge Ensemble   │────▶│  Metrics &   │\n│ (Golden Set)│     │   Test       │     │  - Faithfulness    │     │  Regression  │\n└─────────────┘     └──────────────┘     │  - Instruction F.  │     │  Detection   │\n                                          │  - JSON Schema     │     └──────┬───────┘\n                                          │  - Custom LLM      │            ▼\n                                          └────────────────────┘     ┌──────────────┐\n                                                                    │  Dashboard/  │\n                                                                    │  PR Comments │",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建生产级LLM评估管道：从直觉到指标",
+        "summary": "一个基于RAG的客户支持助手在生产中产生幻觉，原因是缺少自动评估；团队使用评判集合、领域特定的指标和能检测92%幻觉的CI/CD门控进行了重建。该管道用系统性评估取代了手动\"看起来不错\"的测试。这很重要，因为自动化对于安全的LLM部署至关重要。"
+      }
+    }
+  },
+  {
+    "title": "Building Enola, Part 1: Why Deterministic Architecture Analysis Matters",
+    "slug": "enola-deterministic-architecture-analysis",
+    "url": "https://dev.to/gert_/building-enola-part-1-why-deterministic-architecture-analysis-matters-27e1",
+    "source": "DEV Community",
+    "date": "2026-07-20T19:19:58.000Z",
+    "summary": "Enola is an open-source architecture analyzer that maps what code is actually used, helping developers and AI agents avoid duplicating modules and bloating systems. It solves the problem where AI-generated code can pass tests while still adding unmeasured overhead. This matters because deterministic analysis ensures AI-assisted development doesn't silently degrade architecture.",
+    "content": "This is the first post in a series about the engineering decisions behind Enola, an open-source architecture analyzer for developers and AI coding agents.\nOpen source: https://github.com/enola-labs/enola\nWe did not start Enola because we wanted to build infrastructure for AI coding agents.\nWe started it while building a golf platform that had grown across club management, memberships, learning, web, mobile, and backend services. Over time, it became increasingly difficult to tell what was still used, what had been abandoned, and what could be removed without breaking something elsewhere.\nTests helped, but they could not prove that an apparently unused API, type, or code path was not consumed by another repository, an older client, or a less obvious integration.\nAI coding agents made the problem worse in a different way.\nWe already used architectural rules and fitness functions to keep generated code within the boundaries we had defined. But an agent could still duplicate an existing module, carry the pattern all the way up to a new API we never needed, and produce code that passed tests and respected every rule.\nThe implementation looked valid. The architecture remained compliant. The result was still unnecessary code and future maintenance.\nWhat became difficult was not reviewing individual lines. It was knowing whether the agent had done exactly what we asked, whether it had quietly done more, and what that change had actually added to the system.\nNone of the foundations behind Enola were new.\nCompilers already had ASTs. Language servers already exposed symbols, definitions, references, and type information. Static analysis tools already built call graphs and dependency graphs.\nThe industry did not lack parsers.\nOnce AI coding agents became popular, another pattern appeared everywhere: index files or symbols, add embeddings or search, retrieve relevant fragments, and let the agent work out the rest.\nThat is useful, but it is not the same as representing the archit",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建 Enola，第 1 部分：为什么确定性架构分析很重要",
+        "summary": "Enola 是一个开源架构分析器，可以映射实际使用的代码，帮助开发者和 AI 代理避免重复模块和系统膨胀。它解决了 AI 生成的代码可能通过测试但仍会增加不可测量的开销的问题。这很重要，因为确定性分析确保 AI 辅助开发不会悄悄降低架构质量。"
+      }
+    }
+  },
+  {
+    "title": "Password Strength Checker and the case for browser-side cryptography",
+    "slug": "password-strength-checker-browser-side-crypto",
+    "url": "https://dev.to/mryesiller/password-strength-checker-and-the-case-for-browser-side-cryptography-3kkm",
+    "source": "DEV Community",
+    "date": "2026-07-20T19:19:21.000Z",
+    "summary": "DevTools offers a browser-native password strength checker that evaluates length, character diversity, and vulnerability patterns in real-time—entirely client-side with zero data transmission. It provides actionable feedback on what makes passwords strong. This matters because privacy-preserving security tools help both developers and end users understand real security principles.",
+    "content": "Every developer knows the tension between enforcing strong password policies and preserving a smooth user experience. Overly complex rules push users toward predictable patterns; lax requirements leave applications exposed. The Password Strength Checker from DevTools offers a privacy-first, real-time way to evaluate and refine password strength without compromising user trust.\nThe Password Strength Checker is a client-side security utility that instantly evaluates password complexity. Part of the DevTools collection of 200+ free browser tools, it analyzes length, character diversity, and common vulnerability patterns to produce a comprehensive strength score with specific, actionable recommendations.\nAll analysis runs locally in your browser—no password data is ever stored, transmitted, or logged. The tool checks criteria such as minimum length, uppercase and lowercase letters, digits, symbols, and known weak patterns (e.g., “password123” or sequential characters). It then surfaces a clear breakdown of what your password gets right and where it falls short, helping both developers and end users understand the anatomy of a strong password.\nType or paste a password into the input field, and the analysis begins immediately. The interface updates in real time, displaying an overall strength score, a character composition breakdown, and targeted suggestions for improvement. You can experiment with different combinations to see how each change affects the rating—adding a single symbol or extending the length by a few characters can dramatically shift the score.\nThe tool also highlights common pitfalls like dictionary words or predictable sequences. For developers, this provides a fast way to prototype password validation logic or demonstrate security concepts to stakeholders. The visual feedback makes it easy to explain why a longer passphrase often outperforms a shorter, complex string.\n// Example of password strength criteria the tool might evaluate\nconst passwordCriter",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "密码强度检查器和浏览器端密码学的案例",
+        "summary": "DevTools 提供了一个浏览器原生的密码强度检查器，它实时评估密码长度、字符多样性和漏洞模式——完全在客户端进行，零数据传输。它为如何制作强密码提供了可行的反馈。这很重要，因为隐私保护的安全工具帮助开发者和最终用户理解真实的安全原则。"
+      }
+    }
+  },
+  {
+    "title": "I built a very cheap App Review analysis pipeline that also finds Bugs in my app code",
+    "slug": "cheap-app-review-analysis-pipeline",
+    "url": "https://dev.to/ashish_mishra_8491c3b9912/i-built-a-very-cheap-app-review-analysis-pipeline-that-also-finds-bugs-in-my-app-code-48ng",
+    "source": "DEV Community",
+    "date": "2026-07-20T19:18:20.000Z",
+    "summary": "A developer built a $0.50/month pipeline that auto-classifies app store reviews using AI, matches them against Firebase crashes, and identifies which source files cause reported bugs. It demonstrates that cheap AI analysis can turn reviews into structured bug intelligence. This matters because app reviews are critical feedback typically ignored due to triage burden.",
+    "content": "I got tired of reading app reviews manually every morning, so I built a command-line tool that pulls reviews from Google Play and the App Store, classifies them (bug, feature request, crash, praise), and sends me a daily summary. It costs about $0.50/month. In version 2, I added the ability to point it at my source code and get an analysis: which files are causing the bug, what to change, and how complex the fix is.\nIf you need to checkout code for your own setup : https://github.com/Mr-Ashish/AppPulse\nI have a few apps on Google Play. Every morning, I'd open the Play Console, scroll through new reviews, and try to figure out:\nIs this a bug or a complaint?\n\n\nIs this the same issue three other people mentioned yesterday?\n\n\nDoes this match any of the crashes I'm seeing in Firebase?\n\n\n\nAbout 15 minutes of work. But it's unfocused work. Scanning text, making mental classifications, switching between tabs. On days with 20+ reviews, I'd either rush through them or skip the whole exercise.\nI wanted a morning briefing:\n\"You got 12 new reviews. 3 are bugs (1 critical, photo upload crashes on large images). 2 are feature requests. 7 are praise. The critical bug matches a Firebase crash that affected 312 users this week.\"\nSo I built one.\nGoogle Play ──┐\n               → Pull new reviews→Classify review → Save to database\nApp Store ───┘         │             (using AI)              \n                         │                                           \nFirebase/Sentry ──────\n---------------------------------------------------------------    \n     ↓\n\nDaily Digest                                                                             ┌──────────────────┐\n│ 3 bugs (1 critical)\n│ 2 feature requests\n│ 7 praise\n│ Top crash: OOM in\n│  ImageUploadService\n└──────────────────┘\n      ↓         ↓\n     Terminal   Slack\n\nEach review goes through an LLM (a language model; I use OpenAI's gpt-4o-mini, their cheapest option). The LLM reads the review text and categorizes it:\n\n\n\nCategory\nMean",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个非常便宜的应用评论分析管道，同时还能发现应用代码中的错误",
+        "summary": "一位开发者构建了一个每月 $0.50 的管道，可以使用 AI 自动分类应用商店评论，将其与 Firebase 崩溃匹配，并确定哪些源文件导致报告的错误。它展示了廉价的 AI 分析可以将评论转化为结构化的错误情报。这很重要，因为应用评论是关键反馈，但通常由于分类负担而被忽视。"
+      }
+    }
+  },
+  {
+    "title": "Your Team Can Build Dashboards — But Can You Share Them Safely?",
+    "slug": "build-dashboards-share-safely-secrets",
+    "url": "https://dev.to/ashish_mishra_8491c3b9912/your-team-can-build-dashboards-but-can-you-share-them-safely-45jf",
+    "source": "DEV Community",
+    "date": "2026-07-20T19:17:14.000Z",
+    "summary": "Non-technical teams can build internal dashboards with AI assistance, but safe sharing requires code review (Git/PR), secrets management (locked database, not files), and company-only access. The solution enforces a clear separation: redacted HTML through version control, encrypted secrets in a vault. This matters because internal tool security is frequently overlooked.",
+    "content": "TL;DR: Non-tech teammates can already build useful internal dashboards — often as a single HTML file with AI help. The real problems are sharing, secrets, and control. We solved that with a small publish app, two repositories, and a clear rule: code goes through review; passwords never go into Git.\nMore teams can create internal tools than ever before. Someone in support, ops, or finance asks an AI assistant for “a dashboard that shows X,” downloads one HTML file, and it works on their laptop.\nThen reality hits:\nHow do we share it? Emailing files and “open this on your machine” does not scale.\nWhere do API keys go? Those keys unlock company systems. Pasting them into a file that gets copied around is a security incident waiting to happen.\nWho checked it? One edit can break the dashboard — or worse, leak data. Someone should review changes before the whole company uses them.\nWho can open the link? It should be company people only, not anyone on the internet who finds the URL.\nSo the issue is not “can we build dashboards?” It’s can we publish them like a product: safely, repeatedly, without forcing every creator to learn Git.\nThink of it as internal websites for ops dashboards, not a full developer platform.\n\n\n\nGoal\nIn plain terms\n\n\n\n\nEasy publish\nDrag a file into a simple UI — no terminal\n\n\nSafe secrets\nKeys live in a locked vault (database), not in the file people share\n\n\nReview before live\nChanges go through a pull request (a proposed change someone can approve)\n\n\nCompany-only access\nSign in with work Google account\n\n\nRoom to grow\nSame design can later support bots, coding agents, and stricter permissions\n\n\n\n  Creator + AI                Publish app                 Two stores\n ─────────────               ────────────                ──────────\n  One HTML file  ──upload──►  Company login               ┌─ Git: redacted HTML (via PR)\n                              Save settings               └─ Database: config + secrets\n                              Strip secrets",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的团队可以构建仪表板——但你能安全地共享它们吗？",
+        "summary": "非技术团队可以在AI辅助下构建内部仪表板，但安全共享需要代码审查（Git/PR）、密钥管理（锁定的数据库而非文件）和仅限公司访问。该解决方案强制实现清晰的分离：通过版本控制的编辑HTML、保管库中的加密密钥。这很重要，因为内部工具安全经常被忽视。"
+      }
+    }
+  },
+  {
+    "title": "I made assembly language interactive — a free x86-64 lesson that runs entirely in your browser",
+    "slug": "interactive-assembly-language-x86-64-browser",
+    "url": "https://dev.to/stackframe-hq/i-made-assembly-language-interactive-a-free-x86-64-lesson-that-runs-entirely-in-your-browser-5be4",
+    "source": "DEV Community",
+    "date": "2026-07-20T19:16:52.000Z",
+    "summary": "A developer created an interactive x86-64 assembly lesson with live execution, register visualization, prediction quizzes, and a mini-assembler—all in one HTML file. It demonstrates that immediate visual feedback dramatically improves retention compared to static tutorials. This matters because assembly is notoriously hard to learn, and the format problem is as important as the language itself.",
+    "content": "Assembly has a reputation for being brutally hard to learn. I don't think the language is the problem — I think the format is. Nearly every assembly tutorial is a static wall of text where you read that xor rax, rax zeroes a register, nod, and retain nothing.\nYou learn assembly by watching state change. So I built a lesson where everything is executable:\n👉 Try it here — no signup, no installs\nLive steppers for mov, add, sub, and xor — execute one instruction at a time and watch registers and the zero flag change in real time\nA register anatomy widget — click RAX / EAX / AX / AH / AL and see which bits of the same physical register light up. This is the thing every text tutorial fumbles, and it's obvious the moment you see it\nA prediction quiz — read a short program and commit to what rax ends up as before you're allowed to run it (tracing code in your head is the actual skill)\nA sandbox with a real mini-assembler — it parses mov / add / sub / xor / inc / dec, decimal or hex immediates, comments, and gives per-line error messages. Three goals get auto-checked as you run\nA stretch puzzle — get 42 into rax without typing a single number. Registers only. If you solve it, you've independently reinvented how compilers multiply by constants\nThe whole lesson is one HTML file — no framework, no build step, no backend. The \"emulator\" is a small JavaScript interpreter using BigInt for proper 64-bit register semantics (wraparound behaves correctly — subtract below zero and you get 0xffffffffffffffff, which becomes a teaching moment about two's complement instead of a bug).\nThe assembler is ~80 lines: split lines, strip comments, validate mnemonics and operands with friendly per-line errors, then execute against a register-file object. Turns out you don't need much machinery to make assembly feel alive — you need immediate feedback and a reason to predict before you run.\nThis is lesson 1 of a course I'm building (flags & branching, the stack, calling conventions, up through rea",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我让汇编语言变成了交互式的——一个完全在浏览器中运行的免费x86-64课程",
+        "summary": "开发者创建了一个交互式的x86-64汇编课程，具有实时执行、寄存器可视化、预测测验和迷你汇编器——所有这些都在一个HTML文件中。它证明了相比静态教程，即时的视觉反馈能够显著提高记忆力。这很重要，因为汇编语言众所周知很难学，格式问题和语言本身一样重要。"
+      }
+    }
+  },
+  {
+    "title": "A Smaller Foundation for JavaScript Reactivity",
+    "slug": "smaller-foundation-javascript-reactivity",
+    "url": "https://dev.to/doeixd/a-smaller-foundation-for-javascript-reactivity-2fad",
+    "source": "DEV Community",
+    "date": "2026-07-20T19:13:30.000Z",
+    "summary": "Rather than standardizing TC39's comprehensive signals proposal, an alternative proposes standardizing only invalidation and lazy-cached derivations with explicit dependencies. This leaves room for frameworks to build their own tracking and effects on top. This matters because ECMAScript standards are permanent and boundary placement determines years of compatibility burden.",
+    "content": "A Smaller Signals Standard\n\n\nJavaScript frameworks all ended up at reactive programming. They just didn't end up at the same kind of reactive programming.\nSignals, computed values, stores, effects, watchers—every major framework has its own graph implementation, its own tracking rules, its own scheduling model, its own lifecycle semantics. Moving reactive logic between frameworks means rewriting it. Composing two reactive libraries usually means they can't even see each other's dependencies.\nThe TC39 Signals proposal tries to fix this by standardizing an integrated reactive graph: writable signals, automatic dependency tracking, equality-aware propagation, watcher semantics, the whole thing.\nThat might be the right call. But there's another option worth considering: standardize less. Specifically, standardize an invalidation protocol and a lazy, cached derivation primitive with explicit dependencies. Let frameworks handle automatic tracking, equality, scheduling, ownership, and effects on top.\nHere's what that might look like:\nconst changed = Reactive.createSource();\n\nconst total = Reactive.derive(\n  [changed],\n  () => calculateTotal(),\n);\n\nThe source doesn't hold state. It just announces that something may have changed.\nlet count = 0;\nconst countChanged = Reactive.createSource();\n\ncount++;\ncountChanged.invalidate();\n\nA derivation declares what can make it stale:\nconst label = Reactive.derive(\n  [countChanged],\n  () => `Count: ${count}`,\n);\n\nCall label.get() and it evaluates if needed, otherwise returns cache. That's it.\nThis is intentionally less ambitious than full signals. That restraint might make it a better standard.\nECMAScript features are basically permanent. Once a reactive architecture ships in the language, every framework either adopts it or works around it for years. The abstraction boundary matters a lot.\nSome reactive concepts are genuinely universal:\nDependencies can become invalid.\nDerived values can be evaluated lazily.\nSuccessful evaluations can b",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "JavaScript响应性的更小基础",
+        "summary": "与其标准化TC39的综合信号提案，另一个方案建议只标准化无效化和具有显式依赖的懒缓存派生。这为框架留下了在其上构建自己的跟踪和效果的空间。这很重要，因为ECMAScript标准是永久的，边界位置决定了多年的兼容性负担。"
+      }
+    }
+  },
+  {
+    "title": "$100 million for open source: A milestone built by the community",
+    "slug": "100-million-open-source-community",
+    "url": "https://github.blog/open-source/maintainers/100-million-for-open-source-a-milestone-built-by-the-community/",
+    "source": "GitHub Blog",
+    "date": "2026-07-20T16:00:00.000Z",
+    "summary": "GitHub announced the community has contributed $100 million to open source developers through Sponsors and related programs, reaching a significant milestone in sustainable OSS funding. This represents direct financial support flowing to critical infrastructure maintainers. This matters because open source sustainability directly affects modern software stability.",
+    "content": "Celebrating $100 million contributed by the community to the people who build and sustain open source every day.\nThe post $100 million for open source: A milestone built by the community appeared first on The GitHub Blog.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "开源获1亿美元：社区构建的里程碑",
+        "summary": "GitHub宣布社区通过Sponsors及相关项目向开源开发者贡献了1亿美元，这是可持续开源资金的重大里程碑。这代表向关键基础设施维护者流入的直接财务支持。这很重要，因为开源的可持续性直接影响现代软件的稳定性。"
+      }
+    }
+  },
+  {
+    "title": "Kimi K3, Qwen 3.8, and Anthropic's (Potential) Unravelling",
+    "slug": "kimi-k3-qwen-anthropic-frontier-ai",
+    "url": "https://www.emergingtrajectories.com/lh/frontier-lab-economics/",
+    "source": "Hacker News",
+    "date": "2026-07-20T15:13:42.000Z",
+    "summary": "A Hacker News discussion examines frontier AI model releases (Kimi K3, Qwen 3.8) and questions about Anthropic's competitive position in the rapidly evolving AI landscape. It analyzes dynamics between competing frontier labs. This matters for understanding how the frontier AI race is reshaping the industry.",
+    "content": "Article URL: https://www.emergingtrajectories.com/lh/frontier-lab-economics/\nComments URL: https://news.ycombinator.com/item?id=48980019\nPoints: 183\n# Comments: 185",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Kimi K3、Qwen 3.8与Anthropic的（潜在）衰落",
+        "summary": "Hacker News上的讨论研究了前沿AI模型的发布（Kimi K3、Qwen 3.8）以及Anthropic在快速发展的AI格局中竞争地位的问题。分析了竞争前沿实验室之间的动态。这很重要，因为它有助于理解前沿AI竞速如何重塑行业。"
+      }
+    }
+  },
+  {
+    "title": "China's open-weights AI strategy is winning",
+    "slug": "china-open-weights-ai-strategy",
+    "url": "https://werd.io/american-ai-is-locked-down-and-proprietary-its-losing/",
+    "source": "Hacker News",
+    "date": "2026-07-20T14:21:47.000Z",
+    "summary": "China's open-weight AI strategy is gaining competitive advantage against proprietary Western models, showing how transparency and accessibility drive adoption. The contrast highlights different philosophies in AI distribution. This matters because it examines how geopolitics and openness shape the AI market's future.",
+    "content": "Article URL: https://werd.io/american-ai-is-locked-down-and-proprietary-its-losing/\nComments URL: https://news.ycombinator.com/item?id=48979269\nPoints: 494\n# Comments: 424",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "中国的开源AI战略正在获胜",
+        "summary": "中国的开源AI战略相比西方专有模型获得了竞争优势，展示了透明度和可获取性如何推动采用。这种对比突出了AI分发中的不同理念。这很重要，因为它探讨了地缘政治和开放性如何塑造AI市场的未来。"
+      }
+    }
+  },
+  {
     "title": "Try new AI tool?",
     "slug": "ai-code-documentation-generator-tool",
     "url": "https://dev.to/spiro_fea0497b367356f9e1d/try-new-ai-tool-5ffd",
