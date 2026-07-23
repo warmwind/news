@@ -1,5 +1,197 @@
 [
   {
+    "title": "Take your benchmark to the people who can kill it",
+    "slug": "take-your-benchmark-to-the-people-who-can-kill-it",
+    "url": "https://dev.to/dor_amir_dbb52baafff7ca5b/take-your-benchmark-to-the-people-who-can-kill-it-4h5j",
+    "source": "DEV Community",
+    "date": "2026-07-23T13:49:27.000Z",
+    "summary": "Ten days ago I had a benchmark: reorder the expert weights inside a MoE model file by measured co-activation, and disk reads per token drop 2.23×. It was real, reproducible, and measured entirely on m",
+    "content": "Ten days ago I had a benchmark: reorder the expert weights inside a MoE model file by measured co-activation, and disk reads per token drop 2.23×. It was real, reproducible, and measured entirely on my own machine — which is to say, it was worth almost nothing yet.\nToday the strongest number attached to this work is one I didn't produce: +32.3% decode throughput and −26.3% time-to-first-token on a 235B-parameter model running on a 48 GB MacBook, measured by someone I've never met, on an inference engine I'd never run, using my script unmodified, with the arms swapped as a page-cache control. Along the way, two of my three original pitches were refuted with data, my one pre-registered scaling prediction failed its own threshold, and both of my attempts to forecast a key parameter missed in opposite directions.\nThe refutations were the productive part. This post is about the process that made them cheap: five engines, a half-dozen strangers, one issue thread, and the discipline that emerged in it — because I think the process generalizes and the write-ups I usually see don't mention it.\nThe idea (project: mbolt) is BOLT/PGO applied to model binaries. Checkpoint tensor order is an accident of the training pipeline; MoE routing at inference time is far from random — experts fire in cliques. If an engine streams experts from SSD, the file layout decides whether a token's misses are a handful of long sequential reads or thousands of scattered ones. So: trace the routing, cluster the co-activation, rewrite the file, keep the weights byte-exact.\nAfter a week solo I had the 2.23× read reduction on an 80B model, a 1.55× end-to-end decode gain against a patched llama.cpp, correctness gates (byte-identical weights, routing mapping 100.000% through the permutation, output divergence 5× below the same engine's CPU↔Metal backend delta), and a 500-prompt blind A/B that scored 48 to 46 with 26 ties — a coin flip, which for a layout change is the goal.\nI also had a null I'd measured",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "把你的基准带给能击败它的人",
+        "summary": "十天前我有一个基准：在MoE模型文件中按测量的共激活重新排列专家权重，每个令牌的磁盘读取次数下降2.23倍。这是真实的、可重现的，完全在m"
+      }
+    }
+  },
+  {
+    "title": "Environment Variable Encoder/Decoder: a small tool that solves a specific problem",
+    "slug": "environment-variable-encoder-decoder-a-small-tool-that-solves-a-specific-problem",
+    "url": "https://dev.to/mryesiller/environment-variable-encoderdecoder-a-small-tool-that-solves-a-specific-problem-3j55",
+    "source": "DEV Community",
+    "date": "2026-07-23T13:49:14.000Z",
+    "summary": "Managing environment variables across environments often means juggling incompatible formats, special character escapes, and a lingering worry about accidentally exposing secrets in shared configs. Th",
+    "content": "Managing environment variables across environments often means juggling incompatible formats, special character escapes, and a lingering worry about accidentally exposing secrets in shared configs. The Environment Variable Encoder/Decoder—part of a suite of 200+ free, no-signup browser tools—eliminates that friction by handling encoding, decoding, and formatting in one privacy-first utility.\nThe Environment Variable Encoder/Decoder is a web-based tool that transforms standard .env key-value pairs into encoded formats and structured outputs. It accepts plaintext input like KEY=value, then applies configurable encodings—Base64, URL encoding, and other security-minded transformations—to the values. You can also feed it already-encoded strings to reverse the process on the fly.\nUnder the hood, the tool processes entire blocks of variables at once, preserving speed for bulk operations. Output formatting adapts to your target: keep it as a .env file, convert to JSON for application config, generate YAML for Kubernetes manifests, or export shell export statements for scripts. A “Hide Value” toggle obscures sensitive data on screen during review, so you can validate structure without exposing secrets in a shared workspace. It’s not a vault, but a practical intermediary for reshaping variables before they reach a secrets manager or CI pipeline.\nPaste your environment variables into the input area in .env format—one KEY=VALUE per line. The tool handles multi-line values and common edge cases (leading spaces, trailing comments), but expects a clean, parseable structure for best results.\nChoose an encoding: Base64 for portability or obscuring values in transit; URL encoding for connection strings containing @, /, ?, and other reserved characters that would break as query parameters.\n# Plain input\nDATABASE_URL=postgresql://user:pass@localhost:5432/db\nAPI_KEY=sk-1234567890abcdef\nJWT_SECRET=mysecretkey123\n\n# With Base64 encoding applied\nDATABASE_URL=cG9zdGdyZXNxbDovL3VzZXI6cGFzc0B",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "环境变量编码器/解码器：一个解决特定问题的小工具",
+        "summary": "在多个环境中管理环境变量通常意味着需要处理不兼容的格式、特殊字符转义，以及对在共享配置中意外暴露密钥的持续担忧。Th"
+      }
+    }
+  },
+  {
+    "title": "Do It Wrong First",
+    "slug": "do-it-wrong-first",
+    "url": "https://dev.to/thebraindonor/do-it-wrong-first-4ni2",
+    "source": "DEV Community",
+    "date": "2026-07-23T13:46:32.000Z",
+    "summary": "Somewhere in your organization there is a slide that says do it right the first time to save costs. I have sat in the room where that slide goes up. It always gets nods. It is the kind of sentence nob",
+    "content": "Somewhere in your organization there is a slide that says do it right the first time to save costs. I have sat in the room where that slide goes up. It always gets nods. It is the kind of sentence nobody can argue with, because arguing with it sounds like arguing for waste.\nI want to argue with it anyway, but carefully, because the slide isn't wrong so much as it's aimed at the wrong target. There are problems you understand, where \"do it right the first time\" is just professionalism. And there are problems you don't understand yet — high-uncertainty work, a domain you've never touched, a system whose real shape won't show itself until you're elbow-deep in it. Point that slogan at those problems and it stops being discipline. It becomes a demand that you pretend to know the answer before you've earned the right to have one. And the pretending has a cost the budget proposal never counts.\nThis post is about the alternative, which I've been calling doing it wrong first. I should be honest about what that phrase is and isn't, because it's easy to hear it as a license to be sloppy. It isn't. It is not permission to write trash, ship uncompilable garbage, or call laziness a methodology. It's something quieter than that. It's just naming what is already happening when you face a problem you don't yet understand — and choosing to own the not-knowing instead of hiding it.\nThat distinction is the whole post. The best engineers I've worked with rarely faked it. They owned what they didn't know as plainly as they owned what they did. \"Fake it till you make it\" tells you to perform competence you don't have. \"Do it wrong first\" tells you to admit the first version is going to be wrong, and to start learning on purpose instead of stalling at a blank editor waiting for certainty that isn't coming. Where this goes, eventually, isn't a coding trick. It's a way of running a team. But it starts at the keyboard, so let me start there too.\nWhen we're afraid to admit we don't understand",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "先做错",
+        "summary": "在你的组织中的某个地方有一张幻灯片说首次做对以节省成本。我坐在那张幻灯片放映的房间里。它总是得到点头。这是那种句子nob"
+      }
+    }
+  },
+  {
+    "title": "How to Protect Your Margin When the Client Changes the Project After Approval",
+    "slug": "how-to-protect-your-margin-when-the-client-changes-the-project-after-approval",
+    "url": "https://dev.to/janusz_kozio_747fc7a9543/how-to-protect-your-margin-when-the-client-changes-the-project-after-approval-3b34",
+    "source": "DEV Community",
+    "date": "2026-07-23T13:34:16.000Z",
+    "summary": "A developer on Reddit shared a story that every agency owner recognizes: client approved everything. The scope was documented. The price was agreed. Work started. Then — halfway through — the client a",
+    "content": "A developer on Reddit shared a story that every agency owner recognizes: client approved everything. The scope was documented. The price was agreed. Work started. Then — halfway through — the client asked to redesign half the features.\nThe developer faced an impossible choice: risk the relationship by refusing, or absorb the work for free, destroying the project's margin.\nThis isn't normal scope creep. This is a fundamental breakdown of the approval process.\nThe moment a client signs a fixed-scope agreement, a psychological shift happens. In the client's mind, they've made a purchase. They're now entitled to the best possible product — which naturally evolves in their imagination as development progresses.\nThe developer, meanwhile, treats the signed document as a boundary. For them, any work beyond that boundary is uncompensated.\nThis asymmetry is baked into every fixed-scope contract that lacks a change request process. The hidden cost of fixed-price projects isn't just the risk buffer — it's the inability to handle evolution gracefully.\nThere's a difference between a client who keeps asking for \"small additions\" (classic scope creep) and a client who, after formal approval, requests a structural redefinition of the project.\n\n\n\nAspect\nScope Creep\nPost-Approval Change\n\n\n\n\nPattern\nGradual, cumulative\nSudden, structural\n\n\nPer-change impact\nSmall, but adds up\nLarge, often >20% of scope\n\n\nNegotiation\nAd-hoc, hard to say no\nRequires formal process\n\n\nRoot cause\nPoor boundaries\nChanged business need or buyer's remorse\n\n\nSolution\nBetter scope definition\nChange request workflow\n\n\n\nThe developer from the Reddit post didn't face scope creep. They faced a client whose business needs shifted (or who didn't fully understand what they approved). That requires a different tool: the change request.\nWhen scope changes after approval and there's no formal process, every negotiation becomes personal. The conversation shifts from \"what does this change cost?\" to \"are you being difficult",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "客户批准后更改项目时如何保护您的利润",
+        "summary": "一位Reddit上的开发者分享了一个每个代理机构老板都能认识到的故事：客户批准了一切。工作范围已记录。价格已商定。工作开始了。然后——到项目中途——客户..."
+      }
+    }
+  },
+  {
+    "title": "Where Does RAG Actually Cost You Money? I Decided to Stop Guessing.",
+    "slug": "where-does-rag-actually-cost-you-money-i-decided-to-stop-guessing",
+    "url": "https://dev.to/surajrkhonde/where-does-rag-actually-cost-you-money-i-decided-to-stop-guessing-36jm",
+    "source": "DEV Community",
+    "date": "2026-07-23T13:32:11.000Z",
+    "summary": "RAG has become my current obsession. Every day I dig one layer deeper into my own pipeline, and almost every day something I \"knew for sure\" turns out to be wrong.\nHere's how this started.\nI used to r",
+    "content": "RAG has become my current obsession. Every day I dig one layer deeper into my own pipeline, and almost every day something I \"knew for sure\" turns out to be wrong.\nHere's how this started.\nI used to read business and finance content on the side — nothing serious, just enough to pick up how companies actually survive. One thing stuck with me: sustainable businesses don't just chase revenue, they obsess over knowing exactly where their cost goes. Burn less fuel, go further. That's the whole game.\nI decided to point that same habit at my own RAG pipeline. Stop assuming. Actually dig into every stage and see where the money really goes.\nWhat I found surprised me.\n\"Embedding is expensive — avoid re-embedding at all costs.\"\nI didn't just hear this once. I heard it everywhere. Every dev I talked to repeated some version of it. So when I was building a semantic cache, I designed around that fear — I assumed a Redis-based semantic search layer would cost more than it saved, purely because \"embedding = expensive\" was sitting in the back of my head as gospel. I ended up leaning heavily on a plain key-value cache instead, because it felt like the \"safe\" choice.\nI later realized I had optimized for the wrong bottleneck. The savings from avoiding embeddings were tiny compared to the recurring costs sitting elsewhere in the pipeline.\nSo I priced every stage, step by step, on a real document going through my pipeline.\nTurns out embedding isn't the expensive part at all. It's one of the cheapest stages in the entire pipeline. Using OpenAI's current embedding pricing, a typical 1,000-page document in my tests came out to roughly $0.18 to embed — one time.\nOnce I realized embeddings weren't the bottleneck, I started following the pipeline stage by stage to see where the costs were actually hiding.\n  Upload PDF\n      │\n      ▼\n  Extract + clean text        ── billing quietly starts here\n      │\n      ▼\n  Is this doc already known?  ── the check that saves you real money\n      │\n   ┌──┴",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "RAG实际上在哪里花费你的钱？我决定停止猜测",
+        "summary": "RAG已成为我目前的痴迷。每天我都在自己的管道中深入探索，几乎每天都发现我\"确信\"的东西都是错的。这就是它的开始方式。我过去..."
+      }
+    }
+  },
+  {
+    "title": "Farmer Rank AI: Using Generative AI to Connect Farmers with the Right Buyers",
+    "slug": "farmer-rank-ai-using-generative-ai-to-connect-farmers-with-the-right-buyers",
+    "url": "https://dev.to/shaik_inzamam_7/farmer-rank-ai-using-generative-ai-to-connect-farmers-with-the-right-buyers-1ege",
+    "source": "DEV Community",
+    "date": "2026-07-23T13:30:54.000Z",
+    "summary": "Introduction\nHello, I am Shaik Inzamam, a B.Tech Computer Science student and aspiring AI engineer from India.\nI enjoy building practical AI solutions using Generative AI, large language models, backe",
+    "content": "Introduction\nHello, I am Shaik Inzamam, a B.Tech Computer Science student and aspiring AI engineer from India.\nI enjoy building practical AI solutions using Generative AI, large language models, backend development, cloud technologies, and automation tools. I am especially interested in creating solutions that address real problems faced by local communities.\nFor the Gen AI Academy APAC – Meet the Builders initiative, I am sharing my project:\nFarmer Rank AI\nFarmer Rank AI is a Generative AI-powered agricultural marketplace assistant that helps buyers find and connect with suitable farmers based on crop type, quantity, quality, price, and location.\nThe goal of the project is to make agricultural trading more accessible, transparent, and efficient for farmers and buyers in India.\nThe Local Problem\nAgriculture plays an important role in India, but many farmers still face challenges when trying to connect directly with genuine buyers.\nFarmers may have quality produce available, but they often lack visibility and access to the right market. Buyers also face difficulties identifying farmers who can meet their exact requirements.\nFor example, a buyer may need:\n500 kilograms of tomatoes\nFinding the right farmer manually can take a lot of time. Buyers may need to contact several farmers individually before finding a suitable match.\nAt the same time, smaller farmers may be ignored because they do not have access to advanced digital platforms or strong marketing networks.\nSome of the major problems include:\nDifficulty connecting farmers directly with buyers\nFarmer Rank AI acts as an intelligent bridge between agricultural buyers and farmers.\nInstead of manually selecting multiple filters, a buyer can describe their requirement in normal language.\nFor example:\nI need 500 kg of Grade A tomatoes near Bengaluru for under ₹20 per kg.\nThe application understands the request, extracts the important information, searches available farmer listings, and recommends the most suitable farm",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "农民排名AI：利用生成式AI将农民与合适的买家联系起来",
+        "summary": "介绍。您好，我是来自印度的B.Tech计算机科学学生和志向AI工程师Shaik Inzamam。我喜欢使用生成式AI和大型语言模型来构建实用的AI解决方案..."
+      }
+    }
+  },
+  {
+    "title": "[Boost]",
+    "slug": "boost",
+    "url": "https://dev.to/jcmartinezdev/-2hg8",
+    "source": "DEV Community",
+    "date": "2026-07-23T13:29:04.000Z",
+    "summary": "The Art of Consent Management in the OAuth World\n\n\n  \nAndrea Chiarelli\n                    \n                  \n\n                \n for Auth0 for Developers\n            \n          \nJul 17\n        \n#oaut",
+    "content": "The Art of Consent Management in the OAuth World\n\n\n  \nAndrea Chiarelli\n                    \n                  \n\n                \n for Auth0 for Developers\n            \n          \nJul 17\n        \n#oauth\n            #authorization\n            #permission\n        \n4 reactions\n            \nAdd Comment\n            \n        \n        \n          \n            9 min read",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "[推动] OAuth世界中的同意管理艺术",
+        "summary": "讨论OAuth环境中同意管理的艺术和最佳实践"
+      }
+    }
+  },
+  {
+    "title": "[Book Sharing] Tsaisang’s Tales of the Strange: Japanese Mythology, Ghost Stories, and Sometimes Taiwan",
+    "slug": "book-sharing-tsaisang-s-tales-of-the-strange-japanese-mythology-ghost-stories-an",
+    "url": "https://dev.to/evanlin/book-sharing-tsaisangs-tales-of-the-strange-japanese-mythology-ghost-stories-and-sometimes-2g0i",
+    "source": "DEV Community",
+    "date": "2026-07-23T13:25:47.000Z",
+    "summary": "Tsai-sang Talks About the Strange\nJapanese Myths and Spiritual Ghost Stories, and Sometimes Taiwan\nRated by 73 people\nAuthor: Tsai Yi-chu  Publisher: Eurasian Publishing Group\n\nReadmoo: Buy here.\nThis",
+    "content": "Tsai-sang Talks About the Strange\nJapanese Myths and Spiritual Ghost Stories, and Sometimes Taiwan\nRated by 73 people\nAuthor: Tsai Yi-chu  Publisher: Eurasian Publishing Group\n\nReadmoo: Buy here.\nThis is the first book I finished reading in 2026. I didn't write any book reviews in the first half of this year because I only read a little bit of many books. I spent quite a long time reading this one as well; I happened to see it while looking for books, and it turned out the second half of the book was quite captivating, so I finished it all in one go.\nNot just crazy, but crazier! Tsai Yi-chu a.k.a. the Chuunibyou Professor of Folklore unleashes a flood of ghost stories!\n\n◆ How do Japan's first generation of gods play out soap opera dramas every day?\n◆ How does Japanese mythology hide various \"sexual metaphors\" in its stories?\n◆ Yokai aren't all troublemakers; which ones can make you rich or send you to heaven?\n◆ Is there bullying in the world of Yokai? Can just getting old and ugly make you a Yokai?\n◆ Is the Jade Emperor actually not a CEO? Is Guanyin Bodhisattva actually a foreigner?\n◆ Can Taiwan also have \"Shigong (Priest) Watches\" and \"Yokai Pokémon\"?\n\nTaiwanese people fear ghosts, Japanese people fear ghosts, people all over the world fear ghosts...\nIt doesn't matter if you haven't seen \"Ghost Stories,\" come here to listen to Tsai-sang talk nonsense and discuss gods and ghosts, so you won't feel \"creepy\" anymore!\n\nMost people's impression of Japan is—endless temples to visit, super cute and otaku cosplayers, AV actresses... Hey! There must also be supernatural stories, Sadako, Yokai, and various urban legends!\n\nListen to how Tsai-sang combines hair-raising ghost encounters with historical stories passed down through the ages, and see how he uses super \"grounded\" slang to reveal the cultural meanings behind Japanese mythology!\n\nJapanese Folklore PhD Tsai Yi-chu has gathered years of research on folklore, using myths and ghost stories as a medium and easy-to-unders",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "[书籍分享] 蔡桑的奇谈：日本神话、鬼故事及台湾故事",
+        "summary": "蔡桑讲述日本神话、灵异鬼故事，以及有时涉及的台湾故事，由73人评分"
+      }
+    }
+  },
+  {
+    "title": "[Book Sharing] Taiwan's AI Future: Analyzing Trends, Local Landscape, Corporate Strategy, and Personal Development",
+    "slug": "book-sharing-taiwan-s-ai-future-analyzing-trends-local-landscape-corporate-strat",
+    "url": "https://dev.to/evanlin/book-sharing-taiwans-ai-future-analyzing-trends-local-landscape-corporate-strategy-and-40io",
+    "source": "DEV Community",
+    "date": "2026-07-23T13:25:21.000Z",
+    "summary": "Taiwan's AI Future\nAnalyzing the latest AI trends, Taiwan's situation, corporate strategies, and personal development\nAuthor: Chien Lee-feng, Hsiao Yu-pin  \nPublisher: Business Weekly \n\nReadmoo: Click",
+    "content": "Taiwan's AI Future\nAnalyzing the latest AI trends, Taiwan's situation, corporate strategies, and personal development\nAuthor: Chien Lee-feng, Hsiao Yu-pin  \nPublisher: Business Weekly \n\nReadmoo: Click here to buy.\nThis is the second book I finished reading in 2026. It is a fairly new book, released at the end of 2025. I bought it because my company invited Chien Lee-feng to give a speech in 2024. Later, I happened to see his book on my e-book shelf and decided to take a look.\nWhen AI rewrites the world, what is Taiwan's next step?\nFormer Managing Director of Google Taiwan, computer scientist, and AI scholar—Chien Lee-feng\nWrites the first instruction manual for the AI era for Taiwan,\nHelping Taiwanese people understand the opportunities and challenges of the AI age!\n\nThe world undergoes a digital revolution every ten years:\n● 1990: Personal computers start the computer generation;\n● 2000: The Internet creates the web generation;\n● 2010: Mobile devices and social media lead the mobile generation;\n● 2020: Generative AI like ChatGPT makes a shocking debut...\nNow is the AI generation, where the rules of the game are completely rewritten, and the gap is rapidly widening between 1:99.\nWill you fall behind and be eliminated, or seize the opportunity and become a 1% winner?\nThis book takes you deep into the AI landscape to master the key to transformation!\n\n【AI Development under Geopolitics】\nAs the world undergoes an AI-driven paradigm shift, the US sees AI as the key to its return to hegemony. This not only predicts that AI productization will completely subvert the world's rules of operation but also opens up infinite possibilities for the future evolution of AI. From the \"Manhattan Project\" to the \"Stargate\" layout, this book will deeply analyze the global situation under the US-China tariff war and provide insights into how AI reshapes the international order.\n● The 1:99 challenge: Countries, companies, and individuals who seize the opportunity may become the unique \"1\"",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "[书籍分享] 台湾的人工智能未来：分析趋势、本地格局、企业战略与个人发展",
+        "summary": "分析最新人工智能趋势、台湾的人工智能发展现状、企业战略及个人发展方向"
+      }
+    }
+  },
+  {
+    "title": "[GCP in Action] LINE Business Card Bot Evolution: Dual-Side Recognition and Merging with Gemini",
+    "slug": "gcp-in-action-line-business-card-bot-evolution-dual-side-recognition-and-merging",
+    "url": "https://dev.to/gde/gcp-in-action-line-business-card-bot-evolution-dual-side-recognition-and-merging-with-gemini-2220",
+    "source": "DEV Community",
+    "date": "2026-07-23T13:24:50.000Z",
+    "summary": "Pain Point: One Chinese Business Card is Actually Two Business Cards\n\n\n\nBusiness cards in Taiwan often have a common design: Chinese printed on the front and English on the back (or vice versa). Our L",
+    "content": "Pain Point: One Chinese Business Card is Actually Two Business Cards\n\n\n\nBusiness cards in Taiwan often have a common design: Chinese printed on the front and English on the back (or vice versa). Our LINE business card bot's original logic was very simple: receive an image, perform OCR once, and save one record.\nThis is where the problem lies. When a user sends the front side, the bot saves a record with only the Chinese name. If the user then sends the back side, the bot treats it as \"another new business card,\" resulting in two records for the same person in the database, each missing half the information. Users have to manually compare and delete duplicate data, which is a terrible experience.\nThis article records how we taught the bot to recognize that \"these are two sides of the same business card\" and merge the information from both sides into a single complete record.\nInstead of writing rules to guess if two images are the same business card, we chose a more direct approach: Ask the user.\nThe workflow is designed as follows:\nThe user sends the front of the business card, and the bot performs OCR as usual.\nAfter OCR is complete, the bot does not save immediately. Instead, it replies with \"📇 Front side data recognized. Is there a back side to this card?\" and provides two Quick Reply buttons.\nUser clicks \"No, save directly\" → Save according to the original process and finish.\nUser clicks \"Yes, there's a back side\" → The bot remembers the front image and waits for the next image.\nOnce the back side image arrives, both images are sent to Gemini together to be merged into a single record before saving.\nWe manage this waiting state using the user_states memory dictionary already present in the project, and add a 5-minute timeout. If a user clicks \"Yes, there's a back side\" but then ignores it or does something else, the process is treated as abandoned after 5 minutes, preventing the entire workflow from getting stuck.\nuser_states[user_id] = {\n    'action': 'pending_",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "[GCP实战] LINE名片机器人演进：双面识别与Gemini合并功能",
+        "summary": "痛点：一张中文名片实际上是两张名片。台湾名片通常采用常见设计：正面印有中文，背面印有英文（或反之亦然）。我们的"
+      }
+    }
+  },
+  {
+    "title": "Adding a real form backend to an Astro site (not just email)",
+    "slug": "adding-a-real-form-backend-to-an-astro-site-not-just-email",
+    "url": "https://dev.to/mrpsiho/adding-a-real-form-backend-to-an-astro-site-not-just-email-g6b",
+    "source": "DEV Community",
+    "date": "2026-07-23T13:17:57.000Z",
+    "summary": "Astro is a joy to build with, right up until you need a form. There's no server on the other end — so the default move is a hosted endpoint (Formspree, Netlify Forms, Web3Forms) that emails you the ra",
+    "content": "Astro is a joy to build with, right up until you need a form. There's no server on the other end — so the default move is a hosted endpoint (Formspree, Netlify Forms, Web3Forms) that emails you the raw submission. Fine for one contact form. It falls over fast once you need several forms with real logic behind them.\nConcrete case: a summer camp site. Registration, a medical form, a photo release, a liability waiver, maybe a deposit. Some fields only apply if an earlier answer was \"yes.\" Files get uploaded. Branded confirmation emails go out. A mailto-style endpoint can't do any of that — and standing up five separate hosted forms, each with its own dashboard and submission cap, is its own headache.\nThe shape I landed on: keep Astro fully static, and point every form at one WordPress backend running CraftForms. WordPress does the things it's actually good at — storing, validating, routing, emailing. Astro keeps doing the thing it's good at — serving fast static pages.\nBuild the form once in WP with CraftForms. On the Astro side, a small component renders a placeholder <div>. At runtime, a tiny loader script (embed.js) fetches the live form definition from the backend and boots it in place. Submissions POST back to the backend, which validates, stores, and emails.\n---\nimport CraftForm from \"../components/CraftForm.astro\";\n---\n\n<CraftForm embedKey=\"aHR0cHM6Ly9mb3Jtcy5leGFtcGxlLmNvbQ.abc123\" />\n\nUnder the hood that's just:\n<div data-craftforms-embed=\"…\"></div>\n<script is:inline defer src=\"https://forms.example.com/…/embed.js\"></script>\n\nis:inline matters here — it tells Astro not to try to bundle the external loader. Multiple forms on one page work fine; the loader upgrades every placeholder and only injects shared assets once.\nNothing about the form's fields, validation, or pricing lives in the Astro build. Change any of it in WordPress and it shows up with no rebuild.\nThe page was already instant. Once the form boots, every interaction — conditional fields appearing, a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为Astro网站添加真正的表单后端（不仅仅是电子邮件）",
+        "summary": "使用Astro构建很有趣，直到您需要表单。另一端没有服务器——所以默认做法是使用托管端点（Formspree、Netlify Forms、Web3Forms）向您发送电子邮件"
+      }
+    }
+  },
+  {
+    "title": "Zero Trust for Business Applications",
+    "slug": "zero-trust-for-business-applications",
+    "url": "https://dev.to/krishnamm/zero-trust-for-business-applications-233c",
+    "source": "DEV Community",
+    "date": "2026-07-23T13:16:19.000Z",
+    "summary": "Originally published on the Edilec blog: https://edilec.com/blog/sec-4108/zero-trust-for-business-applications/\nZero trust replaces implicit confidence based on network location with explicit, risk-in",
+    "content": "Originally published on the Edilec blog: https://edilec.com/blog/sec-4108/zero-trust-for-business-applications/\nZero trust replaces implicit confidence based on network location with explicit, risk-informed decisions about each resource request. For a business application, that means authenticating people and workloads, authorizing the requested action on the specific resource, limiting session and credential scope, and using telemetry to reassess access. It does not mean distrusting employees as people, nor does it describe one product.\nBring together application owners, identity teams, endpoint operations, data stewards and support to map high-value resources and current access paths. Trace real requests from a person or workload through authentication, authorization and data access, including remote and partner scenarios.\nInventory protected resources, data sensitivity, users, workloads and existing access paths.\nExpress authorization in business actions and objects, not only network zones or broad roles.\nStrengthen identity, lifecycle and recovery according to risk.\nGive services verifiable identities and protect service-to-service calls.\nCollect policy, device, session and resource telemetry without making one signal absolute.\nMigrate one high-value journey with fallback and support before expanding.\nRepresent access as a decision over subject, workload, device, resource, action and context. Enforcement must occur at the resource-facing layer for each meaningful request, not only at network entry.\nAssign owners for resource classification, identity lifecycle, device evidence, authorization policy, enforcement and incident response. Document token lifetime, revocation, policy distribution, telemetry freshness, regional dependencies, privacy limits and emergency access.\nBaseline the current outcome, delay, failure demand and risk before changing the process.\nBuild a thin end-to-end path and test contracts, permissions, telemetry and recovery.\nRun in simulation, s",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "业务应用的零信任安全",
+        "summary": "最初发布在Edilec博客上：https://edilec.com/blog/sec-4108/zero-trust-for-business-applications/ 零信任用明确的、基于风险的信任替代了基于网络位置的隐性信任"
+      }
+    }
+  },
+  {
     "title": "When a WordPress-to-CRM Integration Works Sometimes: A Practical Guide to Debugging Intermittent Failures",
     "slug": "wordpress-to-crm-integration-intermittent-debugging",
     "url": "https://dev.to/rahul_sharma_15bd129bc69e/when-a-wordpress-to-crm-integration-works-sometimes-a-practical-guide-to-debugging-intermittent-3egc",
@@ -380,6 +572,22 @@
       "zh": {
         "title": "你的AI代理评估集真的在测试什么吗？",
         "summary": "大多数AI代理评估集都很薄弱，因为它们来自想象而非生产故障，对实际上很脆弱的系统造成虚假信心。有效的评估集应该优先考虑由事件驱动的测试用例、故障模式排除标准和与真实流量分布匹配的数据，而不是边界情况。"
+      }
+    }
+  },
+  {
+    "title": "Codeberg Bans Cryptocurrency Projects",
+    "slug": "codeberg-bans-cryptocurrency-projects",
+    "url": "https://codeberg.org/Codeberg/org/pulls/1254",
+    "source": "Hacker News",
+    "date": "2026-07-23T01:06:56.000Z",
+    "summary": "Article URL: https://codeberg.org/Codeberg/org/pulls/1254\nComments URL: https://news.ycombinator.com/item?id=49015588\nPoints: 314\n# Comments: 521",
+    "content": "Article URL: https://codeberg.org/Codeberg/org/pulls/1254\nComments URL: https://news.ycombinator.com/item?id=49015588\nPoints: 314\n# Comments: 521",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Codeberg禁止加密货币项目",
+        "summary": "文章链接: https://codeberg.org/Codeberg/org/pulls/1254"
       }
     }
   }
