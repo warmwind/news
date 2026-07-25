@@ -1,5 +1,197 @@
 [
   {
+    "title": "Portable Paths in Knowledge-and-Memory-Management v0.0.2",
+    "slug": "portable-paths-knowledge-memory-management",
+    "url": "https://dev.to/mage0535/portable-paths-in-knowledge-and-memory-management-v002-2b4j",
+    "source": "DEV Community",
+    "date": "2026-07-25T08:00:44.000Z",
+    "summary": "The v0.0.2 release centralizes agent storage paths through a single $AGENT_HOME environment variable, replacing scattered hardcoded paths that break in Docker and multi-tenant environments. This enables portable deployments across local dev, CI/CD, and containerized systems.",
+    "content": "The fastest way to break an agent in production is a hardcoded path. Every developer building autonomous systems has encountered the problem: an agent that works beautifully on a local dev machine fails immediately inside a Docker container because it cannot find its vector index at /home/alice/.agent/memory/. The v0.0.2 release of the Knowledge-and-Memory-Management module directly targets this friction. The tagline is \"Clean release,\" but the execution is a surgical refactor that replaces every personal, absolute, and system-specific path with a single portable environment variable: $AGENT_HOME.\nPrevious iterations relied on os.path.expanduser(\"~/.agent\") spread across a dozen modules. This worked for a single user but broke the moment you tried multi-tenancy, CI/CD pipelines, or containerized deployments. v0.0.2 centralizes the home directory resolution into a single call. The entire memory subsystem (web scrapers, video transcoders, article parsers, and the vector store) now derives its base path from $AGENT_HOME.\nThis is the foundation. Any module requiring persistent storage imports the home path directly.\n# knowledge_memory/__init__.py (v0.0.2)\nimport os\nfrom pathlib import Path\n\ndef get_agent_home() -> Path:\n    \"\"\"Return the portable agent root directory.\"\"\"\n    return Path(os.environ.get(\"AGENT_HOME\", \"~/.agent\")).expanduser().resolve()\n\nAGENT_HOME = get_agent_home()\n\n# A consumer module\nfrom knowledge_memory import AGENT_HOME\n\nclass VideoCollector:\n    def __init__(self):\n        self.store = AGENT_HOME / \"knowledge\" / \"video\"\n        self.store.mkdir(parents=True, exist_ok=True)\n\n    def save_transcript(self, video_id: str, transcript: dict) -> Path:\n        output = self.store / f\"{video_id}.json\"\n        output.write_text(json.dumps(transcript))\n        return output\n\nSetting `AGENT_H",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "便携式路径在知识和内存管理 v0.0.2 中",
+        "summary": "v0.0.2 版本通过单个 $AGENT_HOME 环境变量集中管理代理存储路径，替换了在 Docker 和多租户环境中会出现问题的分散硬编码路径。这使得可以在本地开发、CI/CD 和容器化系统中实现可移植部署。"
+      }
+    }
+  },
+  {
+    "title": "Enforcing subscription plan limits in NestJS without scattering `if (plan === 'PRO')` everywhere",
+    "slug": "enforce-subscription-plan-limits-nestjs",
+    "url": "https://dev.to/cursora/enforcing-subscription-plan-limits-in-nestjs-without-scattering-if-plan-pro-everywhere-2flb",
+    "source": "DEV Community",
+    "date": "2026-07-25T07:56:25.000Z",
+    "summary": "NestJS plan limit checks scattered across controllers are error-prone and hard to maintain. This article demonstrates moving enforcement into a reusable decorator and guard that delegates to a centralized service, reducing duplication and making limit changes a one-file operation.",
+    "content": "The problem with the obvious approach\n\n\nThe first version of plan enforcement in any product looks the same: a controller method starts with a check.\nif (user.plan === 'BASIC' && courseCount >= 3) {\n  throw new ForbiddenException('Upgrade to create more courses');\n}\n\nIt works, for exactly as long as there is one such rule. Ours has several — a cap on total courses, a separate cap on how many of those may be paid, a cap on standalone lessons — and each applies at a different endpoint. Copy that check into six controllers and you have six places to update when a limit changes, and one of them will be missed.\nEnforcement moved into a guard, and controllers only declare which limited action they perform:\n@Post()\n@EnforcePlanLimit('CREATE_COURSE')\nasync createCourse(@Body() dto: CreateCourseDto) { ... }\n\nThe decorator is just metadata plus the guard, composed:\nexport const EnforcePlanLimit = (action: PlanLimitAction) =>\n  applyDecorators(\n    SetMetadata(PLAN_LIMIT_ACTION_KEY, action),\n    UseGuards(PlanLimitGuard),\n  );\n\nThe guard reads that metadata with Reflector, resolves the user, and delegates to a single service that owns every limit rule:\nconst action = this.reflector.getAllAndOverride<PlanLimitAction | 'BYPASS'>(\n  PLAN_LIMIT_ACTION_KEY,\n  [context.getHandler(), context.getClass()],\n);\nif (!action || action === 'BYPASS') return true;\n\nawait this.planLimitsService.enforceOrThrow(userId, action);\n\nNow a limit change is a one-file change. The controllers never learn the numbers.\nThe interesting cases are the ones where the same endpoint is sometimes limited and sometimes not.\nMarking a course as paid is limited — but the endpoint that does it is a general update endpoint that also handles a dozen unlimited edits. Blocking it wholesale would mean free-tier users can't rename their own courses. So the guard inspects the request before deciding to enforce at all:\nprivate shouldEnforce(action: PlanLimitAction, request: Request): boolean {\n  if (action === 'SET_COURSE_P",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在 NestJS 中强制执行订阅计划限制，无需在各处散布 if (plan === 'PRO')",
+        "summary": "分散在各个控制器中的 NestJS 计划限制检查容易出错且难以维护。本文演示了如何将强制执行逻辑移至可重用的装饰器和守卫，委托给集中式服务，减少重复并使限制更改成为一次性操作。"
+      }
+    }
+  },
+  {
+    "title": "My analysis and experience of catching a bug in a filesystem",
+    "slug": "catching-bug-filesystem-simplefs",
+    "url": "https://dev.to/erickim/catching-a-bug-in-a-filesystem-1oo1",
+    "source": "DEV Community",
+    "date": "2026-07-25T07:54:47.000Z",
+    "summary": "A simplefs filesystem lockup during file lookup was traced to how inode operations traverse extent blocks and directory entries. The debugging process revealed how filesystem data structures interact and where performance optimizations can cause kernel hangs.",
+    "content": "Introdution\n\n\nHi, this is my analysis of a bug I found on the simplefs project. Here's the project link. This was my first time finding a bug and trying to figure out the cause. Although the core root cause was not found by me, I did play some role in pinpointing the cause. I hope anyone interested in filesystems, the linux kernel, and low level computing in general could find some use from this post. \nWhen mounting a simplefs filesystem image, whether it be a file image freshly created one with files, locks up upon mounting or looking through its contents. The kernel watchdog soft lockup warning gives which function caused a soft lockup, which was __file_lookup(), a function wrapped around simplefs_lookup, which is one of inode operations. The system hanged during execution of ls or other commands/programs that uses inode lookup operation.\nSimplefs has 3 main things to consider when looking for files and directories. The inode, extent block, and the actual data block. Inode contains all information about the file and directory, without the actual data. The inode number is found in directory entries, or in case of root, on the superblock. In case of simplefs, inode has the extent block number as a reference to its data. The extent block is a block which contains a list of block numbers that contain the data for file or dir(for file, the raw data and for directories, the dir entry). In dir entry lists, each dir entry(which is simplefs_file structure) has nr_blk, inode number and filename. The nr_blk variable contains a number that defines how much offset the index has to go to the next dir entry. For example, if nr_blk is 1, the next dir entry is 1 offset away from it, and if it is 4 the next dir entry is 4 offset away from it.\nThe __file_lookup function loops through the extent block’s extent entries, dir entry blocks, and dir entries(3 for loops). In order to optimize the performance, the starting point of extent entries and dir entry blocks are determined by the h",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我对文件系统中捕获错误的分析和经验",
+        "summary": "simplefs 文件系统在文件查找期间的锁定被追踪到 inode 操作如何遍历盘区块和目录项。调试过程揭示了文件系统数据结构如何交互，以及性能优化在哪里会导致内核挂起。"
+      }
+    }
+  },
+  {
+    "title": "Stop Manually Validating API Input — Use Zod in Next.js",
+    "slug": "use-zod-input-validation-nextjs",
+    "url": "https://dev.to/anas_sheikh_2/stop-manually-validating-api-input-use-zod-in-nextjs-11l6",
+    "source": "DEV Community",
+    "date": "2026-07-25T07:51:08.000Z",
+    "summary": "Zod provides both runtime validation and TypeScript type inference from a single schema definition, replacing error-prone manual validation checks in Next.js API routes. The library's safeParse method returns validation results cleanly without throwing exceptions.",
+    "content": "Every production Next.js app needs input validation.\nMost developers do it manually:\nif (!body.email) return error('Email required');\nif (!body.email.includes('@')) return error('Invalid email');\nif (!body.password) return error('Password required');\nif (body.password.length < 8) return error('Password too short');\n\nThis is error-prone, verbose, and gives you no TypeScript types.\nZod fixes all of this.\nnpm install zod\n\nimport { z } from 'zod';\n\nconst UserSchema = z.object({\n  name: z.string().min(2, 'Name too short').max(50),\n  email: z.string().email('Invalid email'),\n  age: z.number().min(18, 'Must be 18+').optional(),\n  role: z.enum(['admin', 'user']).default('user'),\n});\n\n// TypeScript type — automatically inferred\ntype User = z.infer<typeof UserSchema>;\n// { name: string; email: string; age?: number; role: 'admin' | 'user' }\n\nYou get runtime validation AND TypeScript types from the same definition.\n// app/api/users/route.ts\nimport { NextRequest } from 'next/server';\nimport { z } from 'zod';\n\nconst CreateUserSchema = z.object({\n  name: z.string().min(2, 'Name must be at least 2 characters'),\n  email: z.string().email('Please enter a valid email'),\n  password: z.string()\n    .min(8, 'Password must be at least 8 characters')\n    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')\n    .regex(/[0-9]/, 'Password must contain at least one number'),\n});\n\nexport async function POST(request: NextRequest) {\n  const body = await request.json();\n\n  // safeParse never throws — returns result object\n  const result = CreateUserSchema.safeParse(body);\n\n  if (!result.success) {\n    return Response.json(\n      {\n        error: 'Validation failed',\n        // First error message — clean for users\n        message: result.error.errors[0].message,\n        // All errors — useful for forms\n        errors: result.error.flatten().fieldErrors,\n      },\n      { status: 400 }\n    );\n  }\n\n  // result.data is fully typed here\n  const { name, email, password } = result.data;",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "停止手动验证API输入 — 在Next.js中使用Zod",
+        "summary": "Zod从单个schema定义提供运行时验证和TypeScript类型推断，替代Next.js API路由中容易出错的手动验证检查。该库的safeParse方法可以清晰地返回验证结果，而不会抛出异常。"
+      }
+    }
+  },
+  {
+    "title": "Stop Browsing Dashboards: Using MCP to Turn AI Agents into Google Ads Managers",
+    "slug": "mcp-ai-agents-google-ads-managers",
+    "url": "https://dev.to/renato_marinho/stop-browsing-dashboards-using-mcp-to-turn-ai-agents-into-google-ads-managers-502i",
+    "source": "DEV Community",
+    "date": "2026-07-25T07:48:48.000Z",
+    "summary": "Model Context Protocol enables AI agents to automate Google Ads management by reasoning over campaign data and executing changes, moving beyond static dashboards to dynamic decision-making. The workflow shifts from passive reporting to agentic optimization of advertising spend.",
+    "content": "If you've ever spent a Tuesday afternoon digging through the Google Ads interface trying to find out why your ROAS plummeted in the last 24 hours, you know the feeling. It’s not just the complexity; it's the sheer weight of the UI. You click through layers of campaigns, ad groups, and keywords, hunting for that one specific outlier that’s burning your budget.\nWe've all used automated rules before. Google has them built-in. But those rules are rigid—if/then statements that can't handle nuance. They can pause a campaign if the CPA is too high, but they can't look at the broader context of seasonal trends or cross-channel performance unless you spend weeks writing complex scripts.\nThe real shift isn't just having access to your data in a chat window; it's giving an LLM the ability to reason over that data and execute changes. This is where the Model Context Protocol (MCP) becomes interesting for anyone handling high-stakes advertising budgets.\nWhen people talk about AI in marketing, they usually mean a chatbot that summarizes reports. That’s useful, but it’s still just a different way of looking at a dashboard. The real value lies in the execution loop.\nI recently started experimenting with an MCP server for Google Ads via Vinkius. If you look at the toolset provided—things like list_campaigns, get_performance_report, and critically, tools that allow for keyword and campaign updates—you realize this isn't a scraper. It’s an interface for an agentic workflow.\nA skimmer looking at this documentation will see a list of 'read' capabilities: listing campaigns, checking budgets, viewing keywords. They’ll think, \"Great, I can ask Claude to summarize my spend.\"\nBut if you look closer at the tools like list_keywords paired with the ability to change match types or pause components, the actual use case is far more powerful: automated decision-making based on reasoning.\nImagine this workflow:\nThe Query: \"Check all my shopping campaigns. If any have a ROAS below 2x and have spent",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "停止浏览仪表板：使用MCP将AI代理转变为Google广告管理器",
+        "summary": "Model Context Protocol使AI代理能够通过推理营销活动数据和执行变更来自动化Google广告管理，超越静态仪表板走向动态决策。工作流从被动报告转变为代理性的广告支出优化。"
+      }
+    }
+  },
+  {
+    "title": "The Follow-Up Questions That Decide System Design Interviews (And How to Pre-Empt Them)",
+    "slug": "system-design-interview-follow-up-questions",
+    "url": "https://dev.to/numb_code_07/the-follow-up-questions-that-decide-system-design-interviews-and-how-to-pre-empt-them-32n3",
+    "source": "DEV Community",
+    "date": "2026-07-25T07:47:27.000Z",
+    "summary": "System design interview outcomes are decided by follow-up probes that stress-test designs and distinguish genuine understanding from pattern-matching. Learning the eight probe families lets candidates pre-empt questions and demonstrate deeper design reasoning.",
+    "content": "Where Interviews Are Actually Won\n\n\nAsk interviewers where candidates separate, and almost none will say \"the initial design.\" Prep materials have converged so thoroughly that first-pass architectures for the canonical prompts look nearly identical across candidates: sensible boxes, reasonable arrows, the expected components in the expected places. If interviews were scored on that artifact, everyone above a threshold would pass.\nThey aren't. The differentiating data comes from what happens when the interviewer starts pushing — the follow-up questions that stress the design and, more importantly, the designer. A convergent first pass followed by twenty-five minutes of probing is the actual shape of a modern design interview, which means most candidates are spending most of their preparation on the convergent part.\nHaving asked these probes for years and compared notes across many debriefs, I can report the probe space is smaller than it feels from the candidate's chair: eight families, each instrumenting something specific. Learn the families and two things happen — you stop being surprised, and you start pre-empting, which reads a level above answering.\nThe interviewer has a measurement problem: your initial design might be yours, or it might be pattern-matched from preparation. Both look identical on the whiteboard. Probes are how they tell the difference — a candidate who genuinely derived the design can flex it under novel stress; a candidate who retrieved it cannot, because the source material didn't include this variation.\nThat framing matters for how you receive probes emotionally. A hard follow-up is not evidence you're failing; it's frequently evidence the interviewer ran out of doubts about the basics and moved to level-discriminating territory. Interviewers mostly probe hardest where candidates seem strongest, hunting for the ceiling. Candidates who interpret escalating difficulty as escalating failure tighten up exactly when they should be enjoying thems",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "决定系统设计面试的追踪问题（以及如何提前预防）",
+        "summary": "系统设计面试结果由追踪问题决定，这些问题对设计进行压力测试，并将真正的理解与模式匹配区分开来。学习八个问题族让候选人能够提前预防问题并展示更深层的设计推理。"
+      }
+    }
+  },
+  {
+    "title": "The Crash That Only Happened Sometimes — A SwiftUI Bug",
+    "slug": "swiftui-crash-implicitly-unwrapped-optional",
+    "url": "https://dev.to/gamya_m/the-crash-that-only-happened-sometimes-a-swiftui-bug-1kk5",
+    "source": "DEV Community",
+    "date": "2026-07-25T07:45:27.000Z",
+    "summary": "An implicitly unwrapped optional in a view model caused intermittent crashes in a list-to-detail navigation flow because the value wasn't guaranteed to be set before rendering. The crash's non-deterministic nature made it difficult to debug until the root cause was identified.",
+    "content": "This is a submission for DEV's Summer Bug Smash: Smash Stories powered by Sentry.\nOkay gather round because I need to tell you about the three hours I spent convinced I had found a bug in SwiftUI itself. I had not found a bug in SwiftUI. I had found a bug in my own assumptions, which is both more embarrassing and more educational, and I am sharing it here so you don't have to go through the same thing.\nI was building a list-to-detail navigation flow. Classic stuff. You tap an item in a list, it navigates to a detail screen, the detail screen fetches and displays the selected item's full data. Nothing fancy. The kind of thing you've probably built or seen a dozen times.\nI had a view model managing the selected item state, and because I was moving fast and feeling a little overconfident, I declared it like this:\n@Published var selectedItem: Item!\n\nThat ! at the end. That little exclamation mark. That tiny, innocent-looking, completely catastrophic punctuation.\nFor those who haven't encountered this particular flavour of Swift danger: that's an implicitly unwrapped optional. It means the variable can technically be nil, but you're telling Swift \"trust me, it won't be.\" Swift says \"okay\" and doesn't make you check. Until it is nil. And then your app explodes.\nMy reasoning at the time was: by the time the detail view renders, I'll have set selectedItem. It's fine. It'll be fine.\nReader, it was not fine.\nThe crash started showing up in testing. But here's the thing that made it so maddening: it didn't happen every time.\nSometimes I'd tap an item, the detail screen would appear, everything would be perfect. Sometimes I'd tap an item and the app would crash immediately with a cryptic EXC_BAD_INSTRUCTION on a line inside the view's body. No useful stack trace. No clear reproduction steps. Just: sometimes crash, sometimes not.\nMy first instinct was device-specific. Tested on different simulators. Nope.\nMy second instinct was data-specific. Tested with different items. Nope.\nM",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "只是有时发生的崩溃 — 一个 SwiftUI Bug",
+        "summary": "视图模型中的隐式解包可选值在列表到详情导航流中导致间歇性崩溃，因为该值在渲染前不能保证被设置。这个崩溃的非确定性特性使得调试困难，直到根本原因被找到。"
+      }
+    }
+  },
+  {
+    "title": "Building Reliable Crypto Alerting Systems in Go: A Deep Dive into the whale-alert-go SDK",
+    "slug": "whale-alert-go-crypto-sdk-deep-dive",
+    "url": "https://dev.to/tigusigalpa/building-reliable-crypto-alerting-systems-in-go-a-deep-dive-into-the-whale-alert-go-sdk-454",
+    "source": "DEV Community",
+    "date": "2026-07-25T07:39:30.000Z",
+    "summary": "The whale-alert-go SDK abstracts boilerplate for integrating Whale Alert's cryptocurrency tracking API, with context-aware methods and concurrency-safe clients. The library preserves monetary values as strings to avoid floating-point precision loss common in financial data.",
+    "content": "Tracking large cryptocurrency transactions—commonly known as \"whales\"—has become a crucial tool for traders, analysts, and blockchain researchers. The Whale Alert Enterprise API is one of the leading data providers in this space, offering both historical data and real-time alerts. However, integrating third-party APIs into Go applications often requires writing a significant amount of boilerplate code. Developers must manually implement robust HTTP clients, manage the lifecycle of WebSocket connections, carefully handle pagination, and resolve floating-point precision issues when dealing with financial data.\nTo address these challenges, the whale-alert-go SDK was created 1. This unofficial Go library is designed specifically for interacting with the Whale Alert Enterprise API. It abstracts away the routine networking tasks, allowing engineers to focus entirely on the business logic of their applications.\nWhen designing whale-alert-go, the primary focus was on adhering to the standards and best practices of the Go programming language. Every method that performs a network request accepts a context.Context 1. This ensures proper timeout management and the ability to cancel long-running operations, which is critical for high-load microservices. Furthermore, the client is designed to be entirely concurrency-safe, meaning it can be shared across multiple goroutines without the need for additional mutexes 1.\nOne of the most common pitfalls when working with cryptocurrency APIs is using the float64 type to represent monetary amounts. Due to the nature of floating-point arithmetic, this inevitably leads to a loss of precision when dealing with very small values (such as satoshi fees) or extremely large numbers. In whale-alert-go, this problem is solved radically: all monetary values and fees are preserved as strings 1. Developers can pass these strings directly into specialized decimal arithmetic packages, such as shopspring/decimal, completely eliminating the risk of data",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "用 Go 构建可靠的加密货币警报系统：whale-alert-go SDK 深入探讨",
+        "summary": "whale-alert-go SDK 为集成 Whale Alert 的加密货币追踪 API 抽象了样板代码，具有上下文感知方法和并发安全客户端。该库将货币值保留为字符串以避免金融数据中常见的浮点精度损失。"
+      }
+    }
+  },
+  {
+    "title": "I Built a Local-First AI Operating System With 296,000 Lines of Code. Alone.",
+    "slug": "coda-local-first-ai-operating-system",
+    "url": "https://dev.to/sachittav/i-built-a-local-first-ai-operating-system-with-296000-lines-of-code-alone-6aj",
+    "source": "DEV Community",
+    "date": "2026-07-25T07:39:19.000Z",
+    "summary": "CODA is a local-first AI operating system built in 30 days with 296,000 lines of code, featuring a custom 2.2B parameter neural brain and 25+ components for local AI computing without cloud dependencies. The system runs entirely on local hardware with offline voice, 3D generation, and self-training capabilities.",
+    "content": "**No cloud. No API keys. No subscription. Just a laptop, an RTX 5070, and 30 days.**\n\n---\n\nMost AI products today are wrappers around OpenAI's API. I wanted to build something different -- an operating system where the AI runs on your own machine, generates 3D models from phone videos, has conversations through voice, and improves itself while you sleep.\n\nI call it **CODA** -- Connected Operating System for Multimodal Intelligent Computing.\n\nHere's what 296,000 lines of code looks like when one person builds it.\n\n---\n\n## The Problem I Was Solving\n\nEvery \"AI assistant\" today has the same three problems:\n\n1. **It needs the internet.** No WiFi, no AI.\n2. **Your data leaves your machine.** Every prompt, every voice command, every file -- sent to someone else's server.\n3. **You're renting intelligence.** $20/month for ChatGPT, $100/month for Claude Teams, and you still don't own anything.\n\nI wanted an AI that lives on my laptop. One I could train, modify, and break without asking permission.\n\n---\n\n## What CODA Actually Is\n\nCODA is 25+ components that together form a complete AI operating system:\n\n```\nBHAASM (2.2B neural brain)\n    |\n    +-> CODA OS (5 interfaces: desktop, mobile, web, Electron, Next.js)\n    +-> CODA Forge (turn phone videos into 3D-printable human models)\n    +-> CODA Genesis (generate images, videos, and 3D from text)\n    +-> VIJAY (voice assistant with 33 tools, runs locally)\n    +-> COSMIC (10 composable device projects)\n    +-> Cloud GPU training (Kaggle, Modal, Colab, Lightning -- all free tiers)\n```\n\nThe key insight: **each component works standalone**. You can use just the 3D scanner, just the voice assistant, or just the neural brain. But when you connect them, something interesting happens.\n\n---\n\n## The Neural Brain: BHAASM\n\nThe core is a 2.2 billion parameter transformer I built from scratch. Not a fine-tuned LLaMA -- I mean from random weights to working model.\n\n**Architecture:**\n- **RoPE** (Rotary Position Embeddings) -- the model understands",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我独自用 296,000 行代码构建了一个本地优先的 AI 操作系统",
+        "summary": "CODA 是一个本地优先的 AI 操作系统，在 30 天内用 296,000 行代码构建而成，具有自定义的 2.2B 参数神经大脑和 25+ 个组件，用于本地 AI 计算，无需云依赖。该系统完全在本地硬件上运行，具有离线语音、3D 生成和自我训练功能。"
+      }
+    }
+  },
+  {
+    "title": "TypeScript Recursive Types in 2026: Modeling JSON, Trees, and Deep Partial Without Hitting the Limit",
+    "slug": "typescript-recursive-types-nested-structures",
+    "url": "https://dev.to/jsmanifest/typescript-recursive-types-in-2026-modeling-json-trees-and-deep-partial-without-hitting-the-limit-8b3",
+    "source": "DEV Community",
+    "date": "2026-07-25T07:37:03.000Z",
+    "summary": "Recursive TypeScript types enable type-safe operations on deeply nested structures like JSON, file trees, and configurations without resorting to any types. The compiler enforces safety across arbitrary nesting depths and prevents runtime errors from accessing undefined properties.",
+    "content": "TypeScript Recursive Types in 2026: Modeling JSON, Trees, and Deep Partial Without Hitting the Limit\n\n\n\nThis article was written with the assistance of AI, under human supervision and review.\nMost TypeScript codebases handle nested data—JSON responses, file trees, comment threads—by writing any or falling back to runtime validation. The compiler cannot protect operations on deeply nested structures because the types stop at one or two levels. When a frontend engineer fetches a configuration object with arbitrary nesting and tries to access config.theme.colors.primary.default, the type system offers no help. The runtime throws Cannot read property 'default' of undefined and the developer spends an hour tracing the shape.\n\nProblem flow where nested data loses type safety\nRecursive types solve this by letting the type system follow structure to any depth. A JSONValue type that references itself models arrays of objects containing arrays—TypeScript infers the entire shape and catches path errors at compile time. The compiler sees that config.theme.colors might be undefined and forces the developer to handle it before accessing .primary.\n\nSolution flow where recursive types maintain type safety at all depths\nThis distinction is critical. Without recursive types, teams write defensive runtime checks everywhere or accept silent failures. With recursive types, the compiler enforces safety once in the type definition and every consumer benefits automatically.\nRecursive types model self-referencing structures—JSON values, trees, nested configurations—by having a type reference itself in its own definition, allowing TypeScript to track type safety at arbitrary depths.\nThe recursion depth limit (approximately 50 iterations in TypeScript 5.6+) triggers only when the compiler must expand the same type repeatedly during inference; practical recursive types rarely hit this ceiling if the structure is well-formed.\nTail-recursive patterns and distributive conditional types help flatt",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "2026年TypeScript递归类型：在不超出限制的情况下对JSON、树和深层Partial进行建模",
+        "summary": "递归TypeScript类型能够对JSON、文件树和配置等深层嵌套结构进行类型安全的操作，无需采用任何类型。编译器在任意嵌套深度上强制执行安全性，防止运行时错误访问未定义属性。"
+      }
+    }
+  },
+  {
+    "title": "Preparing Your Enterprise APIs for Post-Quantum Cryptography: A Practical Migration Blueprint",
+    "slug": "enterprise-api-post-quantum-cryptography-migration",
+    "url": "https://dev.to/dpande01/preparing-your-enterprise-apis-for-post-quantum-cryptography-a-practical-migration-blueprint-1lg9",
+    "source": "DEV Community",
+    "date": "2026-07-25T07:29:51.000Z",
+    "summary": "NIST-standardized lattice-based algorithms like ML-KEM and ML-DSA offer resistance to quantum attacks, and enterprise APIs can migrate safely using hybrid cryptographic modes that combine classical and post-quantum algorithms. A phased audit-first approach ensures regulatory compliance while future-proofing infrastructure.",
+    "content": "As cryptographic research accelerates, the looming threat of cryptanalytically relevant quantum computers (CRQCs) poses a severe risk to traditional public-key cryptography. Standard algorithms like RSA and Elliptic-Curve Cryptography (ECC)—which secure the vast majority of modern enterprise APIs, JSON Web Tokens (JWTs), and TLS handshakes—will be vulnerable to Shor's algorithm.\nTo safeguard enterprise microservices, NIST has standardized lattice-based cryptographic algorithms like ML-KEM (Kyber) for key encapsulation and ML-DSA (Dilithium) for digital signatures.\nIn this guide, we will break down a pragmatic, step-by-step approach to introducing cryptographic agility and migrating your microservice APIs to post-quantum standards without breaking legacy client integrations.\nAudit Your Cryptographic Footprint\nBefore writing a single line of migration code, you need to map out where and how cryptography is applied across your infrastructure. Look closely at:\nTLS Termination Points: API gateways, load balancers, and reverse proxies handling ingress traffic.\nToken Signing: Identity and Access Management (IAM) systems issuing JWTs or OAuth2 access tokens.\nData-in-Transit Encryption: Internal service-to-service gRPC or mTLS communication channels.\nIdentifying Vulnerable Primitives\nImplement Hybrid Cryptographic Modes\nMoving straight from classical algorithms to pure post-quantum algorithms overnight is risky due to potential performance overhead, immature hardware acceleration, and compliance gaps. Instead, adopt a hybrid approach.\nA hybrid cryptosystem combines a traditional algorithm with a post-quantum algorithm, ensuring that even if one layer is compromised, the data remains secure.\nConceptual Hybrid Key Exchange\nPlaintext\n[Client] ---> Hybrid Hello (X25519 + ML-KEM Ciphertext) ---> [API Gateway]\nBy wrapping the shared secret generation through both mechanisms, you satisfy current regulatory compliance (FIPS-approved classical) while future-proofing against quantum d",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为企业API准备后量子密码学：实用迁移蓝图",
+        "summary": "像ML-KEM和ML-DSA这样的NIST标准化的基于格的算法提供了对量子攻击的抗性，企业API可以使用结合了经典和后量子算法的混合密码模式安全地迁移。分阶段的审计优先方法确保了法规遵守，同时为基础设施未来化。"
+      }
+    }
+  },
+  {
+    "title": "Point-in-Time Recovery Without the Enterprise Price Tag",
+    "slug": "point-in-time-recovery-huskhoard-open-source",
+    "url": "https://dev.to/coldstorage/point-in-time-recovery-without-the-enterprise-price-tag-obm",
+    "source": "DEV Community",
+    "date": "2026-07-25T07:28:28.000Z",
+    "summary": "HuskHoard is an open-source point-in-time recovery engine for Linux that provides granular file versioning across disk, tape, and S3 without enterprise costs. Unlike full backups, versioning tracks historical changes to specific files, enabling fine-grained rollback from corruption or overwrite.",
+    "content": "description: A deep dive into HuskHoard's open-source PITR engine — how the catalog tracks version history and byte offsets across physical media, and how you roll back a single file without touching the rest of the volume.\nIf you've priced out Veeam, Commvault, or a Zerto license recently, you already know the punchline: granular point-in-time recovery is one of the most aggressively monetized features in enterprise storage. Vendors charge for it because it genuinely solves a hard problem — and because buyers are often in enough pain that they'll pay whatever it costs.\nHuskHoard is an open source datatiering archive for Linux that ships PITR as a first-class feature, built directly into its catalog engine, free under AGPL v3. This post is the deep dive that the project's docs don't yet cover: how versioning actually works under the hood, how the catalog tracks byte offsets across physical media (disk, LTO tape, and S3), and how you roll back a single file without touching anything else on the volume.\nBefore getting into mechanics, it's worth being precise about terminology, because these two words describe fundamentally different operations with different tradeoffs.\nA backup is a complete redundant copy of a dataset at a point in time. The goal is full-loss recovery. If your server catches fire, you restore the backup. The cost is that you're duplicating data — 10 TB of active data requires at least 20 TB of total storage to have one backup copy.\nVersioning (or PITR at the object level) is a historical record of how a specific file changed over time. The goal is granular rollback — recovering from an overwrite, a corruption, or a ransomware event that targeted specific files. It doesn't guarantee you can recover from total hardware loss unless your versions live on separate media. But it lets you say \"give me /etc/nginx/nginx.conf as it was three weeks ago\" without restoring your entire backup set.\nThe confusion is expensive. People who treat their archive as a bac",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "无需企业价格的时间点恢复",
+        "summary": "HuskHoard是一个为Linux提供的开源时间点恢复引擎，在磁盘、磁带和S3上提供了细粒度的文件版本控制，无需企业成本。与完整备份不同，版本控制跟踪特定文件的历史变化，能够从损坏或覆盖中进行细粒度回滚。"
+      }
+    }
+  },
+  {
     "title": "Azure SQL Managed Instance vs Azure SQL Database: How I Actually Made the Call",
     "slug": "azure-sql-managed-instance-vs-database",
     "url": "https://dev.to/vicky_acedia/azure-sql-managed-instance-vs-azure-sql-database-how-i-actually-made-the-call-3b60",
