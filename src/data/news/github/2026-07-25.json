@@ -1,5 +1,197 @@
 [
   {
+    "title": "AI Evaluation Series (06): DeepEval in Practice — Enterprise Agent Evaluation Suite",
+    "slug": "deepeval-enterprise-agent-evaluation",
+    "url": "https://dev.to/wonderlab/ai-evaluation-series-06-deepeval-in-practice-enterprise-agent-evaluation-suite-22c",
+    "source": "DEV Community",
+    "date": "2026-07-25T13:20:43.000Z",
+    "summary": "DeepEval and RAGAS solve different evaluation problems—RAGAS provides batch analysis for quality trends, while DeepEval offers test-case-first verdicts with pytest integration for CI quality gates. The article demonstrates how to swap out OpenAI's judge LLM for alternatives like glm-4-flash, enabling flexible evaluation pipelines.",
+    "content": "DeepEval and RAGAS Solve Different Problems\n\n\nArticle 04 used RAGAS to batch-evaluate a RAG system, producing four metric scores. This article uses DeepEval on the same Agent — with a completely different paradigm.\nRAGAS paradigm: batch evaluation, DataFrame input, outputs per-metric averages. Good for analyzing quality trends and comparing system versions.\nDeepEval paradigm: test-case-first, each case has an explicit Pass/Fail verdict, native pytest integration. Good for CI quality gates — giving a clear go/no-go before each merge.\nRAGAS answers \"how was system quality this week?\" DeepEval answers \"can this commit go to production?\" Different questions, different tools.\nDeepEval defaults to OpenAI as its Judge LLM. To use glm-4-flash, subclass DeepEvalBaseLLM:\nfrom deepeval.models.base_model import DeepEvalBaseLLM\n\nclass GlmFlashEval(DeepEvalBaseLLM):\n    def __init__(self):\n        self._llm = ChatOpenAI(\n            model=\"glm-4-flash\",\n            api_key=os.environ[\"LLM_API_KEY\"],\n            base_url=\"https://open.bigmodel.cn/api/paas/v4\",\n            temperature=0.0,\n        )\n\n    def load_model(self): return self._llm\n\n    def generate(self, prompt: str, *args, **kwargs) -> str:\n        return str(self._llm.invoke([HumanMessage(content=prompt)]).content)\n\n    async def a_generate(self, prompt: str, *args, **kwargs) -> str:\n        return self.generate(prompt)\n\n    def get_model_name(self) -> str:\n        return \"glm-4-flash\"\n\njudge_llm = GlmFlashEval()\n\nPass judge_llm when instantiating each metric:\nAnswerRelevancyMetric(threshold=0.7, model=judge_llm)\nFaithfulnessMetric(threshold=0.7, model=judge_llm)\nToolCorrectnessMetric(model=judge_llm)\n\nDeepEval's unit of work is LLMTestCase. Each case holds:\nfrom deepeval.test_case import LLMTestCase, ToolCall\n\ncase = LLMTestCase(\n    input=\"What's your refund policy?\",\n    actual_output=answer,                           # Agent's actual response\n    expected_tools=[ToolCall(name=\"search_faq\")],   # expected tool sequ",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI 评估系列 (06): DeepEval 实战 — 企业级代理评估套件",
+        "summary": "DeepEval 和 RAGAS 解决不同的评估问题——RAGAS 提供批量分析以追踪质量趋势,而 DeepEval 通过 pytest 集成提供测试用例优先的判断,用于 CI 质量门控。该文章演示了如何将 OpenAI 的评判 LLM 替换为 glm-4-flash 等替代方案,实现灵活的评估管道。"
+      }
+    }
+  },
+  {
+    "title": "tool to convert light novel chapters into EPUBs (linktoepub.com)",
+    "slug": "light-novel-chapters-epub",
+    "url": "https://dev.to/prasad_ghanwat_b0fbc908f2/i-built-a-zero-friction-web-tool-to-convert-articles-to-epubs-linktoepubcom-dgn",
+    "source": "DEV Community",
+    "date": "2026-07-25T13:19:16.000Z",
+    "summary": "linktoepub.com converts light novel website URLs directly to clean, formatted EPUB files without requiring signup or accounts. The tool removes ads, popups, and trackers while respecting device-level typography and dark mode preferences.",
+    "content": "You paste any novel site URL into linktoepub.com, and it cleans up the DOM (stripping out ads, popups, sidebars, and trackers) and outputs a clean, beautifully formatted .epub file ready for your e-reader, Apple Books, or Kindle.\nKey Features\nFast & lightweight: No signup, account creation, or bloated paywalls required. Just paste any novel site URL and download.\nE-reader friendly: Clean structure that respects device-level font scaling, custom margins, and dark mode.\n💬 Looking for Feedback!\nAre there specific novel site layouts, pagination structures, or edge-case HTML tags that don't parse well?\nWhat additional features (e.g., multi-chapter merging, table of contents parsing, RSS feed bundling) would you find most useful?\nCheck it out here: https://linktoepub.com/",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "将轻小说章节转换为 EPUB 的工具 (linktoepub.com)",
+        "summary": "linktoepub.com 将轻小说网站 URL 直接转换为干净、格式化的 EPUB 文件,无需注册或账户。该工具去除广告、弹窗和跟踪器,同时尊重设备级排版和深色模式偏好设置。"
+      }
+    }
+  },
+  {
+    "title": "CompressPower",
+    "slug": "client-side-image-compression-browser",
+    "url": "https://dev.to/digital_web/compresspower-27fj",
+    "source": "DEV Community",
+    "date": "2026-07-25T13:14:25.000Z",
+    "summary": "CompressPower demonstrates client-side image compression using modern browser APIs (createImageBitmap, OffscreenCanvas, convertToBlob) without server uploads. The article explores practical challenges like EXIF preservation, color profile handling, and memory management for large files.",
+    "content": "Most \"compress your image\" sites still work the same way: you upload the file, a server does the work, you download the result. For a 4 MB photo that's two network trips and a queue, plus your file sitting on someone else's disk.\nYou don't need any of it. The browser has shipped everything required for this since about 2012.\nThe basic version\nasync function compress(file, quality = 0.8) {\nThat's the whole thing. createImageBitmap decodes off the main thread, OffscreenCanvas means you can run it in a Worker, and convertToBlob re-encodes at whatever quality you ask for. Ten lines, no dependencies, no server.\nWhere it gets annoying\nQuality is not linear. Going from 0.9 to 0.8 on a JPEG typically saves 30 to 40% of the bytes with almost no visible difference. Going from 0.6 to 0.5 saves maybe 8% and starts putting rings around high contrast edges. If your UI exposes a quality slider, users will drag it to 0.3 and then complain about artifacts.\nA target-size loop usually beats a quality slider:\nasync function compressToTarget(file, maxBytes) {\nSix binary search steps gets you close enough and runs in well under a second for typical photos.\nCanvas strips EXIF. Including orientation. Photos from phones come out rotated and users assume your tool broke them. You have to read the orientation tag before you draw and apply the transform yourself.\nCanvas also strips the color profile. Wide gamut images from newer phones get re-tagged as sRGB and come out visibly duller. There's no clean fix in the Canvas path. If this matters you need a WASM encoder like mozjpeg or libwebp compiled with profile preservation.\nAlpha channels. Converting a transparent PNG to JPEG gives you a black background unless you fill the canvas white first. Obvious in hindsight, easy to ship as a bug.\nBig files kill the tab. A 50 MP image is roughly 200 MB as raw RGBA in memory. Do this on the main thread with three files at once and the tab dies. Worker plus a queue, not Promise.all.\nThe real argument for",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "CompressPower",
+        "summary": "CompressPower 演示了如何使用现代浏览器 API(createImageBitmap、OffscreenCanvas、convertToBlob)进行客户端图像压缩,无需服务器上传。该文章探讨了实际的挑战,如 EXIF 保留、色彩配置文件处理和大文件的内存管理。"
+      }
+    }
+  },
+  {
+    "title": "Several agents, one dirty index: disposable multi-repo workspaces for Claude Code",
+    "slug": "multi-repo-workspaces-claude-code",
+    "url": "https://dev.to/riccardo_cereghino/several-agents-one-dirty-index-disposable-multi-repo-workspaces-for-claude-code-1936",
+    "source": "DEV Community",
+    "date": "2026-07-25T13:13:09.000Z",
+    "summary": "The article explores building isolated, disposable multi-repo workspaces for Claude Code agents to resolve issues with git worktrees and multiple concurrent agents. Designed for DevOps workflows where tasks span multiple repositories, the approach ties workspaces to GitHub issues for cleaner project management.",
+    "content": "Before facet existed, I was at work, locked into a Windows machine. I much prefer Linux, and the honest reason I run a Mac at home is that it keeps me from bricking my OS every two weeks. When you can't change the OS, you go tool-hunting instead, so I set out to make the terminal livable: first GlazeWM, a tiling window manager for people with i3 muscle memory, and through that rabbit hole, zellij. Rediscovering terminal multiplexing did something dangerous to my workflow. A new pane suddenly cost nothing, and I'm a skeptic by default, but agentic coding had just gotten usable enough that I started launching Claude sessions left and right. Soon I had a few running on different projects at once.\nSome context on the shape of my work, because it explains the whole design: I'm a DevOps and infrastructure guy. My tasks are rarely one repo at a time. Publishing a new Helm chart means touching the Terraform repo and the Kubernetes manifests repo together, and I want them open side by side in the same VS Code window, not switched between. A piece of work, for me, is a small set of repos assembled around one task. Multiply that by a few tasks in flight, plus the agents, and you have the picture.\nThat's when the mess started. I tried git worktrees, on my own and with the agents. I'd open a codebase and be unsure which branch or which worktree I was looking at, and the agents were just as confused as I was. Several agents, or several people, working several issues will fight over one working tree: one branch, one dirty index. Worktrees were supposed to fix that. In my experience they moved the confusion around rather than removing it.\nSo I started building what I actually wanted: something like VS Code workspaces, but in the terminal. Then some git plumbing so ten workspaces over one repo don't cost ten clones. Then launching a Claude session straight into a fresh workspace, tied to a GitHub issue, disposable when the issue closes.\nThat last part is where I got it wrong. My fir",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "多个代理，一个脏索引：用于 Claude Code 的一次性多存储库工作空间",
+        "summary": "本文探讨了为 Claude Code 代理构建隔离的、一次性的多存储库工作空间，以解决 git worktrees 和多个并发代理的问题。该方法旨在用于跨多个存储库的 DevOps 工作流，并将工作空间与 GitHub 问题联系起来以实现更清洁的项目管理。"
+      }
+    }
+  },
+  {
+    "title": "RAG Explained: How to Give Your LLM a Memory It Can Actually Trust",
+    "slug": "rag-explained-llm-memory",
+    "url": "https://dev.to/jps27cse/rag-explained-how-to-give-your-llm-a-memory-it-can-actually-trust-1h4c",
+    "source": "DEV Community",
+    "date": "2026-07-25T13:12:35.000Z",
+    "summary": "RAG (Retrieval-Augmented Generation) solves the fundamental problem of LLMs hallucinating on internal documentation by retrieving relevant data before generating responses. The article explains the full RAG pipeline, from document loading and chunking to embeddings and diagnostic approaches when RAG fails in production.",
+    "content": "You're building a chatbot for a company's internal documentation — hundreds of pages of engineering specs, HR policies, product guides. You plug in ChatGPT, write a clean system prompt,launch a demo. Someone asks \"What's the reimbursement limit for travel expenses?\" and the model confidently answers with a number. The number is wrong. It's not from your docs — it's from the model's general training data, some pattern absorbed from the internet years ago that roughly sounds like a reasonable reimbursement policy.\nThis is the fundamental problem with raw LLMs in production: they don't know your data. They know what was in their training set — a snapshot of text from months or years ago, with no awareness of your internal docs, your product specs, your latest pricing, your customer records, or anything else that lives inside your organization. And when they don't know something, they don't say \"I don't know\" — they say something plausible-sounding that might be completely fabricated.\nThe fix has a name: Retrieval-Augmented Generation, almost universally abbreviated as RAG. The idea is elegant: before asking the model to answer a question, find the relevant pieces of your actual data and hand them to the model as context. Now, instead of guessing, the model is summarizing and reasoning over the real information you provided.\nThe gap between \"RAG sounds simple\" and \"RAG actually works reliably in production\" is where most teams spend weeks of engineering time. Understanding the full pipeline — every\nThe RAG Mental Model — Why It Works at All\nThe Full RAG Development Pipeline (Both Phases)\nDocument Loaders — Getting Your Data In\nText Splitting and Chunking — The Stage Everyone Underestimates\nEmbeddings and Vector Stores — Where Your Data Lives at Query Time\nRetrievers — Finding the Right Chunks When It Matters\nPutting It All Together — A Working RAG Chain\nWhere RAG Breaks and How to Diagnose It\nBefore code, you need the right mental model, because RAG is counterintuitive",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "RAG 解释：如何为您的 LLM 提供真正可信任的记忆",
+        "summary": "RAG（检索增强生成）通过在生成响应前检索相关数据，解决了 LLM 在内部文档上产生幻觉的根本问题。本文介绍了完整的 RAG 流程，从文档加载和分块到嵌入以及 RAG 在生产环境中失败时的诊断方法。"
+      }
+    }
+  },
+  {
+    "title": "16 states, 16 tax rates: modeling German property transfer tax without hardcoding a mess",
+    "slug": "german-property-transfer-tax-modeling",
+    "url": "https://dev.to/digital_web/16-states-16-tax-rates-modeling-german-property-transfer-tax-without-hardcoding-a-mess-1jjc",
+    "source": "DEV Community",
+    "date": "2026-07-25T13:11:23.000Z",
+    "summary": "German property transfer tax (Grunderwerbsteuer) varies by state (3.5% to 6.5%) and changes historically—the article argues for time-scoped rate objects instead of constants to ensure reproducible calculations. It also covers practical issues like floating-point arithmetic and yield definition ambiguities in real estate calculations.",
+    "content": "If you ever build anything touching German real estate, you will meet Grunderwerbsteuer. It's the property transfer tax, it's set per state, and the rates are not close to each other. Bavaria and Saxony sit at 3.5%. NRW, Brandenburg, Saarland, Schleswig-Holstein and Thuringia sit at 6.5%. The rest land somewhere in between.\nOn a 400,000 euro apartment that's 14,000 versus 26,000. Same transaction, 12,000 euro difference, decided by a line on a map.\nThe trap: treating rates as constants\nThe obvious first move is a lookup object:\nconst GRUNDERWERBSTEUER = { BY: 0.035, NW: 0.065, /* ... */ }\nThis is wrong within about a year, and wrong in a way that produces silently incorrect historical data. States change these rates, and they've each changed several times since the power was devolved in 2006. If a user saved an analysis two years ago and reopens it, recalculating with today's rate gives them a number that never existed.\nRates are time-scoped facts, not constants:\ntype RatePeriod = { from: string; to: string | null; rate: number }\nconst RATES: Record = {\nfunction rateAt(state: StateCode, date: string) {\nno rate for ${state} at ${date})\nEvery saved analysis stores its own date. Recalculation is then deterministic and reproducible, which is the whole point if anyone is making a six-figure decision off your output.\nMoney in floats\n0.1 + 0.2  // 0.30000000000000004\nYou know this. It still shows up, usually as a total that's off by one cent from the sum of its parts, and a user who notices it stops trusting every other number on the page. Integer cents internally, format at the boundary. Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }) for output.\nThe part that's actually hard\nTransfer tax is the easy input. The hard part is that \"yield\" has no single definition. Bruttomietrendite uses the asking price. Nettomietrendite uses the total acquisition cost including all Kaufnebenkosten. These differ by 10 to 15%, and listing portals quote the flattering one.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "16 个州，16 种税率：模拟德国房产转让税而不硬编码一团糟",
+        "summary": "德国房产转让税（Grunderwerbsteuer）因州而异（3.5% 至 6.5%），且历史上有变化——本文主张采用时间范围内的税率对象而不是常数，以确保可重复的计算。它还涵盖了实际问题，如浮点算术和房地产计算中产出定义的模糊性。"
+      }
+    }
+  },
+  {
+    "title": "I Connected 3 MCP Servers to One Agent. It Got Scary Fast.",
+    "slug": "mcp-servers-agent-governance",
+    "url": "https://dev.to/debashish_ghosal/i-connected-3-mcp-servers-to-one-agent-it-got-scary-fast-4loe",
+    "source": "DEV Community",
+    "date": "2026-07-25T13:10:45.000Z",
+    "summary": "The article examines governance gaps when deploying multiple MCP servers to a single agent—existing solutions (API gateways, custom middleware, no controls) all fall short. The author describes building a control plane with UI, approvals, audit, and alerts to provide visibility and control over agent capabilities.",
+    "content": "I looked at my terminal last week and realized my AI agent had the same access to deploy production as it did to search a README. No policy. No approvals. No audit trail. Three MCP servers wired directly in, side by side, identical trust.\nThe first two were fine — docs search, code search. Read-only. The third could promote builds to production. And that's when it clicked: MCP standardized how agents talk to tools, but did absolutely nothing for what happens after you connect more than a couple of them.\nThe official MCP servers repo has 88,900 stars and 11,300 forks. Claude, ChatGPT, VS Code, Cursor — they all speak MCP. There's a registry for browsing servers. The ecosystem is taking off, and I couldn't find a single governance tool for any of it.\nThree paths. None of them worked.\nAPI gateways route HTTP. They don't understand MCP tool schemas. You can't write a rule that says \"this agent can use deployment:promote but not deployment:rollback\" — the gateway doesn't know what those are.\nCustom middleware works until the person who built it leaves and nobody understands how the approval chain works. No UI. Every new server requires code changes.\nNothing — just wire servers directly and trust the agent code. This was my setup. It felt fine at two servers. At three, I couldn't answer \"what can this agent actually do?\"\nSo I started building.\nI had a plan. v0.1.0: API — servers, capabilities, policies. v0.2.0: Admin UI and approvals. v0.3.0: audit, alerts, trust posture.\nThen I realized a control plane without a UI isn't a control plane at all. Nobody curls an endpoint to see which servers are registered or which approvals are pending. The UI was supposed to be a v0.2 feature. I pulled it into v0.1.0.\nSame thing happened with approvals. Then audit. Then alerts. Each layer depended on the one before it. Cutting any of them meant cutting the core promise: \"see, control, and audit what your agents do.\" By the time I stopped, v0.1.0 had absorbed most of v0.2 and v0.3. Three",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我把3个MCP服务器连接到一个Agent上。情况迅速失控。",
+        "summary": "本文探讨了将多个MCP服务器部署到单个Agent时存在的治理漏洞——现有的解决方案（API网关、自定义中间件、无控制措施）都不够充分。作者描述了构建一个控制平面，具有用户界面、审批、审计和告警功能，以提供对Agent能力的可见性和控制。"
+      }
+    }
+  },
+  {
+    "title": "Your CLAUDE.md doesn't scale. Version your AI standards as code.",
+    "slug": "claude-md-versioning-scale",
+    "url": "https://dev.to/prathakmalik/your-claudemd-doesnt-scale-version-your-ai-standards-as-code-4ogf",
+    "source": "DEV Community",
+    "date": "2026-07-25T13:07:57.000Z",
+    "summary": "CLAUDE.md files fail to scale across teams and repositories, creating drift, duplication, and tool lock-in when managing multiple repos. The article proposes treating AI standards as versioned code in a central repository with automatic distribution and review cycles.",
+    "content": "Every team using AI coding agents starts the same way: someone drops a CLAUDE.md (or .cursorrules, or a copilot-instructions.md) into a repo. It works. So the next repo gets one too. And the next.\nThen you look up and you have 20 repos, 6 teammates, and 3 different AI tools — and no two of those config files are the same. Which one is right? Nobody knows.\nI hit this wall running an integration platform with dozens of small repos. This post is the pattern I landed on, and a small open template you can clone to do the same.\nA single file is perfect for one repo and one person. At team scale it fails in five predictable ways:\nIt doesn't scale. Every repo gets a slightly different copy. There's no \"the standard\" — there are 20 forks of it.\nIt drifts. Someone improves the file in one repo. That improvement never reaches the other 19.\nIt's unversioned. No history, no ownership, no review. Your \"AI brain\" is the one artifact in your stack nobody code-reviews.\nIt's tool-locked. Cursor's format isn't Claude's isn't Copilot's. Switch tools and you start over.\nIt rots. The code changes; the instructions don't. Six months later the agent is confidently working from a map of a city that's been rebuilt.\nNone of these are exotic. They're just what happens when a copy-pasted file meets a growing team.\nCurated rule lists (e.g. awesome-cursorrules) are great for inspiration, but they're copy-paste, single-tool, and have no sync or freshness.\nSkill/agent sync tools distribute tools across agents. Useful — but they solve distribution, not your team's standards, versioning-as-review, or the rot problem.\nThe Agent Skills standard + AGENTS.md are the right substrate to build on, not competitors.\nThe gap: nobody treats the standards themselves as code — owned, versioned, reviewed, and automatically distributed.\nThree moves:\nPut your standards in one git repo. Two kinds of artifact:\n\n\n\nRules — standing behavior (\"always validate input\", \"never log PII\").\nSkills — task workflows (\"here's how",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的CLAUDE.md无法扩展。把AI标准作为代码进行版本控制。",
+        "summary": "CLAUDE.md文件在跨团队和存储库扩展时存在不足，在管理多个项目仓库时会导致配置漂移、重复和工具锁定。本文建议将AI标准作为版本化代码保存在中央存储库中，实现自动分发和审查周期。"
+      }
+    }
+  },
+  {
+    "title": "Insider Threat Detection: SMB Password Policies That Actually Work",
+    "slug": "insider-threat-password-policies-smb",
+    "url": "https://dev.to/kokal_limited_b7d45823e1d/insider-threat-detection-smb-password-policies-that-actually-work-125n",
+    "source": "DEV Community",
+    "date": "2026-07-25T13:05:33.000Z",
+    "summary": "Insider threats account for 34% of SMB breaches, often through abused credentials; the article outlines three defensive controls: just-in-time privileged access with expiring tokens, credential vault logging with concurrency blocks, and automated offboarding workflows to revoke access at departure.",
+    "content": "When we think about security threats, we default to the external attacker — ransomware, phishing, brute-force bots. But according to the Verizon 2025 DBIR, insider threats account for 34% of breaches in small and medium businesses. And the top attack vector? Abused or mismanaged passwords.\nThe good news: you don't need a SOC to defend against this. You need sane password policies and a few controls wired into your credential workflow.\nNot every insider is malicious. Knowing the category tells you which control to reach for:\nMalicious — departing staff or contractors intentionally misusing access (exfiltrating a customer DB before resignation). IBM pegs the average cost at ~£210k per incident.\nNegligent — well-meaning people bypassing policy for convenience: passwords in Slack, credentials in a shared spreadsheet, no logout on shared machines. This is the biggest bucket — 56% of insider incidents.\nCompromised — an attacker operating under a real employee's stolen identity. NCSC attributes 72% of detected UK SMB insider incidents to compromised credentials.\n1. Just-in-time (JIT) privileged access. Stop granting permanent admin. Issue elevated credentials that expire on a timer.\n# Example: time-boxed elevation policy\ngrant:\n  role: db-admin\n  user: alice@company.com\n  ttl: 30m          # auto-revoke after 30 minutes\n  approval: required\n  audit: true\n\n2. Credential check-in / check-out. Shared accounts (vendor portals, social logins, admin consoles) should live in a vault that logs access and blocks concurrent use.\n[vault] alice checked OUT vendor-portal @ 14:02\n[vault] bob requested vendor-portal → QUEUED (in use)\n[vault] alice checked IN vendor-portal  @ 14:19\n\n3. Automated offboarding. Every departure should trigger a revocation workflow — rotate any shared secrets the person touched, kill their sessions, and confirm.\n# Offboarding hook (pseudo)\nrevoke_sessions \"$USER\"\nrotate_shared_secrets --touched-by \"$USER\"\ndisable_sso \"$USER\" && notify_admin \"offboarded: $USER\"",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "内部威胁检测：真正有效的中小企业密码策略",
+        "summary": "内部威胁占中小企业数据泄露的34%，通常通过滥用凭证实施。本文概述了三个防御控制措施：具有过期令牌的即时特权访问、带有并发阻止的凭证库日志记录，以及在员工离职时自动撤销访问权限的离职工作流。"
+      }
+    }
+  },
+  {
+    "title": "I'm a Dev Who Barely Knows the Kernel. Here's How I'm Learning How to Track a Packet with pwru",
+    "slug": "packet-tracing-pwru-kernel-debugging",
+    "url": "https://dev.to/lovestaco/im-a-dev-who-barely-knows-the-kernel-heres-how-im-learning-how-to-track-a-packet-with-pwru-5937",
+    "source": "DEV Community",
+    "date": "2026-07-25T13:01:01.000Z",
+    "summary": "pwru (packet, where are you?) is an eBPF-based tool that traces packet flow through the Linux kernel networking stack, filling a gap between tcpdump (which shows arrivals/departures) and kernel behavior (where packets get dropped or transformed). The article explains kernel packet handling for developers unfamiliar with networking internals.",
+    "content": "Hello, I'm Maneshwar. I'm building git-lrc, a Micro AI code reviewer that runs on every commit. It is free and source-available on Github. Star git-lrc to help devs discover the project. Do give it a try and share your feedback.\nHey, so here's a confession. \nMy idea of \"networking debugging\" used to top out at iptables -L -v -n, squinting at counters, and occasionally yelling \"WHY IS IT DROPPING\" at a terminal that does not care about my feelings. \nI know just enough kernel to be dangerous: I know packets go in, sometimes they don't come out, and somewhere in between there's a black box that I was told is \"the kernel networking stack.\"\nThen I found cilium/pwru sitting in a repo I was poking around, and it broke my brain a little. \nSo I read the source, dragged my devops brain through it, and now I'm going to explain it to you the way I wish someone had explained it to me. \nNo kernel PhD required. \nSome puns required.\nconsole.log\n\n\nAs a web dev, when something's broken, I add a console.log, or I set a breakpoint, or worst case I print my way to enlightenment. \nThe request comes in, flows through my middleware, my handlers, my ORM, and I can trace every step because it's all just... functions calling functions, in my process, in my language.\nA packet inside the Linux kernel does not work like that. \nIt gets handed from function to function across the network stack (ip_rcv, tcp_v4_rcv, netfilter hooks, qdiscs, the works), it can get cloned, NAT'd, encapsulated in a tunnel, handed to a virtual ethernet pair, sent through an eBPF program of its own, and dropped at literally any of a few thousand points, often silently. \nThere's no stack trace. \nThere's no packet.log(). \nThe tool you reach for as a network person is tcpdump, which is great for seeing a packet arrive and a packet leave, but useless for seeing what happened to it in between, inside the kernel, especially when it never arrives at all.\nThat's the gap pwru (packet, where are you?) fills. \nIt's basically an eBP",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我是个几乎不懂内核的开发者。以下是我如何学习用 pwru 追踪数据包的方法",
+        "summary": "pwru（数据包，你在哪里？）是一个基于 eBPF 的工具，用于追踪 Linux 内核网络堆栈中的数据包流动，填补了 tcpdump（显示数据包到达/离开）和内核行为（数据包被丢弃或转换的地方）之间的空白。这篇文章为不熟悉网络内部机制的开发者解释了内核数据包处理。"
+      }
+    }
+  },
+  {
+    "title": "Node.js 26.5.0: What's New for Web Streams and Error Handling",
+    "slug": "nodejs-26-5-web-streams",
+    "url": "https://dev.to/frank_signorini/nodejs-2650-whats-new-for-web-streams-and-error-handling-1faa",
+    "source": "DEV Community",
+    "date": "2026-07-25T13:00:15.000Z",
+    "summary": "Node.js 26.5.0 enhances Web Streams API compatibility, particularly BYOB (Bring Your Own Buffer) reader support and WritableStreamDefaultWriter improvements. These changes reduce memory allocations and bridge the gap between Node.js and browser streaming APIs, benefiting data pipeline and file parsing scenarios.",
+    "content": "I saw the Node.js 26.5.0 release announcement the other day, and as someone who's spent years wrestling with I/O and data processing, a few things immediately jumped out at me. While it's a \"Current\" release, meaning it's not LTS yet, these incremental updates often signal the direction the platform is heading. For working developers, especially those of us building backend services or data pipelines, understanding these smaller changes can save a lot of headaches down the line.\nThe most significant update for me in this release is the continued enhancement of the Web Streams API. Specifically, there's a fix for WritableStreamDefaultWriter's releaseLock() method and improved handling for ReadableStream and TransformStream when dealing with BYOB (Bring Your Own Buffer) readers.\nWhy does this matter? For a long time, Node.js streams were... well, they were Node.js streams. They did the job, but often felt disconnected from the browser's Web Streams API, leading to a lot of impedance mismatch when trying to share code or patterns between front-end and back-end, or even when interacting with newer browser-focused APIs like fetch in a Node.js context.\nThe Web Streams API, with its ReadableStream, WritableStream, and TransformStream interfaces, offers a more standardized and often more ergonomic way to handle chunks of data. The BYOB reader support, in particular, is crucial for performance-sensitive scenarios where you want to minimize memory allocations by reusing buffers. Imagine parsing large files or processing network traffic; avoiding constant buffer re-allocations can make a real difference.\nHere's a quick example of how you might use a ReadableStream with a TransformStream in a Node.js environment, demonstrating the kind of patterns these improvements are solidifying:\nimport { Readable, Transform } from 'node:stream';\n\n// A simple ReadableStream that emits numbers\nclass NumberSource extends Readable {\n  constructor(options) {\n    super(options);\n    this.current",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Node.js 26.5.0：Web Streams 和错误处理的新增功能",
+        "summary": "Node.js 26.5.0 增强了 Web Streams API 兼容性，特别是 BYOB（自带缓冲区）读取器支持和 WritableStreamDefaultWriter 改进。这些更改减少了内存分配，缩小了 Node.js 和浏览器流式 API 之间的差距，有益于数据管道和文件解析场景。"
+      }
+    }
+  },
+  {
+    "title": "My STL Post Sparked a Real Discussion — Here's Where It Landed",
+    "slug": "stl-containers-problem-solving",
+    "url": "https://dev.to/alanwu/my-stl-post-sparked-a-real-discussion-heres-where-it-landed-2jfj",
+    "source": "DEV Community",
+    "date": "2026-07-25T12:58:07.000Z",
+    "summary": "Following debate on STL container selection, the author argues that while fundamental problem-solving skills matter most, choosing data structures that match your mental model validates your thinking rather than fighting it. Sketching solutions on paper before coding prevents implementation churn.",
+    "content": "Algorymer came back with more thoughts after the AoC article. The conversation drifted from \"which container to use\" to something bigger: is the tool even the point?\nTheir point: the real skill isn't picking between vector and map. It's breaking down a problem on paper first. Language and data structures are just implementation details. A good solution works in any language.\nThey're not wrong.\nWhen I solve problems on Luogu, I sketch on scratch paper before typing. Not because it looks smart — because jumping straight to code means rewriting everything three times.\nThe container choice comes after you understand the problem. If you don't know what operations you need, how can you pick the right tool?\nYes, the core skill is problem-solving. But here's the thing: if your go-to solution for every problem is int arr[1000], you're making the problem-solving step harder too. You're translating the problem into a form your limited toolbox can handle, instead of into its natural shape.\nPicking the right container IS part of problem-solving. It's not separate from it.\nSomeone in the thread said: use pen and paper, use imagination, the language doesn't matter.\nI'd say: use pen and paper first. But when you reach for the keyboard, reach for the tool that matches your mental model. If your brain sees stacks, type stack. If your brain sees key-value pairs, type map. That way the code validates your thinking instead of fighting it.\nThanks Algorymer for pushing the discussion beyond syntax. That's the good stuff.\nMy GitHub: https://github.com/Cn-Alanwu",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我的 STL 文章引发了真实讨论——以下是结果",
+        "summary": "在关于 STL 容器选择的讨论后，作者辩称虽然基础问题解决技能最重要，但选择与你的思维模型相匹配的数据结构验证了你的思维，而不是与之相悖。在编码前在纸上草拟解决方案可以防止实现变更。"
+      }
+    }
+  },
+  {
     "title": "Portable Paths in Knowledge-and-Memory-Management v0.0.2",
     "slug": "portable-paths-knowledge-memory-management",
     "url": "https://dev.to/mage0535/portable-paths-in-knowledge-and-memory-management-v002-2b4j",
@@ -192,6 +384,22 @@
     }
   },
   {
+    "title": "Android May Soon Restrict On-Device ADB",
+    "slug": "android-restrict-on-device-adb",
+    "url": "https://kitsumed.github.io/blog/posts/android-may-soon-restrict-on-device-adb/",
+    "source": "Hacker News",
+    "date": "2026-07-25T06:57:14.000Z",
+    "summary": "Android may soon implement restrictions on on-device ADB (Android Debug Bridge) access, potentially limiting developers' direct debugging capabilities on their own devices.",
+    "content": "Article URL: https://kitsumed.github.io/blog/posts/android-may-soon-restrict-on-device-adb/\nComments URL: https://news.ycombinator.com/item?id=49045159\nPoints: 391\n# Comments: 172",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Android 可能即将限制设备端 ADB 访问",
+        "summary": "Android 可能很快会对设备上的 ADB（Android 调试桥）访问实施限制，可能会限制开发者在自己设备上的直接调试能力。"
+      }
+    }
+  },
+  {
     "title": "Azure SQL Managed Instance vs Azure SQL Database: How I Actually Made the Call",
     "slug": "azure-sql-managed-instance-vs-database",
     "url": "https://dev.to/vicky_acedia/azure-sql-managed-instance-vs-azure-sql-database-how-i-actually-made-the-call-3b60",
@@ -380,6 +588,22 @@
       "zh": {
         "title": "一个 Cloudflare Workers cron，多个任务：带时间分支的每分钟触发",
         "summary": "通过在处理程序中使用时间谓词分支，将多个 cron 计划整合到一个每分钟触发的任务中，允许在 Cloudflare Workers 的免费五个 cron 每账户限制下运行许多自主任务。"
+      }
+    }
+  },
+  {
+    "title": "Hannah Fry Wins the Leelavati Prize in 2026 for Mathematics Outreach",
+    "slug": "hannah-fry-leelavati-prize-2026",
+    "url": "https://www.maths.cam.ac.uk/features/professor-hannah-fry-wins-leelavati-prize",
+    "source": "Hacker News",
+    "date": "2026-07-25T01:44:12.000Z",
+    "summary": "Professor Hannah Fry has won the 2026 Leelavati Prize, a prestigious award recognizing outstanding contributions to mathematics outreach and public engagement.",
+    "content": "Article URL: https://www.maths.cam.ac.uk/features/professor-hannah-fry-wins-leelavati-prize\nComments URL: https://news.ycombinator.com/item?id=49043724\nPoints: 324\n# Comments: 53",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Hannah Fry 因数学推广在 2026 年获得 Leelavati 奖",
+        "summary": "Hannah Fry 教授获得了 2026 年 Leelavati 奖，这是一个认可数学科普和公众参与杰出贡献的著名奖项。"
       }
     }
   }
