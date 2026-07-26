@@ -1,0 +1,194 @@
+[
+  {
+    "title": "The Best Approach to Dependency Vulnerability Scanning in CI Pipelines",
+    "slug": "dependency-vulnerability-scanning-ci-pipelines",
+    "url": "https://dev.to/brino666/the-best-approach-to-dependency-vulnerability-scanning-in-ci-pipelines-4m64",
+    "source": "DEV Community",
+    "date": "2026-07-26T02:36:31.000Z",
+    "summary": "This article discusses a pragmatic two-stage approach to dependency vulnerability scanning: failing builds on critical/high vulnerabilities while reporting medium/low ones during sprint planning. The author recommends using both pip-audit and safety for Python projects and provides GitHub Actions workflow examples.",
+    "content": "The Best Approach to Dependency Vulnerability Scanning in CI Pipelines\n\n\nDependency vulnerabilities are the silent killers of modern software projects. A single outdated package can expose your entire application to attacks, and with the average project pulling in hundreds of transitive dependencies, manual tracking is impossible.\nAfter years of implementing security scanning across Python, TypeScript, and React projects, I've learned that the \"best\" approach isn't about choosing a single tool—it's about building a multi-layered strategy that catches vulnerabilities early, fails fast when necessary, and doesn't bring your development velocity to a grinding halt.\nLet's cut through the noise and build a practical scanning strategy.\nMost teams make a critical mistake: they treat all vulnerabilities equally and fail every build that has any vulnerability whatsoever. This sounds secure in theory but becomes unworkable in practice. Within weeks, developers start bypassing the checks or creating \"temporary\" exceptions that become permanent.\nThe better approach? Implement two distinct scanning stages:\nStage 1: Fail on Critical/High Vulnerabilities\nThis is your hard gate. Any critical or high-severity vulnerability with a known exploit blocks the build. No exceptions, no debate.\nStage 2: Report on Medium/Low Vulnerabilities\nThese get logged, tracked, and addressed during regular sprint planning. They don't block deployments but create visibility and accountability.\nThis pragmatic approach maintains security without sacrificing developer productivity.\nFor Python projects, I recommend running both pip-audit and safety in your CI pipeline. Here's why: pip-audit uses the PyPI Advisory Database (which is comprehensive and well-maintained), while safety pulls from Safety DB (which sometimes catches things others miss).\nHere's a GitHub Actions workflow that implements the two-stage philosophy:\nyaml\non: [push, pull_request]\njobs:\n  - name: Set up Python\n    uses: actions/setup-pytho",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "CI管道中的最佳依赖漏洞扫描方法",
+        "summary": "本文讨论了一种务实的两阶段依赖漏洞扫描方法:在关键/高危漏洞时构建失败,同时在冲刺规划期间报告中危/低危漏洞。作者推荐为Python项目同时使用pip-audit和safety,并提供了GitHub Actions工作流示例。"
+      }
+    }
+  },
+  {
+    "title": "claude-docker: one command, one container, full permissions",
+    "slug": "claude-docker-sandboxed-container",
+    "url": "https://dev.to/rogue_paradigms/claude-docker-one-command-one-container-full-permissions-34e4",
+    "source": "DEV Community",
+    "date": "2026-07-26T02:21:20.000Z",
+    "summary": "This article describes a Docker-based tool that allows running Claude Code with full permissions in a sandboxed container using simple shell aliases. The approach safely enables unrestricted operations within the container's isolated filesystem without affecting the host system.",
+    "content": "Running Claude Code in a Sandboxed Docker Container\n\n\nIf you've ever wanted to run Claude Code with full permissions, without worrying about it touching anything outside your project. This one-liner install script does exactly that.\nThe script builds a minimal Docker image (node:22-slim) with Claude Code and the rtk CLI pre-installed, then wires up two shell aliases:\nclaude-docker — launches Claude Code inside the container with --dangerously-skip-permissions, your current directory mounted at /workspace\n\n\nclaude-docker-sh — drops you into a bash shell in the same container, useful for poking around or debugging\nBecause everything runs inside the container, \"skip permissions\" mode is much less risky than running it on your bare host — Claude can act freely, but it's boxed into the container's filesystem plus whatever you've explicitly mounted.\nUnder the hood, the install script just appends two docker run one-liners to your shell rc file as aliases — no separate binary, no PATH changes, just plain shell aliasing. That's what makes claude-docker and claude-docker-sh available as regular commands once the file is sourced.\nThe image itself starts from node:22-slim and installs git, curl, and gh via apt, then @anthropic-ai/claude-code via npm, plus the rtk CLI through its own install script. It also creates a dedicated non-root claudeuser to run as, rather than executing everything as root inside the container.\nDocker needs to be installed and running first — the script builds an image and everything else depends on that.\nTwo versions are available depending on your shell:\nbash:\ncurl -s https://gist.githubusercontent.com/acashjos/93f47fce263dcaaa1cd5ba38b4459ffb/raw/5944ef120f150ca08287d406ff3397a6687b871f/claude-docker-install-bash.sh | sh\n\nzsh:\ncurl -s https://gist.githubusercontent.com/acashjos/93f47fce263dcaaa1cd5ba38b4459ffb/raw/5944ef120f150ca08287d406ff3397a6687b871f/claude-docker-install-zsh.sh | sh\n\nOr download it first, review it, then run:\ncurl -O https://gis",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "claude-docker:一个命令,一个容器,完全权限",
+        "summary": "本文介绍了一个基于Docker的工具,允许使用简单的shell别名在沙箱容器中运行Claude Code并具有完全权限。该方法在容器的隔离文件系统中安全地启用不受限制的操作,而不会影响主机系统。"
+      }
+    }
+  },
+  {
+    "title": "The JavaScript Gamepad API: A Practical Guide to Reading Controller Input",
+    "slug": "gamepad-api-guide-controller-input",
+    "url": "https://dev.to/trkb/the-javascript-gamepad-api-a-practical-guide-to-reading-controller-input-2lmc",
+    "source": "DEV Community",
+    "date": "2026-07-26T02:21:06.000Z",
+    "summary": "This guide explains how the JavaScript Gamepad API works, covering polling mechanics, dead zones, and platform-specific differences between USB and Bluetooth controllers. The article provides practical code examples and demonstrates common pitfalls for building browser-based controller input systems.",
+    "content": "The first time you wire up a game controller in a browser, the API will almost certainly appear broken. You plug in an Xbox pad, call navigator.getGamepads(), and get back an array of four null values. Nothing is wrong. The API is just quieter and stranger than most browser APIs, and almost none of that strangeness is obvious from the method signature.\nThis is a walkthrough of how the Gamepad API actually behaves: how polling works, what buttons and axes really contain, why dead zones exist, and why the same controller reports different data over USB than over Bluetooth. There is working code for each part, and a section at the end on the mistakes that cost me the most time.\nBrowser-based controller testing is worth understanding for two separate reasons. The obvious one is that you want to build something with controller input: a WebGL game, a cloud gaming client, an accessibility control scheme, a kiosk. The less obvious one is diagnostics. A web page is the fastest way to inspect a piece of USB or Bluetooth hardware, because there is no installer, no driver, no signed binary, and no platform-specific build. You open a URL and the raw input is on screen. That property makes the browser a genuinely good place to answer questions like \"is this stick drifting or is my game misconfigured?\"\nThe short version\nThe Gamepad API is poll-based, not event-based, for everything except connect and disconnect.\nBrowsers hide gamepads until the user presses a button, which is a deliberate fingerprinting defence.\nChromium requires a secure context, so http:// pages other than localhost get nothing.\nButtons are objects with a pressed boolean and an analog value, not plain booleans.\nAxes are floats from -1 to 1 that are almost never exactly 0, which is what dead zones exist to absorb.\nThe Gamepad API is a small browser interface that exposes the state of connected game controllers as read-only snapshots. It does not fire events when a button is pressed. Instead, you ask the browser f",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "JavaScript Gamepad API:读取控制器输入的实用指南",
+        "summary": "本指南解释了JavaScript Gamepad API的工作原理,涵盖轮询机制、死区和USB与蓝牙控制器之间的平台特定差异。文章提供了实用代码示例,并演示了构建基于浏览器的控制器输入系统的常见陷阱。"
+      }
+    }
+  },
+  {
+    "title": "Kimi K3 Plays Pokémon FireRed with Vision Alone: A Model That Explores on Its Own",
+    "slug": "pokemon-firered-autonomous-agent-vision",
+    "url": "https://dev.to/qingze_hu_c4c251c1b353ede/kimi-k3-plays-pokemon-firered-with-vision-alone-a-model-that-explores-on-its-own-1ja3",
+    "source": "DEV Community",
+    "date": "2026-07-26T02:16:42.000Z",
+    "summary": "This article compares how Kimi K3 and Fable 5 AI models perform on Pokémon FireRed using only vision, highlighting K3's slower progress and recovery from state confusion. The case demonstrates real challenges in autonomous AI agents, including how models recover from overwritten internal notes.",
+    "content": "Full-run timelapse video:\nhttps://www.youtube.com/watch?v=9GMPVe2jFio\n\n\n\n\nK3\nFable 5\n\n\n\n\nActions\n1,999 (2,046 requests)\n2,000\n\n\nTotal cost\n$16.60\n$73.50\n\n\nAverage cost per action\n~$0.008\n~$0.037\n\n\nEndpoint\nMidway through Viridian Forest, no badges\nBoulder Badge + Route 3\n\n\nParty\nBulbasaur Lv8, Pidgey Lv3\nIvysaur Lv18, Pidgey, Pikachu\n\n\n\nThe same harness, the same Chinese ROM, and the same 2,000 actions: Fable 5 cleared the Gym, while K3 had only just entered the forest—roughly where Fable was around action 700.\nThe most interesting detour in the entire run happened between Viridian City and Pallet Town. The log actually contains three round trips, each completely different in nature:\n\n\n\nAction\nWhat happened\n\n\n\n\nAbout 736\n\nFirst round trip: a minor mishap. While looking for the Mart in Viridian City, it accidentally took the wooded path south and ended up back on Route 1. It immediately wrote “wrong direction for story” in its notes and turned around.\n\n\nAbout 841\n\nSecond round trip: a required story beat. After receiving Oak's Parcel, it returned to Pallet Town, delivered it to Oak, and received the Pokédex.\n\n\nAbout 991\nIt caught Pidgey, and normal progress continued.\n\n\nAbout 1,134\n\nThird round trip: the amnesia-like mistake begins. A notes overwrite lost the fact that the parcel had already been delivered. At the Viridian Pokémon Center, it wrote, “NEXT: find Mart, clerk gives OAK'S PARCEL”—something it had completed long ago.\n\n\nAbout 1,216–1,350\nIt went all the way south to Pallet Town and spent nearly an hour circling the laboratory entrance and its own front door. Finally, it realized: “I already have Bulbasaur and Pidgey in my party, so the starter event must have happened already”—using its party composition to disprove its own incorrect notes.\n\n\n\nThis detour cost about $2 and a few hundred actions. It is exactly why the system prompt says that “notes are hypotheses, not ground truth.” It also exposes the risk of overwrite-style notes: a single update can destr",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Kimi K3 独自通过视觉玩宝可梦火红：一个自主探索的模型",
+        "summary": "本文比较了Kimi K3和Fable 5两个AI模型在只使用视觉的情况下在《宝可梦火红》中的表现，重点突出了K3较慢的进度和从状态混乱中的恢复。这个案例展示了自主AI代理面临的真实挑战，包括模型如何从被覆盖的内部笔记中恢复。"
+      }
+    }
+  },
+  {
+    "title": "Beyond the Snapshot: Integrating 30-Day Environmental Intelligence into AI Agents",
+    "slug": "environmental-intelligence-ai-agents",
+    "url": "https://dev.to/renato_marinho/beyond-the-snapshot-integrating-30-day-environmental-intelligence-into-ai-agents-iaa",
+    "source": "DEV Community",
+    "date": "2026-07-26T02:16:34.000Z",
+    "summary": "This article proposes integrating historical environmental data into AI agents through MCP tools, enabling longitudinal analysis beyond simple snapshots. Using Google's Air Quality API as an example, the author argues that 30-day data windows allow agents to perform predictive reasoning instead of reactive lookups.",
+    "content": "I've been watching people build AI agents that are incredibly good at refactoring TypeScript, but completely blind to the physical world they inhabit. You can give an agent access to your GitHub, your Jira, and your AWS console, yet as soon as you ask it how local air quality might affect a planned outdoor event in San Francisco, it starts hallucinating or giving generic advice based on training data from two years ago.\nThe problem isn't the LLM's reasoning; it's the lack of a real-time, high-fidelity environmental sensor via MCP. Most developers solve this by trying to wrap a raw API—in this case, Google’s Air Quality API—into their own custom server. They spend three days wrestling with Google Cloud Console, IAM roles, and OAuth callbacks, only to realize they've built a brittle wrapper that breaks the moment the API schema shifts.\nI wanted something different. I wanted an agent that doesn't just know 'the air is bad,' but can perform longitudinal analysis on pollutant trends using actual historical data.\nWhen you look at the Google Air Quality MCP, there are two tools that fundamentally change how an agent perceives its environment: get_current_air_quality and get_air_quality_history.\nA simple 'lookup' tool is what most people build. It gives you a single data point—the current Universal Air Quality Index (UAQI)—and calls it a day. That's fine for a weather app, but useless for an autonomous agent tasked with complex decision-making.\nThe real value lies in the 720-hour window provided by get_air_quality_history. Providing up to 30 days of historical data allows an agent to move from reactive snapshots to proactive reasoning. If I'm asking an agent to analyze air quality trends for a construction project, it isn't just looking at today's PM2.5 levels; it can see the trajectory of NO2 or Ozone concentrations over the last month. It can identify if a spike in pollutants correlates with specific local events or weather patterns.\nThis is where 'Search-Augmented Genera",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "超越快照：将30天环境智能集成到AI代理中",
+        "summary": "本文建议通过MCP工具将历史环保数据集成到AI代理中，实现超越简单快照的纵向分析。以谷歌空气质量API为例，作者主张30天数据窗口允许代理执行预测推理而不是被动查询。"
+      }
+    }
+  },
+  {
+    "title": "Built a Custom Virtual Machine From Scratch in Rust",
+    "slug": "custom-virtual-machine-rust",
+    "url": "https://dev.to/xelvoridze/built-a-custom-virtual-machine-from-scratch-in-rust-nc2",
+    "source": "DEV Community",
+    "date": "2026-07-26T02:16:24.000Z",
+    "summary": "The author describes XVM, a custom virtual machine built in Rust with 8 registers, 33 instructions, a built-in debugger with breakpoints, and video memory for direct pixel drawing. The project includes an IntelliJ/RustRover plugin for syntax highlighting and demonstrates educational VM design principles.",
+    "content": "A few weeks ago I started working on XVM - a custom virtual machine built entirely from scratch in Rust. Not an emulator of any real processor (not x86, not ARM) - a completely custom architecture I designed myself, in the same spirit as educational VMs like CHIP-8.\nIt has its own CPU with 8 registers, 33 instructions, a built-in step-by-step debugger with breakpoints, typed error handling instead of panics, and video memory with a live window you can draw pixels to directly from assembly code.\nI also built a small IntelliJ/RustRover plugin that adds syntax highlighting and a custom icon for .xasm files, since I wanted the editing experience to feel like a real language.\nScreenshots, full instruction list, and setup instructions are in the repos:\nXVM: https://github.com/xelvoridze/xvm\n\nXASM plugin: https://github.com/xelvoridze/xasm-plugin\n\n\n\nWould love any feedback, especially on the instruction set design and error handling - this is my first real Rust project and I'm still learning a lot along the way.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "用Rust从头构建了一个自定义虚拟机",
+        "summary": "作者介绍了XVM，一个用Rust构建的自定义虚拟机，具有8个寄存器、33条指令、内置调试器和断点功能以及用于直接像素绘制的视频内存。该项目包括IntelliJ/RustRover插件以支持语法高亮，展示了教育虚拟机设计原理。"
+      }
+    }
+  },
+  {
+    "title": "I had a blog with no pipeline feeding it",
+    "slug": "blog-pipeline-content-strategy",
+    "url": "https://dev.to/bezacorelabs/i-had-a-blog-with-no-pipeline-feeding-it-4enm",
+    "source": "DEV Community",
+    "date": "2026-07-26T02:12:08.000Z",
+    "summary": "This article addresses maintaining consistent publishing cadence by splitting content creation into two tiers: one-minute capture of raw bullets from work sessions, and weekly distillation into polished posts. The approach solves the problem of trying to reconstruct interesting details days after they occur.",
+    "content": "Building in public is part of how this studio is supposed to work. It's in the go-to-market plan in plain language: don't buy attention, earn it by showing the work.\nThen I shipped this blog, wrote two posts about how I run engagements, and noticed something uncomfortable. There was a publishing surface and there was plenty of real work happening behind it — two products in flight, a homelab platform, a client site — and absolutely nothing connecting the two. No pipeline. No cadence. Just a good intention and an empty queue.\nThe obvious fix is \"write a post about what you did today.\" I've tried that version. It fails for a boring reason: at the end of a long build session, writing a polished post is a tax, and taxes get dodged. You skip one day, then a week, and then you're staring at a blank editor trying to reconstruct what you did on a Tuesday eleven days ago.\nThat reconstruction problem is the one that actually worried me. My words at the time were:\nI don't want to be 70% done and trying to remember what I did on day X.\nThe interesting details — the bug that took three hours, the tradeoff you agonized over, the thing that surprised you — have a short shelf life. They're vivid the day they happen and gone by the weekend.\nSo the tax has to come off the writing, not off the remembering.\nThe system splits into two tiers that cost very different amounts.\n\nTier one is capture, and it's about a minute. At the end of any session that produced something real, I drop one to three raw bullets into a build log: what shipped, why it's interesting, and a link. Bullets, not prose. No editing, no audience in mind. If a session wasn't post-worthy, I write nothing — not everything is content, and pretending otherwise is how you end up publishing filler.\nTier two is the distill, once a week. I read the week's seeds, pick one angle, and write a single post from it. One post, one idea. The raw material is already sitting there with the details intact, so the writing session is actua",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我有一个没有内容供应管道的博客",
+        "summary": "这篇文章探讨了如何通过将内容创作分为两个层级来维持稳定的发布节奏：一个是在工作中快速记录要点（耗时一分钟），另一个是每周对这些内容进行精细化处理并发布。这个方法解决了在几天后试图回忆重要细节的问题。"
+      }
+    }
+  },
+  {
+    "title": "Open-Weight AI Is Having Its Kubernetes Moment — And Developers Need to Pay Attention",
+    "slug": "open-weight-ai-kubernetes-moment",
+    "url": "https://dev.to/jamilxt/open-weight-ai-is-having-its-kubernetes-moment-and-developers-need-to-pay-attention-3n4",
+    "source": "DEV Community",
+    "date": "2026-07-26T02:09:39.000Z",
+    "summary": "The article draws a parallel between Kubernetes' ecosystem dominance over competitors like Mesos and today's emerging open-weight AI models displacing closed APIs. It argues that whoever becomes the standardization layer for AI will drive ecosystem innovation similar to Kubernetes' impact on infrastructure.",
+    "content": "In 2015, if you were building a distributed system, you faced a choice.\nApache Mesos was mature, proven at scale — Twitter and Airbnb ran it in production. Docker Swarm was simple and familiar. And then there was this newcomer called Kubernetes that Google had just open-sourced.\nMost developers picked whatever their team already knew. The conventional wisdom was that Mesos was for \"real\" infrastructure and Kubernetes was a toy. Amazon even launched ECS (EC2 Container Service) instead of embracing Kubernetes.\nWe all know how that ended.\nKubernetes didn't win because it was the best technology at the time. It won because it became the industry's center of gravity — a neutral substrate that engineers, cloud providers, and vendors could all build on. Once that happened, innovation exploded around it. Networking, storage, observability, security, deployment tools — every gap got filled by the community.\nToday, the AI ecosystem is replaying that exact playbook. And developers who understand the pattern will make much better technology bets.\nTobi Knaup, co-founder of Mesosphere (the company that built on top of Mesos before Kubernetes disrupted them), wrote about this exact parallel recently. He watched Kubernetes eat his company's market. Now he sees the same dynamics playing out in AI.\n\"Once an open platform that people can customize becomes the industry's center of gravity, no single vendor can match the combined rate of innovation around it.\" — Tobi Knaup\nThe players are different, but the structural pattern is identical:\n\n\n\nEra (2015)\nContainer Ecosystem\nAI Ecosystem (Today)\n\n\n\n\nMature incumbent\nApache Mesos\nOpenAI / Anthropic APIs\n\n\nThe \"safe\" choice\nDocker Swarm\nGoogle Vertex AI / AWS Bedrock\n\n\nThe open disruptor\nKubernetes\nOpen-weight models (Llama, Qwen, Mistral, Gemma)\n\n\nThe standardization layer\nCNCF\nHugging Face + emerging tools\n\n\nThe ecosystem\nHelm, Prometheus, Istio, etc.\nvLLM, Ollama, LangChain, LoRA adapters\n\n\n\nIf you lived through the container wars, you a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "开放权重AI正在经历其Kubernetes时刻——开发者需要关注",
+        "summary": "这篇文章将Kubernetes对基础设施领域的生态主导地位与当今新兴的开放权重AI模型对闭源API的取代进行了类比。文章论证，无论谁成为AI领域的标准化层，都将像Kubernetes对基础设施的影响一样驱动生态创新。"
+      }
+    }
+  },
+  {
+    "title": "Speed-to-lead is an engineering problem: winning the job in under 2 seconds",
+    "slug": "speed-to-lead-engineering-problem",
+    "url": "https://dev.to/miki_lallouz_5e7d8f534658/speed-to-lead-is-an-engineering-problem-winning-the-job-in-under-2-seconds-4gl4",
+    "source": "DEV Community",
+    "date": "2026-07-26T02:08:26.000Z",
+    "summary": "This article examines how response speed to customer leads is critical for winning service business jobs, with research showing responses beyond 5-30 minutes reduce conversion by 100x. The author discusses technical systems needed to answer leads meaningfully within 2 seconds across multiple communication channels.",
+    "content": "Disclosure: I run Auto-Respond, an AI lead-response tool for home-service businesses. This post is about the problem, not a pitch. The product link sits at the bottom.\nMost \"lead management\" advice treats speed as a nice-to-have. For local service businesses it is close to the whole game, and it turns out to be an interesting systems problem.\nDr. James Oldroyd's lead-response research at MIT found that waiting even 5 to 30 minutes to respond makes you roughly 100x less likely to ever reach a lead. Harvard Business Review's audit of thousands of US companies found the median first-response time was measured in hours, and a large share never responded at all. The business that answers first usually books the job.\nSo the target is not \"respond quickly.\" The target is: first meaningful reply in under 2 seconds, 24/7, with no human in the loop for the first touch.\nA canned \"Thanks, we'll be in touch\" hits the 2-second bar and loses the job anyway, because the lead moves on to whoever actually answered their question. A real first reply has to:\nNormalize very different inputs. A Yelp \"Request a Quote\", a Thumbtack lead, a Facebook Messenger message, a Facebook Lead Ad, an Instagram DM, and a Google Local Services Ads lead all arrive in different shapes, over different APIs, with different rate limits and reply windows.\nUnderstand intent, not just keywords. Job type, location, and urgency decide whether this is a booking or a tire-kicker.\nAsk the right next question and keep the thread going until the lead books or opts out.\nRecover missed phone calls. A contractor on a roof cannot pick up. A missed call should trigger an instant AI voice callback so the lead is still answered.\nFollow up on a schedule (day 1, 3, 7) and stop automatically the moment the customer replies, so you are persistent without being spam.\nHand off cleanly to a human and the CRM once the lead is qualified.\nEach of those is a small thing. Doing all of them within a couple of seconds, across six channel",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "响应速度是一个工程问题：在2秒内赢得业务",
+        "summary": "这篇文章探讨了对客户询问的响应速度对于赢得服务业务的重要性，研究表明超过5-30分钟的响应会使转化率降低100倍。作者讨论了需要什么样的技术系统来在2秒内通过多个沟通渠道有意义地回应客户询问。"
+      }
+    }
+  },
+  {
+    "title": "My side account posts to X every day and I never touch it — here's the setup",
+    "slug": "automated-social-media-posting-raspberry-pi",
+    "url": "https://dev.to/creatortoolsjp/my-side-account-posts-to-x-every-day-and-i-never-touch-it-heres-the-setup-og3",
+    "source": "DEV Community",
+    "date": "2026-07-26T02:05:58.000Z",
+    "summary": "The author describes running an automated social media posting system on a Raspberry Pi that uses Claude Code to draft daily posts to X and Bluesky without manual intervention. The setup allows remote steering from a phone while keeping the main laptop free and maintaining always-on posting during sleep and travel.",
+    "content": "For the last few months, one of my side-project social accounts has posted to X and note every morning and every night.\nI have never pressed the post button.\nIt runs on a palm-sized computer in the corner of my room — not my laptop. While I sleep, while I'm out, it keeps going. This post is about how it's wired up, what actually paid off, and the parts that tripped me up (skip to the gotchas if that's why you're here).\nTo be clear: I run this for a separate side account. The account I'm posting this from is still hand-run. I automate the parts that are safe to automate, and keep a hand on the rest.\nI wanted scheduled, AI-drafted posts. The obvious way is a script on my laptop + cron. But that means my laptop has to stay on, and it's tied up doing background work I don't want to think about.\nSo I moved the whole thing off my daily driver and onto a dedicated always-on machine.\nA small always-on box (a Raspberry Pi — but any spare machine running Ubuntu works the same) runs Claude Code. A cron job wakes it on a schedule, Claude drafts the post, and it publishes to X / note. I can check in or redirect it from my phone. That's it: always-on machine + AI + a schedule.\nThe interesting part isn't the cron line. It's that the AI agent lives on the box, so \"post every morning\" and \"hey, rewrite today's post to be softer\" are the same kind of instruction — one from cron, one from me on my phone.\n1. My main laptop is completely free. This was the whole point, and it delivered. I can close it, take it out, or push it hard on real work. The automation doesn't care — it's on a different box that never turns off.\n2. I can steer it from my phone. Claude Code has a Remote Control feature: the session on the Pi shows up in the Claude mobile app (or claude.ai/code in a browser). On the train I type \"change tonight's post angle\" and it's done. No laptop, no SSH.\n3. It runs while I sleep and while I'm away. No more waking up to hit \"post\" at 7am. Travel doesn't create a gap.\n4. Failures",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我的小号每天自动发布到X，我从不碰它——这是设置方式",
+        "summary": "作者描述了在树莓派上运行的自动化社交媒体发布系统，使用Claude Code为X和Bluesky自动起草每日帖子，无需手动干预。该设置允许从手机远程控制，同时保持主笔记本电脑空闲，并在睡眠和旅行期间保持始终在线的发布。"
+      }
+    }
+  },
+  {
+    "title": "The Moment the Server Room Goes Dark",
+    "slug": "cognitive-debt-ai-dependency",
+    "url": "https://dev.to/nonasking/the-moment-the-server-room-goes-dark-mn3",
+    "source": "DEV Community",
+    "date": "2026-07-26T01:59:11.000Z",
+    "summary": "This article examines warnings about AI dependency causing cognitive atrophy, citing neuroscience research on weakened brain connectivity and critical thinking from outsourcing thinking. While acknowledging real costs, the author argues that humanity has historically accepted such tradeoffs, as writing replaced oral memorization.",
+    "content": "The usual warning about AI starts like this: the moment the lights go out in the server room, every step we leaped forward with AI snaps back to where we started. The power fails, the API dies, the subscription lapses — and we have to go back to being our pre-AI selves. What if that self has already atrophied?\nThe warning is half right. The cost of delegation does get billed — that much is fact. Researchers at the MIT Media Lab showed via EEG that people who wrote essays with an LLM had noticeably weaker brain connectivity than those who wrote unaided, and couldn't even quote properly from the essay they had just written. The name they gave this is \"cognitive debt.\" True to the name, it lingered even after AI use stopped (with the caveat that this is a preprint with a sample of 54, only 18 of whom took the final session that showed the lingering effect). Another study of 666 people reported a negative correlation between frequency of AI use and critical thinking, mediated by cognitive offloading — the habit of handing your thinking to an external device. The lineage runs deeper. The 2011 \"Google effect\" study showed that the moment we expect to be able to look something up later, we remember the location instead of the content. Navigation research showed that the hippocampus, active when we find our own way, goes quiet while we follow a machine's instructions — and that the habit compounds into measurable spatial-memory decline years later (albeit in a longitudinal sample of just 13). Delegation is not free.\nBut stop at the warning and you've written the hundredth identical essay. The worry that a new technology will ruin our minds is as old as the invention of writing. Socrates warned that writing would destroy memory, and the anecdote is usually cited as proof that such worries are always misplaced. Flip it over, though, and the worry wasn't wrong. Writing really did erase the culture of memorized recitation. Humanity simply decided the loss was worth taking. The",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "服务器机房熄灭的那一刻",
+        "summary": "这篇文章审视了关于人工智能依赖导致认知萎缩的警告，引用了神经科学研究，说明外包思考导致大脑连接减弱和批判性思维下降。虽然承认真实成本，作者论证人类历史上接受过此类权衡，正如文字取代了口头记忆一样。"
+      }
+    }
+  },
+  {
+    "title": "5 n8n Automation Patterns That Saved My Clients 20+ Hours Per Week",
+    "slug": "n8n-automation-patterns",
+    "url": "https://dev.to/courtgpt/5-n8n-automation-patterns-that-saved-my-clients-20-hours-per-week-5ha3",
+    "source": "DEV Community",
+    "date": "2026-07-26T01:50:47.000Z",
+    "summary": "This article details five n8n automation patterns for B2B workflows including lead enrichment, document extraction, content repurposing, support ticket automation, and database syncing. Each pattern includes specific workflow steps and time savings, demonstrating 20+ hours per week ROI for clients.",
+    "content": "5 n8n Automation Patterns That Saved My Clients 20+ Hours Per Week\n\n\nI've automated hundreds of business processes for clients using n8n. Here are the 5 patterns that consistently deliver the biggest ROI - and the exact workflow for each.\nn8n hits a sweet spot for AI-heavy workflows:\nSelf-hostable (data stays in your infrastructure)\nNative support for LLMs, RAG, vector databases\nCode nodes for custom logic\nReasonable pricing ($20-50/mo for most use cases)\nActive community with AI templates\nEvery B2B company needs to enrich inbound leads with company data, social profiles, and intent signals.\nWebhook (form submission)\n  → HTTP Request (Clearbit/Apollo API for enrichment)\n  → If/Else (route by company size)\n  → Postgres (store enriched data)\n  → Slack (notify sales team)\n  → Email (personalized auto-reply)\n\nTime saved: 15 min per lead × 100 leads/month = 25 hours/month\nCost: $0.10 per enrichment API call\nPDFs, contracts, invoices - extract structured data and route for action.\nEmail trigger (Gmail watch)\n  → Download attachment\n  → Mistral OCR (extract text from PDF)\n  → GPT-4 structured output (extract fields)\n  → If/Else (validate extracted data)\n  → Database insert\n  → Slack notification with extracted data\n  → Auto-reply with summary\n\nUse cases: Contract review, invoice processing, resume parsing\nTime saved: 20-40 hours/week for legal and finance teams\nTurn one piece of content into 10 social posts, email newsletters, and Slack updates.\nWebhook (new blog post published)\n  → GPT-4 (generate 5 tweets, LinkedIn post, email snippet)\n  → HTTP Request (Buffer API - schedule posts)\n  → HTTP Request (Mailchimp API - send newsletter)\n  → Slack (notify team)\n  → Database (track all posts)\n\nResult: 5x more content distribution with same writing effort\nTime saved: 8 hours/week for marketing teams\nAuto-respond to support tickets with AI, escalate to humans when needed.\nWebhook (Zendesk/Intercom new ticket)\n  → AI Agent (LangChain + RAG on docs)\n  → If confidence > 0.8: send au",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为我的客户节省每周20+小时的5个n8n自动化模式",
+        "summary": "本文详细介绍了五个n8n自动化模式，用于B2B工作流，包括潜在客户充实、文档提取、内容重新利用、支持票证自动化和数据库同步。每个模式包括具体的工作流步骤和时间节省，为客户展示了每周20+小时的投资回报率。"
+      }
+    }
+  }
+]
