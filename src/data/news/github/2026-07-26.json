@@ -1,5 +1,213 @@
 [
   {
+    "title": "Solon Config & Multi-Environment Management: The Layering Model That Fits in Your Head",
+    "slug": "solon-config-multi-environment-management",
+    "url": "https://dev.to/solonjava/solon-config-multi-environment-management-the-layering-model-that-fits-in-your-head-4o4c",
+    "source": "DEV Community",
+    "date": "2026-07-26T08:10:18.000Z",
+    "summary": "Solon offers a layered configuration model where a base configuration file can be overridden by environment-specific files, with final values determined by a priority order: file configuration, system properties, startup arguments, and environment variables. This design allows safe defaults inside applications while letting deployment environments provide production values.",
+    "content": "One thing I never appreciated until I ran the same jar across dev, staging, and prod is how much of \"config pain\" is really \"config layering pain.\" Where does a value come from? Which file wins? How do I keep a database password out of Git without wrapping the whole thing in a secrets manager on day one?\nSolon has a pretty clean answer to all of this, and it fits in your head. Here's the mental model I use.\nYour application config lives at resources/app.yml (or app.properties). It always loads. That's the base.\nEnvironment-specific files sit next to it with an app-{env} name:\nresources/\n  app.yml          # always loaded (base)\n  app-dev.yml      # dev overrides\n  app-pro.yml      # prod overrides\n\nYou pick the environment with solon.env. There are four ways to set it, and they matter because they layer from least to most dynamic:\n# (1) in app.yml itself\nsolon.env: dev\n\n# (2) system property\njava -Dsolon.env=pro -jar demo.jar\n\n# (3) startup argument\njava -jar demo.jar --env=pro\n\n# (4) environment variable (great for containers)\ndocker run -e 'solon.env=pro' demo_image\n\nThe higher the number, the higher the priority. So a value baked into app.yml can be overridden by a -D system property, which in turn can be overridden by a container env var. That ordering is the whole trick — you set safe defaults inside the jar and let the deployment environment push the real values on top.\nOne rule worth remembering: Solon will automatically load app-{env}.yml, but a file loaded because of an environment can't itself declare a new environment. No recursive env-hopping.\nReal apps outgrow a single file. You want datasource config in one place, auth in another, maybe a shared common block. Solon gives you solon.config.load for that (an array form), and it understands path expressions:\nsolon.config.load:\n  - \"classpath:${solon.env}/jdbc.yml\"     # env-scoped internal file\n  - \"classpath:${solon.env}/*.yml\"        # wildcard (internal only)\n  - \"file:common/*.yml\"                   #",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Solon配置与多环境管理：适合脑子理解的分层模型",
+        "summary": "Solon提供了一个分层配置模型，基础配置文件可以被特定环境的文件覆盖，最终值由优先级顺序决定：文件配置、系统属性、启动参数和环境变量。这种设计允许应用程序内的安全默认值，同时让部署环境提供生产值。"
+      }
+    }
+  },
+  {
+    "title": "The Webhook Bug That Passed Every Test and Every Code Review",
+    "slug": "webhook-bug-passed-every-test-code-review",
+    "url": "https://dev.to/srinivasa_rao/the-webhook-bug-that-passed-every-test-and-every-code-review-5408",
+    "source": "DEV Community",
+    "date": "2026-07-26T07:58:51.000Z",
+    "summary": "A bounce handler in a multi-tenant email service built with FastAPI contained a bug that silently lost subscriber data without triggering errors. The bug escaped detection despite passing code reviews and test suites, demonstrating how webhook handlers can hide subtle logic errors.",
+    "content": "When a subscriber disappears from a list, nobody gets an error. The campaign sends, the contact count is one fewer than expected, and unless someone is watching very carefully, you might never know you lost a subscriber who had nothing to do with that send.\nThis is about a bug I found in my own code that did exactly that. It lived in a bounce handler, invisible to every test I wrote and every review pass I ran — including one where I explicitly sat down to look for security issues.\nThis is Part 3 of a series on building a multi-tenant email service with FastAPI and Resend.\nPart 1 — Building the service: one Resend account, multiple customer domains, contacts, segments, campaigns.\nPart 2 — Making sends safe to retry: idempotency keys, per-recipient status tracking, the chunk key that was never actually retried.\nPart 3 (this one) — A webhook handler that looked correct and wasn't.\nThe full working code is on GitHub: srinivaspavuluri/resend-fastapi\nThe service manages email sending for multiple customers — think of each customer as a separate business using the same platform. The relevant tables:\nCustomer — one row per tenant, each with a verified sending domain\nContact — email addresses, scoped to a specific customer via customer_id\n\n\nCampaign — a send from a customer to their contacts\nCampaignRecipient — one row per contact per campaign; stores the resend_email_id that Resend assigns to each individual email\nWhen a campaign sends, every contact gets a CampaignRecipient row:\ndb.add(CampaignRecipient(\n    campaign_id=campaign_id,\n    contact_id=contact.id,\n    resend_email_id=result.resend_email_id,\n    status=\"queued\",\n))\n\nThat resend_email_id matters. It comes back in every webhook event Resend fires.\nAuto-unsubscribing on bounce is important for sender reputation. Resend monitors bounce and complaint rates on your account — if they climb too high, your sending ability gets restricted. So when a bounce arrives, you want to unsubscribe that contact immediately and aut",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "通过了每项测试和每次代码审查的Webhook错误",
+        "summary": "用FastAPI构建的多租户电子邮件服务中的一个反弹处理程序包含一个错误，该错误在没有触发错误的情况下无声地丢失了订阅者数据。尽管通过了代码审查和测试套件，该错误仍未被检测到，这说明webhook处理程序如何能够隐藏微妙的逻辑错误。"
+      }
+    }
+  },
+  {
+    "title": "Why I built Sanctuary: A local-first, zero-tracking reflection app",
+    "slug": "sanctuary-local-first-zero-tracking-reflection-app",
+    "url": "https://dev.to/hrishikesh_jadhav_bbd2b40/why-i-built-sanctuary-a-local-first-zero-tracking-reflection-app-242f",
+    "source": "DEV Community",
+    "date": "2026-07-26T07:54:05.000Z",
+    "summary": "Sanctuary is a browser-based journaling app that stores all user data locally without cloud synchronization or tracking. It uses client-side SVG visualizations for mood trending and CSS print styling to generate offline PDF reports, prioritizing user privacy.",
+    "content": "Most journaling and mental wellness apps require syncing sensitive personal thoughts to cloud servers where they risk being mined or exposed. I wanted a space where user data never leaves the browser.\nSo I built Sanctuary — a lightweight, local-first reflection vault.\n100% Local-First: All entries and app states stay strictly inside browser local storage. Zero tracking scripts or analytics.\nResonance Diagnostics: Dynamic, client-side SVG visualizations mapping baseline mood trends over time.\nTherapy PDF Export: Uses native CSS print styling (@media print) to generate clean offline summary reports for check-ins without sharing app access.\nZero Overhead: Blazing fast load times with no database or cloud sync latency.\nCheck out the live app: sanctuaryb.lovable.app\nI'd love feedback from the dev community on the local storage architecture, baseline algorithms, or visual UI!",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么我构建了Sanctuary：一个本地优先、零追踪的反思应用",
+        "summary": "Sanctuary是一个基于浏览器的日志应用，在本地存储所有用户数据，无需云同步或追踪。它使用客户端SVG可视化来呈现心情趋势，并使用CSS打印样式生成离线PDF报告，优先考虑用户隐私。"
+      }
+    }
+  },
+  {
+    "title": "Fixing Cache Stampede & API Latency Spike in Redis-Backed Dashboards",
+    "slug": "fixing-cache-stampede-api-latency-redis-dashboards",
+    "url": "https://dev.to/prashant_singh428/fixing-cache-stampede-api-latency-spike-in-redis-backed-dashboards-lha",
+    "source": "DEV Community",
+    "date": "2026-07-26T07:50:35.000Z",
+    "summary": "A Node.js and Redis financial dashboard resolved severe cache stampede issues during peak traffic using distributed mutex locking and stale-while-revalidate caching strategies. The improvements reduced response latency from 3,200ms to 38ms and decreased database CPU usage by 82%.",
+    "content": "This is a submission for DEV's Summer Bug Smash: Clear the Lineup powered by Sentry.\nThis project is a high-traffic financial affiliate dashboard built with Node.js, Express, and Redis. It processes real-time user metrics, rank calculations, and commission statistics across multiple active user tiers. The platform relies heavily on cached endpoints to serve heavy aggregation queries quickly to thousands of simultaneous users.\nDuring peak traffic events, cache invalidation triggered a severe cache stampede (thundering herd problem). When a high-frequency key expired or was invalidated after a data update, hundreds of concurrent incoming requests simultaneously bypassed the cache and hit the primary SQL database.\nImpact of the Bug:\nSudden spikes in database CPU utilization (reaching 98%–100%).\nAPI response latency jumped from ~45ms to over 3,200ms.\nFrequent HTTP 504 Gateway Timeout errors during leaderboard and payout recalculations.\nonecompiler.com\n          \n\n        \n      \nMy Improvements:\nDistributed Mutex Locking: Used Redis SET NX EX to guarantee that only a single worker recomputes the expensive query when a cache miss occurs.\nStale-While-Revalidate Strategy: Configured background workers to update hot cache entries prior to expiration, eliminating synchronous blocking for active users.\nBenchmarking & Latency Reduction:\np99 Latency: Dropped from 3,200ms to 38ms.\nDatabase Load: Reduced peak database CPU usage by 82%.\nFailure\nGoogle AI (Gemini) was utilized during the post-mortem analysis to evaluate lock contention edge cases and optimize the exponential backoff algorithm for waiting threads. It assisted in identifying a potential deadlock condition when Redis connections dropped during lock release, allowing us to implement proper try/finally cleanup blocks.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "修复 Redis 仪表板中的缓存雪崩和 API 延迟峰值",
+        "summary": "一个 Node.js 和 Redis 财务仪表板通过分布式互斥锁和缓存陈旧重验证策略解决了高峰期的严重缓存雪崩问题。改进措施将响应延迟从 3,200 毫秒降低至 38 毫秒，数据库 CPU 使用率下降了 82%。"
+      }
+    }
+  },
+  {
+    "title": "Fail Closed, Not Open: Designing an AI Gateway for Regulated Enterprises",
+    "slug": "fail-closed-not-open-designing-ai-gateway-regulated-enterprises",
+    "url": "https://dev.to/abhijat_chaturvedi/fail-closed-not-open-designing-an-ai-gateway-for-regulated-enterprises-3ife",
+    "source": "DEV Community",
+    "date": "2026-07-26T07:46:29.000Z",
+    "summary": "Aegis Gateway is an AI request router for regulated enterprises that treats compliance as a hard architectural requirement rather than competing with availability. Its three-stage routing process prevents silent governance downgrades when fallback routes activate during infrastructure failures.",
+    "content": "\"Why did this request go to that model?\"\nIf your company uses LLMs across more than one team, someone will eventually ask you this question. If you work in financial services, healthcare, or anywhere else with a regulator, someone will ask it under oath-adjacent conditions.\nMost organizations can't answer it. Teams integrate directly with whatever provider they like, sensitive data handling varies by team, regional restrictions are applied inconsistently, and there's no record of why a model was selected — or, more importantly, why the alternatives weren't.\nI recently built Aegis Gateway to explore what a proper answer looks like: a single front door for AI requests that decides which model may serve each request — and can prove why. This article is about the three design decisions that matter, and the one failure mode that I organized the entire architecture around preventing.\nHere's the scenario that keeps compliance officers up at night.\nYour gateway is well-behaved on the happy path: restricted client data goes to the on-prem model, everything's fine. Then one Tuesday the on-prem cluster goes down. Your fallback logic kicks in, does what fallback logic does — finds something that works — and quietly routes restricted data to an external provider. The request succeeds. Everyone's happy. Nobody notices.\nThat's a silent governance downgrade: a system that's compliant until it's inconvenient. And the insidious part is that it usually isn't a bug — it's a reasonable-looking design where availability and compliance compete in the same decision, and availability wins because that's what gets paged about.\nMy design goal was to make this failure mode structurally impossible — not discouraged by code review, not caught by an alert, but unreachable by construction.\nThe routing core has three stages with a strict, non-negotiable order:\ncatalogue ──► Policy Engine ──► Ranking ──► Fallback Executor\n              (hard gate)       (eligible    (eligible list",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "故障时关闭而非开放：为受管制企业设计人工智能网关",
+        "summary": "Aegis Gateway 是为受管制企业设计的人工智能请求路由器，将合规性视为硬性架构需求而非与可用性竞争的因素。其三阶段路由流程确保在基础设施故障激活备用路由时，防止合规治理的无声降级。"
+      }
+    }
+  },
+  {
+    "title": "Building Light: What I Learned After 9 Months",
+    "slug": "building-light-what-i-learned-after-9-months",
+    "url": "https://dev.to/aswinmrajeev/building-light-what-i-learned-after-9-months-10bn",
+    "source": "DEV Community",
+    "date": "2026-07-26T07:45:28.000Z",
+    "summary": "After nine months developing Light, a new programming language, its creator observed that implementation continuously refined the initial specification. The project demonstrates that language design is fundamentally iterative, with practical experimentation revealing interactions not apparent during initial planning.",
+    "content": "A few days ago, I shared the first public release of Light, a programming language I've been designing and developing over the past nine months.\nRather than introducing the language again, I wanted to share one of the biggest lessons I learned while building it.\nBefore diving into that, here's a small example written in Light.\nuser\n\nPurpose Add[a,b]\n{\n    sum = a + b\n    out:sum\n    stop\n}\n\nx = 23\ny = 34\n\nout=\"'Add{x,y}'\"\n\nBefore implementing the first working version of Light, I documented the core concepts, language rules, and the initial specification. At that stage, I believed the primary challenge would be transforming those ideas into a working implementation.\nDevelopment reinforced just how inherently iterative language design is.\nAs implementation progressed, practical experimentation exposed interactions that weren't immediately apparent during the initial design. Some features evolved, certain language rules were refined, and additional capabilities were introduced as the language matured. At the same time, performance, error reporting, and the implementation itself were continuously improved through repeated testing and refinement.\nOne observation became increasingly clear throughout the project:\nThe specification shapes the implementation, but the implementation also helps refine the specification.\nLooking back, building a programming language has been as much about evaluating and refining design decisions as it has been about writing code. Every iteration strengthened the language, improved its consistency, and reinforced the foundation established by the current public release.\nThis release represents an important milestone in the development of Light. While there is still much to explore and refine, it establishes the foundation on which the language will continue to evolve.\nYour feedback and insights are always appreciated.\nIf you're new to Light, you can read the introduction to the project here:\nIntroducing Light — A New Programming Language:\n\nhttp",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建 Light：9 个月后的所学",
+        "summary": "在开发新编程语言 Light 9 个月后，其创建者发现实现过程不断完善了最初的规范。该项目表明语言设计本质上是迭代的，实际实验揭示了初期规划中不明显的相互作用。"
+      }
+    }
+  },
+  {
+    "title": "Elixir vs Node.js: Why Developers Are Exploring Elixir for Modern Backend Systems",
+    "slug": "elixir-vs-nodejs-why-developers-exploring-elixir-modern-backend",
+    "url": "https://dev.to/whitehacker/elixir-vs-nodejs-why-developers-are-exploring-elixir-for-modern-backend-systems-81d",
+    "source": "DEV Community",
+    "date": "2026-07-26T07:40:55.000Z",
+    "summary": "Elixir, built on the Erlang VM, offers advantages for highly concurrent and distributed systems through lightweight processes and automatic failure recovery. The language's 'let it crash' philosophy and hot code upgrades make it attractive for messaging platforms, fintech systems, and real-time applications.",
+    "content": "Modern backend development has been dominated by JavaScript runtimes like Node.js for many years. Node.js changed the way developers build web applications by bringing JavaScript to the server side and enabling fast development with a huge ecosystem.\nBut as applications become more distributed, real-time, and highly concurrent, many developers are looking at another technology: Elixir.\nSo, what is Elixir? Why would someone choose it over Node.js? Let's explore.\nElixir is a functional programming language built on top of the Erlang Virtual Machine (BEAM).\nIt was created by José Valim in 2011 with a goal of making scalable and maintainable applications easier to build.\nElixir inherits many powerful features from Erlang:\nMassive concurrency\nFault tolerance\nDistributed systems support\nHot code upgrades\nReal-time processing\nPopular frameworks and tools in the Elixir ecosystem include:\nPhoenix — a high-performance web framework\nEcto — database wrapper and query system\nLiveView — build interactive web applications without heavy frontend JavaScript\nCompanies use Elixir for systems where reliability and scalability matter, such as messaging platforms, fintech systems, and real-time applications.\nOne of Elixir's biggest advantages is its lightweight process model.\nAn Elixir application can run millions of isolated processes that communicate through messages.\nExample:\nspawn(fn ->\n  IO.puts(\"Hello from a process\")\nend)\n\nThese processes are extremely cheap compared to traditional operating system threads.\nThis makes Elixir a great choice for:\nChat applications\nMultiplayer games\nStreaming systems\nIoT platforms\nReal-time dashboards\nIn many programming languages, an application crash can bring down the entire service.\nElixir uses the Erlang concept of \"let it crash\".\nInstead of trying to prevent every possible failure, applications are designed to recover automatically.\nUsing Supervisors, Elixir can restart failed processes and keep the system running.\nThis is one reason Erlang-bas",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Elixir vs Node.js: 为什么开发者探索使用 Elixir 构建现代后端系统",
+        "summary": "Elixir 基于 Erlang VM 构建，通过轻量级进程和自动故障恢复，为高并发和分布式系统提供优势。该语言的\"崩溃即容\"理念和热代码升级使其对消息传递平台、金融科技系统和实时应用具有吸引力。"
+      }
+    }
+  },
+  {
+    "title": "Are your MCP server's safety labels honest? A one-command check (and what it found on 31 popular servers)",
+    "slug": "mcp-server-safety-labels-honest-one-command-check",
+    "url": "https://dev.to/formael/are-your-mcp-servers-safety-labels-honest-a-one-command-check-and-what-it-found-on-31-popular-1ml3",
+    "source": "DEV Community",
+    "date": "2026-07-26T07:34:04.000Z",
+    "summary": "Actlint verifies whether MCP server safety labels accurately reflect what the tool's schema permits. Testing 31 popular MCP servers found that some carried stale or inaccurate labels that could suppress necessary safety prompts.",
+    "content": "You wrote this once, on the day the tool was born:\n{\n  \"name\": \"search_docs\",\n  \"annotations\": {\n    \"readOnlyHint\": true,\n    \"destructiveHint\": false,\n    \"openWorldHint\": false\n  }\n}\n\nThen the tool kept changing. A parameter got added. A backend call got wired in. The schema grew.\nThe annotations block stayed exactly as you left it.\nThe MCP spec calls these annotations hints and tells clients not to trust them blindly. Plenty of clients use them anyway, because they arrive at tool-list time and they are cheap to act on. A common pattern: readOnlyHint: true means skip the confirmation prompt.\nSo a stale label costs more than a confused reviewer. It can quietly remove a safety step that would otherwise have fired.\nThe protocol has no step that re-checks the label against the schema as the tool evolves. That is the gap actlint fills. It reads what a server advertises over tools/list, works out what each tool most likely does from the name, description, and input schema, and reports where that disagrees with what the tool declares. It never calls a tool.\nWe pointed it at 541 tools across 31 widely used servers, including official ones from Stripe, GitHub, Microsoft, Google, MongoDB, and PayPal. Eleven came back completely clean. Four carry a label that denies something the tool's own schema says it can do. Full scorecard, per-server grades, methodology, and the two findings that did not survive our own hand review: MCP Safety Labels Run on the Honor System.\nThis post is about running it on yours.\nLocal stdio server, launched by actlint:\nnpx actlint npx -y @modelcontextprotocol/server-filesystem .\n\nHosted server over HTTP, with a credential if it needs one to list its tools:\nnpx actlint --http https://mcp.example.com/mcp --header \"Authorization: Bearer ${MCP_TOKEN}\"\n\nServer that needs an environment variable to start.\nnpx actlint --env STRIPE_SECRET_KEY npx -y @stripe/mcp --tools=all\n\nTalking to the server is the only step that touches the network. Everything after it",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的 MCP 服务器安全标签是否真实？一个命令检查（及其在 31 个流行服务器上的发现）",
+        "summary": "Actlint 验证 MCP 服务器安全标签是否准确反映工具架构允许的内容。对 31 个流行 MCP 服务器的测试发现，某些服务器包含可能抑制必要安全提示的陈旧或不准确标签。"
+      }
+    }
+  },
+  {
+    "title": "Free Website Performance Monitoring: PageSpeed CI + CrUX + GitHub Actions",
+    "slug": "free-website-performance-monitoring-pagespeed-github-actions",
+    "url": "https://dev.to/utlkit/free-website-performance-monitoring-pagespeed-ci-crux-github-actions-3l7h",
+    "source": "DEV Community",
+    "date": "2026-07-26T07:33:03.000Z",
+    "summary": "A free performance monitoring setup using GitHub Actions and the PageSpeed Insights API provides an alternative to commercial services starting at $29/month. The system tracks Core Web Vitals daily and alerts when scores fall below thresholds.",
+    "content": "Commercial performance monitoring starts at $29-99/month.\nAfter launching a site, you need to continuously monitor Core Web Vitals:\nLCP (Largest Contentful Paint)\nCLS (Cumulative Layout Shift)\nINP (Interaction to Next Paint)\nCommercial options: Speedcurve, Calibre, Sentry Performance — starting at $29-99/month.\nFree option: Build it yourself.\nGitHub Actions (cron daily)\n  → Call PageSpeed Insights API\n    → Parse LCP/CLS/INP scores\n      → Store as GitHub Artifact (historical comparison)\n        → Score below threshold → Alert via PR/Issue\n\nQPS: 20 requests/second\nDaily quota: ~1,250 push triggers + daily cron is more than enough\nAPI Key: Optional (higher limits with key)\nFree tier: More than sufficient for personal projects\n# .github/workflows/pagespeed.yml\nname: PageSpeed Insights\n\non:\n  schedule:\n    - cron: '0 0 * * *'  # Daily at UTC 00:00\n  push:\n    branches: [main]\n\njobs:\n  pagespeed:\n    runs-on: ubuntu-latest\n    steps:\n      - name: Run PageSpeed\n        run: |\n          URL=\"https://utlkit.com\"\n          API_KEY=\"${{ secrets.PAGESPEED_API_KEY }}\"\n\n          curl -s \"https://pagespeedonline.googleapis.com/pagespeedonline/v5/runPagespeed?url=${URL}&category=PERFORMANCE&category=ACCESSIBILITY&strategy=mobile${API_KEY:+&key=${API_KEY}}\" \\\n            -o pagespeed-mobile.json\n\n          curl -s \"https://pagespeedonline.googleapis.com/pagespeedonline/v5/runPagespeed?url=${URL}&category=PERFORMANCE&category=ACCESSIBILITY&strategy=desktop${API_KEY:+&key=${API_KEY}}\" \\\n            -o pagespeed-desktop.json\n\n      - name: Extract scores\n        run: |\n          echo \"Mobile Performance: $(jq '.categories.performance.score' pagespeed-mobile.json)\"\n          echo \"Mobile Accessibility: $(jq '.categories.accessibility.score' pagespeed-mobile.json)\"\n          echo \"Desktop Performance: $(jq '.categories.performance.score' pagespeed-desktop.json)\"\n\n      - name: Upload results\n        uses: actions/upload-artifact@v4\n        with:\n          name: pagespeed-${{ github.s",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "免费网站性能监控：PageSpeed CI + CrUX + GitHub Actions",
+        "summary": "使用 GitHub Actions 和 PageSpeed Insights API 的免费性能监控设置提供了商业服务的替代方案，商业服务起价为 29 美元/月。该系统每天跟踪核心网页指标，并在分数低于阈值时发出警报。"
+      }
+    }
+  },
+  {
+    "title": "Five AI features in an invoicing app, and the rules that keep them from touching the books",
+    "slug": "five-ai-features-invoicing-app-rules-keep-them-from-touching-books",
+    "url": "https://dev.to/slate_co_il/five-ai-features-in-an-invoicing-app-and-the-rules-that-keep-them-from-touching-the-books-3kh1",
+    "source": "DEV Community",
+    "date": "2026-07-26T07:32:23.000Z",
+    "summary": "Slate, an Israeli invoicing SaaS, integrates five AI features including receipt scanning, a chat assistant, support drafting, and natural language document creation while maintaining strict compliance with fiscal record requirements. The features demonstrate how AI can enhance business applications while respecting regulatory constraints.",
+    "content": "I build Slate, an invoicing and bookkeeping SaaS for Israeli businesses. Angular on the front, Express and Prisma on the back, Postgres underneath. The documents it issues are real fiscal records. Israeli law requires them kept for seven years, numbered without gaps, and never edited after issue.\nThat constraint shaped every AI feature in the product. There are five of them today:\nreceipt scanning (photo of a receipt, out comes a filled expense form), a chat assistant that answers questions about your own books, a support reply drafter for the admin side, natural language document creation (\"quote for Dani, 3 consulting hours at 500\"), and column mapping for Excel imports where every accountant's spreadsheet has different headers.\nYou can see it here: https://www.slate.co.il/en/#features",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "发票应用中的五个AI功能，以及防止它们接触账簿的规则",
+        "summary": "以色列发票SaaS公司Slate集成了五个AI功能，包括收据扫描、聊天助手、支持起草和自然语言文档创建，同时保持与财务记录要求的严格合规。这些功能展示了AI如何在尊重监管约束的同时增强业务应用。"
+      }
+    }
+  },
+  {
+    "title": "I Opened a GitHub Issue and Four AI Agents Fixed It Without Me Touching a Single Line of Code",
+    "slug": "opened-github-issue-four-ai-agents-fixed-without-touching-code",
+    "url": "https://dev.to/sowaiba01/i-opened-a-github-issue-and-four-ai-agents-fixed-it-without-me-touching-a-single-line-of-code-1pg5",
+    "source": "DEV Community",
+    "date": "2026-07-26T07:30:52.000Z",
+    "summary": "Four specialized AI agents autonomously resolved a GitHub issue without human intervention, completing the cycle from understanding requirements to opening a pull request in approximately four minutes. The Architect, Coder, Reviewer, and PR Agent agents demonstrated capability in reading codebases, planning implementation, writing and testing code, and requesting review.",
+    "content": "I want to be honest with you. When I started this project I did not actually believe it would work.\nNot in a humble way. I mean I genuinely thought the idea was too ambitious for one person to pull off with free API tiers and a laptop. Fully autonomous AI that reads a GitHub issue,understands a codebase, writes working code, runs tests, gets the code reviewed by another AI, and opens a pull request. No human in the loop. No clicking approve at any step.\nBut it works. And the first time it actually completed a full run I just sat there staring at the pull request on GitHub for a solid minute.\nI was reviewing a bug ticket at 1am. It was a simple fix. Like embarrassingly simple. Change a function name, update two tests. Fifteen minutes of actual work, forty minutes of context switching, finding the right file, remembering where the tests live, writing the PR description.\nAnd I thought, what if I just did not have to do that.\nNot \"what if AI helped me type faster.\" What if I described the problem in plain English and walked away.\nFour agents. Each one with a specific job.\nThe Architect reads the repo, opens the most relevant files, understands the codebase structure, and produces a concrete implementation plan. It posts that plan as a comment on your GitHub issue so you can see its thinking.\nThe Coder spins up a fresh cloud sandbox, clones your repo, writes the code following the architect's plan, runs the linter, commits, and runs the test suite. If tests fail it reads the error, adjusts, and tries again. It gets three attempts.\nThe Reviewer reads the git diff line by line. Checks for hardcoded secrets, SQL injection risk, missing input validation, bad error handling. Returns APPROVED or sends it back with a specific reason.\nThe PR Agent opens a draft pull request with a full description of what changed, why it changed, and what the test output was.\nThe whole thing runs in about four minutes on a simple feature request.\nA lot of \"autonomous AI\" demos are one agent call",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我打开了一个GitHub问题，四个AI代理在没有我接触任何代码的情况下修复了它",
+        "summary": "四个专门的AI代理在没有人类干预的情况下自主解决了GitHub问题，在大约四分钟内完成了从理解需求到打开拉取请求的全部流程。架构师、编码器、审核者和PR代理展示了在阅读代码库、规划实现、编写和测试代码以及请求审查方面的能力。"
+      }
+    }
+  },
+  {
+    "title": "My click tracker said 518 humans. Only 134 people loaded the page.",
+    "slug": "click-tracker-said-518-humans-only-134-people-loaded-page",
+    "url": "https://dev.to/stackpick/my-click-tracker-said-518-humans-only-134-people-loaded-the-page-4b6h",
+    "source": "DEV Community",
+    "date": "2026-07-26T07:30:44.000Z",
+    "summary": "A static site's click tracking system overcounted clicks by 3.9x because a fallback attributed clicks without Referer headers to CTA IDs instead of marking them invalid. The bot filter then incorrectly classified these fallback entries as human clicks, inflating engagement metrics.",
+    "content": "Disclosure: this post contains links to paid products and affiliate programs. I may receive compensation if you sign up or buy through them. Pricing shown is verified against the vendor's public pricing page.\nFor a few weeks my analytics told me a comfortable story: 518 humans had clicked an outbound link in the last 30 days. Then I put that number next to a different one from the same database — 134 page views — and the story fell apart.\nNobody clicks a link on your site more times than they load a page on your site. A ratio above 1.0 is not a suspicious trend to monitor. It is arithmetic proof that the tracker is wrong.\nMine was at 3.9.\nThe site is a static build on Cloudflare Pages. Outbound links do not point straight at the destination — they go through a redirect worker at /r/{slug}, which records the click server-side and then 302s the visitor onward. Standard pattern, and it survives ad blockers, which is why I used it.\nEach click row stores a source_page so I know which page produced it. The worker fills it like this:\nconst sourcePage = request.headers.get(\"Referer\") || `cta:${ctaId}`;\n\nThe fallback exists for a real reason. Some browsers and privacy settings strip the Referer header, and I did not want those clicks landing in the database as anonymous rows I could never attribute. So if there is no referer, fall back to the CTA id, which I already have.\nDownstream, the bot filter decided whether a click was human. Its reasoning, roughly: a real browser on my site sends context, so a row that has a source_page came from a browser, and an empty one is suspect.\n-- what \"human\" used to mean\nWHERE source_page IS NOT NULL AND source_page != ''\n\nRead those two snippets together and the bug is obvious. It was not obvious to me for weeks, because they live in different files written on different days.\nctaId comes from the query string. The link in the HTML is literally:\n<a href=\"/r/wati?cta=best-whatsapp-wati\">Try Wati</a>\n\nA crawler fetching that URL sends no Refe",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我的点击追踪器说有518个人类。但只有134个人加载了页面。",
+        "summary": "静态网站的点击追踪系统因为一个后备机制的缺陷而将点击数过度计算了3.9倍，该机制将没有引荐来源标头的点击错误地归属于CTA ID而不是标记为无效。机器人过滤器随后错误地将这些后备条目分类为人类点击，从而夸大了参与度指标。"
+      }
+    }
+  },
+  {
+    "title": "JetZero",
+    "slug": "jetzero",
+    "url": "https://www.jetzero.aero",
+    "source": "Hacker News",
+    "date": "2026-07-26T02:55:50.000Z",
+    "summary": "JetZero is an aviation industry product that generated substantial technical discussion on Hacker News, receiving 183 upvotes and 143 comments from the developer community.",
+    "content": "Article URL: https://www.jetzero.aero\nComments URL: https://news.ycombinator.com/item?id=49054224\nPoints: 183\n# Comments: 143",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "JetZero",
+        "summary": "JetZero是一个航空业产品，在Hacker News上引发了大量技术讨论，获得了来自开发者社区的183个赞和143条评论。"
+      }
+    }
+  },
+  {
     "title": "The Best Approach to Dependency Vulnerability Scanning in CI Pipelines",
     "slug": "dependency-vulnerability-scanning-ci-pipelines",
     "url": "https://dev.to/brino666/the-best-approach-to-dependency-vulnerability-scanning-in-ci-pipelines-4m64",
