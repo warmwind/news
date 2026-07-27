@@ -1,5 +1,197 @@
 [
   {
+    "title": "Cutting IIoT Message Payloads by 90% with Compression over RabbitMQ in Spring Boot",
+    "slug": "iot-compression-batching",
+    "url": "https://dev.to/mwiginton/cutting-iiot-message-payloads-by-90-with-compression-over-rabbitmq-in-spring-boot-1494",
+    "source": "DEV Community",
+    "date": "2026-07-27T14:32:15.000Z",
+    "summary": "A technical guide on optimizing telemetry transmission for IoT systems by compressing message batches rather than individual readings. Demonstrates that batching messages before compression can reduce payloads by 90% by allowing the compressor to exploit repetitive patterns across multiple nearly-identical sensor readings, significantly lowering network capacity, broker throughput, and data transfer costs.",
+    "content": "A fleet of devices emitting telemetry once per second does not produce big messages. It produces an enormous number of tiny, nearly identical ones. Each reading is under 100 bytes of JSON, but 5,000 devices at one reading per second is 432 million messages a day and roughly 40 GB of payload. The aggregate volume crossing your message broker gets expensive fast: in network capacity, in broker throughput, and in data transfer costs.\nThe instinct is to compress. The instinct is right, but the obvious way to do it makes things worse. This article covers the one idea that carries the whole optimization: compress batches, not messages. Everything is demonstrated with a self-contained benchmark you can run with nothing but a JDK. All values are simulated and illustrative.\nHere is a single telemetry reading:\n{\"deviceId\":\"device-01\",\"ts\":1770000000000,\"voltage\":480.91,\"frequency\":60.04,\"status\":\"Running\"}\n\nThat is about 97 bytes. Almost all of it is structure that repeats on every single message: the same five keys, timestamps that share a long prefix, voltages clustered around 480, a handful of status strings. Repetition is exactly what a compressor exploits, so this data should compress beautifully.\nIt does, but only if you let the compressor see the repetition. A compressor works by finding patterns it has already seen and replacing later occurrences with short references. Hand it one 97-byte message in isolation and there is nothing to reference yet. Its dictionary is empty, and its own format overhead (headers, checksums) can make the output larger than the input.\nSo the question is not \"which algorithm\" first. It is \"what do I hand the algorithm.\" Compress each message alone and you get nothing. Compress a batch of them together and the second message onward is almost free, because it is mostly a reference to the first.\nNo broker required to demonstrate the core claim. This is plain JDK code: gzip and Deflate ship in java.util.zip. Generate a realistic batch, then comp",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在Spring Boot中通过RabbitMQ压缩将工业物联网消息负载减少90%",
+        "summary": "这是一份关于通过压缩消息批次而非单个读数来优化物联网系统遥测传输的技术指南。它演示了在压缩前对消息进行批处理如何能将负载减少90%，使压缩器能够利用跨多个几乎相同传感器读数的重复模式，从而显著降低网络容量需求、代理吞吐量和数据传输成本。"
+      }
+    }
+  },
+  {
+    "title": "Opus 5: More Capability? Definitely a Better Liar.",
+    "slug": "opus-5-code-review-migration",
+    "url": "https://dev.to/raleighschickel/opus-5-more-capability-definitely-a-better-liar-125g",
+    "source": "DEV Community",
+    "date": "2026-07-27T14:29:49.000Z",
+    "summary": "An account of migrating code review agents from Claude Opus 4.8 to Opus 5 that required 22 commits despite appearing to be a one-line change. Opus 5 interprets severity filters more literally than its predecessor, necessitating comprehensive prompt restructuring and A/B testing to ensure consistent output quality across model versions.",
+    "content": "Twenty-two commits to change one line.\nOn Friday, Anthropic released version 5 across all their models. I was curious after all the Fable hype and just hadn't found the right problem to throw at a Fable model. I decided using an Opus 5 local agent to upgrade my code review agents from Opus 4.8 to Opus 5 would be a low risk way to experience the new models. The upgrade seemed simple. One line in a workflow file, pointing the review agents at the new model. Claude was going to do the work. How long could it take?\nTwenty-two commits. Twenty-three review rounds. Two days.\nNone of those commits touched application code. Not one. This was a harness project: build and instrument the review infrastructure itself. It took 22 commits and a merged PR of 18 files, +2717/−134 lines of code, to get there.\nI went in thinking I was doing a technology evaluation. I ended up doing something else entirely.\nThe experiment was supposed to be obvious: run the same PRs through Opus 4.8 and Opus 5 and compare the output. Opus 5 identified a problem immediately. My Opus 4.8 reviewer had been explicitly prompted to skip style nits and assume they're handled by the linter. Anthropic's own migration guidance says Opus 5 follows a severity filter more literally than 4.8 did. Same defects found, more withheld. A prompt that says skip style nits suppresses more findings on Opus 5, not because it finds fewer issues but because it obeys the filter more precisely. If I upgraded the model without touching the prompt, I'd see a drop in findings with no way to know whether that was a capability regression or a prompt contract problem.\nSo the experiment became a paired A/B: two review arms, same model, same commit, same diff: arm A running my old severity-filtered prompt, arm B running a new coverage-first prompt that reports everything and tags each finding with severity, confidence, and an evidence tier. That's the thing I ended up building. What I did not anticipate was how many times the instrument",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Opus 5：功能更强？绝对是更好的骗子。",
+        "summary": "这是一份从Claude Opus 4.8迁移代码审查代理到Opus 5的记录，尽管看起来是单行更改，但需要22次提交。Opus 5对严重程度过滤器的解释比前任版本更严格，需要进行全面的提示重组和A/B测试，以确保跨模型版本的一致输出质量。"
+      }
+    }
+  },
+  {
+    "title": "Make any scan searchable - locally, no Python, no Ghostscript, no upload",
+    "slug": "deepocr-local-pdf-ocr-rust",
+    "url": "https://dev.to/deeplab/make-any-scan-searchable-locally-no-python-no-ghostscript-no-upload-2g87",
+    "source": "DEV Community",
+    "date": "2026-07-27T14:24:58.000Z",
+    "summary": "DeepOCR is a local-first Rust tool that adds searchable text layers to scanned PDFs without requiring external dependencies or cloud uploads. The single static binary uses pure Rust OCR and keeps sensitive documents completely offline, solving privacy and complexity concerns with existing OCR solutions.",
+    "content": "I had a folder full of scanned PDFs - old contracts, receipts, a couple of books - and none of them were searchable. No Ctrl-F, no copy-paste, just pictures of text. I wanted to fix that. I did not want to upload any of it to a website, and I really did not want to spend an evening installing a toolchain to do it.\nThat turns out to be a surprisingly awkward corner.\nOCRmyPDF is the tool everyone points you to, and deservedly - it's excellent, mature, does PDF/A, handles dozens of languages. But \"just install it\" means Python plus Tesseract plus Ghostscript plus unpaper plus pikepdf. On Windows especially that's a bad afternoon. And Ghostscript is AGPL - a copyleft dependency I'd rather not build a product on top of. Great tool; the install is the tax.\nOnline OCR sites are the easy path - until you look at what you're uploading. A passport. A signed contract. A medical scan. A tax form. \"Drag your sensitive document onto our server\" is exactly the thing you shouldn't do with the documents that most need OCR. Ads, limits, watermarks are the least of it.\nThe third option most people pick is nothing - they just live with PDFs they can't search.\nNone of these answered the thing I actually wanted: make this scan searchable, on my machine, with one command.\nSo I built it. It's called DeepOCR.\n$ deepocr scan.pdf -o scan.ocr.pdf\nscan.pdf   1 of 1 page(s)   9 words   → scan.ocr.pdf\n\nIt takes a scanned PDF (or an image), recognizes the text, and writes a new PDF where the original page image is untouched and an invisible, selectable text layer sits on top, positioned word by word. Open it in any viewer and Ctrl-F just works. The original file is never modified - the result is a separate .ocr.pdf, the same way a good tool should never overwrite your input.\nIt's a single static Rust binary. No Python, no Tesseract, no Ghostscript. The OCR engine is ocrs - pure Rust - and the recognition model ships inside the release binary, so it runs completely offline. Nothing touches the netw",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "让任何扫描成为可搜索 - 本地运行，无需Python、无需Ghostscript、无需上传",
+        "summary": "DeepOCR是一个本地优先的Rust工具，可为扫描的PDF添加可搜索的文本层，无需外部依赖或云上传。这个单一的静态二进制文件使用纯Rust OCR引擎，将敏感文档保持完全离线，解决了现有OCR解决方案的隐私和复杂性问题。"
+      }
+    }
+  },
+  {
+    "title": "I built a memory engine for AI agents. No cloud required.",
+    "slug": "uteke-ai-memory-engine",
+    "url": "https://dev.to/ajianaz/i-built-a-memory-engine-for-ai-agents-no-cloud-required-47mo",
+    "source": "DEV Community",
+    "date": "2026-07-27T14:17:21.000Z",
+    "summary": "Uteke is a local-first semantic memory engine for AI agents built in Rust that uses dual indexing—vector search and SQLite full-text search—to enable persistent context between sessions. Data remains on the user's machine with no cloud requirement, achieving sub-100ms query times across thousands of stored memories.",
+    "content": "---cover_image: https://cdn.codecora.dev/2026/07/uteke_thumbnail_compressed.png---Every AI agent I've used has the same problem: it forgets everything between sessions.You explain your architecture, your trade-offs, your team conventions. Next conversation? Blank slate. You're re-explaining the same things to a model that has zero memory.This isn't a prompt engineering problem. It's an infrastructure gap.## So I built oneUteke is a local-first semantic memory engine written in Rust. Single binary, no Docker required (optional if you want it), no API keys, no cloud account.Install it, store memories, retrieve them in ~45ms. That's the whole loop.## How it works (the short version)When you store a memory, two things happen in parallel:- Vector search using a local embedding model (188MB, downloads once, no API calls)- Full-text search via SQLite FTS5 for exact keyword matchesAt query time, both indexes fire simultaneously and Reciprocal Rank Fusion merges the results. You get semantic matches (ask \"authentication\" → finds \"login flow\") and exact hits in one ranked list.Your data stays at ~/.codecora/uteke/. Nothing leaves your machine.## The numbers- 58 days since first commit- v0.10.1, 40+ releases- 148 stars, 16 forks on GitHub- ~5ms vector recall at 10K entries, ~45ms full pipeline- Apache 2.0 licensed## Install\nbash# fastestcurl -sSL codecora.dev/install | sh# homebrewbrew install codecoradev/tap/uteke# from sourcecargo install uteke-cli\nI wrote a deep-dive on the architecture, embedding pipeline, and benchmark details on our blog. If you want the technical breakdown, read it here.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我为AI代理构建了内存引擎。无需云端。",
+        "summary": "Uteke是一个用Rust构建的AI代理本地优先语义内存引擎，使用双索引（向量搜索和SQLite全文搜索）来实现会话间的持久上下文。数据保留在用户机器上，无需云端，可在数千个存储的记忆中实现100毫秒以下的查询时间。"
+      }
+    }
+  },
+  {
+    "title": "Archetype: The Chef",
+    "slug": "chef-archetype-engineer",
+    "url": "https://dev.to/druid628/archetype-the-chef-139c",
+    "source": "DEV Community",
+    "date": "2026-07-27T14:15:00.000Z",
+    "summary": "This essay profiles the \"Chef\" archetype—engineers who instinctively perceive dependencies and orchestrate work across teams to prevent bottlenecks. Rather than directing from above, Chefs embed this coordination into their individual work, proactively ensuring each team has what it needs before bottlenecks emerge.",
+    "content": "Most sprint planning meetings follow a familiar pattern.\nWork gets divided up. Owners volunteer for different pieces. Infrastructure starts talking about new environments, and QA begins thinking through test cases. Before long, it feels like everything has been accounted for.\nThen someone asks a simple question. It may not be exactly phrased like this but it amounts to asking this:\n\"What has to be true before we can start?\"\nIt’s interesting to watch what happens next.\nThe conversation shifts almost immediately. People stop talking about individual tasks and start talking about dependencies. Someone remembers the API contract. Another engineer points out the database migration depends on indexes that don’t exist yet. Infrastructure mentions firewall rules. QA asks whether feature flags will be available for testing.\nWithin a few minutes, the whiteboard is covered in arrows.\nThe original plan wasn’t wrong. It just wasn’t complete.\nI’ve worked with engineers who naturally think this way. They don’t just see the work in front of them. They instinctively see how the work fits together.\nI think of them as Chefs.\nIf you’ve ever watched the kitchen of a busy restaurant, you know it can look almost chaotic. Orders are coming in, multiple dishes are being prepared at once, and every station is focused on its own responsibilities.\nYet somehow everything comes together.\nA great Chef isn’t simply cooking their own dish. They’re making sure every station has what it needs before it needs it. They notice when one part of the kitchen is about to become a bottleneck, and they adjust before anyone else realizes there’s a problem.\nI’ve worked with engineers who think the same way. They’re fully engaged in their own work, but they also have an uncanny ability to see how dozens of moving pieces fit together.\nOne mistake people make is assuming the Chef is directing everyone else.\nThat’s rarely what I’ve experienced.\nThe best Chefs aren’t standing above the team assigning work. They’re c",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "原型：厨师",
+        "summary": "这篇文章描述了\"厨师\"原型——能够本能地感知依赖关系并在团队间协调工作以防止瓶颈的工程师。与其从上而下地指挥，厨师们将这种协调融入他们的个人工作中，主动确保每个团队在瓶颈出现之前拥有所需的一切。"
+      }
+    }
+  },
+  {
+    "title": "Evaluating AI in DevOps: Strategies to Identify Effective Tools and Mitigate Risks",
+    "slug": "ai-devops-evaluation-strategy",
+    "url": "https://dev.to/maricode/evaluating-ai-in-devops-strategies-to-identify-effective-tools-and-mitigate-risks-35eg",
+    "source": "DEV Community",
+    "date": "2026-07-27T14:12:08.000Z",
+    "summary": "A pragmatic evaluation of AI tools in DevOps based on real deployment experiences shows success depends on integration pattern, not capability. Tools succeed when they augment human decision-making within existing workflows (PR review tools, alert correlation), but fail when outputs require complete human validation or encourage overreliance without verification.",
+    "content": "Introduction: The AI DevOps Divide\n\n\nA year ago, our team embarked on an aggressive exploration of agentic AI in DevOps, driven by management’s enthusiasm. The results? A stark divide between tools that delivered tangible value and those that introduced inefficiency or risk. This isn’t a story of AI’s failure but a pragmatic lesson in selective adoption. The mechanism here is clear: AI tools generate outputs based on input data and trained models, but their effectiveness hinges on human validation and alignment with real-world precision requirements.\nAI-Generated Terraform Code: Tools like StackGen and Facets impressed in demos, but infra code must be right, not just look right. The causal chain: AI outputs appeared correct → human engineers still had to review every line → no net gain in efficiency. The risk? Subtle errors in AI-generated code could lead to system failures or security vulnerabilities.\nAI Pipeline Optimizer: Promised faster CI but added a service that required constant human oversight. The failure mechanism: AI introduced complexity → increased cognitive load on engineers → net negative ROI.\nInfra Chatbot: Confidently wrong answers almost led to a dangerous command being run in production. The risk mechanism: overreliance on AI → humans bypassed critical thinking → potential catastrophic failure.\nAI-Written Deploy Changelogs: An agent summarizes merged PRs and posts to Slack. Zero effort, high readability. The success mechanism: AI augments human decision-making → reduces cognitive load → increased adoption and trust.\nCodeRabbit on PRs: Catches missing config changes and deploy risks. Tuned down for noise on big PRs. The success mechanism: AI integrates into existing workflows → provides actionable insights → prevents errors before merge.\nAlert Correlation: Reduces 15 alerts to one summary with probable cause. 60% accuracy beats the old 0%. The success mechanism: AI reduces alert fatigue → improves incident response times → tangible operational bene",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "评估DevOps中的AI：识别有效工具和降低风险的策略",
+        "summary": "基于真实部署经验对DevOps中AI工具的实用评估表明，成功取决于集成模式而非能力。当工具在现有工作流中增强人类决策制定（如PR审查工具、警报关联）时成功，但当输出需要完整的人类验证或鼓励在没有验证情况下过度依赖时失败。"
+      }
+    }
+  },
+  {
+    "title": "I built a screen time blocker that has no account, no server, and no idea who you are",
+    "slug": "ios-screen-time-blocker-privacy",
+    "url": "https://dev.to/samtj/i-built-a-screen-time-blocker-that-has-no-account-no-server-and-no-idea-who-you-are-2oe0",
+    "source": "DEV Community",
+    "date": "2026-07-27T14:06:16.000Z",
+    "summary": "A privacy-preserving iOS screen time blocker built on Apple's system-level APIs with no server, account, or data collection required. The tool uses unresettable tracker numbers to enforce habit formation, addressing the gap left by existing blockers that either implement parental controls or harvest user data.",
+    "content": "I was doomscrolling about three hours a day. Not \"checking my phone a lot\" — three hours, measured, on a screen time report I didn't want to look at.\nSo I did what developers do: I went looking for a tool. What I found was a category with two flavors, and neither one was built for me.\nMost \"app blocker\" apps assume a supervisor and a supervised. A parent installs it. Someone else holds the password. Someone else gets the report.\nThe reviews tell the story better than I can. This is a real 1-star review of one of the biggest apps in the category (58k+ ratings, 4.3★):\n\"My parents installed this for me. I don't have a porn addiction. I cannot use the internet without fear of being monitored and needing to be 'accountable'.\"\nThat model works fine for kids. But I'm an adult who already knows the problem. I don't need a warden. I need a wall — and I want to be the one who builds it.\nThe other half of the category wants an account, a subscription, and a copy of your usage data. You wanted to spend less time on your phone. Now a company you've never met has a timeline of every app you opened and when.\nFor a category that markets itself on \"digital wellbeing,\" that's a strange trade.\nA short list:\nBlocks the apps that eat my day\nNobody gets a report on me — not a parent, not a partner, not a vendor\nNo login\nSomething that makes the habit stick past day three\nThat last one matters more than it sounds. Blocking alone doesn't work — you disable it in a weak moment and never turn it back on. What works is a number you don't want to reset.\nHere's the thing that surprised me. On iOS, you can build this entire category with no server at all.\nApple's Screen Time API (the FamilyControls / ManagedSettings / DeviceActivity trio) does the blocking at the system level, on-device. The relevant pieces:\nFamilyControls — authorization, plus FamilyActivityPicker for choosing apps\nManagedSettings — applies the actual shields\nDeviceActivity — schedules and monitors activity windows\nCritically,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个没有账户、没有服务器、不知道你是谁的屏幕时间限制器",
+        "summary": "一个基于苹果系统级API构建的隐私保护型iOS屏幕时间限制工具，无需服务器、账户或数据收集。该工具使用无法重置的追踪器数字来强制习惯养成，填补了现有限制器的空白——它们要么实现家长控制，要么收集用户数据。"
+      }
+    }
+  },
+  {
+    "title": "The Card Said AI",
+    "slug": "ai-compliance-reporting-mapping",
+    "url": "https://dev.to/nabbilkhan/the-card-said-ai-1hbo",
+    "source": "DEV Community",
+    "date": "2026-07-27T14:03:12.000Z",
+    "summary": "When tasked with building an AI-powered compliance report system, the author discovered 61% of required data already existed in the codebase in unmapped form. The actual deliverable was mapping existing systems rather than building new AI, illustrating how to distinguish between what clients request and what they actually need.",
+    "content": "The card said to use AI to build a quarterly compliance report out of a client's event platform. Before I wrote a line I cloned the app. Laravel, about 22,000 files. I spent a day reading it instead of building. There was already a scheduled tracker running. There were attendee exports nobody opened. There were seventeen compliance sheets sitting in the repo that nobody had connected to the ask. The report was most of the way built. It just had no name and no owner, so from the outside it looked like it did not exist.\nThe card said AI. What the client meant was that the quarter closes and somebody sits down for three days with spreadsheets and dreads it. Nobody wants a model. They want the dread to stop. Those are different deliverables, and if you take the first one at face value you will build a beautiful thing that solves nothing.\nSo I did the boring part. I took the compliance template, all 147 columns of it, and went column by column against what the platform already held. Forty seven mapped straight across, same field, different name. Sixty one were derivable, a join or some date math or a rollup away. Thirty nine were real gaps, things the platform never collected at all.\n147 template columns triaged\n47 mapped directly\n61 derivable from existing data\n39 real gaps in the data\nThe triage took longer than the code. And when it was done there was nothing left for a model to do. The mappings were fixed. The derivations were arithmetic. The gaps were gaps, and no model can invent a field nobody collected. It can only write a confident sentence where the field should be.\nThe mapping was not ambiguous. It was just unknown, and those two feel identical until somebody does the work.\nI had already wired one in. Pulling it back out felt like losing. Then I asked the question that decides these things: does this report have to come out the same way twice?\nYes. Somebody pulls a compliance report a year later, somebody who was not in the room, and it has to match the one th",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "卡片上写着AI",
+        "summary": "在接到构建AI驱动的合规报告系统任务时，作者发现所需数据的61%已经以未映射的形式存在于代码库中。实际的可交付成果是映射现有系统，而不是构建新的AI，这说明了如何区分客户的请求和他们实际需要的东西。"
+      }
+    }
+  },
+  {
+    "title": "That Conclusion You Stored Might Be Expired. But It Won't Tell You.",
+    "slug": "ghost-memory-expired-conclusions",
+    "url": "https://dev.to/icophy/that-conclusion-you-stored-might-be-expired-but-it-wont-tell-you-52m0",
+    "source": "DEV Community",
+    "date": "2026-07-27T14:01:26.000Z",
+    "summary": "An analysis of \"Ghost Memory\"—how information systems store historical statements and expiring judgments identically without distinguishing between them. When conclusions are retrieved months later, stale assessments appear as current facts, creating risks when outdated conclusions drive new decisions without flagging their age.",
+    "content": "Last Wednesday afternoon, I was going through a batch of meeting notes.\nOne of them was from three months ago: \"Users don't need a search function. Recommendations are enough.\"\nThe person who wrote that — it was probably after some user feedback session, a moment of clarity, a conclusion worth saving. Three months later, another discussion started citing it. The person quoting it never stopped to ask: is this conclusion from that moment, or is it a fact about today?\nI've been studying a phenomenon called Ghost Memory.\nIt describes how AI systems — or really, any record-keeping system — store information without distinguishing between \"what was true at that moment\" and \"what continues to be true.\" They live in the same cell with no label. When you retrieve them later, they look identical. You think you're pulling up a validated conclusion. You're actually pulling up a judgment that no longer holds.\nThis has nothing to do with what you stored. It has everything to do with how you stored it.\nA meeting note that says \"the CEO thinks this plan is feasible\" is a historical event. It doesn't expire. Another one that says \"the plan is feasible\" is a state judgment. It has a shelf life. But both sit quietly in the same document, same font size, no indication that one of them will change and the other won't.\nThink about your calendar reminders, your Notion conclusions page, the background context inside the requirements docs you send to AI. How much of it is \"what we believed at the time\" rather than \"what is true today\"?\nI made this mistake myself. For a stretch of time, I wrote \"this direction is worth deep exploration\" into my memory system. Two months later, I started building follow-up tasks around it. By the time I discovered that the key premise behind that direction had been overturned by newer research, I already had three subtasks spun off.\nNot carelessness. The storage format just never distinguished between \"state at that moment\" and \"fact that keeps holding.\"\nThe",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你存储的那个结论可能已经过期。但它不会告诉你。",
+        "summary": "对\"幽灵记忆\"的分析——信息系统如何以相同方式存储历史陈述和过期判断，而不区分它们。当数月后检索结论时，陈旧的评估呈现为当前事实，当过时的结论在没有标记其年龄的情况下驱动新决策时，会造成风险。"
+      }
+    }
+  },
+  {
+    "title": "How I Built a CLI That Generates 12 Project Templates in 30 Seconds",
+    "slug": "scaffoldx-template-generator",
+    "url": "https://dev.to/ke_jia_24bb2f9f84f14f728a/how-i-built-a-cli-that-generates-12-project-templates-in-30-seconds-4n4a",
+    "source": "DEV Community",
+    "date": "2026-07-27T14:01:24.000Z",
+    "summary": "ScaffoldX is a project template generator that produces 12 production-ready templates in under 30 seconds using pre-compiled and cached EJS templates. The tool balances speed with flexibility through a configurable architecture built on Commander.js, enabling both rapid generation and customization of standard project structures.",
+    "content": "How I Built a CLI That Generates 12 Project Templates in 30 Seconds\n\n\nWhen I started building ScaffoldX, I had a simple goal: create a CLI tool that generates production-ready project templates in seconds — not minutes.\nAfter 3 weekends of iteration, I got it working. Here's how.\nMost project scaffolding tools suffer from two problems:\nThey're slow. Even \"fast\" generators take 10-30 seconds to output code.\nThey're opinionated. You get exactly what they give you — no customization.\nI needed something that was both fast and flexible.\n// scaffoldx-cli/src/index.js\nimport { Command } from 'commander';\nimport { generateProject } from './generator.js';\nimport { loadConfig } from './config.js';\n\nconst program = new Command();\n\nprogram\n  .name('scaffoldx')\n  .description('Generate project templates in seconds')\n  .argument('[name]', 'project name')\n  .option('-t, --template <type>', 'template type (react, node, typescript)')\n  .action(async (name, options) => {\n    const config = loadConfig(options.template);\n    await generateProject(name, config);\n    console.log('✅ Done in <1s');\n  });\n\nprogram.parse();\n\nThree core components:\nCommand parser — Commander.js for CLI interface\nGenerator — Template rendering engine\nConfig loader — Customizable project configs\nThe key to speed is pre-compiled templates. I use EJS with a smart caching layer:\n// scaffoldx-cli/src/generator.js\nimport ejs from 'ejs';\nimport fs from 'fs/promises';\nimport path from 'path';\n\nconst templateCache = new Map();\n\nexport async function generateProject(name, config) {\n  const template = await getTemplate(config);\n  const output = ejs.render(template, { \n    project: name,\n    version: config.version,\n    dependencies: config.dependencies\n  });\n\n  await fs.writeFile(\n    path.join(process.cwd(), name, 'README.md'),\n    output\n  );\n}\n\nasync function getTemplate(config) {\n  const key = config.template;\n  if (!templateCache.has(key)) {\n    const template = await fs.readFile(\n      path.join(__dirname, 'templat",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何构建一个在30秒内生成12个项目模板的CLI",
+        "summary": "ScaffoldX是一个项目模板生成器，使用预编译和缓存的EJS模板在30秒内生成12个生产就绪的模板。该工具通过基于Commander.js的可配置架构平衡速度和灵活性，实现了标准项目结构的快速生成和定制。"
+      }
+    }
+  },
+  {
+    "title": "Building a Perceptual Hash Pipeline for Video Deduplication in Python",
+    "slug": "video-deduplication-perceptual-hash",
+    "url": "https://dev.to/ahmet_gedik778845/building-a-perceptual-hash-pipeline-for-video-deduplication-in-python-509k",
+    "source": "DEV Community",
+    "date": "2026-07-27T14:00:01.000Z",
+    "summary": "A production system for identifying duplicate viral videos across re-encodings, watermarks, and cropping using perceptual hashing of video frames. The approach aggregates per-frame hashes into video fingerprints queryable via Python and SQLite without GPU or vector databases, solving feed quality issues from distributed duplicate content.",
+    "content": "A single viral clip never stays a single file. Within hours of a video trending, our crawlers pull the \"same\" clip back a dozen times: re-encoded at a lower bitrate, letterboxed for a vertical feed, watermarked by an aggregator, trimmed by three seconds, or mirrored with a 2% zoom to dodge platform fingerprinting. A byte-for-byte SHA-256 sees twelve unique videos. Our users see one clip spammed across their feed. For a European viral-video discovery product where feed quality is the value proposition, that is an existential bug, not a cosmetic one. At ViralVidVault we lean on perceptual hashing to collapse those near-duplicates before anything reaches the ranking model.\nThis post is the actual approach we run in production: how to turn frames into hashes that survive re-encoding, how to aggregate per-frame hashes into a per-video fingerprint, and how to query millions of them without a GPU or a dedicated vector database. The heavy lifting is Python, the storage and query layer is PHP 8.4 on SQLite in WAL mode, and the hot comparison path is a small Go helper. No proprietary services, nothing that ships a raw frame off our origin.\nCryptographic hashes are designed to be maximally sensitive: flip one bit of input and roughly half the output bits change. That is exactly what you want for integrity checking and exactly what you do not want for deduplication. Two visually identical frames that differ only because one went through an extra H.264 pass will produce completely unrelated SHA-256 digests. There is no notion of \"close.\"\nPerceptual hashing inverts the goal. A perceptual hash (pHash) is a short fixed-length code where visually similar inputs produce similar codes, and \"similar\" is measured with Hamming distance — the number of differing bits. Two frames that a human would call the same clip land within a handful of bits of each other. The properties we actually need:\nRobust to re-encoding — bitrate, codec, and container changes barely move the hash.\nRobust to sca",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "用Python构建感知哈希管道实现视频去重",
+        "summary": "一个生产系统，用于通过视频帧的感知哈希识别跨重新编码、水印和裁剪的重复病毒视频。该方法将逐帧哈希聚合成可通过Python和SQLite查询的视频指纹，无需GPU或向量数据库，解决了分布式重复内容导致的内容源质量问题。"
+      }
+    }
+  },
+  {
+    "title": "Knowing What’s Under the Hood Helps",
+    "slug": "oreilly-networking-telemetry",
+    "url": "https://dev.to/leonadato/knowing-whats-under-the-hood-helps-3gf",
+    "source": "DEV Community",
+    "date": "2026-07-27T14:00:00.000Z",
+    "summary": "An early release of chapter 2 from an upcoming O'Reilly book on modern networking telemetry covers the mechanisms inside observability solutions that typically remain hidden. The 82-page chapter emphasizes how understanding these internals helps operators and customers make informed decisions about observability platforms.",
+    "content": "I’m not a car guy. I can drive them, but I don’t know the first thing about fixing them, and not much about maintaining them. My son, on the other hand – who’s getting a degree in mechanical engineering – is most definitely a car guy. He’s learning a lot about cars, and he’s teaching me a lot about what I’ve been doing wrong, even with simple things like maintenance.\nI was thinking a lot about that as chapter 2 of my O’Reilly book, titled “Wrangling Telemetry” was being written. What book, you ask?\nA long, long time ago (it was April 21) in a blog post far, far away (you can find it here) I wrote about the O’Reilly book that Avi Freedman and I are writing about Network Observability.\n\nThe book title is “Practical Guide to Modern Networking Telemetry”. The raw, “lightly edited”, somewhat unexpurgated version of chapter 2 is available today.\nYou can find it here: https://www.kentik.com/go/ebook/oreilly-guide-to-modern-networking-telemetry/.\nI will briefly point out that it’s REALLY worth your time to download this copy because the final version will be about 120-150 pages (those O’Reilly editors don’t work for free!), but the raw version clocks in at 82 pages, and that’s just up to the end of chapter 2. So you really are getting a whole lot of extra content right now – content that will be lost to what looks to be a machete-and-chainsaw editing process later this year.\nBut if those 80+ pages aren’t enough for you – if you want a little more behind-the-scenes extra content to close our your week – I wanted to expand on just one idea that I throw out there in the first couple of pages of chapter 2.\nOn page 42 I wrote:\n“Yes, it’s true that vendor solutions do a lot of heavy lifting behind the scenes. But this book is about exposing and elaborating on what that behind-the-scenes activity is. Part of the reason is so you can be a more informed customer. Knowing what happens inside the black box of observability solutions, HOW you get from “data comes in the left side” to “",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "了解幕后机制有所帮助",
+        "summary": "即将出版的O'Reilly关于现代网络遥测的书籍第2章的早期版本涵盖了通常隐藏在可观测性解决方案内部的机制。这82页的章节强调了解这些内部机制如何帮助运营商和客户对可观测性平台做出明智决策。"
+      }
+    }
+  },
+  {
     "title": "I built an interactive site about my journey — not a portfolio",
     "slug": "built-interactive-site-about-journey-not-portfolio",
     "url": "https://dev.to/rana_rehan_77/i-built-an-interactive-site-about-my-journey-not-a-portfolio-nmo",
