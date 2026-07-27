@@ -1,0 +1,194 @@
+[
+  {
+    "title": "React useDeepCompareEffect: Fix useEffect Object Dependencies (2026)",
+    "slug": "react-usedeepcompareeffect-fix-useeffect-dependencies",
+    "url": "https://dev.to/childrentime/react-usedeepcompareeffect-fix-useeffect-object-dependencies-2026-2f91",
+    "source": "DEV Community",
+    "date": "2026-07-27T03:05:20.000Z",
+    "summary": "React's useEffect compares dependencies by reference, causing infinite loops when passing newly-created objects with identical contents. useDeepCompareEffect from @reactuses/core solves this by comparing dependencies by value, maintaining the same API while preventing unnecessary re-executions.",
+    "content": "React useDeepCompareEffect: Fix useEffect Object Dependencies (2026)\n\n\nYou wire up a fetch. The endpoint takes a query object, so you pass it in the dependency array. The effect fires, sets state, the component re-renders, the query object is rebuilt — a brand-new object with identical contents — and the effect fires again. You have written an infinite loop, and React thinks it did exactly what you asked.\nfunction Results({ term, page }: Props) {\n  const [rows, setRows] = useState([]);\n  const query = { term, page, sort: 'desc' }; // new object, every render\n\n  useEffect(() => {\n    fetchRows(query).then(setRows); // setRows → re-render → new query → 🔁\n  }, [query]);\n}\n\nuseDeepCompareEffect from @reactuses/core is a drop-in replacement for useEffect that compares dependencies by value instead of by reference. Same signature, same cleanup semantics — the effect just stops firing when nothing actually changed. Everything below is the real implementation, TypeScript-first, including the parts that cost you something.\nuseEffect Can't See It\n\n\nReact compares dependency arrays with Object.is, element by element. For primitives that's exactly what you want: 5 is 5, 'desc' is 'desc'. For anything with an identity — objects, arrays, Dates, Maps, functions — it compares the reference, and a literal written inside a component body produces a fresh reference on every single render:\nObject.is({ term: 'react' }, { term: 'react' }); // false — different objects\n\nSo the dependency \"changed\" on every render, by React's definition. This isn't a bug in useEffect; reference equality is the only comparison that's O(1), and React runs it on every render of every component. The cost of value comparison is real, and React declines to pay it on your behalf.\nWhich leaves you paying it — one way or another.\nMemoize the object. Correct, and the right answer when there's one dependency:\nconst query = useMemo(() => ({ term, page, sort: 'desc' }), [term, page]);\n\nIt frays when the object doesn't",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "React useDeepCompareEffect: 修复useEffect对象依赖项 (2026)",
+        "summary": "React的useEffect通过引用比较依赖项，当传递具有相同内容的新创建对象时会导致无限循环。来自@reactuses/core的useDeepCompareEffect通过按值比较依赖项来解决此问题，保持相同的API同时防止不必要的重新执行。"
+      }
+    }
+  },
+  {
+    "title": "CSS Box model",
+    "slug": "css-box-model",
+    "url": "https://dev.to/jaisurya/css-box-model-heb",
+    "source": "DEV Community",
+    "date": "2026-07-27T03:04:44.000Z",
+    "summary": "The CSS box model describes how HTML elements are structured with four layers—content, padding, border, and margin—each controlling spacing and appearance of web elements. Understanding this model is fundamental for web design and layout.",
+    "content": "In CSS, the term \"box model\" is used when talking about web design and layout.The CSS box model is essentially a box that wraps around every HTML element.\nEvery box consists of four parts: content, padding, borders and margins.\nEXPLANATION\nContent - The content of the box, where text and images appear\nPadding - Clears an area around the content. The padding is transparent\nBorder- A border that goes around the padding and content\nMargin - Clears an area outside the border. The margin is transparent\n\n\n\n\ndiv{\n  width: 400px;\n  border: 12px solid green;\n  padding: 50px;\n  margin: 20px;\n}",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "CSS 盒模型",
+        "summary": "CSS盒模型描述了HTML元素如何由四个层次组成——内容、内边距、边框和外边距——每一层都控制网页元素的间距和外观。理解这个模型是网页设计和布局的基础。"
+      }
+    }
+  },
+  {
+    "title": "Your Knowledge Graph Is Wasting 70% of Its Tokens",
+    "slug": "knowledge-graph-wasting-tokens-serialization",
+    "url": "https://dev.to/maheshvaikri/your-knowledge-graph-is-wasting-70-of-its-tokens-3c91",
+    "source": "DEV Community",
+    "date": "2026-07-27T02:52:47.000Z",
+    "summary": "Graph serialization formats waste approximately 70% of tokens on syntax overhead in GraphRAG systems; research comparing 10 formats shows tabular and relational layouts significantly outperform nested markup, with ISONGraph achieving 92% traversal accuracy using 70% fewer tokens.",
+    "content": "Everyone building GraphRAG tunes the same three dials: the retriever, the chunk size, the re-ranker. Then the retrieved subgraph gets serialized into the prompt with json.dumps() — and nobody measures what that step costs.\nI did. It costs more than everything else you tuned.\nI compared 10 graph serialization formats — JSON, GraphML, RDF variants, edge lists, and others — on three axes:\nToken count for the same property graph\nTraversal QA accuracy (can the model correctly walk the graph?)\nMulti-hop reasoning accuracy (can it chain 2-3 relationships?)\nSame graph. Same model. Same questions. Only the serialization changed.\n1. Verbose formats waste ~70% of tokens on syntax. Braces, quotes, repeated keys — none of it carries signal. If you're on an 8K or 16K context window, your effective graph budget is roughly a third of what it should be.\n2. The format alone swings multi-hop accuracy from ~40% to ~80%. This was the result that surprised me. We obsess over model choice while a free variable — how you lay out the graph — doubles or halves the outcome.\n3. Tabular and relational layouts consistently beat nested markup. The likely reason: LLMs have seen tables and relational patterns billions of times in training. Deeply nested structures force the model to track brackets instead of relationships.\nThose results became ISONGraph — a property-graph representation designed for LLM comprehension, part of the ISON ecosystem of token-efficient formats for AI workflows.\n~70% fewer tokens than verbose graph formats\n92% traversal accuracy, 90% knowledge-graph QA (best of the 10 formats tested)\n80% multi-hop accuracy vs 40-70% for alternatives\nNode/edge CRUD, multi-hop traversal, path finding, Cypher-like pattern queries, schema validation, and optional embedding-based semantic search\nMIT licensed, implementations in Python, JavaScript/TypeScript, Rust, Go, C++, and C#\n\n\n\n\npip install isongraph\n\nBenchmark methodology and full results: github.com/isongraph/isongraph\ngraph.ison.dev ·",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的知识图谱浪费了70%的令牌",
+        "summary": "在GraphRAG系统中，图序列化格式在语法开销上浪费了大约70%的令牌；对10种格式的研究表明，表格和关系布局明显优于嵌套标记，ISONGraph使用70%更少的令牌实现92%的遍历准确性。"
+      }
+    }
+  },
+  {
+    "title": "How to Stop Queued WhatsApp Replies After the 24-Hour Window Expires",
+    "slug": "whatsapp-queued-replies-24-hour-window",
+    "url": "https://dev.to/unifyport_cool/how-to-stop-queued-whatsapp-replies-after-the-24-hour-window-expires-flp",
+    "source": "DEV Community",
+    "date": "2026-07-27T02:51:54.000Z",
+    "summary": "WhatsApp's 24-hour customer service window can expire between when a reply is queued and when it's sent, requiring server-side validation immediately before transport. The solution uses explicit state tracking—including service window expiration, timestamps, and version numbers—rather than simple boolean flags.",
+    "content": "A WhatsApp reply can be valid when an agent writes it and invalid when a queue worker finally sends it.\nApproval queues, retries, outages, and delayed jobs can all push a free-form reply beyond WhatsApp's 24-hour customer service window. Checking the window only in the UI is therefore not enough—the sender needs a server-side guard immediately before transport.\nThis tutorial builds that guard with explicit timestamps, idempotent inbound processing, and versioned conversation state.\nConsider this sequence:\n10:00 — Customer sends a message\n10:05 — Agent writes a reply\n10:10 — Reply is approved\n09:59 next day — Job is still waiting\n10:01 next day — Worker claims the job\n\nThe reply was valid when it was written and approved, but the customer service window has expired by the time the worker attempts to send it.\nThe worker must block the non-template send and return an explicit routing result. It must not trust a decision made earlier in the workflow.\nAvoid storing a single value such as:\nconst isFreeConversation = true;\n\nThat value does not explain:\nWhen the window expires\nWhich user message opened it\nWhether the event was duplicated\nWhether a newer event already changed the state\nWhether a separate free-entry period is active\nWhether a queued worker is using stale state\nStore explicit state instead:\ntype WhatsAppWindowState = {\n  serviceWindowExpiresAt: Date | null;\n  freeEntryExpiresAt: Date | null;\n  lastUserMessageAt: Date | null;\n  lastUserMessageId: string | null;\n  stateVersion: number;\n};\n\nEach field has a separate job.\n\n\n\nField\nPurpose\n\n\n\n\nserviceWindowExpiresAt\nControls whether a non-template service reply is permitted\n\n\nfreeEntryExpiresAt\nRecords the separate 72-hour free-entry billing period\n\n\nlastUserMessageAt\nPrevents an older event from moving the window backward\n\n\nlastUserMessageId\nProvides idempotency and audit evidence\n\n\nstateVersion\nDetects stale workers and concurrent state changes\n\n\n\nThe 72-hour free-entry period is not an extended customer service",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何在24小时窗口过期后停止已排队的WhatsApp回复",
+        "summary": "WhatsApp的24小时客户服务窗口可能在回复被排队和发送之间过期，需要在传输前进行服务器端验证。解决方案使用显式状态跟踪（包括服务窗口过期、时间戳和版本号），而不是简单的布尔标志。"
+      }
+    }
+  },
+  {
+    "title": "What Actually Happens Between \"Export Gerbers\" and a Physical PCB Showing Up at Your Door",
+    "slug": "pcb-fabrication-gerbers-manufacturing",
+    "url": "https://dev.to/lucas_ding/what-actually-happens-between-export-gerbers-and-a-physical-pcb-showing-up-at-your-door-4cbd",
+    "source": "DEV Community",
+    "date": "2026-07-27T02:48:00.000Z",
+    "summary": "PCB fabrication uses subtractive manufacturing—starting with full copper sheets and etching away material per design files—rather than additive printing, with inner layers processed first, then laminated, drilled, and routed. Understanding this pipeline helps designers write better design rule checks.",
+    "content": "If you've ever designed a board in KiCad, EasyEDA, or Altium, clicked \"Export Gerbers,\" uploaded a zip file to a fab house, and then a couple weeks later a small padded envelope showed up with actual copper-and-fiberglass boards inside — you've probably wondered, at least once, what happens in between. What does a design file actually turn into on a factory floor, and why does it take days instead of minutes?\nI went down this rabbit hole recently while debugging why a batch of boards came back with a slightly different impedance than I'd simulated. Understanding the fabrication pipeline turned out to be useful for more than just satisfying curiosity — it changed how I write my design rule checks. Here's the short version, from a developer's point of view rather than a process engineer's.\nThis is the part that took me longest to internalize: a PCB isn't fabricated the way you'd picture a 3D print. There's no printer that magically deposits copper in the right places layer by layer. Instead, each layer of your board starts as full-sheet copper, and the fab removes copper according to your Gerber file for that layer — closer to subtractive manufacturing than additive.\nRoughly, the pipeline looks like:\nInner layers first. For a multilayer board, the internal copper layers get imaged and etched before anything is stacked. Whatever routing you buried on an inner layer is committed at this stage — no going back and rerouting after this point.\nLamination. The imaged inner layers get pressed together under heat with a bonding material (prepreg) sandwiched between them, along with the outer copper foils. This is where your stackup — the thing you probably just picked from a dropdown in your CAD tool — actually becomes physical.\nDrilling. Every via and through-hole gets drilled through the stack. Small vias are usually laser-drilled; larger through-holes are mechanically drilled. This step is also why minimum via size and aspect ratio limits exist — a hole that's too deep rela",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "从\"导出Gerber文件\"到PCB送达您家门口之间到底发生了什么",
+        "summary": "PCB制造使用减法制造——从完整的铜板开始，根据设计文件蚀刻掉材料——而不是加法印刷，先处理内层，然后层压、钻孔和路由。理解这个流程有助于设计师编写更好的设计规则检查。"
+      }
+    }
+  },
+  {
+    "title": "I built a PDF table checker that verifies arithmetic in any PDF without a template",
+    "slug": "pdf-table-checker-arithmetic-verification",
+    "url": "https://dev.to/hannune/i-built-a-pdf-table-checker-that-verifies-arithmetic-in-any-pdf-without-a-template-3aci",
+    "source": "DEV Community",
+    "date": "2026-07-27T02:39:11.000Z",
+    "summary": "A browser-based PDF table checker infers table structure from spatial relationships, clustering text by position to identify rows and columns, then verifies that totals match the sum of data rows with tolerance for rounding. It catches common errors in financial reports without requiring templates or manual column mapping.",
+    "content": "The problem I kept running into: a financial report where a subtotal on page 8 is wrong, but nobody spots it until the numbers get aggregated into a spreadsheet and something doesn't reconcile.\nI wanted a tool that could ingest any PDF with tables and tell me which totals don't add up. The constraint: no template, no column mapping UI, no server. Every byte in the browser.\nUpload a PDF. The tool:\nExtracts all text items with their x/y coordinates from each page via pdfjs-dist\nClusters items by y-position into rows (within a 4px snap tolerance)\nDetects which rows are \"total\" or \"subtotal\" rows by keyword matching\nFor each total row, identifies numeric columns and sums the data rows above it (back to the previous header or total)\nCompares computed sum to stated total — flags differences above a 0.1% tolerance\nPDF text items don't know they're in a table. The structure is: a stream of (string, x, y, width) tuples. I have to infer table structure purely from spatial relationships.\nThe approach:\nSnap y-coordinates to a 4px grid to handle sub-pixel jitter between lines\nCluster x-positions of numeric cells to find \"column anchors\" — positions that consistently have numbers\nA column anchor that appears in 2+ data rows becomes a verifiable column\nFor each total row, look up the value at each column anchor and compare to the sum above\nThis breaks on rotated text, multi-column layouts, and cells that span multiple columns. But it catches the common case — section subtotals in financial reports, grand totals in expense sheets.\nNext.js 14, static export on Cloudflare Workers\npdfjs-dist for text extraction (CDN worker, no bundling)\nAll detection and arithmetic runs in the browser\n3 PDFs/month tracked in localStorage. Paid plan unlocks unlimited and CSV export ($9/month).\nLive at: https://compare-lab.xyz/pdf-table-checker/\nIf you work with tabular PDFs regularly and there's a document structure this approach would miss, I'd like to know.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个PDF表格检查器，可以在没有模板的情况下验证任何PDF中的算术",
+        "summary": "一个基于浏览器的PDF表格检查器从空间关系推断表格结构，通过位置对文本进行聚类以识别行和列，然后验证总计与数据行总和匹配（允许四舍五入误差）。它可以捕捉财务报告中的常见错误，无需模板或手动列映射。"
+      }
+    }
+  },
+  {
+    "title": "I built a client-side trade document validator — no upload, no server, just the browser",
+    "slug": "trade-document-validator-client-side",
+    "url": "https://dev.to/hannune/i-built-a-client-side-trade-document-validator-no-upload-no-server-just-the-browser-3c6o",
+    "source": "DEV Community",
+    "date": "2026-07-27T02:38:37.000Z",
+    "summary": "A client-side trade document validator catches discrepancies in international invoices and packing lists—sum mismatches, HS code conflicts, quantity differences—by pattern-matching numeric triples and tariff codes from PDFs and Excel files without uploading data to servers.",
+    "content": "The problem I kept hitting: an international invoice with a line total that's off by a cent, or an HS code that appears in the commercial invoice but is absent from the packing list. Customs holds are rarely dramatic. They're usually paperwork.\nI wanted a tool that would catch these before the documents left the company. The constraint I set: nothing uploaded to a server. Every byte stays in the browser.\nUpload an invoice and a packing list (Excel or PDF). The tool flags:\nSum mismatches — line where qty × unit_price ≠ line total; grand total ≠ sum of lines\nHS code conflicts — codes present in one document but not the other\nQuantity discrepancies — total quantities that don't match across documents\nPDF trade documents are the worst case. They're not structured data. The text extraction gives you a stream of strings with no inherent table structure.\nThe approach I landed on: extract all text, pattern-match for trailing numeric triples (qty, unit price, line total as the last three numbers on a line), and separately extract HS codes using the \\d{4}[\\.\\-]?\\d{2}[\\.\\-]?\\d{0,4} pattern. It's imperfect — complex PDFs with merged cells or rotated text break it — but it catches the common case.\nExcel is cleaner. SheetJS gives you a proper row/column grid. The trickier part is header detection: the column labeled \"HS\" in one document might be \"Tariff Code\" in another. I match a set of synonyms against lowercased, whitespace-stripped header strings.\nNext.js 14, static export, deployed on Cloudflare Workers\nxlsx for Excel/CSV\npdfjs-dist with CDN worker (no bundling headache)\nAll validation logic runs in the browser — parseDocument(), validateSums(), crossValidate()\n\n\n\n\n  \n  \n  Free tier\n\n\nThree document sets per month tracked in localStorage (monthly reset). Paid unlocks unlimited checks and the CSV report download.\nLive at: https://compare-lab.xyz/trade-doc-validator/\nThe source for the validation logic is what I'd most want feedback on. If you deal with trade documents regular",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个客户端贸易文件验证工具——无上传、无服务器，只需浏览器",
+        "summary": "客户端贸易文件验证工具可以发现国际发票和装箱单中的差异——金额不匹配、HS代码冲突、数量差异——通过从PDF和Excel文件中进行模式匹配数字三元组和关税代码，无需将数据上传到服务器。"
+      }
+    }
+  },
+  {
+    "title": "I Built a Job Search Agent That Scores 200 Jobs With Local AI -- Zero Cloud, Zero Cost",
+    "slug": "job-search-agent-local-ai",
+    "url": "https://dev.to/anirudh_shivam/i-built-a-job-search-agent-that-scores-200-jobs-with-local-ai-zero-cloud-zero-cost-21lk",
+    "source": "DEV Community",
+    "date": "2026-07-27T02:36:02.000Z",
+    "summary": "JobRadar is a CLI tool that searches eight job boards simultaneously and scores every listing 0-100 using local AI (Ollama), evaluating skills match, experience fit, salary alignment, and remote preference—all running on-device with no API keys, subscriptions, or data leaving the user's machine.",
+    "content": "Job searching is tab hell.\nYou open LinkedIn, Indeed, RemoteOK, Glassdoor. You re-read the same listings. You copy-paste the same cover letter. You pay $30/month for tools that just aggregate feeds and call it \"AI-powered.\"\nI wanted something better. So I built JobRadar.\nJobRadar is a CLI tool that searches 8 job sources concurrently and scores every listing against your profile using a local LLM running on your machine.\npython -m jobradar -q \"python developer\" -p profile.yaml\n\nThat's it. Eight boards searched in parallel. Every job scored 0-100. Results saved to CSV. Total time: under a minute.\nEvery other job search tool I found uses cloud APIs for scoring -- OpenAI, Claude, whatever. Which means your resume, your search history, your career preferences all go to someone else's server. And you pay per token.\nJobRadar runs qwen3-1.7b (1.1 GB) on your CPU via Ollama. No API keys. No subscriptions. No data leaving your machine. The AI scores each job on four dimensions:\nSkills match -- do you have what they need?\nExperience fit -- does your level match?\nSalary fit -- does it meet your range?\nRemote fit -- does it match your preference?\nEach job gets a score, a rating (Excellent/Good/Fair/Poor), and a reasoning paragraph explaining why.\nMost job search tools scrape 1-2 boards. JobRadar hits 8 simultaneously:\nRemotive -- remote jobs\nRemoteOK -- remote-first jobs\nJobicy -- remote jobs with salary data\nHimalayas -- global remote jobs\nArbeitnow -- international jobs\nGreenhouse ATS -- 15 company career pages (GitLab, Stripe, Figma, etc.)\nAshby ATS -- 15 company career pages (OpenAI, Anthropic, Linear, etc.)\nLinkedIn -- opt-in (may violate ToS)\nThe Greenhouse and Ashby sources pull directly from company career page APIs. No scraping, no auth, no fragility.\nYou define a profile YAML:\nname: Anirudh\ntitle: Backend Engineer\nskills:\n- Python\n- FastAPI\n- PostgreSQL\n- Docker\nexperience_years: 5\nsalary_min: 120000\nremote_ok: true\n\nJobRadar sends each job description plus your profi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个求职代理，用本地AI对200个职位评分——零云端、零成本",
+        "summary": "JobRadar是一个CLI工具，可以同时搜索8个求职板块，并使用本地AI（Ollama）对每个职位评分0-100，评估技能匹配、经验适配、薪资对齐和远程偏好——所有操作都在本地运行，无需API密钥、订阅，或任何数据离开用户的机器。"
+      }
+    }
+  },
+  {
+    "title": "The Distribution Gap Killing Early-Stage AI Startups.",
+    "slug": "distribution-gap-ai-startups",
+    "url": "https://dev.to/richie_shammah/the-distribution-gap-killing-early-stage-ai-startups-22gi",
+    "source": "DEV Community",
+    "date": "2026-07-27T02:35:05.000Z",
+    "summary": "Early-stage AI startups succeed or fail not on product quality but on distribution; while building has become cheaper, most founders confuse launching with sustained distribution and follow identical launch playbooks, creating attention scarcity. Successful companies treat distribution as core product development.",
+    "content": "Why shipping faster isn’t enough when nobody discovers your product.\nEvery week, dozens of AI startups launch on Product Hunt, Hacker News, Reddit and X.\nMost disappear within days.\nNot because the product is bad.\nNot because the founders aren't talented.\nThey disappear because they confuse launching with distribution.\nBuilding has become dramatically easier in the AI era. Getting noticed hasn't.\nI call this the Distribution Gap:\nThe distance between building a valuable product and consistently putting it in front of the people who need it.\nWhy this happens\nAI has made product creation cheaper\nModels, APIs and no-code tools have lowered the barrier to shipping.\nThe bottleneck has shifted.\nEveryone launches in the same places\nProduct Hunt.\nReddit.\nLinkedIn.\nX.\nShow HN.\nLaunch videos.\nWhen everyone follows the same playbook, attention becomes scarce.\nDistribution isn't treated like product development\nFounders measure:\ncommits\nfeatures\nbugs\nuptime\nBut rarely measure:\naudience growth\nfounder visibility\nreferral loops\ncommunity engagement\ncontent reach\nThe Pattern in Practice\nThe Distribution Gap isn't theoretical. You can see it in how AI startups approach growth.\nSome products gain traction because they treat distribution as part of product development. Others struggle because they assume a launch alone will create lasting demand.\nTwo examples illustrate this difference.\nExample 1, Perplexity AI\nDistribution wasn't just marketing, it became part of the product.\nWhile many AI startups focused on building better chat interfaces, Perplexity AI positioned itself around one clear promise: delivering answers backed by cited sources.\nThat positioning made it easier for users to explain why they preferred it over alternatives.\nBut the company's growth wasn't driven by product improvements alone.\nIts founders and team consistently shared product updates, demonstrated new features publicly, engaged with users on X, and encouraged people to compare results with competing AI tool",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "扼杀早期AI初创公司的分销差距",
+        "summary": "早期AI初创公司的成败不取决于产品质量，而是分销能力；虽然构建成本变得更便宜，但大多数创始人将推出与持续分销混为一谈，遵循相同的推出剧本，导致关注度稀缺。成功的公司将分销视为核心产品开发。"
+      }
+    }
+  },
+  {
+    "title": "Building TNP: Why I Built an Enterprise-Realistic DevOps Lab (Part 0)",
+    "slug": "enterprise-devops-lab-tnp-part-0",
+    "url": "https://dev.to/tnptommy/building-tnp-why-i-built-an-enterprise-realistic-devops-lab-part-0-41ie",
+    "source": "DEV Community",
+    "date": "2026-07-27T02:25:56.000Z",
+    "summary": "This series documents a self-contained DevOps lab on a single 64GB Windows machine modeling a fictional 150-person fintech company, teaching how infrastructure tools work together with real constraints like audit trails, secrets rotation, and security scanning—not isolated tool tutorials.",
+    "content": "🧭 This is Part 0 of a 10-part series documenting a self-built, enterprise-realistic DevOps lab — modeled after a fictional fintech company, not a pile of unrelated tools.\nMost homelab tutorials teach tools in isolation. This series teaches them working together, inside a fictional company with real constraints.\nMeet TNP Technologies — a fictional fintech with 150 employees, hybrid infrastructure, and a product called TNP Pay.\nThe lab runs entirely on one 64GB Windows machine, no cloud dependency for the core loop.\n10 parts, from infrastructure setup to chaos engineering — each one builds on the last.\nMost DevOps homelab guides follow the same pattern:\ninstall Docker → install Kubernetes → install Prometheus → done\n\nYou end up with a pile of tools running side by side. Each one works. None of them talk to each other the way they would inside a real company.\nThat's not what a DevOps engineer actually does. The job isn't \"know 15 tools.\" It's \"make 15 tools work together to ship and operate software safely.\"\nSo instead of building a lab that teaches tools in isolation, I built one around a fictional company — with fictional constraints, fictional teams, and a fictional product that actually needed to run.\nThis series documents that build, end to end.\nTNP Technologies JSC is a fictional fintech company — a digital banking platform with about 150 employees and a hybrid infrastructure:\n\n\n\n\n\n\n\n\n\n🇻🇳 On-premises (Vietnam)\nData residency & compliance for financial data\n\n\n☁️ AWS\nEverything that isn't sensitive\n\n\n\nI picked fintech on purpose. It's not a neutral choice — it forces real constraints onto the lab that a generic \"todo app in Kubernetes\" tutorial never has to deal with:\n📝 Every infrastructure change needs an audit trail\n\n🔐 Secrets can't sit around as static values forever\n🧱 Environments (dev/staging/prod) need to be genuinely isolated, not just namespaced by convention\n🛡️ Code doesn't reach production without passing security scans\n\n⏱️ Uptime matters enough to",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建TNP：为什么我建立了一个企业级真实的DevOps实验室（第0部分）",
+        "summary": "本系列介绍了在单台64GB Windows机器上构建的自包含DevOps实验室，模拟了一个虚构的150人金融科技公司，教授基础设施工具如何在审计日志、密钥轮换和安全扫描等真实约束条件下协同工作——而不仅仅是孤立的工具教程。"
+      }
+    }
+  },
+  {
+    "title": "The $0.13 API Token: Inside the Underground Relay Market for AI Access",
+    "slug": "api-relay-market-underground",
+    "url": "https://dev.to/jamilxt/the-013-api-token-inside-the-underground-relay-market-for-ai-access-4034",
+    "source": "DEV Community",
+    "date": "2026-07-27T02:19:54.000Z",
+    "summary": "An underground relay market proxies AI API traffic from stolen credit cards, bulk-registered accounts, and chargeback arbitrage, selling Anthropic and OpenAI tokens at 97.8% discounts (roughly $0.13 per official dollar) through a sophisticated multi-layer supply chain primarily operated in Chinese-language forums.",
+    "content": "Here is a number that does not make sense: $3,333 worth of official Anthropic API credit, sold for 425 RMB. That is roughly $59.\nThe buyer pays fifty-nine dollars and receives over three thousand dollars worth of API access to frontier models. The effective rate: about $0.13 of official usage per dollar spent -- a 97.8% discount off the list price.\nThis is not a group-buy discount or a startup perk. It is the relay market, a four-layer underground economy that has grown around AI API tokens, and it is bigger and more organized than most developers realize.\nA relay -- also called a \"transfer station\" in the Chinese-language forums where this economy operates -- is a service that proxies API traffic to US-hosted AI models at a deep discount. You point your OpenAI-compatible SDK at the relay's endpoint instead of the official one, and your requests get forwarded through a pool of accounts the relay operator controls.\nThe discount comes from the gap between what AI providers charge for API access and what these operators actually pay. If you are running stolen credit cards, bulk-registered free-trial accounts, or chargeback arbitrage, your cost per token approaches zero. Sell those tokens at 90% off list price, and you still make a healthy margin.\nI run a personal AI agent infrastructure using Hermes Agent with multiple provider backends, including Anthropic and OpenAI APIs directly. When I first read about the relay market, my reaction was not moral outrage -- it was curiosity about the economics. How do you build a business model around something that should not work? The answer, it turns out, involves a surprisingly sophisticated supply chain.\nThe relay ecosystem runs four layers deep, from the people sourcing raw credentials to the developers buying cheap inference. Matt Lenhard, a security researcher who spent years working on AI gateway abuse, documented this structure in detail after stumbling onto a Chinese-language forum where operators openly discuss their met",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "$0.13的API令牌：AI访问地下中继市场内幕",
+        "summary": "地下中继市场代理来自被盗信用卡、批量注册账户和退款套利的AI API流量，通过主要在中文论坛运营的复杂多层供应链，以97.8%的折扣（约每美元$0.13）销售Anthropic和OpenAI令牌。"
+      }
+    }
+  },
+  {
+    "title": "Is Building in Public Backwards?",
+    "slug": "building-public-backwards",
+    "url": "https://dev.to/sara_mo/is-building-in-public-backwards-50p7",
+    "source": "DEV Community",
+    "date": "2026-07-27T02:17:42.000Z",
+    "summary": "Building in public by announcing intentions before shipping carries internal costs (narrating competes with building for time and motivation) and external costs (spending credibility on unmet promises). Shipping first inverts the transaction—every public statement is backed by something people can actually use.",
+    "content": "I used to post the roadmap. The coming-soon screenshot, the \"building something new\" teaser, the thread narrating a feature I had not finished. It felt like momentum. Building in public, the advice everyone gives: share the journey, bring people along, market as you make.\nI stopped. Not because visibility is bad. I publish more now than I ever did. I stopped because I had the sequence backwards, and the sequence is the whole thing.\nBuilding in public, as most people practice it, means narrating intentions. You announce the thing before the thing exists. And announcing has two costs that nobody mentions in the \"share your journey\" advice.\nThe first cost is internal. Posting about the work lights up the same reward the work does. You write the announcement, the likes come in, and your brain files it under \"made progress today.\" But you moved nothing. You can run this loop for weeks, feeling productive, shipping tweets instead of software. The narrating competes with the building for the same hours and the same dopamine, and narrating is easier, so narrating wins.\nThe second cost is external, and it is the one that actually matters. When you announce before you ship, you spend credibility on a promise. People give you attention for a thing that does not exist yet. That is a loan. You have to pay it back by shipping exactly what you described, on the timeline the excitement assumed. And unfinished work moves. The feature changes, the release slips, the idea turns out wrong. Hardware companies named the sharp version of this the Osborne effect: pre-announce the next thing and you can kill demand for the thing you already have. Now the version you shipped does not match the version people got excited about, and you have quietly spent trust to buy attention that already decayed.\nShip first and the transaction inverts. You build the thing, then you speak, and every word is backed by something a person can actually run. You are not asking for belief. You are reporting a fact",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在公开场合建设真的是倒退的做法吗？",
+        "summary": "在发布前宣布意图进行公开建设会产生内部成本（叙述与建设争夺时间和动力）和外部成本（在未兑现的承诺上消耗信誉）。先发布反而会反转这个交易——每个公开声明都由人们实际可以使用的东西支持。"
+      }
+    }
+  }
+]
