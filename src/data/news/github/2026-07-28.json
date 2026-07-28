@@ -1,5 +1,213 @@
 [
   {
+    "title": "Rust polymorphism",
+    "slug": "rust-polymorphism",
+    "url": "https://dev.to/qrrcnaxne/rust-polymorphism-5bop",
+    "source": "DEV Community",
+    "date": "2026-07-28T08:28:00.000Z",
+    "summary": "Rust traits enable polymorphism by defining APIs that structs implement, allowing code to work with trait objects without knowing concrete types. The feature shares conceptual similarities with interfaces in other languages but includes powerful trait bounds that constrain implementations.",
+    "content": "Traits is an incredible feature rust has. Let's go on a journey. Imagine you want to build a typical desktop software. It will go on the internet, it will dance with databases, it will do some heavy processing. All packaged together. \nTraits allows you to do that in rust. I've never used java, but it's supposed to be similar to interfaces from that world. Let's look at code examples.\ntrait TraitThing: Debug {\n    fn show(&self);\n}\n\nThis is a simple trait that dictates that that function must exist in structs that implement this trait. These mandatory methods serve as definition for our API. In the end, we will initialize a trait object, and without caring what struct is being initialized in the background, call this show method without fear. The Debug you see is another trait. What this line means is that structs that implement our TraitThing trait must also implement the Debug trait. There are certain limitations on what sort of trait bounds we can add in our trait definitions. We can't add Default trait bound for example. Because the signature default() -> Self returns an object who's size isn't known at compile time. More Information. But that doesn't stop us from actually implementing the Default trait or using the default() method on our structs. But we can't call it on trait objects. We shouldn't need to call default() on trait objects, but it might be a limitation for other similar traits.\n#[derive(Debug)]\nstruct StructThing1;\n\nimpl Default for StructThing1 {\n    #[instrument]\n    fn default() -> Self {\n        info!(\"Called default() on StructThing1\");\n        StructThing1\n    }\n}\n\nimpl TraitThing for StructThing1 {\n    #[instrument]\n    fn show(&self) {\n        info!(\"Called show() StructThing1\");\n    }\n}\n\nThis is first implementation for our trait. The #[derive(Debug)] line automatically implements the Debug trait for our struct. The #[instrument] macro prints a log line whenever that function is called. info!() is also a logging thing that logs at info le",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Rust 多态性",
+        "summary": "Rust 特性（traits）通过定义结构体实现的 API 来启用多态，允许代码在不知道具体类型的情况下与 trait 对象一起工作。该特性与其他语言中的接口有概念上的相似之处，但包含强大的 trait bounds，可以约束实现。"
+      }
+    }
+  },
+  {
+    "title": "Passwordless OTP Needs Inbox Boundaries",
+    "slug": "passwordless-otp-inbox-boundaries",
+    "url": "https://dev.to/sophiax99/passwordless-otp-needs-inbox-boundaries-1079",
+    "source": "DEV Community",
+    "date": "2026-07-28T08:24:07.000Z",
+    "summary": "Passwordless email OTP authentication can be vulnerable when inboxes handle multiple sessions or users without strict binding between codes and login attempts. Security failures stem not from weak code generators but from loose control plane design around OTP delivery and verification context.",
+    "content": "Passwordless login by email can feel safer because there is no password database to defend. That part is true, but it hides a quieter problem: many teams treat the inbox like a neutral transport layer when it is actualy part of the auth boundary. If one inbox can collect codes for multiple sessions, environments, or users, your OTP flow gets harder to reason about and easier to abuse.\nI have seen this show up in test systems first, then later in production design reviews. The app logic looked fine, the email templates looked fine, yet the control plane around verification was fuzzy. That fuzziness is where replay, mix-ups, and weak audit trails start.\nMost broken passwordless flows are not broken because the code generator is weak. They fail because delivery context is loose.\nCommon examples:\none inbox receives codes for several concurrent login attempts\nthe server verifies a code without binding it to one session or nonce\na staging mailbox gets reused for manual QA and automated checks\nlogs prove that an email was sent, but not which auth attempt it belonged to\nThis is the same reason I like reading about parallel email test isolation even when I am thinking about production auth. Isolation is not just a testing concern. It is an identity concern.\nSearch traffic around free temporary email and best throwaway email often comes from teams trying to speed up verification testing. That is fine, but the provider choice matters less than the boundary design around it. I also keep an eye on weird support strings like tepm mail com because users and testers paste those messy terms into tickets more often than you'd expect.\nBefore changing code, I write down what an attacker or a confused system could do:\nReuse a valid OTP from one browser session in another.\nRace two login requests to the same inbox and redeem the wrong code.\nReplay an older message because the verifier only checks the code value.\nLeak enough telemetry that support or logs reveal active login links.\nIf you",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "无密码 OTP 需要收件箱边界",
+        "summary": "当收件箱处理多个会话或用户而不在代码和登录尝试之间进行严格绑定时，无密码电子邮件 OTP 身份验证可能会很脆弱。安全故障不是源于弱代码生成器，而是源于围绕 OTP 交付和验证上下文的松散控制平面设计。"
+      }
+    }
+  },
+  {
+    "title": "No, Go 1.26 Did Not Make Your Service 40% Faster",
+    "slug": "go-1-26-service-not-40-percent-faster",
+    "url": "https://dev.to/zmey56/no-go-126-did-not-make-your-service-40-faster-3a41",
+    "source": "DEV Community",
+    "date": "2026-07-28T08:22:54.000Z",
+    "summary": "Go 1.26's Green Tea garbage collector delivers real performance gains, but the 40% claim applies only to GC operations, not overall service latency; the improvement comes from better spatial memory locality reducing CPU cache misses. Understanding what metrics actually improved helps teams make better optimization decisions.",
+    "content": "Since spring, Green Tea has been coming up in almost every interview I sit in on. And nine times out of ten the answer I hear is some version of \"well, it's 40% faster.\" Ask a follow-up — faster at what? — and the room goes quiet.\nThe percentages are real. They just don't measure what most people assume they measure. Let's take this apart.\nPicture a room full of toys. Some are still in use, some aren't. Somebody has to walk around and throw out what's no longer needed, or the room fills up.\nIn Go, that somebody is the garbage collector. Your program allocates data, stops using it, and the collector comes along and reclaims the space.\nGo 1.26 shipped on February 10, 2026, and the janitor works differently now. The approach is called Green Tea, it's on by default, and you don't change any code to get it.\nObjects in memory point at each other. One object knows about another, that one knows about a third. You get threads running from toy to toy.\nThe old collector followed those threads. Take an object, mark it as live, look at what it references, move on. Object by object, until everything reachable has been walked.\nThe logic is fine. That's not where the problem is.\nThe problem is that objects are scattered across memory. The first one is at the start, the second is far away, the third is somewhere else again. A janitor following threads ends up sprinting around the whole house: bedroom to kitchen, kitchen to attic, then back to the bedroom.\nA CPU has a small, fast memory close at hand — the cache. Think of it as your pocket: whatever's in there, you grab instantly. Then there's the big, slow memory, which is more like a storage room at the far end of the house.\nWhen the CPU needs data, it checks the pocket first. Not there? Walk to the storage room. That walk can cost up to a hundred times more than the pocket.\nNow put the two facts together: objects are scattered, and every hop along a reference thread is a jump to a random address. Nearly every step the old janitor",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "不，Go 1.26 并未使你的服务快 40%",
+        "summary": "Go 1.26 的 Green Tea 垃圾收集器确实带来了真实的性能收益，但 40% 的声称仅适用于 GC 操作，而不是整体服务延迟；改进来自于更好的空间内存局部性，减少了 CPU 缓存未命中。理解实际改进了哪些指标有助于团队做出更好的优化决策。"
+      }
+    }
+  },
+  {
+    "title": "Deja de hacer despliegues manuales: CI/CD básico con GitHub Actions",
+    "slug": "ci-cd-basico-github-actions",
+    "url": "https://dev.to/acrdev/deja-de-hacer-despliegues-manuales-cicd-basico-con-github-actions-40j9",
+    "source": "DEV Community",
+    "date": "2026-07-28T08:21:02.000Z",
+    "summary": "GitHub Actions provides standard CI/CD automation where workflows defined in .github/workflows/ YAML files execute on GitHub-hosted runners in response to git events. Critical practices include using npm ci for consistency and storing credentials in GitHub Secrets rather than hardcoding them.",
+    "content": "Deja de hacer despliegues manuales: CI/CD básico con GitHub Actions\n\n\nSi todavía copias archivos por SCP o subes carpetas por FTP en julio de 2026, por favor, para. No tiene sentido. GitHub Actions es el estándar de facto y si no lo usas, estás perdiendo el tiempo que podrías dedicar a cosas más interesantes.\nVamos al grano. Un pipeline no es magia. Es solo un script que se ejecuta en una máquina virtual de GitHub cada vez que haces un git push.\nTodo se basa en eventos. Puedes disparar tu pipeline cuando haces un push a main, cuando abres un Pull Request, o incluso a una hora específica.\nGitHub te presta una máquina (el \"Runner\"). Tú le dices qué hacer en un archivo YAML dentro de .github/workflows/.\nCrea el archivo .github/workflows/ci.yml en tu repositorio. Este es un ejemplo para una app sencilla de Node.js que deberías tener funcional hoy:\nname: CI Pipeline\n\non:\n  push:\n    branches: [ \"main\" ]\n  pull_request:\n    branches: [ \"main\" ]\n\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Setup Node\n        uses: actions/setup-node@v4\n        with:\n          node-version: '22'\n      - run: npm ci\n      - run: npm test\n\n¿Qué hace esto?\non: Escucha cambios en main.\nruns-on: Pide una máquina con Ubuntu actualizada a la fecha.\nactions/checkout: Descarga tu código en la máquina.\nsetup-node: Prepara el entorno.\nrun: Ejecuta los comandos que escribirías en tu terminal.\nSi el npm test falla, el pipeline se detiene y te manda un correo. Así es como mantienes el código roto lejos de producción.\nEsto es un error de novato nivel junior: subir contraseñas o tokens de API al repo. GitHub tiene \"Secrets\" para esto.\nVe a Settings > Secrets and variables > Actions. Ahí guardas tu DB_PASSWORD o tu AWS_ACCESS_KEY. En el YAML, los llamas así:\n    env:\n      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}\n\nNunca, bajo ninguna circunstancia, escribas el valor real en el archivo. Si lo haces, revócalo inmediatamente.\nAquí es donde ahorras horas. U",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "停止进行手动部署：使用 GitHub Actions 的基础 CI/CD",
+        "summary": "GitHub Actions 提供标准的 CI/CD 自动化，其中在 .github/workflows/ 中定义的工作流 YAML 文件在响应 git 事件时在 GitHub 托管的运行器上执行。关键实践包括使用 npm ci 以保证一致性，并将凭证存储在 GitHub Secrets 中而不是硬编码。"
+      }
+    }
+  },
+  {
+    "title": "What If Your Release Notes Had to Survive a Playtest?",
+    "slug": "release-notes-survive-playtest",
+    "url": "https://dev.to/demivalerith/what-if-your-release-notes-had-to-survive-a-playtest-37b8",
+    "source": "DEV Community",
+    "date": "2026-07-28T08:18:07.000Z",
+    "summary": "Release notes could be designed as interactive experiences rather than static documentation, embedding features in constrained game-like formats to improve memorability and understanding. The htmx 4.0 release demonstrated this with a Game Boy cartridge that unlocked documentation through playable levels.",
+    "content": "A release note usually has one job: tell readers what changed. For a small developer tool, that can leave a gap between reading about a feature and understanding why it matters. Screenshots help, but they are passive; a demo often needs more setup than the feature it explains.\nThat gap is interesting when the update itself has a tight, learnable interaction. Could a changelog be designed as a tiny thing someone plays through, rather than a page they skim?\nhtmx 4.0 was released as a Game Boy cartridge. On July 27, the related Hacker News post was observed at rank three with 338 points and 105 comments. Those are a point-in-time discussion snapshot, not evidence of a broad market or demand for game-like release notes. The useful part is more concrete: the release made the format memorable by putting the documentation inside a constrained interaction.\nThe htmx page describes a Game Boy game in which players unlock source through levels, while GB Studio provides a practical route to build both ROM and HTML5 versions. That makes the idea less speculative than it sounds: a maker does not need a custom emulator or a general-purpose game engine to test the format.\nThe product is not “turn every changelog into a game.” It is a narrow publishing workflow for independent developers whose releases can be explained through one or two actions. An author supplies a feature description, a few assets, the intended user action, and the visible outcome. The generator turns that into a short cartridge-style level: read a prompt, move to an object, choose an action, and see the result.\nThe system should deliberately offer only a few templates—dialogue, pickups, switches, and short movement. Constraints are a feature here. They stop an update writer from accidentally starting a game-design project, and they make exported artifacts predictable. A GB Studio template can compile a ROM and a web build; the web version can be embedded in a release page or used as a standalone launch artifact.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如果你的发布说明必须通过游戏测试会怎样？",
+        "summary": "发布说明可以设计成交互体验而不是静态文档，在受限的类游戏格式中嵌入功能以提高记忆力和理解力。htmx 4.0 版本通过一个 Game Boy 卡带演示了这一点，该卡带通过可玩关卡来解锁文档。"
+      }
+    }
+  },
+  {
+    "title": "How Cursor + BrowserAct Handles Dynamic Pages Without Brittle Selectors",
+    "slug": "cursor-browseract-dynamic-pages",
+    "url": "https://dev.to/anthonymax/how-cursor-browseract-handles-dynamic-pages-without-brittle-selectors-dh4",
+    "source": "DEV Community",
+    "date": "2026-07-28T08:17:28.000Z",
+    "summary": "AI-powered browser automation using Cursor and BrowserAct handles dynamic web pages through an inspect-act-reassess loop that adapts to current page state instead of relying on hardcoded selectors. This approach proves more resilient to UI changes than traditional selector-based automation frameworks.",
+    "content": "TL;DR\n\n\nModern web applications change constantly. Components are re-rendered, generated attributes may differ between builds. Even when the UI looks identical, browser automation can fail because it still relies on assumptions captured before the page changed.\nIn this article, I used Cursor with BrowserAct CLI to test a dynamic project filter. Instead of relying on unreliable selectors, Cursor used BrowserAct to inspect the current page state and complete the task without relying on brittle selectors.\nThe goal wasn't to eliminate the DOM or replace Playwright. The goal was to give an AI agent a reliable inspect → act → reassess loop that works on modern, dynamic websites.\nWell, let's get started! 🏎️\nA browser test can run successfully for weeks and suddenly fail after a harmless frontend update.\nThe button is still visible. The feature still works. Yet the test fails because the element it expected no longer exists.\n<!-- Initial page -->\n<div class=\"toolbar\">\n  <button id=\"date-filter-btn\">Filter by Date</button>\n</div>\n\nAfter hydration:\n<div class=\"toolbar toolbar--v2\">\n  <div class=\"toolbar__indent\"></div>\n  <button id=\"status-filter-btn\" class=\"btn btn--active\">\n    <span>⚙️</span>\n    <span>Filter by Date</span>\n  </button>\n</div>\n\nawait page.click(\"#date-filter-btn\")\n\nThis may fail because the selector no longer matches the current page.\nModern browser automation works best when the application is already known. Engineers can write reliable Playwright tests because they understand the page structure in advance and maintain those tests as the application evolves.\n// Playwright: Assumes you know the page structure\nawait page.click('#filter-button');       // Works if this ID exists today\nawait page.waitForTimeout(500);           // Hope this is long enough\nawait page.fill('input[name=\"search\"]', 'query');  // Works if DOM hasn't changed\n\nThe challenge is different for AI agents. When Cursor operates an unfamiliar website, it cannot assume which elements exist o",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Cursor + BrowserAct 如何处理动态页面而不使用易碎的选择器",
+        "summary": "使用 Cursor 和 BrowserAct 的 AI 动力浏览器自动化通过检查-执行-重新评估循环处理动态网页，该循环适应当前页面状态而不是依赖硬编码的选择器。与传统的基于选择器的自动化框架相比，这种方法对 UI 更改的适应力更强。"
+      }
+    }
+  },
+  {
+    "title": "Why a Pricing Page Can Come Before Payment Integration",
+    "slug": "pricing-page-before-payment-integration",
+    "url": "https://dev.to/waseverinlabs/why-a-pricing-page-can-come-before-payment-integration-21ep",
+    "source": "DEV Community",
+    "date": "2026-07-28T08:15:46.000Z",
+    "summary": "A SaaS product can publish a pricing page before payment systems are implemented if it clearly distinguishes available features from planned paid offerings, separating pricing communication from payment infrastructure. This approach allows monetization planning to proceed independently with full transparency.",
+    "content": "A recent update to WASEVERIN Image Converter introduced a public Pricing page.\nThe image converter remains free, and payments are not enabled yet. The page currently explains what users can access today and previews a possible Pro plan for future features.\nThis raises a useful product question:\nShould a SaaS product publish pricing before its payment system is ready?\nThe answer can be yes, as long as the difference between current and planned functionality is clear.\nA Pricing page communicates the product structure:\nWhat is available for free\nWhat may be included in a paid plan\nHow much that plan may cost\nWhether the plan can currently be purchased\nA payment system has a different responsibility. It handles checkout, payment confirmation, subscription status and access to paid features.\nSeparating these two areas allows a product to define its plans before introducing payment complexity.\nThe most important requirement is transparency.\nFor WASEVERIN Image Converter, the current Free plan includes:\nBrowser-based image conversion\nNo image uploads\nNo account requirement\nNo watermark\nThe planned Pro option is displayed at $4.99 USD per month or $39 USD per year, but it is clearly marked as unavailable for purchase.\nThis avoids creating a checkout experience for features that are not ready.\nUsers should be able to understand the difference between available now and planned for later without reading additional documentation.\nThe core conversion workflow remains unchanged:\nChoose an image\nSelect an output format\nConvert it locally\nDownload the result\nThis workflow should not depend on a payment provider or subscription service.\nIf payment support is added later, temporary billing failures should not prevent users from accessing the existing free converter.\nKeeping the free workflow independent also makes future payment development easier to test and release separately.\nA Pricing page can prepare a product for future monetization without pretending that payment functionality",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么定价页面可以在支付集成之前发布",
+        "summary": "SaaS产品可以在实现支付系统之前发布定价页面，只要它清楚地区分可用功能与计划中的付费产品，将定价沟通与支付基础设施分离。这种方法允许货币化规划独立进行，并保持完全透明。"
+      }
+    }
+  },
+  {
+    "title": "\"I built a Python compiler that runs in browser using WebAssembly\"",
+    "slug": "python-compiler-browser-webassembly",
+    "url": "https://dev.to/shrirang_8770f57b6607952a/i-built-a-python-compiler-that-runs-in-browser-using-webassembly-26if",
+    "source": "DEV Community",
+    "date": "2026-07-28T08:10:46.000Z",
+    "summary": "PyPlayground is a Python compiler that runs in the browser using WebAssembly, enabling users to write and execute Python code without server infrastructure. The project demonstrates how WebAssembly-based runtimes can democratize programming language access and enable offline development.",
+    "content": "\"I recently built PyPlayground — \nThe interesting part is it runs \nHow it works:\nTech stack:\nTry it here:\nPyplayground \nWould love feedback from \nthe dev community! 🙏",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我用WebAssembly构建了一个在浏览器中运行的Python编译器",
+        "summary": "PyPlayground是一个使用WebAssembly在浏览器中运行的Python编译器，使用户能够无需服务器基础设施即可编写和执行Python代码。该项目展示了基于WebAssembly的运行时如何能够民主化编程语言访问并启用离线开发。"
+      }
+    }
+  },
+  {
+    "title": "Did it check, or did it guess? Testing a tool whose output is written by an LLM",
+    "slug": "testing-tool-output-written-by-llm",
+    "url": "https://dev.to/dragosbln/did-it-check-or-did-it-guess-testing-a-tool-whose-output-is-written-by-an-llm-1i4c",
+    "source": "DEV Community",
+    "date": "2026-07-28T08:10:31.000Z",
+    "summary": "Testing AI tools that generate mixed mechanical findings and judgment calls requires building verifiable outputs and defensible reasoning, not just prompt engineering. The author describes building an audit skill combining automated analysis with user interviews to produce credible, checkable results.",
+    "content": "My first AI tool was ready, and in typical AI-era fashion, I rushed to publish it. After all, it worked. Or at least when I ran it, the output looked right to me.\nBut one scenario kept haunting me: I recommend it to a client, they run it and challenge one of its findings. Then they ask \"What makes it trustworthy? Did it check, or did it guess? How do you know?\" \nI didn't have a good answer. \"My prompt was really good\" - not quite what you'd expect from a senior architect.\nThis article is about building a better answer, and how building it changes the tool itself.\nI built an AI tool for auditing calcification in production auth systems. Its purpose stems from a real-world problem I encountered while working on a large-scale platform, which I described in Part 1. After dealing with it, I formulated some generalized principles in Part 2, and based on those principles, I built the tool in Part 3.\nLong story short: the tool is a skill published for Claude Code. It audits a codebase and evaluates how hard-wired the auth implementation is to its vendor's defaults, across multiple axes (token storage, refresh handling, provider coupling, authorization). It then runs an interview with the user for the judgment calls, and combines everything into its final deliverables. When this story begins, those deliverables were 2 markdown files: a full report and a one-screen summary, presenting the findings, the risks and the recommended next steps.\nWhile the tool and the previous 3 articles are good for context, this article is meant to be a standalone piece on the issues you'd usually encounter when thinking about testing AI tools and skills. The auditor is just a convenient example, since its output mixes everything that makes AI hard to test: mechanical findings, judgment calls and prose. \nIf your tool makes claims about something checkable (a codebase, a document base, a dataset), the pattern is the same, and the vocabulary transfers: my enums are your classification fields, my fi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "它是检查了，还是猜测了？测试一个由LLM生成输出的工具",
+        "summary": "测试生成混合机械发现和判断调用的AI工具需要构建可验证的输出和可防守的推理，而不仅仅是提示工程。作者描述了构建一种审计技能，将自动分析与用户访谈结合起来，以产生可信、可检查的结果。"
+      }
+    }
+  },
+  {
+    "title": "73,049 dates through a numerology rule: mostly mod 9, and 33's rarity depends on when you reduce",
+    "slug": "numerology-rule-33-rarity-reduction-order",
+    "url": "https://dev.to/vknull/73049-dates-through-a-numerology-rule-mostly-mod-9-and-33s-rarity-depends-on-when-you-reduce-2993",
+    "source": "DEV Community",
+    "date": "2026-07-28T08:10:04.000Z",
+    "summary": "Analysis of Life Path numerology across 73,049 dates shows six values cluster near 1/9 of the distribution due to mod 9 arithmetic, while 'master number' 33 frequency varies dramatically based on reduction order. The variance demonstrates how rule interpretation creates apparent patterns in deterministic systems.",
+    "content": "The usual headline is that 33 is the rarest Life Path, about half a percent. Half a percent of what, reduced in which order? Change the order, to another convention inside the same master-preserving school, and 33 turns up 2,186 times instead of 393. Same rule, same dates, 5.6x.\nLife Path is a digit-reduction rule mapping a birth date to a small integer. It predicts nothing. But it is a deterministic function over a finite domain, which means you never have to sample it. You can just run the whole thing. We did: every date from 1900-01-01 to 2099-12-31, exactly 73,049 dates.\nThe other result is duller and it goes first, because it disarms most of what gets written about this distribution. Six of the twelve values land within four dates of each other, near one ninth apiece. That is not a discovery. That is mod 9.\nDisclosure: we are not a neutral party. Znakai builds the numerology apps at numeroai.me and ai-numerolog.ru, which have a paid tier. We publish the arithmetic openly because the arithmetic is the only part of numerology that can be checked.\n\"Reduce\" means repeatedly replacing n with the sum of its digits until a single digit remains — with one exception: 11, 22, and 33 (\"master numbers\") are kept whole at every step. That exception is the source of all the structure below. This is the Pythagorean school; schools that reduce 11/22/33 down to 2/4/6 produce a different table entirely.\nThe code is the spec:\nfrom collections import Counter\nfrom datetime import date, timedelta\n\nMASTERS = {11, 22, 33}\n\ndef reduce_digits(n: int) -> int:\n    \"\"\"Digit-sum n down to a single digit, but keep 11, 22, 33 whole.\"\"\"\n    while n > 9 and n not in MASTERS:\n        n = sum(int(c) for c in str(n))\n    return n\n\ndef life_path(d: date) -> int:\n    day = reduce_digits(d.day)\n    month = reduce_digits(d.month)\n    year = reduce_digits(sum(int(c) for c in str(d.year)))\n    return reduce_digits(day + month + year)\n\ncounts: Counter[int] = Counter()\nd, end = date(1900, 1, 1), date(2099",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "73049个日期的数字命理规则分析：主要涉及mod 9，33的稀有性取决于化简顺序",
+        "summary": "跨越73049个日期的生命路径数字命理分析显示，六个值由于mod 9算术聚集在分布的1/9附近，而\"主数字\"33的频率根据化简顺序而大幅变化。这种差异演示了规则解释如何在确定性系统中创造明显的模式。"
+      }
+    }
+  },
+  {
+    "title": "Drizzle's `with` is not a JOIN: peeking at the SQL it actually generates",
+    "slug": "drizzle-with-not-join-sql-generation",
+    "url": "https://dev.to/hirodeath/drizzles-with-is-not-a-join-peeking-at-the-sql-it-actually-generates-57el",
+    "source": "DEV Community",
+    "date": "2026-07-28T08:08:03.000Z",
+    "summary": "Drizzle ORM's relation queries using `with` compile to a single SQL statement with correlated subqueries and json_group_array, avoiding both N+1 queries and expensive joins. Query count remains one regardless of nesting depth, making this approach efficient for latency-sensitive platforms.",
+    "content": "This is a translation of my original article in Japanese: Qiita\nI run the backends of two side projects on Drizzle + Cloudflare D1, and I realized I had never actually checked what SQL the relational queries API (db.query.xxx.findMany({ with: ... })) produces.\nIs it a JOIN? Or does it quietly turn into N+1 queries? I wired up a logger and measured it, and the answer was neither. Drizzle compiles the whole thing into a single SQL statement built from correlated subqueries and json_group_array. No matter how deep you nest relations, the query count stays at one.\nThis post walks through the actual SQL, pasted as measured.\nFetching a relation in Drizzle looks like this:\n// Fetch members of an organization, with user info attached\nconst members = await db.query.memberships.findMany({\n  where: eq(memberships.orgId, input.orgId),\n  with: { user: { columns: { id: true, name: true, email: true } } },\n});\n\nBased on ORM instincts, I assumed this was either ActiveRecord-style lazy loading (the classic N+1 trap) or a JOIN that duplicates rows and reassembles them on the application side. D1's latency scales with the number of queries you send, so if this was N+1, that would be a real problem. That finally got me to check.\nDrizzle accepts a custom logger at initialization, which captures every SQL statement it sends:\nconst queries: { query: string; params: unknown[] }[] = [];\n\nconst db = drizzle(client, {\n  schema,\n  logger: {\n    logQuery(query, params) {\n      queries.push({ query, params });\n    },\n  },\n});\n\nThe schema is from a service I actually run (a sports club management app): organization one-to-many membership many-to-one user. Environment: drizzle-orm 0.41 + SQLite via libsql, the same SQLite dialect as D1.\nawait db.query.memberships.findMany({\n  with: { user: { columns: { id: true, name: true, email: true } } },\n  limit: 3,\n});\n\nQuery count: 1. Here is the SQL, formatted for readability:\nselect \"id\", \"userId\", \"orgId\", \"role\", \"joinedAt\",\n  (select json_array(\"id\", \"",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Drizzle的`with`并非JOIN：揭示其实际生成的SQL",
+        "summary": "Drizzle ORM使用`with`的关系查询编译为单个SQL语句，包含关联子查询和json_group_array，避免N+1查询和昂贵的连接。无论嵌套深度如何，查询计数保持为一，使这种方法对延迟敏感的平台高效。"
+      }
+    }
+  },
+  {
+    "title": "CI/CD pipelines",
+    "slug": "ci-cd-pipelines-github-actions",
+    "url": "https://dev.to/acrdev/acrdev-article-l6c",
+    "source": "DEV Community",
+    "date": "2026-07-28T08:07:01.000Z",
+    "summary": "GitHub Actions has matured as the standard CI/CD platform, executing workflows from .github/workflows/ YAML files in response to git events. Key practices include using npm ci for dependency consistency and GitHub Secrets for credential storage, replacing manual SSH deployments.",
+    "content": "Si estás harto de hacer git push y luego entrar al servidor por SSH a hacer un git pull y reiniciar manualmente el proceso, ya tienes la mitad del camino andado. Estás listo para dejar de ser un operario de tu propio código y empezar a delegar en GitHub Actions.\nA mediados de 2026, la realidad es que si tu pipeline no está automatizado, estás perdiendo tiempo valioso. GitHub Actions ha madurado un montón. Ya no es solo esa herramienta \"curiosa\" que probamos hace años; es el estándar de facto. Vamos a montar un flujo de trabajo serio sin marearte con teoría innecesaria.\nTodo empieza en la carpeta .github/workflows/. Ahí es donde viven tus automatizaciones. Cada archivo .yaml en ese directorio es un workflow independiente. Olvídate de herramientas externas; esto vive pegado a tu repo, lo que significa que el versionado de tu infraestructura de despliegue va de la mano con tu código.\nPara que esto funcione, necesitas entender el trigger (disparador). ¿Cuándo quieres que corra esto? Normalmente, en cada push a la rama main o en cada pull request.\nname: CI Pipeline\non:\n  push:\n    branches: [ \"main\" ]\n  pull_request:\n    branches: [ \"main\" ]\n\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Setup Node.js\n        uses: actions/setup-node@v4\n        with:\n          node-version: '22'\n      - name: Install and Test\n        run: |\n          npm ci\n          npm run test\n\nAquí hay un detalle técnico clave: npm ci en lugar de npm install. En un entorno de CI, no quieres actualizar dependencias por accidente. npm ci asegura que vas a instalar exactamente lo que dice tu package-lock.json. Si el lock no coincide, el proceso falla. Eso es lo que queremos: consistencia.\nUno de los errores más comunes cuando estás empezando con este tutorial de GitHub Actions es hardcodear credenciales en el archivo .yaml. Por favor, no lo hagas. GitHub tiene una pestaña llamada \"Secrets and variables\" en la configuración de tu repositorio.\nAhí es d",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "CI/CD流水线",
+        "summary": "GitHub Actions已成为成熟的标准CI/CD平台，根据git事件执行.github/workflows/ YAML文件中的工作流。关键实践包括使用npm ci确保依赖一致性和使用GitHub Secrets存储凭证，取代了手动SSH部署。"
+      }
+    }
+  },
+  {
+    "title": "Using an open model feels surprisingly good",
+    "slug": "using-open-model-feels-surprisingly-good",
+    "url": "https://matthewsaltz.com/blog/using-an-open-model-feels-surprisingly-good/",
+    "source": "Hacker News",
+    "date": "2026-07-28T02:37:14.000Z",
+    "summary": "Open-source language models are receiving positive reception from developers regarding customization, local control, and operational independence from proprietary providers. Hacker News discussion (256 points, 79 comments) reflects growing developer interest in open model accessibility and capabilities.",
+    "content": "Article URL: https://matthewsaltz.com/blog/using-an-open-model-feels-surprisingly-good/\nComments URL: https://news.ycombinator.com/item?id=49078583\nPoints: 256\n# Comments: 79",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用开源模型的感觉好得令人惊讶",
+        "summary": "开源语言模型因其定制化、本地控制和独立于专有提供商的运营特性，获得了开发者的积极评价。Hacker News的讨论（256分，79条评论）反映了开发者对开源模型可访问性和功能的日益增长的兴趣。"
+      }
+    }
+  },
+  {
     "title": "Beyond System Prompts: Enforcing Policy & Action Boundaries in Enterprise AI Agents",
     "slug": "enforcing-policy-boundaries-enterprise-ai",
     "url": "https://dev.to/gde/beyond-system-prompts-enforcing-policy-action-boundaries-in-enterprise-ai-agents-29ac",
