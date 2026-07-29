@@ -1,0 +1,194 @@
+[
+  {
+    "title": "I put my entire CRUD in one React hook. It felt efficient. Then it wasn’t.",
+    "slug": "i-put-entire-crud-in-one-react-hook-felt-efficient",
+    "url": "https://dev.to/kiaravzm/i-put-my-entire-crud-in-one-react-hook-it-felt-efficient-then-it-wasnt-10mf",
+    "source": "DEV Community",
+    "date": "2026-07-29T02:40:49.000Z",
+    "summary": "Developer consolidated CRUD operations into a single React hook to reduce boilerplate, but discovered problems with cache invalidation, lifecycle management, and forced abstraction. The convenience masked architectural issues that emerged during real usage.",
+    "content": "They say every bad decision comes from a good intention.\nI needed a simple admin panel: list, create, read, update, delete. Classic CRUD.\nlots of files and boilerplate\na hard time managing state\nsplitting every action into its own file (felt like overengineering for \"just a screen\")\nSo I built useItems: one hook for the whole feature.\nI was already using React Query — so I wasn't really fighting state the hard way. React Query is that layer.\na list query (with filters)\na find-one-by-id query\nall mutations: create, update, delete\nIt looked roughly like this:\n\n\n\nexport function useItems(\n  id?: number,\n  filters?: Partial<ItemsQuery>,\n) {\n  const api = useFetch();\n\n  const listQuery = useQuery({\n    queryKey: [\"items\", filters],\n    queryFn: () => api.get(\"/items\", { params: filters }),\n  });\n\n  const detailQuery = useQuery({\n    queryKey: [\"item\", id],\n    queryFn: () => api.get(`/items/${id}`),\n    enabled: !!id,\n  });\n\n  const createMutation = useMutation({\n    mutationFn: (body: CreateItemBody) => api.post(\"/items\", body),\n  });\n\n  const updateMutation = useMutation({\n    mutationFn: ({ id, body }: { id: number; body: Partial<UpdateItemBody> }) =>\n      api.patch(`/items/${id}`, body),\n  });\n\n  const deleteMutation = useMutation({\n    mutationFn: (id: number) => api.delete(`/items/${id}`),\n  });\n\n  return {\n    items: listQuery.data?.items,\n    total: listQuery.data?.total,\n    item: detailQuery.data,\n    create: createMutation.mutateAsync,\n    update: updateMutation.mutateAsync,\n    remove: deleteMutation.mutateAsync,\n    isLoadingList: listQuery.isLoading,\n    isLoadingItem: detailQuery.isLoading,\n    isCreating: createMutation.isPending,\n    isUpdating: updateMutation.isPending,\n    isDeleting: deleteMutation.isPending,\n  };\n}\n\nClean. Convenient. Slightly cursed.\nDifferent lifecycles, one hook.\nid and filters. A list, a detail, and a write path are three jobs. I forced them through one door.\nCache keys and invalidation fog.\nFake reuse.\nenabled flags and hope. T",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我把整个 CRUD 放在一个 React Hook 里。感觉很高效。然后就不高效了。",
+        "summary": "开发者将 CRUD 操作整合到单个 React Hook 中以减少样板代码，但发现了缓存失效、生命周期管理和强制抽象的问题。这种便利隐藏了在实际使用过程中出现的架构问题。"
+      }
+    }
+  },
+  {
+    "title": "Waking a dead service worker with Web Push, from a Cloudflare Worker",
+    "slug": "waking-dead-service-worker-web-push-cloudflare-worker",
+    "url": "https://dev.to/mfauveau/waking-a-dead-service-worker-with-web-push-from-a-cloudflare-worker-1jnm",
+    "source": "DEV Community",
+    "date": "2026-07-29T02:38:45.000Z",
+    "summary": "Chrome extension service workers die after 30 seconds of inactivity, preventing persistent connections. Using Web Push API, the author resurrects service workers on demand, enabling a planning poker tool to notify users without maintaining background processes.",
+    "content": "Last time I wrote about keeping a WebSocket alive inside a Manifest V3 extension, and the whole trick was staying awake: heartbeats, reconnects, guards. That solved the session that's already running. It did nothing for the case that actually matters most to a planning-poker tool, which is the teammate who isn't there yet.\nHere's the moment. The facilitator points a ticket in Repoker. Three people are in the room. The fourth is deep in an editor somewhere, no GitHub tab open, no room open, nothing. The team either waits or pings them on Slack, which is exactly the busywork this tool exists to remove. I wanted their machine to just... tap them on the shoulder.\nYou can't hold a connection open for that. Chrome kills an idle extension service worker in about thirty seconds, and no heartbeat can run when there's nothing alive to send it. The primitive for this is the opposite of staying awake: let the worker die, and have the browser's push service resurrect it for one job. That's Web Push, and getting it working from a Cloudflare Worker turned out to be the most interesting crypto detour I've taken in a while.\nExtensions have been able to use the standard Push API since Chrome 88. You add the notifications permission, and the background service worker subscribes like any web page would:\nsub = await sw.registration.pushManager.subscribe({\n  userVisibleOnly: true,\n  applicationServerKey: urlB64ToBytes(VAPID_PUBLIC_KEY),\n});\n\nThe extension posts that subscription (an endpoint URL plus two keys) to Repoker's API, tied to the signed-in user. Receiving is a push event listener that shows a notification and stores the click target:\nsw.addEventListener(\"push\", (event) => {\n  const data = event.data.json();\n  event.waitUntil(\n    ext.notifications.create(data.url, {\n      type: \"basic\",\n      iconUrl: ext.runtime.getURL(\"icons/icon-128.png\"),\n      title: `Vote now · ${data.roomName}`,\n      message: `Estimating: ${data.title}`,\n    }),\n  );\n});\n\nClicking it opens the GitHub is",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "用 Web Push 从 Cloudflare Worker 唤醒已停用的服务工作者",
+        "summary": "Chrome 扩展程序的服务工作者在 30 秒无活动后停止，阻止持久连接。使用 Web Push API，作者可以按需重新启动服务工作者，使规划扑克工具能够在不维护后台进程的情况下通知用户。"
+      }
+    }
+  },
+  {
+    "title": "I built a collection of 100% client-side developer tools (JSON, Base64, Crontab). No server uploads, purely secure.",
+    "slug": "built-collection-100-percent-client-side-developer-tools",
+    "url": "https://dev.to/jiang_str_3c8ce5ace5e7f00/i-built-a-collection-of-100-client-side-developer-tools-json-base64-crontab-no-server-26bp",
+    "source": "DEV Community",
+    "date": "2026-07-29T02:33:28.000Z",
+    "summary": "Developer created a suite of client-side developer tools for JSON formatting, Base64 encoding, and cron generation that run entirely in-browser, ensuring sensitive data never leaves the user's device and providing offline functionality.",
+    "content": "As a developer, I use online formatters and encoders every single day. However, most online tool websites are bloated with ads, require logins, or—worst of all—upload our sensitive data (like database JSON configs or API keys) to their servers.\nThat's why I decided to build a clean, ad-free, and 100% local-run developer toolbox: 6+2 Free Online Tools.\nAll calculations, parsing, and formatting happen entirely in your local browser. Your data never leaves your computer, which means zero security risks.\nHere are a few tools that I use most frequently:\nJSON to TypeScript Interface: Generates clean TS interfaces, supports optional properties and exports.\nJSON to Go Struct: Converts JSON payloads directly to Go structs with omitempty tags.\nCrontab Expression Generator: Generates cron syntax visually, no need to memorize the rules.\nJSON Formatter & Validator: Fast, offline-ready formatting with real-time error pointing.\nSince it's purely frontend, the loading speed is incredibly fast. You can bookmark it (Ctrl + D) for offline use.\nCheck it out here: https://www.cqqzx.com/\nAny feedback or suggestions for new tools are highly welcome!",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一套 100% 客户端开发者工具集合（JSON、Base64、Crontab）。无服务器上传，完全安全。",
+        "summary": "开发者创建了一套客户端开发者工具套件，用于 JSON 格式化、Base64 编码和 Cron 生成，完全在浏览器中运行，确保敏感数据永远不会离开用户设备，并提供离线功能。"
+      }
+    }
+  },
+  {
+    "title": "BloodHound for AI Agents Means We've Officially Given Up Pretending This Is Simple",
+    "slug": "bloodhound-for-ai-agents-means-weve-officially-given-up",
+    "url": "https://dev.to/coridev/bloodhound-for-ai-agents-means-weve-officially-given-up-pretending-this-is-simple-37ph",
+    "source": "DEV Community",
+    "date": "2026-07-29T02:25:08.000Z",
+    "summary": "AgentHound automates discovery of attack paths in AI agent infrastructure, mirroring BloodHound's impact on Active Directory security. It exposes previously-invisible vulnerabilities in rapidly-deployed MCP servers and agent systems.",
+    "content": "Two points and zero comments on Hacker News is not a signal of importance. It's a signal that most people haven't figured out yet why this matters. AgentHound should matter to you even if nobody's talking about it yet.\nBloodHound changed how red teamers think about Active Directory. It didn't find new vulnerabilities so much as it made existing attack paths visible and repeatable, graph out the relationships nobody wanted to manually enumerate, and turn \"theoretically exploitable\" into \"here's the exact chain, go pull the trigger.\" It became indispensable not because AD got more vulnerable, but because the complexity finally outran what a human could track in their head.\nAgentHound is doing the same move, but for agentic AI infrastructure. MCP servers, A2A protocols, gateways, agent clients, all the plumbing that's been bolted together at breakneck speed over the last eighteen months. Recon, credential harvesting, model inversion, tool and instruction poisoning. That's not a research paper's worth of theoretical attack surface. That's a tool built to automate finding it.\nThe pattern is familiar to anyone who's watched a new architecture paradigm mature: build fast, connect everything, worry about the security graph later. AD went through this. Cloud IAM went through this. Now it's agent infrastructure's turn, and the \"later\" has arrived faster than usual because agent stacks are being wired directly into production data and action-taking systems from day one.\nHere's what's overstated: calling this \"AI security\" like it's some exotic new discipline requiring you to throw out everything you know. It isn't. Credential harvesting is credential harvesting. Tool poisoning is just supply chain and input validation problems wearing a new hat. The MCP and A2A layers are new protocols, sure, but the underlying failure modes (trust boundaries, over-permissioned service accounts, unvalidated inputs treated as trusted instructions) are the same ones we've been fighting since bef",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "用于AI代理的BloodHound意味着我们已经正式放弃假装这很简单",
+        "summary": "AgentHound自动化发现AI代理基础设施中的攻击路径，复制了BloodHound对Active Directory安全的影响。它暴露了在快速部署的MCP服务器和代理系统中先前不可见的漏洞。"
+      }
+    }
+  },
+  {
+    "title": "2024...",
+    "slug": "2024-year-in-review-growth-learning-direction",
+    "url": "https://dev.to/divineamunega/2024-20oi",
+    "source": "DEV Community",
+    "date": "2026-07-29T02:22:53.000Z",
+    "summary": "Author reflects on 2024 as a year of growth—completing a Software Engineering diploma, beginning cybersecurity and Web3 study, gaining developer experience, and building accountability. The post captures lessons learned and clarity for the year ahead.",
+    "content": "I really didn’t see this article coming. I didn’t plan to write a Year in Review, or make a post, or a video, or a collage, or a thread, or a recap — or whatever you guys call it. I didn’t see the point. I thought, “Who wants to read this? I didn’t make 1 million Naira, I didn’t buy a MacBook, I didn’t land a full-time role, and I didn’t get to say, ‘Thank you, JavaScript, TypeScript, CSS, or Web3.’”\nBut one thing I did get to say was, “Thank You, God.”\nI thank God for the experiences I had this year, for the people I met, for my friends, my parents, and myself. I eventually decided to write this because it just felt right (can’t elaborate further). Plus, it’s a nice way to keep a record of myself for 2024. So, read on. Or don’t.\nLast year was all about growth and learning for me. Cybersecurity wasn’t even on my radar at the start of the year, but here I am, going into it thanks to a friend who motivated me (and as a bonus, Cybersecurity is actually my minor in school). I also started exploring Web3 — from just scratching the surface to joining an academy to learn more in-depth, all for free. Don’t worry; you’ll see results this year.\nMy mindset has completely shifted. I’ve grown bolder and more confident, knowing I can take on anything I set my mind to. Whatever it is, I’ll make it work. I’ve also learned to stop blaming others (or circumstances) for my failures and take full responsibility. This shift has made me more determined than ever to work harder and achieve more.\nI had some wins too. I completed my two-year-long diploma in Software Engineering at Aptech, which feels like a huge milestone. I also got my first gigs, which taught me a lot in software development and gave me my first taste of spending money I earned myself. Let’s just say — it feels good lol.\nThis is the simplified version of how I spent 2024. I think I’ve found direction now. I know where I’m going (not that I was lost last year, lol), but things feel clearer. I won’t lie, I’m scared of the w",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "2024年回顾：成长、学习和方向",
+        "summary": "作者反思2024年是成长的一年——完成了软件工程文凭，开始学习网络安全和Web3，获得开发者经验，并建立问责制。这篇文章总结了所学教训和对未来一年的清晰认识。"
+      }
+    }
+  },
+  {
+    "title": "Why I have written nothing this year",
+    "slug": "why-i-have-written-nothing-this-year",
+    "url": "https://dev.to/divineamunega/why-i-have-written-nothing-this-year-3pfe",
+    "source": "DEV Community",
+    "date": "2026-07-29T02:22:51.000Z",
+    "summary": "Author procrastinated on blogging by building infrastructure instead of writing. After trying multiple platforms, settled on Hashnode's developer-friendly CMS and commits to consistent writing going forward.",
+    "content": "The answer is simple.. lots and lots of laziness and oversight.\nI remember the begining of the year like yesterday. Well wasn’t it yesterday. I made severall promises. To myself, to people around me. One of them being I would write more blog posts. I didn’t keep that promise. (note the choice of words not ‘couldn’t but didn’t‘).\nWriting, for me isn’t my favourite thing to do. I love coding, I love playing games, I spend 30% of my time scrolling mindlessly on X (not that I love that though). But,, I also love looking back. I’m still young and growing and I love making memories, and looking back at them in any form. Weather its taking pctures and videos, or making random ass posts on X to pen (we don’t actually use pens on twitter) down what I’m currently thinking. So I have to do something i don’t love (Writing long ass blogs) to get what i want (documentation in the future).\nI didn’t write this year cause I procrastinated a lot. Oh… let me be done with my website I’ll build a dedicated blog section on it and start writing there. Oh.. this portfolio I built is trash let me redesign it and build a blog on that redesign and start writing there. Oh I won’t like writing blogs in code let me build a blog application where I can write my blogs and dynamically render it on my website and other blog platforms cause I wasn’t sure of what to stick with. (Substack, Medium, Hashnode, Dev.to). Eventually I found out the reson i settled with hashnode in the first place. It has excellent developer support. I can write on Hashnode and use the content anywhere using it as a Content Managment System and just fetch and render on my website. I can set up RSS feeds and also work with emails and newsletters in a developer friendly way. It had everything i wanted to custom build. I was just being lazy and distracted.\nconsole.log(\"I can even write code blocks lmao\");\n\n\nBut not anymore. I’d write more going forward. Thanks to my inner conviction of making memories and people like DHH and The",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我为什么今年什么都没写",
+        "summary": "作者通过构建基础设施而不是写作来拖延博客。在尝试了多个平台后，决定使用Hashnode的开发者友好的内容管理系统，并承诺今后坚持一致的写作。"
+      }
+    }
+  },
+  {
+    "title": "I learnt Docker so you don't have to",
+    "slug": "i-learnt-docker-so-you-dont-have-to",
+    "url": "https://dev.to/divineamunega/i-learnt-docker-so-you-dont-have-to-45n8",
+    "source": "DEV Community",
+    "date": "2026-07-29T02:22:49.000Z",
+    "summary": "Docker is a containerization platform that solves the 'it works on my machine' problem by packaging applications with dependencies into isolated, reproducible containers. Essential for modern software engineering and consistent deployment.",
+    "content": "I lied.\nI didn’t learn Docker so you don’t have to.\n\nI learned it because it’s genuinely fun and incredibly useful if you’re serious about a career in software engineering.\nSo let’s get into it. What is Docker.. why does everyone keep saying “containers” when talking about it? What is an image? Can Docker take pictures? What is the importance of Docker? Why does my code break on prod when i run git push? All these and more I’ll answer in this here.\nDocker is an open-source containerization platform that allows developers to package applications and all their dependencies into a standardized, isolated unit called a container. This ensures the application runs consistently and reliably across any computing environment, from a developer's laptop to a testing server or a production cloud platform, effectively solving the \"it works on my machine\" problem.\nWhen developers build applications, they rarely start from scratch. Instead, they rely on existing code, packages, and tools to move faster.\nFor example, if I were building an e-commerce site, I’d probably use:\na Node.js runtime (because I’m more comfortable with TypeScript),\n\n\nSanity as a CMS,\n\n\nClerk for authentication,\n\n\nand other libraries depending on the features I need.\n\n\n\nBefore that application can even run, all of these pieces must be present and correctly configured. If any one of them is missing the runtime, a package, an environment variable the application simply won’t work.\nAll the packages, tools, and software that an application needs in order to run are called dependencies.\nThis poses a big problem during hosting.\nYour local machine already has a lot of things installed: a specific Node.js version, system libraries, environment variables, and cached dependencies. The server you deploy to does not. It starts clean.\nSo when you push your code to production, you’re not just deploying your application, you’re implicitly assuming that the server has the same environment you were developing in.\nMost of the t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我学Docker让你不用学",
+        "summary": "Docker是一个容器化平台，通过将应用程序及其依赖项打包到隔离的、可重现的容器中，解决了\"在我的机器上可以运行\"的问题。这对现代软件工程和一致的部署至关重要。"
+      }
+    }
+  },
+  {
+    "title": "Gmail 550 5.7.26 반송 오류 해결: SPF·DKIM 점검 체크리스트",
+    "slug": "gmail-550-5-7-26-spf-dkim-authentication-checklist",
+    "url": "https://dev.to/officialmailkr/gmail-550-5726-bansong-oryu-haegyeol-spfdkim-jeomgeom-cekeuriseuteu-27ed",
+    "source": "DEV Community",
+    "date": "2026-07-29T02:21:45.000Z",
+    "summary": "Gmail's 550 5.7.26 bounce error indicates sender domain authentication failure. Troubleshooting requires verifying SPF records, DKIM selectors and keys, and DNS configuration across different nameservers.",
+    "content": "Gmail로 메일을 보냈는데 550 5.7.26 오류와 함께 반송됐다면 수신자 주소보다 발신 도메인 인증부터 확인해야 합니다.\n대표적인 반송 문구는 다음과 같습니다.\n550-5.7.26 Your email has been blocked because the sender is unauthenticated.\nAuthentication results:\nDKIM = did not pass\nSPF [example.com] with ip: [발송 서버 IP] = did not pass\n\n이 오류는 Gmail이 현재 메일을 보낸 서버를 해당 도메인의 정상 발송자로 확인하지 못했다는 뜻입니다. 가장 빠른 해결 순서는 반송문에서 검사 대상 확인 → SPF 점검 → DKIM 점검 → 새 메일 재시험입니다.\nDNS 값을 무작정 추가하기 전에 반송 메일의 Authentication results 또는 Diagnostic-Code를 확인하세요.\nGmail이 SPF를 검사한 도메인\n실제 발송 서버 IP\nDKIM 실패 또는 서명 없음 여부\n사용된 DKIM selector\n\n\n\n반송 결과\n우선 확인할 곳\n\n\n\n\nSPF did not pass\n루트 도메인의 SPF 정책과 실제 발송 서버\n\n\nDKIM did not pass\nselector, 공개키, 실제 메일 서명\n\n\nSPF·DKIM 모두 실패\nDNS 관리 위치, 이전 서비스 레코드, 도메인 오타\n\n\n\n같은 발신 주소라도 네이버에는 도착하고 Gmail에서만 반송될 수 있습니다. 수신 서비스마다 발신 인증을 적용하는 기준이 다르기 때문입니다.\nSPF는 이 도메인으로 메일을 보낼 수 있는 서버를 TXT 레코드에 선언합니다. Gmail은 실제 접속한 발송 서버 IP와 도메인의 SPF 정책을 비교합니다.\n자주 발생하는 문제는 다음과 같습니다.\nv=spf1로 시작하는 TXT 레코드가 두 개 이상 존재\n이전 메일 서비스만 허용하고 현재 서버는 누락\n루트 도메인이 아니라 다른 호스트에 SPF를 등록\ninclude를 계속 추가해 DNS 조회 제한을 초과\nSPF 레코드는 여러 개로 나누지 말고 실제 사용하는 발송 서비스만 하나의 정책으로 합쳐야 합니다.\nWindows PowerShell에서는 다음처럼 조회할 수 있습니다.\nResolve-DnsName example.com -Type TXT\nResolve-DnsName example.com -Type MX\n\n반송문에 SPF [example.com]이라고 표시됐다면 반드시 그 도메인의 TXT 레코드를 확인하세요.\nDKIM은 메일 서버가 발송 메일에 서명하고, Gmail이 DNS의 공개키로 서명을 검증하는 방식입니다.\n예를 들어 selector가 dkim이라면 보통 다음 주소에서 TXT 레코드를 조회합니다.\ndkim._domainkey.example.com\n\nResolve-DnsName dkim._domainkey.example.com -Type TXT\n\nDKIM 레코드가 조회되더라도 아래 상황에서는 인증이 실패할 수 있습니다.\n메일 서버가 다른 selector로 서명\n키를 재발급했지만 DNS에는 이전 공개키가 남음\n긴 TXT 값이 DNS 서비스에서 일부 잘림\n발송 서버가 메일에 DKIM 서명을 붙이지 않음\n다른 도메인에서 복사한 DKIM 키를 재사용하면 안 됩니다. 현재 사용하는 메일 서비스가 해당 도메인에 발급한 selector와 공개키를 그대로 등록해야 합니다.\n도메인을 구매한 업체와 현재 DNS를 관리하는 업체는 다를 수 있습니다. 도메인은 가비아에서 구매했지만 네임서버가 다른 호스팅 서비스로 연결돼 있다면, 실제 레코드는 그 호스팅 서비스에서 수정해야 합니다.\n관리 화면에서 값이 정상으로 보여도 공개 DNS 조회 결과가 다르다면 먼저 권한 있는 네임서버를 확인하세요.\nDNS를 변경한 뒤에는 다음 순서로 검증합니다.\n공개 DNS에서 SPF와 DKIM 값이 조회되는지 확인\n사용 중인 메일 서비스에서 도메인 연결 상태 재검증\nGmail 주소로 완전히 새로운 테스트 메일 발송\nGmail에서 더보기 → 원본 보기 실행\nSPF, DKIM, DMARC 결과 확인\nDNS",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Gmail 550 5.7.26退信错误解决：SPF·DKIM检查清单",
+        "summary": "Gmail的550 5.7.26退信错误表示发件人域名身份验证失败。故障排查需要验证SPF记录、DKIM选择器和密钥，以及不同域名服务器上的DNS配置。"
+      }
+    }
+  },
+  {
+    "title": "The Governed Execution Gateway: Securing MCP Servers and Tool Egress Proxies",
+    "slug": "governed-execution-gateway-securing-mcp-servers-tool-egress",
+    "url": "https://dev.to/gde/the-governed-execution-gateway-securing-mcp-servers-and-tool-egress-proxies-1ee3",
+    "source": "DEV Community",
+    "date": "2026-07-29T02:17:31.000Z",
+    "summary": "As MCP becomes standard for connecting LLMs to external systems, organizations need a Governed Execution Gateway—an egress proxy that sanitizes tool invocations, filters prompt injections, and secures agent-to-MCP communication.",
+    "content": "The Perimeter Gap in Model Context Protocol (MCP)\n\n\nAs the Model Context Protocol (MCP) rapidly becomes the industry standard for connecting LLMs to local filesystems, SaaS platforms, and enterprise databases, platform engineering teams face a new security boundary.\nConnecting an autonomous AI agent directly to an unmonitored MCP server or external API gateway introduces severe enterprise risks:\nPrompt injection payloads embedded in tool responses\nUnauthorized data exfiltration\nUnthrottled API loops and runaway recursive calls\nLack of protocol-level inspection\nTo run MCP servers and tool execution safely at scale, enterprise architectures must introduce a Governed Execution Gateway—a specialized egress proxy positioned between the agent orchestrator and downstream tool execution environments.\nThe Governed Execution Gateway operates as a bidirectional security proxy for all non-human tool invocation payloads:\nInbound Inspection & Parameter Sanitization: Inspects incoming JSON-RPC tool-call requests generated by the agent. Validates argument types, strips malicious SQL/command injection strings, and verifies token actor claims (act) before forwarding requests to the target MCP server.\nOutbound Payload Filtering (Data Egress Control): Scans tool outputs returned by downstream systems prior to context hydration. Prevents indirect prompt injections hidden in retrieved data and automatically redacts sensitive PII or system tokens.\nRate Limiting & Loop Breakers: Tracks stateful execution depth. If an agent loops continuously or triggers recursive tool calls within a single trace context, the gateway dynamically terminates execution.\nProtocol-Level Mutual TLS & Short-Lived MCP Tokens: Direct TCP or stdio connections to MCP servers must be gated behind mutual TLS (mTLS) or OAuth 2.1 scoped tokens. Unauthenticated, plain-text MCP transport in production environments must be strictly prohibited.\n\n\nBidirectional Payload Inspection: Never trust input from the model or output fro",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "受管执行网关：保护MCP服务器和工具出口代理",
+        "summary": "随着MCP成为连接LLM与外部系统的标准，组织需要一个受管执行网关——一个出口代理，可以清理工具调用、过滤提示注入并保护代理与MCP之间的通信。"
+      }
+    }
+  },
+  {
+    "title": "LangChain, LangGraph, LangSmith, Langflow... What's the Difference? (2026 Developer's Map)",
+    "slug": "langchain-langgraph-langsmith-whats-the-difference-2026",
+    "url": "https://dev.to/sreeraj-sreenivasan/langchain-langgraph-langsmith-langflow-whats-the-difference-2026-developers-map-3ek0",
+    "source": "DEV Community",
+    "date": "2026-07-29T02:15:00.000Z",
+    "summary": "The LangChain ecosystem splits into open-source building blocks and commercial platform tools. Understanding this distinction helps developers choose the right components for orchestrating, testing, deploying, and monitoring LLM agents.",
+    "content": "If you've spent any time building with LLMs in the last year, you've probably hit \"Lang-fatigue.\" LangChain, LangGraph, LangSmith, deepagents, dcode, Langflow, LangFuse — the naming convention is great for branding and terrible for onboarding. This guide untangles the entire ecosystem so you know exactly which tool to reach for, and why.\nIn 2022, \"using LangChain\" meant one thing: chaining prompt templates and LLM calls together in Python. That was enough when apps were single-shot Q&A bots.\nAgents changed the equation. Once an LLM can loop, call tools, branch on its own outputs, and run for minutes or hours, \"build a chain\" stops being the hard part. The hard part becomes:\nBuild — orchestrate multi-step, stateful, occasionally cyclic logic\nTest — know whether a change made the agent better or worse\nDeploy — run long-lived, resumable processes in production, not just stateless HTTP handlers\nMonitor — see what an autonomous agent actually did after the fact, and fix it when it's wrong\nThe \"Lang\" ecosystem today mirrors that lifecycle. It splits cleanly into two categories:\nOpen-source building blocks — langchain-core, langchain, langgraph, deepagents — the code you import and own. Free, self-hostable, framework-level.\nCommercial platform tooling — LangSmith and its sub-products (Observability, Evaluation, Engine, Deployment, Sandboxes, Fleet) — the operational layer for running agents at scale, with a free tier and paid plans for teams.\nYou can use the open-source layer with zero platform lock-in. Most serious teams eventually pair it with LangSmith once they need to answer \"why did this agent fail in production?\"\nlangchain-core — the foundation\n\n\nThis is the dependency almost everything else sits on top of. It defines the shared vocabulary: Runnable, chat message types, the base interfaces for chat models, vector stores, and retrievers. You rarely install this directly — it comes in as a transitive dependency — but understanding it explains why every LangChain-compa",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "LangChain、LangGraph、LangSmith、Langflow...有什么区别？(2026开发者地图)",
+        "summary": "LangChain生态分为开源构建块和商业平台工具。理解这种区别帮助开发者为编排、测试、部署和监控LLM代理选择正确的组件。"
+      }
+    }
+  },
+  {
+    "title": "Why One RAG Wasn't Enough: Building a Multi-RAG Pipeline for Jira Backlog Analysis",
+    "slug": "why-one-rag-wasnt-enough-multi-rag-jira-backlog-analysis",
+    "url": "https://dev.to/jubilee_happy_a567008f769/why-one-rag-wasnt-enough-building-a-multi-rag-pipeline-for-jira-backlog-analysis-273g",
+    "source": "DEV Community",
+    "date": "2026-07-29T02:12:46.000Z",
+    "summary": "Building a Jira backlog analyzer revealed that single-RAG approaches miss context. Multi-RAG with separate pipelines for backlog history, deployment data, and program priorities generates relevant, actionable recommendations.",
+    "content": "Large language models are only as good as the context you give them. While building an LLM-powered Jira Backlog Analyzer, I learned that simply adding Retrieval-Augmented Generation (RAG) wasn't enough. The real breakthrough came from treating different types of project knowledge as different kinds of organizational memory.\nOne of the goals of my Jira Backlog Analyzer was pretty simple: help project managers make sense of hundreds of backlog items. The analyzer groups related Jira tickets, flags potential duplicates, and generates executive summaries covering technical trends and priorities.\nThe first prototype worked better than I expected. Given nothing but the raw Jira tickets, the LLM could summarize clusters, spot duplicate issues, and even suggest what to do next.\nExcept a lot of those suggestions were generic to the point of being useless.\nTake one cluster of tickets about slow API response times. The model recommended: \"Consider optimizing query performance to improve response times.\" Sounds reasonable. Except a caching layer that had already cut those response times in half had shipped two releases earlier. The recommendation wasn't wrong exactly, it was just out of date.\nThat kept happening. The model would suggest prioritizing security work without knowing the current program increment was already focused on reliability. The language always sounded confident. The substance often wasn't there. It read well and helped with almost nothing.\nSo I did what most people do at this point: I added RAG. It helped, but only partway.\nMost RAG tutorials assume you have one pile of documents. You retrieve the most relevant chunks, stuff them into the prompt, and let the model do the rest. That works fine for a lot of question-answering use cases. Software projects are messier than that. Not all project knowledge is trying to answer the same question.\nOnce I actually sat down and thought about what a project manager needs to know, it broke into three buckets:\nWhat's alre",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么一个RAG还不够：为Jira积压分析构建多RAG管道",
+        "summary": "构建Jira积压分析器显示单一RAG方法缺少背景信息。采用为积压历史、部署数据和计划优先级的多RAG和独立管道生成更相关、可行的建议。"
+      }
+    }
+  },
+  {
+    "title": "I Tracked Every Visitor for 24 Hours. A 1975 Biology Paper Explained the Results.",
+    "slug": "i-tracked-every-visitor-24-hours-biology-paper-results",
+    "url": "https://dev.to/kazutaka-dev/i-tracked-every-visitor-for-24-hours-a-1975-biology-paper-explained-the-results-ign",
+    "source": "DEV Community",
+    "date": "2026-07-29T02:10:29.000Z",
+    "summary": "Analysis of 24 hours of SaaS analytics showed 68% bot traffic and 16 human visitors. One visitor became a paying customer in under 4 minutes, illustrating how quality content builds instant trust more effectively than marketing funnels.",
+    "content": "Yesterday I pulled every single event my analytics recorded for one full day and read it line by line. Not a dashboard summary — the raw per-user event stream for all 50 sessions.\nHere's what a day of \"traffic\" actually looks like for a small SaaS:\n\n\n\n\n\n\n\n\n\nSessions recorded\n50\n\n\nTraceable to a known bot pattern\n34\n\n\nPlausibly human\n16 (one of which was me)\n\n\nSigned up\n5\n\n\nPaid\n1\n\n\n\nThe interesting part isn't the ratio. It's which of those 16 humans paid, and how fast. Because a peacock's tail predicted it.\nOne visitor found a blog post of mine through a Google search. Here is their entire session, timestamped from the moment they landed:\n\n\n\nElapsed\nWhat happened\n\n\n\n\n0:00\nLanded on a technical blog post from Google organic search\n\n\n0:22\nClicked through to the login page\n\n\n0:37\nSigned up with GitHub OAuth\n\n\n1:00\nPasted a repo URL, validation passed\n\n\n1:45\nOpened checkout\n\n\n3:24\nPaid $5\n\n\n4:20\nStarted generating a video\n\n\n14:04\nVideo finished\n\n\n14:16\nShared it to Hacker News, then watched it start to finish\n\n\n\nFirst visit. No prior session. No retargeting. No email nurture sequence. They read something I wrote, decided I was credible, and were a paying customer before the kettle boiled.\nMeanwhile, here's what else arrived that day.\nEleven sessions from Singapore. Windows and Linux, Chrome, each one hitting exactly one blog post, each producing exactly four events — first_visit, session_start, page_view, scroll — with 0.0 seconds of engagement time. Same fingerprint, eleven times.\nSix sessions from Ashburn, Virginia — which is to say, from AWS us-east-1. Four of them arrived inside a two-minute window, each claiming a different referrer: everystockphoto.com, findly.tools, zhongsou.com, deeperweb.com. Four different \"sources\", one datacenter, 120 seconds.\nFour sessions from Sapporo, Japan. Linux, Chrome, landing on the homepage at 01:02, 07:21, 14:47, and 21:27 — roughly every six to seven hours, like a cron job. Each reported 1.3–1.4 seconds of engagement, which is wha",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我追踪了每个访客24小时。一篇1975年的生物学论文解释了结果。",
+        "summary": "对24小时SaaS分析数据的分析显示68%的机器人流量和16个人类访客。一个访客在4分钟内成为付费客户，说明高质量内容比营销漏斗更有效地建立即时信任。"
+      }
+    }
+  }
+]
