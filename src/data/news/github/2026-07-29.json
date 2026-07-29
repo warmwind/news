@@ -1,5 +1,229 @@
 [
   {
+    "title": "Montando um Cluster Kubernetes On-Premise — Parte 6: Deploy, Atualização e Escalabilidade de uma Aplicação Própria",
+    "slug": "kubernetes-on-premise-part-6-deploy-update-scalability",
+    "url": "https://dev.to/celsonery/montando-um-cluster-kubernetes-on-premise-parte-6-deploy-atualizacao-e-escalabilidade-de-uma-588g",
+    "source": "DEV Community",
+    "date": "2026-07-29T19:04:42.000Z",
+    "summary": "Part 6 of an on-premise Kubernetes series guides deploying custom applications by building Docker images, publishing them to registries, and managing deployments with version updates, rollbacks, and auto-scaling using a Spring Boot example.",
+    "content": "🇺🇸 English version coming soon.\nNa Parte 5 desta série, validamos o cluster de ponta a ponta fazendo o deploy do Nginx. Agora vamos um passo além: construir a imagem Docker de uma aplicação própria, publicá-la, colocá-la para rodar no cluster e explorar operações do dia a dia — atualização de versão, rollback e escalabilidade (manual e automática).\nComo exemplo, foi utilizada uma API REST simples (myapp.war), feita em Spring Boot, apenas para fins didáticos — o processo se aplica a qualquer aplicação empacotada como imagem de container.\nO primeiro passo é escrever o Dockerfile da aplicação. Neste exemplo, foi usada uma imagem base leve (alpine), com o Java 11 instalado para rodar a aplicação:\nFROM alpine\nWORKDIR /opt/app\nRUN apk update && apk add vim openjdk11-jre\nCOPY runapp.sh .\nCMD ash runapp.sh\n\ndocker image build -t oregontecnologia/myapp-api:1.0.0 .\n\nAntes de usar a imagem no cluster, ela precisa estar disponível em algum registro — seja o Docker Hub, seja um registro privado. Se você optar por hospedar seu próprio registro on-premise (recomendado para ambientes corporativos ou sem acesso à internet), veja o artigo complementar sobre como criar um servidor de registro local.\nPara publicar no Docker Hub:\ndocker login\n\nusername:\npassword:\n\ndocker push oregontecnologia/myapp-api:1.0.0\n\nCom a imagem publicada, é possível verificar o estado atual do cluster antes de prosseguir:\nkubectl get pods -o wide\nkubectl get deploy -o wide\n\nCrie o Deployment diretamente pela linha de comando, apontando para a imagem publicada:\nkubectl create deploy myapp-deploy --image=oregontecnologia/myapp-api:1.0.0\n\nDiferente dos exemplos anteriores desta série (onde usamos arquivos YAML com kubectl apply -f), aqui o Deployment é criado diretamente via linha de comando com kubectl create deploy. Ambas as abordagens são válidas — arquivos YAML são mais indicados quando você precisa versionar e reaplicar configurações de forma consistente.\nPara tornar a aplicação acessível fora do cluster,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "搭建本地 Kubernetes 集群 — 第 6 部分：部署、更新和自定义应用的可扩展性",
+        "summary": "本地 Kubernetes 系列的第 6 部分指导通过构建 Docker 镜像、发布到注册表、使用 Spring Boot 示例管理部署、版本更新、回滚和自动扩展来部署自定义应用程序。"
+      }
+    }
+  },
+  {
+    "title": "Montando um Cluster Kubernetes On-Premise — Parte 5: Fazendo o Deploy do Primeiro Container",
+    "slug": "kubernetes-on-premise-part-5-first-container-deploy",
+    "url": "https://dev.to/celsonery/montando-um-cluster-kubernetes-on-premise-parte-5-fazendo-o-deploy-do-primeiro-container-3dm1",
+    "source": "DEV Community",
+    "date": "2026-07-29T19:04:34.000Z",
+    "summary": "This installment demonstrates deploying Nginx as the first application to validate an on-premise Kubernetes cluster, covering YAML manifests, pod creation, and service exposure to confirm end-to-end functionality.",
+    "content": "🇺🇸 English version coming soon.\nNas partes anteriores desta série, construímos o cluster do zero: preparamos o ambiente (Parte 1), instalamos containerd e Kubernetes (Parte 2), inicializamos o control-plane (Parte 3) e ingressamos os workers (Parte 4). Com o cluster de pé e todos os nós no estado Ready, chegou a hora de colocá-lo para trabalhar de verdade: vamos fazer o deploy da nossa primeira aplicação.\nNeste artigo, vamos usar o Nginx como exemplo — um caso clássico para validar que o cluster está funcionando de ponta a ponta, desde a criação dos pods até a exposição do serviço.\nAntes de tudo, crie um diretório para organizar os manifestos desse deployment:\nmkdir nginx\ncd nginx\n\nCostumo deixar os manifestos do Kubernetes organizados em diretórios por aplicação, considero uma boa prática que facilita a manutenção e o versionamento (por exemplo, com Git) conforme o cluster cresce.\nUm Deployment é o objeto do Kubernetes responsável por gerenciar réplicas de pods, garantindo que o número desejado de instâncias esteja sempre em execução — e cuidando de coisas como rolling updates e recuperação automática em caso de falha.\nCrie o arquivo nginx-deployment.yaml com o seguinte conteúdo:\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: nginx-deployment\n  labels:\n    app: nginx\nspec:\n  replicas: 2\n  selector:\n    matchLabels:\n      app: nginx\n  template:\n    metadata:\n      labels:\n        app: nginx\n    spec:\n      containers:\n      - name: nginx\n        image: nginx:1.14.0\n        ports:\n        - containerPort: 80\n\nEsse manifesto define:\n2 réplicas do pod Nginx (replicas: 2), distribuídas entre os workers disponíveis;\nUm selector que associa o Deployment aos pods através do label app: nginx;\nA imagem nginx:1.14.0, expondo a porta 80 do container.\nCom o arquivo salvo, aplique-o no cluster:\nkubectl apply -f nginx-deployment.yaml\n\nO kubectl vai criar o Deployment e, a partir dele, o Kubernetes se encarrega de agendar os 2 pods nos workers disponíveis.\nPara conferir",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "搭建本地 Kubernetes 集群 — 第 5 部分：部署第一个容器",
+        "summary": "本安装演示如何部署 Nginx 作为第一个应用程序来验证本地 Kubernetes 集群，涵盖 YAML 清单、Pod 创建和服务暴露以确认端到端功能。"
+      }
+    }
+  },
+  {
+    "title": "Montando um Cluster Kubernetes On-Premise — Parte 2: Instalando Containerd e Kubernetes",
+    "slug": "kubernetes-on-premise-part-2-install-containerd",
+    "url": "https://dev.to/celsonery/montando-um-cluster-kubernetes-on-premise-parte-2-instalando-containerd-e-kubernetes-ode",
+    "source": "DEV Community",
+    "date": "2026-07-29T19:04:05.000Z",
+    "summary": "The article covers installing containerd container runtime and Kubernetes components across all cluster nodes, including mandatory kernel module configuration and network parameter adjustments required for proper Kubernetes operation.",
+    "content": "🇺🇸 English version coming soon.\nNa Parte 1 desta série, preparamos o ambiente: definimos o hardware, configuramos o /etc/hosts, ajustamos o firewall e desabilitamos o SWAP em todos os nós. Agora que a base está pronta, é hora de instalar o container runtime (containerd) e os pacotes do próprio Kubernetes (kubelet e kubeadm).\nTodos os passos abaixo devem ser executados em todos os servidores do cluster — master e workers — a menos que seja indicado o contrário.\nO Kubernetes, através do containerd, depende de dois módulos do kernel Linux: overlay (para o sistema de arquivos em camadas usado pelos containers) e br_netfilter (para que o tráfego de rede em bridges passe pelas regras do iptables).\nPara que esses módulos sejam carregados automaticamente a cada boot, crie o arquivo /etc/modules-load.d/containerd.conf:\noverlay\nbr_netfilter\n\nE, para carregá-los imediatamente (sem precisar reiniciar), execute:\n$ sudo modprobe overlay\n$ sudo modprobe br_netfilter\n\nCrie o arquivo /etc/sysctl.d/99-kubernetes-k8s.conf com os seguintes parâmetros:\nnet.bridge.bridge-nf-call-iptables = 1\nnet.ipv4.ip_forward = 1\nnet.bridge.bridge-nf-call-ip6tables = 1\n\nEsses parâmetros garantem que o tráfego de rede entre pods e serviços seja roteado e filtrado corretamente pelo Kubernetes.\nPara aplicar as configurações sem reiniciar o servidor:\n$ sudo sysctl --system\n\nO containerd é o container runtime utilizado pelo cluster. Neste caso, vamos instalá-lo através do repositório oficial do Docker, usando apenas o pacote containerd.io (sem instalar o Docker completo).\n1. Baixe a chave GPG do repositório:\ncurl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/docker.gpg\n\n2. Crie o arquivo de repositório em /etc/apt/sources.list.d/docker.list:\ndeb [arch=amd64] https://download.docker.com/linux/debian bullseye stable\n\n3. Atualize a lista de pacotes e instale o containerd:\nsudo apt-get update\nsudo apt-get install containerd.io\n\n4. Gere o arquivo de configura",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "搭建本地 Kubernetes 集群 — 第 2 部分：安装 Containerd 和 Kubernetes",
+        "summary": "该文章涵盖在所有集群节点上安装 containerd 容器运行时和 Kubernetes 组件，包括 Kubernetes 正常运行所需的强制内核模块配置和网络参数调整。"
+      }
+    }
+  },
+  {
+    "title": "Validating JSON Payloads Against a Schema Before They Hit Your Service",
+    "slug": "validating-json-payloads-against-schema",
+    "url": "https://dev.to/lizely/validating-json-payloads-against-a-schema-before-they-hit-your-service-1d39",
+    "source": "DEV Community",
+    "date": "2026-07-29T19:01:33.000Z",
+    "summary": "Emphasizing validation at three layers—development, CI pipeline, and runtime—the article explains how JSON schema validation prevents malformed payloads from reaching service handlers and causing production outages.",
+    "content": "A schema is only useful if it actually catches bad payloads before they reach your handler. Most teams write the schema, then forget it during local development, or only enforce it in CI on a handful of fixtures. That gap is where the 2 a.m. incident starts. This walkthrough is about the boring, repeatable discipline of validating JSON at the boundary — in your editor, in a pre-commit hook, and in a staging smoke test — using a schema as the single source of truth.\nI'll focus on the practical workflow: where validation belongs, what to do when a payload is \"almost right,\" and how to keep the schema from rotting as the service evolves. The example payload is a customer order, because it has the usual suspects — optional fields, nested objects, arrays, and one enum that someone will eventually forget to update.\nA unit test with five hand-written fixtures tells you your code parses the happy path. It does not tell you what happens when the upstream system sends customer.country as null because their form crashed, or when a new required field ships and the old client still hits your endpoint.\nSchema validation lives at a different layer than unit tests. It asks: given any string that looks like JSON, is this something I'm willing to process? That question gets asked three places:\nIn the editor or a manual check, when you're reasoning about a sample payload you pulled from logs.\nIn CI, against a corpus of real-ish fixtures.\nAt runtime, when the service exposes an endpoint that takes arbitrary JSON.\nThe first two are cheap insurance. The third is where most teams either over-invest (re-validating inside hot paths) or under-invest (skipping it entirely because \"the schema is in the OpenAPI spec, surely something checks it\"). Neither extreme holds up.\nFor the manual step, a quick formatter with a validation mode is enough to catch typos and shape errors before you paste a payload anywhere. The deeper walkthrough covers a readable, validator-friendly formatting approach in H",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在 JSON 负载到达您的服务之前针对架构验证它们",
+        "summary": "强调在三个层级—开发、CI 管道和运行时—进行验证，该文章解释了 JSON 架构验证如何防止格式错误的负载到达服务处理程序并导致生产中断。"
+      }
+    }
+  },
+  {
+    "title": "AI Made Code Review the Bottleneck. Attach the UI to Your PR",
+    "slug": "ai-code-review-bottleneck-attach-ui-pr",
+    "url": "https://dev.to/kevinccbsg/ai-made-code-review-the-bottleneck-attach-the-ui-to-your-pr-575",
+    "source": "DEV Community",
+    "date": "2026-07-29T18:57:30.000Z",
+    "summary": "The article addresses how AI-generated frontend code creates review bottlenecks by proposing browser test recordings as evidence of actual UI behavior, allowing reviewers to assess visual correctness without checking out and running code locally.",
+    "content": "You open a frontend pull request. The diff is 400 lines, an AI agent wrote most of it, and the description says \"adds the checkout flow\". CI is green.\nYou read the diff. It looks reasonable. You still have no idea what the UI actually does.\nSo you do what you always do. You pull the branch, install dependencies, start the dev server, and click through the flow yourself.\nTen minutes later you approve the PR.\nThat ten minutes is the bottleneck now.\nAI made writing code dramatically faster. Reviewing frontend behavior did not.\nTests already reduce a large part of that uncertainty.\nWith twd-js, they execute inside a real browser, against the real DOM, with the network mocked so runs stay deterministic. A green run means the entire flow actually executed.\nBut a green run only tells the reviewer that the assertions passed.\nIt does not tell them what the user sees.\nWas the validation message attached to the correct field?\nDid the modal actually close?\nDoes the empty state look intentional, or does it look broken?\nThose are exactly the things reviewers still verify manually, and they are difficult to express as assertions alone.\nYour tests already drive the application through the exact flow under review.\nIf reviewers could simply watch that execution, they would not need to pull the branch just to understand the UI.\ntwd-cli can record the run:\nnpx twd-cli run --record --test \"checkout flow\"\n\nThat produces:\ntwd-artifacts/checkout-flow.mp4\n\nDrop the video directly into the pull request description.\nThe first time you try this, you discover something unexpected.\nThe tests finish in about a second.\nThe recording is technically correct.\nIt is also almost impossible for a human to follow.\nThe obvious solution is to stretch the recording afterwards.\nA simple ffmpeg filter can do that, but it stretches the same frames across a longer duration. As playback slows down, the effective frame rate drops.\n\n\n\nSpeed\nDuration\nEffective FPS\n\n\n\n\n1x\n1.00s\n30\n\n\n0.5x\n1.90s\n15.3\n\n\n0.25x\n3.90s\n7.7",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI 使代码审查成为瓶颈。将 UI 附加到您的 PR",
+        "summary": "该文章通过提议浏览器测试录制作为实际 UI 行为的证据，解决了 AI 生成的前端代码如何创建审查瓶颈的问题，使审查者能够评估视觉正确性，无需本地检出和运行代码。"
+      }
+    }
+  },
+  {
+    "title": "Designing a Scalable Multi-Store Retail Platform: Architecture Challenges and Solutions",
+    "slug": "scalable-multi-store-retail-platform-architecture",
+    "url": "https://dev.to/mercyantony/designing-a-scalable-multi-store-retail-platform-architecture-challenges-and-solutions-4m24",
+    "source": "DEV Community",
+    "date": "2026-07-29T18:52:52.000Z",
+    "summary": "Explores architectural patterns for multi-store retail platforms that manage inventory, orders, and transactions across multiple locations and sales channels, addressing data consistency and real-time synchronization challenges.",
+    "content": "Modern retail is no longer limited to a single physical store. Retailers today operate across multiple locations, ecommerce channels, warehouses, marketplaces, and mobile platforms.\nManaging products, inventory, orders, customers, and transactions across these touchpoints requires a retail platform designed for scalability, reliability, and real-time operations.\nBuilding a multi-store retail platform is not just about adding more stores to an existing system. It requires careful software architecture decisions around databases, APIs, integrations, security, and performance.\nThis article explores the key architecture challenges involved in building scalable retail software and the solutions developers can use to create enterprise-ready platforms.\nA multi-store retail platform is a centralized system that enables retailers to manage operations across multiple locations from a unified environment.\nA modern retail platform typically supports:\nMultiple store locations\nCentralized product management\nReal-time inventory visibility\nPoint-of-sale (POS) transactions\nEcommerce order processing\nCustomer relationship management\nWarehouse operations\nReporting and analytics\nThird-party integrations\nUnlike simple applications, retail platforms must process thousands of transactions while keeping data consistent across different channels.\nOne of the biggest challenges in multi-store retail software is maintaining accurate data across locations.\nA retailer may have:\nStore-level inventory\nWarehouse inventory\nOnline product availability\nCustomer orders\nReturns and exchanges\nPrice updates\nA change in one location may need to be reflected across multiple systems.\nFor example:\nA customer purchases a product online. The platform needs to update inventory, reserve the item, notify fulfillment teams, and synchronize stock availability across sales channels.\nA scalable platform typically uses a centralized database architecture with well-designed data models.\nImportant considerations include:",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "设计可扩展的多门店零售平台：架构挑战与解决方案",
+        "summary": "探讨了多门店零售平台的架构模式，这些平台跨多个位置和销售渠道管理库存、订单和交易，解决了数据一致性和实时同步的挑战。"
+      }
+    }
+  },
+  {
+    "title": "Montando um Cluster Kubernetes On-Premise — Parte 1: Preparando o Ambiente",
+    "slug": "kubernetes-on-premise-part-1-prepare-environment",
+    "url": "https://dev.to/celsonery/montando-um-cluster-kubernetes-on-premise-parte-1-preparando-o-ambiente-1fjd",
+    "source": "DEV Community",
+    "date": "2026-07-29T18:44:18.000Z",
+    "summary": "The first part of an on-premise Kubernetes series covers hardware requirements, network setup, firewall configuration, and OS-level adjustments needed before installing any Kubernetes components.",
+    "content": "🇺🇸 English version coming soon.\nEsta é a primeira parte de uma série onde vou compartilhar, passo a passo, como montei meu cluster Kubernetes on-premise, sem depender de provedores de nuvem. A ideia é documentar o processo completo — desde a preparação do ambiente até um cluster funcional — para servir de referência tanto para quem está estudando quanto para quem quer replicar a mesma estrutura em casa ou no trabalho.\nEu usei VPS (Virtual Private Server) e VM (Virtual Machine) para este cluster. Mas pode ser montado em máquinas reais (Bare Metal) também.\nAo final desta série, ficará mais fácil entender os clusters em nuvens da AWS (EKS), Google (GKE) e Azure (AKS).\nNesta primeira parte, vamos cobrir o que é necessário antes de instalar qualquer componente do Kubernetes: os requisitos de hardware, a configuração de rede básica, o firewall e alguns ajustes obrigatórios no sistema operacional.\nPara este cluster, eu utilizei 3 servidores com Debian 11 e 12:\n3 servidores no total.\n1 servidor master (control-plane): 2 CPUs (cores) e 2 GB de RAM\n2 servidores slaves (workers/nodes): 1 CPU e 1 GB de RAM cada\nAcesso root em todas as máquinas\nEssa é uma configuração mínima, ideal para ambientes de estudo, laboratório ou testes. Para produção, o recomendado escalar os recursos de acordo com a carga esperada.\nAntes de instalar qualquer coisa, é importante que as máquinas se enxerguem pela rede por nome, não somente por IP. Para isso, edite o arquivo /etc/hosts em todos os servidores e adicione as entradas correspondentes:\n10.0.10.100  master.empresa.local    master\n10.0.10.101  slav01.empresa.local    slav01\n10.0.10.102  slav02.empresa.local    slav02\n\nIsso garante que, mais adiante, os componentes do Kubernetes consigam resolver os nomes dos nós corretamente.\nO Kubernetes depende de portas específicas abertas entre os nós para que o control-plane consiga se comunicar com os workers (e vice-versa). As portas variam conforme o papel do servidor no cluster.\nNo servidor master:",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建本地 Kubernetes 集群 — 第 1 部分：准备环境",
+        "summary": "本地 Kubernetes 系列的第一部分涵盖硬件要求、网络设置、防火墙配置和安装任何 Kubernetes 组件之前所需的操作系统级调整。"
+      }
+    }
+  },
+  {
+    "title": "Apache Data Lakehouse Weekly: July 21 to July 29, 2026",
+    "slug": "apache-data-lakehouse-weekly-july-21-29",
+    "url": "https://dev.to/alexmercedcoder/apache-data-lakehouse-weekly-july-21-to-july-29-2026-p73",
+    "source": "DEV Community",
+    "date": "2026-07-29T18:41:19.000Z",
+    "summary": "Weekly update on Apache data lakehouse projects (Iceberg, Parquet, Polaris, Arrow) highlighting technical debates about delete semantics, format specifications, and the ecosystem's shift toward formal written contracts over informal conventions.",
+    "content": "This was a week where the open lakehouse stack spent most of its energy on contracts. Not legal contracts, but the promises that formats, catalogs, and clients make to each other. Iceberg debated whether equality deletes belong in V4 and whether incremental scan semantics belong in the spec at all. Parquet voted a new floating point encoding into the format and argued about who owns the Thrift file that defines everything. Polaris tried to ship 1.7.0, found a licensing gap in 44 staged jars, and pulled the release candidate. Arrow wrestled with what the nullable flag actually means. Across all of it, a pattern showed up again and again: the community is done with informal conventions and wants written guarantees.\nHere is what happened, project by project.\nThe week opened with a personnel note that matters more than personnel notes usually do. Steven Wu announced that Maximilian Michels joined the project as a committer, and the thread ran to 30 messages of congratulations from across the contributor base. Iceberg has grown into a project where the streaming and Flink side of the ecosystem carries real weight, and adding committers who live in that part of the codebase keeps the review load from concentrating on a handful of people. The size of the congratulations thread is its own signal about how many active humans are now paying attention to this list.\nThe most consequential technical debate of the week was about deletes. Huaxin Gao pushed forward on the proposal to deprecate equality deletes in Iceberg V4, and the thread drew 15 messages including strong support from Ryan Blue. Equality deletes are the mechanism that lets a streaming writer say \"delete every row where id equals 42\" without knowing which file that row lives in. They make writes cheap and reads expensive. Every scan has to carry the delete predicates forward and apply them against candidate files, and scan planning cannot prune as aggressively because the planner does not know which files a given e",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Apache 数据湖库周刊：2026 年 7 月 21 日至 29 日",
+        "summary": "关于 Apache 数据湖库项目（Iceberg、Parquet、Polaris、Arrow）的周更新，重点关注有关删除语义、格式规范的技术辩论，以及生态系统向正式书面合同而非非正式惯例转变的进展。"
+      }
+    }
+  },
+  {
+    "title": "Every Session Starts From Zero. I Kept Forgetting That.",
+    "slug": "every-session-starts-from-zero-ai-agents",
+    "url": "https://dev.to/jeelvankhede/every-session-starts-from-zero-i-kept-forgetting-that-1gj6",
+    "source": "DEV Community",
+    "date": "2026-07-29T18:40:07.000Z",
+    "summary": "Reflects on the challenge that AI agents start each session without context from prior conversations, requiring developers to repeatedly establish standards, plans, and corrections instead of building incrementally on accumulated knowledge.",
+    "content": "You correct someone once. Not perfectly, but they get it. Next time, they do not make the same mistake. That is not optimism. That is just how correction works, \"with people\".\nI worked with agents on that assumption for a long time before I even noticed I was doing it.\nBefore I had a single written rule anywhere, I would open a new session and ask for a plan first. Resolve the edge cases before touching a line of code, I said. The agent would agree, in whatever way a chat window agrees, and go straight to implementation anyway.\nI corrected it. Same session, it adjusted. New session, next day, same repo, same everything except the chat history: straight to implementation again. Every single time!\nSo I did what looked reasonable. I wrote the plan myself. I resolved the edge cases myself, the open questions, the gaps the agent skipped past on its way to code. 'Tedious' is the polite word for it. I was doing the one task I brought the agent in to do, and calling it collaboration.\nThe second correction arrived the same way. Every repo had its own shape. A recipe, a standard, a way things were supposed to be built here and not there. I would explain it. Full session, good results, the agent following the standard like it understood the standard.\nNew session. Same repo, sometimes the new repo. Explain it again. Word for word, close enough. It was not that the agent forgot how to code. It was that nothing from the last conversation traveled with it into this one.\nI kept treating this like a training problem. Say it clearer. Say it earlier. Say it with an example next time. None of that was wrong exactly. It was aimed at the wrong layer.\nThe actual mistake was assuming correction compounds the way it does with a person. It does not. A person carries what you told them into the next conversation without being asked to. An agent starts the next session exactly where it started the first one. Zero. The correction I gave on Monday was real, useful, entirely gone by Thursday, bec",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "每个会话都从零开始。我一直在忘记这一点。",
+        "summary": "反思 AI 代理在每个会话中都没有来自先前对话的上下文的挑战，这要求开发人员反复建立标准、计划和更正，而不是在累积知识的基础上递进地构建。"
+      }
+    }
+  },
+  {
+    "title": "Block AI Crawlers: The 15 Bots That Matter",
+    "slug": "block-ai-crawlers-15-bots-that-matter",
+    "url": "https://dev.to/techpotions/block-ai-crawlers-the-15-bots-that-matter-3nb4",
+    "source": "DEV Community",
+    "date": "2026-07-29T18:34:25.000Z",
+    "summary": "Provides a verified registry of 15 AI crawlers categorized by function, correcting misconceptions about tokens like Google-Extended while clarifying which crawlers actually affect content visibility in AI-generated answers.",
+    "content": "Most lists that claim to help you block AI crawlers are copy-pasted and dangerously wrong about the two tokens that actually matter. Sorting them properly is not an abstract taxonomy exercise. It is the single decision that determines whether your content vanishes from AI answers while training continues — or vice versa.\nWe maintain the crawler registry in lib/ai-crawlers.ts that powers techpotions’ free AI robots.txt generator. Every agent string and description was verified against the operator’s own crawler documentation. The registry holds 15 verified bots across four categories, and that four-way split is this article’s structure, because the categories map directly to what blocking costs you.\nBefore the list, the single most important correction to make, and almost every listicle on this query gets it wrong: Google-Extended and Applebot-Extended are not crawlers. They are robots.txt tokens — product controls that govern whether your content is used for Gemini and Apple foundation-model training.\nBlocking Google-Extended does not affect Google Search crawling, Google ranking, or regular Applebot search indexing. People block them believing they are opting out of AI Overviews, and are actually opting out of nothing they think they are, while leaving search indexing completely untouched.\nPlatforms have started wiring these tokens into one-click controls. Cloudflare’s managed robots feature, released mid-2025, lets you add AI crawler rules through a dashboard toggle rather than editing a raw file — but the underlying token logic above still applies.\nEvery AI crawler we track belongs to one of four categories. The category tells you the cost of blocking it.\nTraining crawlers scrape pages to feed a model that may never cite you. Blocking them is a defensive data decision.\nAssistant crawlers fetch pages to answer a live user’s question and can cite and link you. Blocking them removes you from AI answers.\nSearch crawlers underpin traditional or AI search indexes. Bloc",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "阻止AI爬虫：15个最重要的机器人",
+        "summary": "提供了15个按功能分类的AI爬虫验证名单，纠正了关于Google-Extended等令牌的误解，同时说明了哪些爬虫实际上会影响内容在AI生成答案中的可见性。"
+      }
+    }
+  },
+  {
+    "title": "Internet & Networking Explained, The Foundation Every DevOps Engineer Should Know.",
+    "slug": "internet-networking-explained-devops-foundation",
+    "url": "https://dev.to/promzy/internet-networking-explained-the-foundation-every-devops-engineer-should-know-b51",
+    "source": "DEV Community",
+    "date": "2026-07-29T18:34:24.000Z",
+    "summary": "Foundational overview of essential networking concepts for DevOps—protocols, packet switching, IP addresses, TCP/IP, HTTP/HTTPS, and DNS—that underpin internet communication and application deployment.",
+    "content": "When you open a website, send a message, or watch a YouTube video, many technologies work together in the background. As a beginner in DevOps, understanding these basic networking concepts will help you understand how applications communicate over the internet.\n**What Is a Protocol?\n**2. What Is Packet Switching?\n**3. What Is an IP Address?\n**4. What Is TCP/IP?\nTogether, TCP/IP ensures reliable communication between devices connected to the internet.\n**5. What Are HTTP and HTTPS?\n**6. What Is DNS?\nFinal Thoughts\nThese concepts form the foundation of networking and are essential knowledge for anyone beginning a career in DevOps, Cloud Computing, or Software Engineering.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "互联网与网络基础解析——每位DevOps工程师必须掌握的基础知识",
+        "summary": "对DevOps必备网络概念的基础性概述——协议、分组交换、IP地址、TCP/IP、HTTP/HTTPS和DNS——这些是互联网通信和应用程序部署的基础。"
+      }
+    }
+  },
+  {
+    "title": "Next.js Sitemap Not Updating? Here's the Real Fix",
+    "slug": "nextjs-sitemap-not-updating-cache-fix",
+    "url": "https://dev.to/techpotions/nextjs-sitemap-not-updating-heres-the-real-fix-2257",
+    "source": "DEV Community",
+    "date": "2026-07-29T18:34:14.000Z",
+    "summary": "Diagnoses a cache coherence bug where Next.js sitemaps serve stale entries because route handler caching prevents revalidation from propagating, with a one-line fix using the revalidate export.",
+    "content": "Next.js Sitemap Not Updating? Here's the Real Fix\nIf your Next.js sitemap is not updating after you publish new content, you're dealing with a cache-coherence bug that almost nobody writes up. It has an exact symptom, a reproducible root cause, and a one-line fix. This is the guide you'll wish you had the moment you notice /sitemap.xml serving fewer entries than your real site.\nThe mismatch is impossible to miss once you look. On our own site, /lab lists 11 published posts, yet /sitemap.xml shows only 7. Same database, same deploy, two different answers. If that gap sounds familiar, you're in the right place.\nYou might have checked your afterChange hook, verified that revalidateTag('posts') fires, and even confirmed that the tagged data refreshes — only to find the sitemap still frozen. That's because the problem lives between two cache layers, not inside the data fetch.\nThe answer lies in what sitemap.ts actually is. According to the Next.js Metadata Files: sitemap.xml documentation, it's a special Route Handler. And like any Route Handler, Next.js caches its rendered output by default.\nHere's what happened in our own repository (this bug is documented in a comment at the top of app/(frontend)/sitemap.ts because it cost real indexation time):\nWe read content from Payload using unstable_cache, tagged with the collection slug posts.\nAn afterChange hook called revalidateTag('posts') whenever a post was published.\nThat call did work — it invalidated the inner unstable_cache data entry.\nBut the route's statically-rendered outer XML output was never re-run. The frozen route output kept serving the old XML built from the old data, long after the inner cache was refreshed.\nTwo cache layers. Tag-based revalidation busted the inner one, but the outer route handler cache was never told to re-execute. That's the missing piece.\nTell the sitemap route to re-render on a bounded interval:\n// app/(frontend)/sitemap.ts\n\nexport const revalidate = 3600; // seconds — re-render at most",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Next.js网站地图不更新？这是真正的解决方案",
+        "summary": "诊断了一个缓存一致性bug，其中Next.js网站地图提供过期条目是因为路由处理程序缓存阻止了重新验证的传播，提供了一个使用revalidate导出的单行修复。"
+      }
+    }
+  },
+  {
+    "title": "Tame Dependabot: Group your updates, slow the cadence, keep security fast",
+    "slug": "tame-dependabot-group-updates-security-fast",
+    "url": "https://github.blog/security/supply-chain-security/tame-dependabot-group-your-updates-slow-the-cadence-keep-security-fast/",
+    "source": "GitHub Blog",
+    "date": "2026-07-29T16:00:00.000Z",
+    "summary": "Shares strategies for managing Dependabot's default pull request volume through update grouping and slower cadence while preserving rapid security patch deployment.",
+    "content": "Dependabot keeps your dependencies current, but its defaults can flood your repository with pull requests. Here's how grouping updates, slowing the cadence, and keeping security fixes fast cut the noise on a Microsoft open source project.\nThe post Tame Dependabot: Group your updates, slow the cadence, keep security fast appeared first on The GitHub Blog.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "驯服Dependabot：分组更新、放慢节奏、保持安全快速",
+        "summary": "分享通过更新分组和放慢更新频率来管理Dependabot默认拉取请求量的策略，同时保持快速安全补丁部署。"
+      }
+    }
+  },
+  {
+    "title": "Show HN: Open-source engine running Gemma 4 26B in 2 GB RAM on any M-series Mac",
+    "slug": "open-source-gemma-4-inference-engine-m-series-mac",
+    "url": "https://github.com/drumih/turbo-fieldfare",
+    "source": "Hacker News",
+    "date": "2026-07-29T15:05:43.000Z",
+    "summary": "TurboFieldfare, a Swift/Metal inference engine, enables running 4-bit quantized Gemma 4 26B models on M-series Macs with 2GB RAM by streaming expert weights from SSD while keeping shared layers and KV cache in memory.",
+    "content": "Hi HN,\nI built a specialized inference engine for running 4-bit Gemma 4 26B-A4B-IT on any M-series Mac using about 2 GB of RAM. It is called TurboFieldfare and is written in Swift and Metal.\nI have always adored on-device AI. It feels like magic that you can run a powerful NN on your Mac or iPhone. So I wanted to push the limits a bit and run a model whose weights don’t fit in memory.\nThe model’s 4-bit quantized weights occupy roughly 14 GB, which makes running it with conventional inference tools almost impossible on an 8 GB or even 16 GB Mac once the OS, applications, and KV cache are included.\nThe trick is to keep the shared part of the model and the KV cache in RAM, then stream only the routed experts needed for each token from SSD. An SSD is way slower than RAM, so the runtime uses a small expert cache and bounded parallel `pread`. While those reads are in flight, the GPU runs the shared part of the layer.\nI ran more than 100 experiments. Most didn’t work. A few got me here. The experiments are described in the GitHub repo.\nIt currently generates 5–6 tok/s on an 8 GB M2 MacBook Air and 31–35 tok/s on an M5 MacBook Pro.\nI also added an experimental OpenAI-compatible local server. It supports streaming and tool calls, and reuses one prompt prefix from the KV cache.\nTry it! The Mac app is easy to install. On the first run, it will download 15 GB of weights from Hugging Face. The model is surprisingly capable.\nI would love any kind of feedback!\nComments URL: https://news.ycombinator.com/item?id=49098510\nPoints: 372\n# Comments: 111",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Show HN：开源引擎在任何M系列Mac上以2GB RAM运行Gemma 4 26B",
+        "summary": "TurboFieldfare是一个Swift/Metal推理引擎，通过从SSD流式传输专家权重同时将共享层和KV缓存保留在内存中，能够在M系列Mac上用2GB RAM运行4位量化的Gemma 4 26B模型。"
+      }
+    }
+  },
+  {
     "title": "Sharing tRPC v11 types between Next.js and Expo: a real-world indie Web + iOS setup",
     "slug": "sharing-trpc-v11-types-next-js-expo",
     "url": "https://dev.to/hirodeath/sharing-trpc-v11-types-between-nextjs-and-expo-a-real-world-indie-web-ios-setup-3067",
@@ -188,6 +412,22 @@
       "zh": {
         "title": "使用ElementInternals构建与表单关联的自定义元素",
         "summary": "本指南解释了如何使用现在在浏览器中广泛支持的ElementInternals API来构建与表单关联的自定义元素。该文章介绍了一个可重用的混合程序,减少了正确的表单集成、验证状态和重置处理所需的约40行样板代码。"
+      }
+    }
+  },
+  {
+    "title": "French musician Kavinsky found dead",
+    "slug": "french-musician-kavinsky-found-dead",
+    "url": "https://www.euronews.com/culture/2026/07/29/dj-kavinsky-known-for-his-track-nightcall-found-dead-at-his-paris-home",
+    "source": "Hacker News",
+    "date": "2026-07-29T11:54:37.000Z",
+    "summary": "French electronic musician Kavinsky, known for the track 'Nightcall,' was found dead at his Paris home on July 29, 2026.",
+    "content": "Article URL: https://www.euronews.com/culture/2026/07/29/dj-kavinsky-known-for-his-track-nightcall-found-dead-at-his-paris-home\nComments URL: https://news.ycombinator.com/item?id=49096290\nPoints: 298\n# Comments: 67",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "法国音乐家卡文斯基去世",
+        "summary": "以《Nightcall》曲目著称的法国电子音乐家卡文斯基于2026年7月29日在巴黎住宅中去世。"
       }
     }
   },
