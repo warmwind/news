@@ -1,5 +1,197 @@
 [
   {
+    "title": "Beginner Python Project: Dice Rolling Game",
+    "slug": "beginner-python-project-dice-rolling-game",
+    "url": "https://dev.to/tochi_/beginner-python-project-dice-rolling-game-2a7n",
+    "source": "DEV Community",
+    "date": "2026-07-31T08:47:55.000Z",
+    "summary": "The article walks through building a dice-rolling game in Python, starting with basic functionality and gradually adding validation and features. It demonstrates how breaking problems into smaller steps and using loops makes implementation straightforward for beginners learning Python fundamentals.",
+    "content": "Big shout out to Mosh Hamedani for compiling beginner projects for python developers.\nBefore writing any code, I first broke the problem down into smaller steps. Solving the problem becomes much easier once the overall flow is clear.\nThe requirements are:\nThe player rolls a pair of dice.\nThe program returns the numbers rolled.\nThe program asks if the player wants to roll again.\nIf the answer is yes, roll the dice again.\nIf the answer is no, end the game.\nSince the same process repeats until the player decides to stop, this problem naturally requires a loop.\nTo make the game work, we also need to get input from the user, so we use Python's input() function. Since a real dice produces random numbers, we use Python's random.randint() function to generate numbers between 1 and 6.\nThe first version of the solution looks like this:\ndef rolling_dice():\n    choice = 'y'\n\n    while choice == 'y':\n        dice_1 = random.randint(1, 6)\n        dice_2 = random.randint(1, 6)\n\n        print(f'({dice_1}, {dice_2})')\n\n        choice = input(\"Roll again? (y/n)\")\n\n    print(\"Game ended\")\n\nAt this point, the game is functional. It rolls two dice, displays the results, and keeps rolling until the user enters 'n'.\nThe next improvement is making sure the player only enters 'y' or 'n'. If they enter anything else, the program should display an error message and ask them to try again.\nTo do this, I created two constants:\nVALID_CHOICES stores the only acceptable inputs.\nMAX_ATTEMPTS stores the maximum number of invalid attempts allowed.\nThe validation initially looked like this:\nVALID_CHOICES = ('y', 'n')\n\nMAX_ATTEMPTS = 3\n\nwhile choice not in VALID_CHOICES:\n    print(\"Not a valid choice\")\n    choice = input(\"Try again? (y/n)\")\n\nNow the program prevents unexpected input from causing problems.\nThe original task asked us to keep track of how many times the player rolled the dice.\nInstead of only counting the number of rolls, I decided to extend the program by adding a maximum number of rolls",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "初学者Python项目：掷骰子游戏",
+        "summary": "这篇文章介绍了如何用Python构建掷骰子游戏，从基本功能开始，逐步添加验证和功能。它演示了如何将问题分解成更小的步骤，使用循环如何能让初学者学习Python基础知识时的实现变得直接而简洁。"
+      }
+    }
+  },
+  {
+    "title": "Fixing a False “TypeScript Types Removed” Event in npmx",
+    "slug": "fixing-false-typescript-types-removed-event-npmx",
+    "url": "https://dev.to/anilloutombam/fixing-a-false-typescript-types-removed-event-in-npmx-5bj6",
+    "source": "DEV Community",
+    "date": "2026-07-31T08:43:14.000Z",
+    "summary": "npmx incorrectly reported that packages had removed TypeScript types even when declaration files were still present. The fix distinguishes between explicit type declarations and colocated .d files by checking actual published files, not just metadata, ensuring accurate timeline reporting.",
+    "content": "This is a submission for DEV's Summer Bug Smash: Clear the Lineup powered by Sentry.\nnpmx is an open-source browser for the npm registry. It helps developers explore package metadata, versions, dependencies, documentation, and other information.\nI worked on npmx issue #2791, which reported an incorrect event in the package-version timeline. npmx could say that a package had removed its TypeScript types even though valid declaration files were still included in the published package.\nMy fix is available in npmx PR #3102.\nA package can expose TypeScript declarations explicitly through fields such as types or typings. It can also provide declarations implicitly by placing them beside its JavaScript entry points.\nFor example:\ndist/index.mjs\ndist/index.d.mts\n\nTypeScript can use dist/index.d.mts even when package.json does not contain a top-level types field.\nnpmx already understood this pattern on its package-analysis page. However, the timeline endpoint used hasBuiltInTypes(), which only checked package metadata.\nThis caused the two parts of npmx to disagree:\nThe package page correctly showed “Types included.”\nThe timeline incorrectly showed “TypeScript types removed.”\nThe fix keeps the fast metadata check as the first step. It performs the more expensive published-file analysis only for visible versions that could be part of a type-removal sequence.\nThe latest implementation selects every untyped version that has an older typed version somewhere earlier in the package’s history:\nconst possibleTypeRemovals = visibleVersions.filter(version => {\n  if (version.hasTypes) return false\n\n  const versionIndex = allVersions.indexOf(version)\n  return allVersions\n    .slice(versionIndex + 1)\n    .some(previousVersion => previousVersion.hasTypes)\n})\n\nChecking the full sequence is important. Consider these versions:\n1.0.0 — explicit types field\n2.0.0 — colocated .d.mts declaration\n3.0.0 — colocated .d.mts declaration\n\nAn earlier version of my fix analyzed only 2.0.0, because it was",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "修复npmx中的虚假\"TypeScript类型已移除\"事件",
+        "summary": "npmx错误地报告说软件包已移除TypeScript类型，即使声明文件仍然存在。该修复通过检查实际发布的文件而不仅仅是元数据，来区分显式类型声明和并置的.d文件，确保准确的时间线报告。"
+      }
+    }
+  },
+  {
+    "title": "Migrating a Next.js app from node:sqlite to Cloudflare D1",
+    "slug": "migrating-next-js-app-node-sqlite-cloudflare-d1",
+    "url": "https://dev.to/hirodeath/migrating-a-nextjs-app-from-nodesqlite-to-cloudflare-d1-225i",
+    "source": "DEV Community",
+    "date": "2026-07-31T08:11:19.000Z",
+    "summary": "This article documents migrating a Next.js application from Node.js's synchronous SQLite module to Cloudflare D1's asynchronous API for deployment to Workers. The migration required moving schema to migration files, rewriting the database module, and adding async/await throughout the codebase.",
+    "content": "This is an English translation of my original Japanese article on Zenn.\nI had a small Next.js app that ran locally with Node.js and a SQLite file. When I decided to deploy it to Cloudflare Workers so I could use it away from my desk, the database layer had to change. The app used Node's built-in node:sqlite module, which is not available in the Workers runtime.\nI moved the database to Cloudflare D1. The SQL used by this app did not need to change. Most of the work was converting the database module from the synchronous node:sqlite API to D1's asynchronous API.\nThe original database module used DatabaseSync from Node.js:\n// src/server/db.ts, before the migration\nimport { DatabaseSync } from \"node:sqlite\";\n\nconst db = new DatabaseSync(DB_PATH);\ndb.exec(`\n  PRAGMA journal_mode = WAL;\n  CREATE TABLE IF NOT EXISTS clients ( ... );\n`);\n\nexport function listClients(): Client[] {\n  const rows = db.prepare(`SELECT * FROM clients ORDER BY created_at`).all();\n  return rows.map(toClient);\n}\n\nThe module created its schema during startup and ran every query synchronously. That was enough while the app only ran on my machine.\nThe migration came down to four tasks:\nMove the schema into a migration file.\nRewrite the database module with D1's async API.\nRetrieve the D1 binding from the Workers context.\nAdd await at each call site.\nI moved the schema from the startup code into migrations/0001_init.sql:\n-- migrations/0001_init.sql\nCREATE TABLE IF NOT EXISTS clients (\n  id TEXT PRIMARY KEY,\n  name TEXT NOT NULL,\n  created_at TEXT NOT NULL\n);\n\nI removed PRAGMA journal_mode = WAL because D1 manages that part of the database. D1 also enforces foreign keys by default, so the app does not need to run PRAGMA foreign_keys = ON.\nThe same migration file can be applied locally and remotely:\nwrangler d1 migrations apply my-db --local\nwrangler d1 migrations apply my-db --remote\n\nD1's API is asynchronous, so each database function now returns a Promise:\n// src/server/db.ts, after the migration\nexpor",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "将Next.js应用从node:sqlite迁移到Cloudflare D1",
+        "summary": "本文记录了将Next.js应用从Node.js的同步SQLite模块迁移到Cloudflare D1的异步API以部署到Workers的过程。该迁移需要将模式移到迁移文件中、重写数据库模块，并在整个代码库中添加async/await。"
+      }
+    }
+  },
+  {
+    "title": "Your AI Coding Agent Is LYING When It Says \"Done\"",
+    "slug": "your-ai-coding-agent-lying-when-says-done",
+    "url": "https://dev.to/gemyago/your-ai-coding-agent-is-lying-when-it-says-done-2a85",
+    "source": "DEV Community",
+    "date": "2026-07-31T08:10:07.000Z",
+    "summary": "AI agents often claim completion without properly verifying their work against the full test suite and linting checks, leading to broken states in multi-agent workflows. The article advocates for defining a Task Completion Protocol that requires agents to run repository checks before reporting success.",
+    "content": "TL;DR\n\n\nWhen an AI agent changes few files, runs few tests, and says \"Done\", is it really done? Not always. Things may still break in unexpected places.\nI prefer to define a strict definition of \"Done\", which I call the Task Completion Protocol. It usually lives in AGENTS.md and, in its simplest form, looks like this:\nRun the repository's real lint and test commands.\nFix failures and rerun the checks.\nReport the exact evidence before claiming completion.\nThis does not replace CI or code review. It moves a basic verification gate earlier, before a broken state reaches the next agent session, the pull request, or you.\nIf you prefer a visual walkthrough, this video shows the concept in action. I run the same task twice: without a completion protocol and with it - this demonstrates how explicit definition of \"done\" helps. I also show few tricks and techniques for making agents follow the protocol.\n  \n  \n\n\n\n\n\n\n  \n  \n  The Agent Says \"Done.\" The Repository Disagrees.\n\n\nYou have probably seen some version of this:\nAgent:\nDone. Implemented the fix and updated the tests.\n\nTerminal:\n$ make test\n... FAIL\n\nThe implementation might even look correct. Perhaps the agent ran one focused test, inspected the diff, and produced a tidy summary. Then you run the repository's normal checks and find a lint error, a failing test in a different place, or any other error that was not caught by the agent.\nThis gets worse as AI-assisted workflows grow to involve multiple agents. In an interactive session, you may spot the failure and fix it yourself. In a multi-step workflow, one worker reports success and the next starts from a broken state. These problems accumulate quickly, and the final state may be badly broken.\nYes, this is obvious for humans: make some changes, run tests and lint, fix issues, maybe check few other things, and only then say \"Done\". Agents need it written down, and AGENTS.md is the perfect place for it. I call this section the Task Completion Protocol.\nHere is a compact v",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的AI编程代理在说\"完成\"时在撒谎",
+        "summary": "AI代理经常声称完成工作而没有对完整的测试套件和linting检查进行适当的验证，导致多代理工作流中出现破坏状态。该文章提倡定义一个任务完成协议，要求代理在报告成功之前运行存储库检查。"
+      }
+    }
+  },
+  {
+    "title": "How I Crashed My TCS Prime Interview and Talked My Way Out of Hell Mode",
+    "slug": "how-i-crashed-my-tcs-prime-interview-talked-my-way-out",
+    "url": "https://dev.to/ayushwrite63/how-i-crashed-my-tcs-prime-interview-and-talked-my-way-out-of-hell-mode-499j",
+    "source": "DEV Community",
+    "date": "2026-07-31T08:06:04.000Z",
+    "summary": "The author shares their experience interviewing at TCS Prime, where they managed to steer the technical discussion away from challenging data structures questions toward their areas of expertise in machine learning and full-stack architecture. The strategy transformed what could have been a difficult interview into a successful outcome.",
+    "content": "Picture this, sitting in front of a panel of seasoned pros for a TCS Prime interview, your palms sweating, your brain rewinding every tutorial you ever watched, bracing yourself to get barbecued on Data Structures and Algorithms.\nMy interview lasted a solid 45 to 50 minutes. Did I sweat a little? Did I survive? Oh, I more than survived. I turned a full-on boss battle into a chill chat with an uncle figure. Here is the slightly chaotic, totally unscripted story of how it went down.\n1. The HR Round: Flexing Trivia and Surviving the Vibe Check\nThe whole thing kicked off with the HR round. They were super friendly, tossing out the usual warm-up questions. Are you cool with relocation? How do you feel about night shifts?\nThen came the classic:** What do you know about TCS?**\n2. Technical and Managerial: Stepping Into the Arena\nOnce the tech and managerial panel took over, it was go time. They asked for an intro, which was my cue to immediately hijack the steering wheel.\nInstead of waiting for them to cross-examine me, I dove headfirst into my projects:\nNamed my machine learning model proudly.\nExplained our security setup using JWT and bcrypt.\nFlexed Socket.io because who does not love real-time data wizardry?\nSwatted away two tricky ML questions like they were annoying mosquitoes.\n3. The Great Domain Heist: Escaping DSA Hell\n\n\n\nHere is where things get spicy. I knew other candidates were getting absolutely cooked with brutal DSA questions they could not crack. I wanted none of that smoke.\nSo, what did I do? I manipulated the conversation. I casually dragged them away from standard coding puzzles and lured them right into my playground: Machine Learning and full-stack architecture.\nIt was my ultimate domain-expansion moment. I hooked them onto my project details, made it engaging, and flipped a literal hell-mode interview straight into easy mode. I won the room right there.\n4. Anime, Awkward CGPA, and Uncle Vibes\nWith the technical terror out of the way, the panel actuall",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何搞砸了TCS Prime面试并成功反转局面",
+        "summary": "作者分享了他们在TCS Prime面试的经历，他们成功地将技术讨论从具有挑战性的数据结构问题转向他们在机器学习和全栈架构方面的专长。这个策略将一个可能很困难的面试转变为成功的结果。"
+      }
+    }
+  },
+  {
+    "title": "Spring AI: Bringing Generative AI into Spring Boot Applications",
+    "slug": "spring-ai-bringing-generative-ai-into-spring-boot-applications",
+    "url": "https://dev.to/abhay_srivastava_22/spring-ai-bringing-generative-ai-into-spring-boot-applications-2ah3",
+    "source": "DEV Community",
+    "date": "2026-07-31T08:04:37.000Z",
+    "summary": "Spring AI provides Spring-friendly abstractions for integrating AI models, embeddings, vector stores, and RAG into Java applications without vendor lock-in. For developers familiar with Spring Boot, it offers a familiar programming model for building AI-enabled enterprise applications.",
+    "content": "Artificial Intelligence has moved from being something handled by specialized data-science teams to becoming a feature that application developers can integrate directly into everyday software.\nFor Java developers, this creates an interesting question:\nHow do we integrate AI into a Spring Boot application without completely changing the way we build software?\nThis is where Spring AI comes in.\nSpring AI provides Spring-friendly abstractions for working with AI models, embeddings, vector stores, tool calling, Retrieval-Augmented Generation (RAG), chat memory, and other AI capabilities. It provides portable APIs so that application code does not have to be tightly coupled to a single AI provider. ([Home][1])\nFor developers already comfortable with Spring Boot, dependency injection, REST APIs, configuration, and microservices, Spring AI provides a familiar programming model for building AI-enabled applications.\nSpring AI is a framework from the Spring ecosystem designed to make it easier to integrate AI capabilities into Java applications.\nAt a high level, the flow looks like this:\nClient\n   |\n   v\nSpring Boot Application\n   |\n   v\nSpring AI\n   |\n   +--------------------+\n   |                    |\n   v                    v\nChat Model          Embedding Model\n   |                    |\n   v                    v\nLLM / AI Provider    Vector Store\n   |\n   v\nAI Response\n\nThe important idea is that your application communicates through Spring AI abstractions rather than implementing provider-specific integration everywhere.\nSpring AI provides APIs around chat models, embeddings, vector stores, text-to-image, audio transcription, text-to-speech, tool calling, and more. ([Home][1])\nThat makes it particularly interesting for enterprise Java applications where maintainability and integration with existing Spring architecture matter.\nSuppose we want to build a customer-support chatbot.\nWithout a framework, our application might need to deal directly with:\nHTTP requests to an AI pro",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Spring AI：将生成式AI引入Spring Boot应用程序",
+        "summary": "Spring AI为集成AI模型、嵌入、向量存储和RAG到Java应用程序提供了Spring友好的抽象，无需担心供应商锁定。对于熟悉Spring Boot的开发人员，它为构建支持AI的企业应用程序提供了熟悉的编程模型。"
+      }
+    }
+  },
+  {
+    "title": "Traceroute devlog #2",
+    "slug": "traceroute-devlog-2",
+    "url": "https://dev.to/thkim5937/traceroute-devlog-2-11kc",
+    "source": "DEV Community",
+    "date": "2026-07-31T08:02:36.000Z",
+    "summary": "The developer discovered that adding an undo feature required rethinking the entire state management pattern from in-place editing to immutable state copies. The architectural change, though initially frustrating, prevented deeper issues and surfaced an existing bug in the process.",
+    "content": "Mid-week I ran into something that made me stop and take stock: was I building on a foundation I already knew was cracked?\nMost of the click-based path drawing was done by then — starting a path, extending it in a direction, blocking it when it ran into another color, refusing to let it cross itself. All of that was tested and working. The last piece on the list was letting the player undo part of a path by clicking back onto a point it had already passed through. It sounded like the simplest rule of the bunch. It wasn't, mostly because of how everything before it had been built.\nUp to that point, every rule just edited the current path directly — added a cell here, removed one there, always working on the same object sitting in memory. That was fine as long as no rule needed to remember what things looked like before the current click happened. Undo breaks that assumption completely: it has to reach back to \"the path as it stood right before this click\" and rebuild from there, and if you've been quietly editing that same object the whole time, there's no earlier version left to reach back to. The data just says what it currently says.\nSo the actual fix wasn't really about the undo rule itself — it meant going back through everything I'd already built and changing the underlying pattern it was written in: instead of editing state in place, every step now has to produce a brand new copy of the game state and hand that off, leaving the old one completely untouched. That touched code across five already-tested rules, not just the new one, which meant redoing work I'd already called finished for the week. I didn't want to. But patching around the problem instead of fixing the pattern felt like it would just resurface later in a worse spot, probably right when I start animating state changes on screen, which is coming up soon. Doing the rebuild properly also surfaced a bug I hadn't caught on my own — a leftover, empty entry that could get left behind in the data after ce",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Traceroute 开发日志 #2",
+        "summary": "开发者发现添加撤销功能需要将状态管理模式从原地编辑重新设计为不可变状态副本。这种架构变更虽然初期令人沮丧，但防止了更深层的问题，并在过程中暴露了一个现有的错误。"
+      }
+    }
+  },
+  {
+    "title": "🚀 Building an AI Automation System for MyZubster",
+    "slug": "building-ai-automation-system-for-myzubster",
+    "url": "https://dev.to/danielioni/building-an-ai-automation-system-for-myzubster-4k2",
+    "source": "DEV Community",
+    "date": "2026-07-31T08:01:30.000Z",
+    "summary": "The MyZubster project built an AI-powered automation system using local models (Gemma, Llama, DeepSeek) to automatically triage GitHub issues, create bounties, and send Telegram notifications. The modular architecture reduces manual overhead in managing an open-source project with multiple contributors.",
+    "content": "🚀 Building an AI Automation System for MyZubster\nMyZubster is an open-source ecosystem for plant mapping, privacy-first payments with Monero, and human-centered AI. In this post, I'll share how I built an AI automation system that automatically handles GitHub issues, bounties, and Telegram notifications.\nManaging an open-source project like MyZubster is complex:\nToo many issues requiring manual triage\n\nBounties need to be created and managed manually\n\nSlow communication with contributors\n\nManual monitoring of GitHub activity\n\n🎯 The Solution\nI built a modular system that:\nMonitors GitHub - Automatically detects new issues and PRs\n\nAnalyzes with AI - Uses local models (Gemma, Llama, DeepSeek)\n\nCreates bounties - Automatically for labeled issues\n\nSends notifications - Real-time alerts on Telegram\n\nOrchestrates everything - With automatic fallback between AI models\n\n🏗️ Architecture\n┌─────────────────────────────────────────────────────────────┐\n🛠️ Technology Stack\nNode.js - Runtime environment\n\nExpress - API server\n\nMongoDB - Database with Mongoose ODM\n\nReact - Frontend with Leaflet maps\n\nAI Stack\nOllama - Local AI model runner\n\nGemma 2B - Google's lightweight AI model (default)\n\nLlama 3.2 - Meta's powerful model (fallback)\n\nDeepSeek R1 - Reasoning model (fallback)\n\nAutomation Stack\nnode-telegram-bot-api - Telegram integration\n\nOctokit - GitHub API client\n\nnode-cron - Scheduled tasks\n\nsystemd - Service management\n\nWinston - Logging\n\n🧠 AI Models Setup\nThe AI models run locally using Ollama. Here's how I set them up:\ncurl -fsSL https://ollama.com/install.sh | sh\nPulling the Models\nollama pull gemma:2b\nTesting the Models\nollama run gemma:2b \"What is MyZubster?\"\n🤖 The Telegram Bot\nThe bot provides interactive commands for the community:\nclass TelegramBotHandler {\n    // Register command handlers\n    this.bot.onText(/^\\/start/, this.handleStart.bind(this));\n    this.bot.onText(/^\\/status/, this.handleStatus.bind(this));\n    this.bot.onText(/^\\/bounties/, this.handleBou",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "🚀 为 MyZubster 构建人工智能自动化系统",
+        "summary": "MyZubster 项目使用本地模型（Gemma、Llama、DeepSeek）构建了一个人工智能驱动的自动化系统，用于自动分类 GitHub 问题、创建赏金和发送 Telegram 通知。模块化架构减少了管理拥有多个贡献者的开源项目的手动工作。"
+      }
+    }
+  },
+  {
+    "title": "Track Any Company's Material Events Straight From SEC 8-K Filings",
+    "slug": "track-any-company-material-events-straight-from-sec-8-k-filings",
+    "url": "https://dev.to/jdpg23/track-any-companys-material-events-straight-from-sec-8-k-filings-4bf5",
+    "source": "DEV Community",
+    "date": "2026-07-31T08:00:22.000Z",
+    "summary": "SEC 8-K filings use standardized item codes to classify material corporate events, making structured queries possible without parsing document text. By monitoring specific item codes for acquisitions, bankruptcy, or cybersecurity incidents, investors can track risk signals earlier than financial news outlets report them.",
+    "content": "When a US public company does something that matters — closes an acquisition, loses a CFO, gets delisted, discloses a cybersecurity breach — it has four business days to file an 8-K with the SEC. That filing is the primary source every financial news outlet reads. You can read it too, before they write the story, and you can read it as structured data.\nThe problem most people hit: the 8-K itself is a document. To know what happened you seem to have to open it and read. But you don't. The event type is already encoded, and once you know where to look, a whole category of \"monitor a company for material events\" becomes a single structured query.\nEvery 8-K is tagged with one or more item numbers from a fixed list the SEC defines. The item tells you the kind of event without reading a word of the body:\n2.01 — Completion of an acquisition or disposition of assets (M&A closed)\n2.02 — Results of operations (earnings)\n5.02 — Departure or appointment of directors or officers (someone left or joined the C-suite)\n1.03 — Bankruptcy or receivership\n1.05 — Material cybersecurity incident (added in 2023)\n3.01 — Notice of delisting\n4.02 — Non-reliance on previously issued financials (a restatement is coming)\nThat last group matters most for risk: 1.03, 2.06 (material impairment), 4.02, 3.01 are the filings that precede bad news. If you monitor a portfolio, an alert on those item codes is an early-warning system.\nThe SEC's EDGAR submissions API already carries the item codes in its metadata — you do not have to parse the filing document at all. Here is a real slice for Apple, decoded:\n{\n  \"ticker\": \"AAPL\",\n  \"companyName\": \"Apple Inc.\",\n  \"events\": [\n    {\n      \"filedAt\": \"2026-04-30\",\n      \"items\": [\n        { \"code\": \"2.02\", \"label\": \"Results of Operations and Financial Condition\", \"category\": \"earnings\" },\n        { \"code\": \"9.01\", \"label\": \"Financial Statements and Exhibits\", \"category\": \"other\" }\n      ],\n      \"highSignal\": true,\n      \"url\": \"https://www.sec.gov/Archives/ed",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "从 SEC 8-K 报告直接追踪任何公司的重大事件",
+        "summary": "SEC 8-K 报告使用标准化项目代码来分类重大企业事件，使得无需解析文档文本就可以进行结构化查询。通过监控特定项目代码以追踪收购、破产或网络安全事件，投资者可以比财经新闻媒体更早地追踪风险信号。"
+      }
+    }
+  },
+  {
+    "title": "Your LLM Writes \\(x\\), Your Markdown Parser Wants $x$",
+    "slug": "your-llm-writes-x-your-markdown-parser-wants-x",
+    "url": "https://dev.to/duz52/your-llm-writes-x-your-markdown-parser-wants-x-3n3l",
+    "source": "DEV Community",
+    "date": "2026-07-31T07:54:51.000Z",
+    "summary": "LLMs output math in TeX format (\\(...\\) and \\[...\\]) while most Markdown parsers expect dollar signs ($...$), requiring conversion that's far more complex than a simple regex can handle. The author created two packages to properly tokenize and handle TeX-style math delimiters in Markdown.",
+    "content": "TL;DR — LLMs love \\(...\\) and \\[...\\]. Most Markdown math plugins only speak $...$ and $$...$$. I tried to bridge that with a regex, failed in interesting ways, and ended up teaching the tokenizer instead. Two packages came out of it: micromark-extension-math-extended and remark-math-extended.\nSometimes the hard part of rendering math isn't the equation. It's agreeing on where the equation starts and stops.\nI was piping Markdown from some OpenAI models into a rendering pipeline, and the output kept looking like this:\nThe lift coefficient is \\(C_L\\).\n\n\\[\nL = \\frac{1}{2} \\rho v^2 S C_L\n\\]\n\nNothing wrong here. This is textbook TeX:\n\\( ... \\) → inline math\n\\[ ... \\] → display math\nBut every Markdown math package in my toolchain wanted dollars:\nThe lift coefficient is $C_L$.\n\n$$\nL = \\frac{1}{2} \\rho v^2 S C_L\n$$\n\nTwo characters of difference. Weeks of my life. Let's go.\nThe obvious move is to preprocess the model output before it hits the parser:\n\\(x\\)  ->  $x$\n\\[x\\]  ->  $$x$$\n\nA regex handles the happy path. Real Markdown is not the happy path.\nYour converter now has to not touch delimiters that live inside:\ninline and fenced code\nescaped Markdown punctuation\nmath that's already dollar-delimited\ntruncated model output\nTeX commands that are themselves full of backslashes\nThat last one bites hard:\n\\begin{cases}\nx \\\\[1em]\ny\n\\end{cases}\n\n\\\\[1em] is a TeX line break with optional spacing. That [ is not the start of a display equation. Your regex does not know this. Your regex has never known anything.\nAnd then there's the genuinely dangerous case:\n\\[\nnot closed\n\n# Everything after this\n\nIf the model forgets the closing \\] — which happens constantly when you're streaming — a naive converter swallows the rest of the document into one enormous equation.\nAt the point where you've handled all of that, congratulations: you didn't write a preprocessor. You wrote a second Markdown parser, and now you maintain two.\nSo instead of rewriting the input before parsing, I added the TeX-st",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的LLM写的是 \\(x\\)，你的Markdown解析器要的是 $x$",
+        "summary": "LLM 使用 TeX 格式输出数学公式（\\(...\\) 和 \\[...\\]），而大多数 Markdown 解析器期望使用美元符号（$...$），这种转换远比简单的正则表达式复杂得多。作者创建了两个包来正确标记和处理 Markdown 中的 TeX 风格数学分隔符。"
+      }
+    }
+  },
+  {
+    "title": "The Odoo Requirements Checklist That Decides How Much Custom Code You Write",
+    "slug": "the-odoo-requirements-checklist-that-decides-how-much-custom-code",
+    "url": "https://dev.to/mohit_777aded202b4d39397d/the-odoo-requirements-checklist-that-decides-how-much-custom-code-you-write-5dbn",
+    "source": "DEV Community",
+    "date": "2026-07-31T07:43:04.000Z",
+    "summary": "Requirements gathering for Odoo ERP implementations determines whether the solution uses configuration alone or requires substantial custom development. The article provides a checklist for mapping business concepts to Odoo models and gathering specific metrics rather than vague requirements.",
+    "content": "Requirements gathering on ERP projects gets treated as a business-analyst chore that happens before the interesting work starts. It isn't. It's the phase that determines how many custom modules you end up maintaining for the next six years, and most of the questions that matter are questions only someone who has read the Odoo source would think to ask.\nThis is the checklist I'd want filled in before I opened an editor. It is deliberately not a list of departments to interview.\n1. Map the client's nouns to models before anything else\nEvery business has five or six words that appear in every sentence they say. \"Job.\" \"Load.\" \"Batch.\" \"Run.\" \"Consignment.\" Write those down on day one and put an Odoo model next to each.\nThere are three outcomes, and you need to know which one you're in before anyone estimates:\n\n  \n    \nOutcome\n      What it looks like\n      Implementation\n      Realistic cost\n    \nMaps cleanly\n      Their \"consignment\" is a stock.picking with a different label on it\n      Configuration and terminology only\n      Hours\n    \nMaps with extra fields\n      Their \"job\" is a project.task plus four fields and an extra state\n      \n_inherit plus a view extension\n      An afternoon to a few days\n    \nDoesn't map\n      Their \"run\" is a scheduling entity with its own lifecycle, approvals and reporting\n      New model, views, security rules, reports\n      Scope it as its own work package\n    \n\n\nThe failure mode is silent: a business analyst hears \"job\", nods, and writes \"the system will track jobs.\" Six weeks later someone discovers that a job spans three sales orders, two warehouses, and can be reopened after invoicing. Ask what the noun is, structurally, and ask what it can be linked to. Cardinality is a requirement, not an implementation detail.\n2. Get the numbers, not the adjectives\n\"High volume\" means nothing. Ask for counts, because Odoo's defaults hold up beautifully at one scale and stop being pleasant at another. Each of these numbers changes a decision you",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "决定你需要编写多少自定义代码的 Odoo 需求检查清单",
+        "summary": "Odoo ERP 实现的需求收集决定了解决方案是仅使用配置还是需要大量自定义开发。这篇文章提供了一个检查清单，用于将业务概念映射到 Odoo 模型并收集具体指标而不是模糊的需求。"
+      }
+    }
+  },
+  {
+    "title": "My Robot Accountant Got an Eviction Notice. So We Moved: Migrating from Bedrock Agents Classic to AgentCore",
+    "slug": "my-robot-accountant-got-eviction-notice-moved-migrating",
+    "url": "https://dev.to/aws-builders/my-robot-accountant-got-an-eviction-notice-so-we-moved-migrating-from-bedrock-agents-classic-to-4bjo",
+    "source": "DEV Community",
+    "date": "2026-07-31T07:40:04.000Z",
+    "summary": "AWS announced that Bedrock Agents Classic is moving to maintenance mode and closed to new customers as of July 30, 2026, prompting the author to migrate their bill-monitoring agent to AgentCore. The article documents the complete migration process and what changed between the two architectures.",
+    "content": "Ciao Amici 👋\nGrab your chai, because the robot accountant is back, and this time we have a moving-day story. If you read my last article, you know I built \"The Accountant,\" a Bedrock Agent that reads my AWS bill every morning, emails me a color-coded report, and once famously reported its own existence to me as suspicious activity.\nThat article did well. It did so well, in fact, that it reached exactly the right person to tell me my beloved architecture was standing on borrowed ground. I remember the moment precisely: phone buzzing on the desk, a notification from Dev.to, me expecting another nice comment about the day 16 hallucination. Instead, a community manager from AWS, polite as anything: Bedrock Agents is heading into maintenance mode, consider rewriting this with AgentCore. A link to the announcement sat under it like a small landmine.\nMy stomach did the same thing it did the day I found the idle GPU endpoint. So I did what any of us would do: I read the announcement twice, once fast and once slowly, made more chai, and moved the whole thing. This is the complete story of that migration, box by box, with every line of code, what got easier, what got weirder, and what it cost. By the end, you will be able to move your own Classic agent in an afternoon.\nFirst, let us be precise about what is actually happening, because \"maintenance mode\" causes more panic than it should. I know, because I panicked for about ten minutes before actually reading the page.\nAmazon Bedrock Agents, the service my first article was built on, is now officially called Amazon Bedrock Agents Classic, and as of July 30, 2026, it is closed to new customers. If your AWS account has never called CreateAgent, that API will simply refuse you with an AccessDeniedException after that date.\nWhat it does not mean:\nExisting agents do not stop working. There is no announced end-of-life date.\nNobody is deleting your agents or your action groups.\nYour bills do not change.\nWhat it does mean, and this i",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我的机器人会计师收到了驱逐通知。所以我们搬家了：从 Bedrock Agents Classic 迁移到 AgentCore",
+        "summary": "AWS 宣布 Bedrock Agents Classic 正在转向维护模式，自 2026 年 7 月 30 日起不再接受新客户，促使作者将其账单监控代理迁移到 AgentCore。这篇文章记录了完整的迁移过程以及两个架构之间的变化。"
+      }
+    }
+  },
+  {
     "title": "I tried to clone Google Docs, but ended up building a calmer writing app",
     "slug": "tried-clone-google-docs-built-calmer-writing-app",
     "url": "https://dev.to/code_dreamer_bfe08175100f/i-tried-to-clone-google-docs-but-ended-up-building-a-calmer-writing-app-4o2m",
