@@ -1,0 +1,194 @@
+[
+  {
+    "title": "CyberPanel's SSL Auto-Renewal Can Silently Fail — Here's the Fix",
+    "slug": "cyberpanel-ssl-renewal-fails-silently",
+    "url": "https://dev.to/pascal_cescato_692b7a8a20/cyberpanels-ssl-auto-renewal-can-silently-fail-heres-the-fix-5g1o",
+    "source": "DEV Community",
+    "date": "2026-08-01T02:44:11.000Z",
+    "summary": "CyberPanel's SSL renewal can appear successful in the UI while certificates silently fail to update, often due to misconfigured ACME staging environments. This mismatch allows expired certificates to serve despite reported successful renewals, highlighting the importance of verifying actual server certificates rather than trusting the panel's status indicators.",
+    "content": "Last week I was doing a routine check on a CyberPanel server and noticed something that didn't add up. The panel's SSL status showed a clean \"SSL Issued Successfully\". Nothing to see, apparently. Except the certificate expiration date hadn't moved.\nThe browser was still serving a certificate that was about to expire.\nThat's the kind of mismatch that's easy to miss if you trust the panel's UI at face value — the message says success, the log (if you even check it) looks uneventful, and you move on. I didn't move on.\nThe panel tells you what it thinks happened. What matters is what the server actually hands out to a browser. That's a one-liner away:\nopenssl s_client -connect  \\\ndomain.com:443 -servername domain.com </dev/null 2>/dev/null \\\n    | openssl x509 -noout -dates\n\n# outputs\nnotBefore=Jul 31 22:59:26 2026 GMT\nnotAfter=Oct 29 22:59:26 2026 GMT\n\nWait — that date range looked fine on its own. The real tell was comparing it against what the panel had just claimed to renew: the dates hadn't changed since before the \"successful\" renewal. Whatever acme.sh had just done, it hadn't produced a new certificate that OpenLiteSpeed was actually serving.\nCyberPanel doesn't implement ACME itself — it delegates to acme.sh under the hood. So the next step was checking what acme.sh had registered:\nacme.sh --list\n\nThat's where the mismatch became clearer. The certificate authority listed for this domain wasn't Let's Encrypt production — it was the staging CA. Staging certificates are useful for testing, but they're not production certificates trusted by browsers. In this case, the important part wasn't just that staging was configured — it was that the renewal workflow no longer matched the certificate actually served by OpenLiteSpeed. CyberPanel reported success because, from its point of view, acme.sh had returned successfully. It just wasn't returning the certificate the site needed.\nI can't say for certain how this CyberPanel installation's acme.sh configuration ended up poin",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "CyberPanel 的 SSL 自动续期可能会无声失败——这是修复方法",
+        "summary": "CyberPanel 的 SSL 续期可能在 UI 中显示成功，但证书实际更新会无声失败，通常由于 ACME 暂存环境配置错误。这种不匹配允许已过期的证书继续提供服务，尽管面板报告续期成功，突出了验证实际服务器证书而不是仅信任面板状态指示的重要性。"
+      }
+    }
+  },
+  {
+    "title": "Starting My Daily AWS & DevOps Blog(Day-0)",
+    "slug": "aws-devops-daily-blog-launch",
+    "url": "https://dev.to/sr-palatasingh/starting-my-daily-aws-devops-blogday-0-1b08",
+    "source": "DEV Community",
+    "date": "2026-08-01T02:40:24.000Z",
+    "summary": "An AWS Solutions Architect is launching a daily blog documenting real-world DevOps problems, AWS service explanations, and learning experiences to build a searchable reference for others facing similar challenges.",
+    "content": "Hi everyone! I'm an AWS Certified Solutions Architect Associate, and starting today, I'm committing to posting daily on AWS and DevOps topics.\nReal problems I solve at work — errors, configs, fixes\nAWS services explained the way I wish someone had explained them to me\nDevOps tooling — CI/CD, IaC, containers, and more\nHonest documentation of my learning journey, not polished tutorials\nI want to build a habit of consistent learning and sharing, create a searchable reference for others hitting the same problems, and document my growth as an AWS/DevOps professional.\nGitHub: [https://github.com/sr-palatasingh/AWS-DevOps-Blog]\nHashnode: [https://hashnode.com/@srpalatasingh]\nLinkedIn: [https://www.linkedin.com/in/soumyaranjan-palatasingh/]\nFirst real post coming very soon. Let's go! 🚀",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "开始我的每日 AWS & DevOps 博客（第0天）",
+        "summary": "一位 AWS 解决方案架构师正在推出一个每日博客，记录真实的 DevOps 问题、AWS 服务说明和学习经验，为面临类似挑战的其他人建立可搜索的参考资源。"
+      }
+    }
+  },
+  {
+    "title": "I Trained Knowledge Graph Embeddings to Find a Cure for My Disease. The Model Found One That Causes It.",
+    "slug": "knowledge-graph-drug-repurposing-ulcerative-colitis",
+    "url": "https://dev.to/su5hrut/i-trained-knowledge-graph-embeddings-to-find-a-cure-for-my-disease-the-model-found-one-that-causes-40ok",
+    "source": "DEV Community",
+    "date": "2026-08-01T02:35:30.000Z",
+    "summary": "A software engineer trained a knowledge graph embedding model on biomedical data to find drug treatments for ulcerative colitis, revealing fundamental questions about whether computational drug repurposing recovers meaningful treatments or merely artifacts of graph structure.",
+    "content": "I have ulcerative colitis. It's an autoimmune disease where your immune system attacks your colon. I manage it with medication, but the medication options aren't great; immunosuppressants with side effects you wouldn't wish on anyone. Some days are fine, while others aren't so great.\nI'm not a biologist. I'm a software engineer. But there's this whole field of computational drug repurposing that promises something remarkable and frankly delusional: take a massive database of known biological relationships, train a machine learning model on the patterns, and it can predict which existing drugs might treat new diseases. The drugs are already approved for other conditions, so you skip years of safety testing. Papers get published. Startups get funded. Impressive-looking ranked lists of \"novel drug candidates\" get produced.\nI decided to build one for UC. I realise that the decision of going through this whole exercise was ambitious but it wasn't to personally discover a treatment, but to find out whether the approach actually works. Whether \"45% of known treatments recovered\" is a meaningful statement about drug discovery or a meaningless statement about graph retrieval. What I found was more interesting than any drug prediction could have been.\nA knowledge graph stores facts as triples:\n(Infliximab,    binds,            TNF-alpha)\n(TNF-alpha,     associated_with,  Ulcerative Colitis)\n(Azathioprine,  treats,           Ulcerative Colitis)\n\nMillions of these (drugs, genes, proteins, pathways, diseases) linked into one enormous network.\nI used DRKG (Drug Repurposing Knowledge Graph), compiled by Amazon and several universities from six curated biomedical databases:\n\n\n\nSource\nWhat it captures\n\n\n\n\nDrugBank\nDrug-target interactions\n\n\nHetionet\nDisease-gene relationships\n\n\nSTRING\nProtein-protein interactions\n\n\n+ 3 others\nPathways, side effects, pharmacology\n\n\n\n97,000 entities · 5.9M edges · 107 relationship types. Biomedical knowledge as it existed circa 2020.\nEvery entity beco",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我训练知识图谱嵌入来治疗我的疾病。模型找到了导致它的药物。",
+        "summary": "一位软件工程师在生物医学数据上训练知识图谱嵌入模型，以寻找溃疡性结肠炎的药物治疗方案，揭示了基础问题：计算机药物转用是否真的发现了有效治疗方案，还是仅仅发现了图结构的虚假信号。"
+      }
+    }
+  },
+  {
+    "title": "Building a Browser-Based Line Break Remover with Local-First Text Processing",
+    "slug": "browser-line-break-remover-text-utility",
+    "url": "https://dev.to/xiu_kuang_f0402a0d68ab4e6/building-a-browser-based-line-break-remover-with-local-first-text-processing-3k32",
+    "source": "DEV Community",
+    "date": "2026-08-01T02:28:59.000Z",
+    "summary": "A developer built a browser-based text utility for removing line breaks that handles the complexity of multiple line-ending formats (LF, CRLF, CR) and offers configurable modes to preserve word boundaries and paragraph structure.",
+    "content": "Removing line breaks looks like a one-regex job. text.replace(/\\n/g, '') and you're done. Then real text shows up, and it turns out line endings are a small historical mess.\nThere are three different characters that can end a line: LF, CRLF, and CR. Text copied from Word, a spreadsheet, or a GitHub issue uses whichever one its origin platform chose, and a single paste can contain several at once. Remove only \\n and the \\r characters are still there. Remove everything and paragraph boundaries collapse into a wall of text.\nI built a line break remover as part of TextFixHub, a collection of free browser-based text utilities.\nYou can try it here:\nTextFixHub Line Break Remover\n\"Remove line breaks\" means something different depending on what the text is for:\nReplace with space — single breaks become spaces; blank lines stay as paragraph breaks. The default, and the safest.\nRemove entirely — every break is deleted. Words will run together. Useful when you know the input has no fragile spots.\nRemove with space — every break is deleted, but a space is added where each line ended, so words don't glue together.\nThe first version had two modes. The gap showed up fast: paste Hello\\nWorld, pick \"Remove entirely\", get HelloWorld. That's not what anyone wants, so a third mode exists now.\nStrip the BOM if present.\nNormalize all line endings to LF.\nApply the selected mode.\nRemove trailing whitespace.\nSome files edited on Windows start with a byte-order mark (U+FEFF). It's invisible, but it is the first character, and it quietly breaks naive logic. One line handles it:\nif (text.charCodeAt(0) === 0xfeff) {\n  text = text.slice(1);\n}\n\n\n\n\nLine ending\nBytes\nWhere it comes from\n\n\n\n\nLF\n\\n\nUnix, macOS, most web content\n\n\nCRLF\n\\r\\n\nWindows\n\n\nCR\n\\r\nClassic Mac OS (rare now, but real)\n\n\n\nMixed endings appear in the same input more often than you'd expect. The fix is to normalize first, in the right order — CRLF has to be handled before CR, otherwise \\r\\n becomes \\n\\n and invents a phantom blank",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建基于浏览器的换行符移除工具，采用本地优先文本处理",
+        "summary": "一位开发者构建了一个基于浏览器的文本工具，用于移除换行符，该工具处理多种行尾格式（LF、CRLF、CR）的复杂性，并提供可配置的模式来保持单词边界和段落结构。"
+      }
+    }
+  },
+  {
+    "title": "Alchemy: GJS UI Framwork",
+    "slug": "alchemy-gjs-ui-framework-gnome",
+    "url": "https://dev.to/softwareishappiness/alchemy-gjs-ui-framwork-4j25",
+    "source": "DEV Community",
+    "date": "2026-08-01T02:25:49.000Z",
+    "summary": "Alchemy is a Vue-like reactive UI component library for GNOME that enables developers to build native GTK4 applications using familiar composition API patterns, recently adding WebKit and GStreamer-based multimedia components.",
+    "content": "Gnome Application Framework\n\n\nI just added to Alchemy (GJS UI Framework) inspired by Quasar Framework and VueJS:\nQWebView (Native WebKit 6.0 integration with reactive URL/HTML bindings)\nQAudioPlayer (Extensible, HTML5-like audio player powered by GStreamer for advanced multimedia and WebRTC integration)\n / \n        Alchemy\n      \n    \n\nAlchemy Framework ⚗️\nAlchemy Framework is a lightweight, highly-reactive UI component library for GNOME/GJS, heavily inspired by the beloved Quasar Framework (VueJS).\nAlchemy bridges the gap between modern web development ergonomics and native Linux desktop application development. It allows you to build GNOME applications using a familiar, Vue-like composition API, while rendering 100% native GTK4 widgets.\nMethodology\n1. The Reactivity Engine\nAt the core of Alchemy is a lightweight, dependency-tracking reactivity engine modeled after Vue 3.\nref: Creates a reactive reference to primitive values (or objects).\ncomputed: Creates derived reactive state that automatically re-evaluates when its dependencies change.\neffect: Tracks dependencies and automatically executes a callback whenever bound ref values update.\n2. Native GTK4 Abstractions\nAlchemy does not use a webview or render custom DOM nodes. Instead, every Alchemy component (like QBtn or QInput) is a thin, reactive wrapper around a native Gtk4 widget.\nState…\n\n  \nView on GitHub",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Alchemy：GJS UI 框架",
+        "summary": "Alchemy 是一个类似 Vue 的响应式 UI 组件库，用于 GNOME，使开发者能够使用熟悉的组合 API 模式构建原生 GTK4 应用程序，最近添加了基于 WebKit 和 GStreamer 的多媒体组件。"
+      }
+    }
+  },
+  {
+    "title": "Why Does My Waitress Server Hang With threads=0?",
+    "slug": "waitress-server-hang-threads-zero",
+    "url": "https://dev.to/codenamew/why-does-my-waitress-server-hang-with-threads0-32ej",
+    "source": "DEV Community",
+    "date": "2026-08-01T02:19:01.000Z",
+    "summary": "Setting threads=0 in a Waitress web server causes it to accept connections but never respond to requests, a silent failure often caused by misconfigured environment variables or CPU-based calculations that round down to zero.",
+    "content": "Debugging a python web server that silently stops responding — the threads=0 configuration mistake and how proper validation catches it.\nA server that starts up cleanly, logs nothing unusual, and then simply never responds to any request is one of the most frustrating kinds of bug — there's no traceback to search for, no exception to Google. If you're hitting this with a Waitress-backed Flask app, one specific misconfiguration is a common culprit: a threads value of 0.\nThe Symptom\nWhy threads=0 Breaks Everything\nWhere This Value Usually Comes From\nWhy It Doesn't Raise an Error on Its Own\nHow StayPresent Validates This Up Front\nOther Invalid Values Worth Checking\nFull Example\nFAQs\nConclusion\nYou start your server, the process stays alive, the logs look completely normal, but every incoming request just hangs — no response, no timeout message, nothing. Health checks on a hosting platform eventually mark the deployment unhealthy, but there's no obvious error pointing at why.\nthreads=0 Breaks Everything\n\n\nWaitress uses a configurable number of worker threads to actually handle incoming requests — this is the threads parameter. With threads=0, there are, quite literally, zero workers available to pick up any incoming connection. The server socket is open and listening, so from the outside it looks alive, but nothing is ever available to actually process a request. This produces exactly the symptom described above: a server that appears up but never responds to anything.\nThis rarely happens on purpose. Common real-world causes:\nA configuration value read from an environment variable that's unset or empty, silently coercing to 0 (int(os.getenv(\"THREADS\", 0)) where THREADS was never actually set).\nA typo or copy-paste error in a config file.\nA dynamic calculation (e.g. threads = cpu_count() // 4) that rounds down to zero on a small container with limited CPU allocation.\nThis is the part that makes it genuinely dangerous: passing threads=0 to Waitress doesn't raise an except",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么我的 Waitress 服务器在 threads=0 时会挂起？",
+        "summary": "在 Waitress Web 服务器中设置 threads=0 会导致它接受连接但永远不响应请求，这是一个静默失败，通常由配置不当的环境变量或四舍五入到零的基于 CPU 的计算引起。"
+      }
+    }
+  },
+  {
+    "title": "You baked the model into the image. One env var can silently un-bake it",
+    "slug": "docker-model-caching-huggingface-env-var",
+    "url": "https://dev.to/ownstackhq/you-baked-the-model-into-the-image-one-env-var-can-silently-un-bake-it-4dno",
+    "source": "DEV Community",
+    "date": "2026-08-01T02:05:53.000Z",
+    "summary": "Machine learning models baked into Docker images for serverless GPU deployments can be silently re-downloaded if runtime environment variables point the model cache to a different path, defeating the cold-start optimization.",
+    "content": "On serverless GPU, cold start is image pull plus model load. The single biggest win is usually to stop downloading weights at boot: download them at build time so they ship inside the image and load from local disk instead.\nThe setup is two lines. Point the cache at a path inside the image, then fetch during the build:\nENV HF_HOME=/opt/huggingface\nRUN python -c \"from huggingface_hub import snapshot_download; snapshot_download('<repo>', revision='<pinned>')\"\n\nsnapshot_download writes into HF_HOME, that directory becomes an image layer, and at runtime the loader finds everything already on disk.\nHere's the part worth knowing. The loader resolves weights through HF_HOME at runtime. So if anything in your runtime environment sets HF_HOME to a different path — a network volume, a mount, a leftover template variable — the loader looks there, finds an empty cache, and quietly falls back to downloading from the network.\nNothing errors. Your image still contains the weights, sitting in a directory nobody reads anymore. You just paid to bake them, and you're paying the download on every cold start anyway. The only symptom is that cold starts went back to what they were before you did the work, which is easy to blame on the platform.\nAttach no volume at all. If the worker has no volume, there's no tempting path to point the cache at. In my setup the endpoints run with volume size zero for exactly this reason: everything the worker needs is in the image, so a volume is not an optimization, it's a way to reintroduce the network.\nVerify at boot, not by feel. Watch a cold worker's log. If you see download progress for weights, the bake is being bypassed, full stop. A baked image reaching the network for weights is always a misconfiguration, never a normal path.\nTreat the cache path as part of the build contract. The Dockerfile that baked the weights and the runtime env that reads them have to agree. That agreement is invisible in both files individually, so write it down where who",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你将模型内置到镜像中。一个环境变量可以悄悄地将其提取出来",
+        "summary": "为无服务器GPU部署而内置到Docker镜像中的机器学习模型，如果运行时环境变量将模型缓存指向不同路径，可能会被悄悄地重新下载，从而破坏冷启动优化。"
+      }
+    }
+  },
+  {
+    "title": "Data Consistency in Microservices — Saga Pattern",
+    "slug": "saga-pattern-microservices-consistency",
+    "url": "https://dev.to/gouranga-das-khulna/data-consistency-in-microservices-saga-pattern-4b4d",
+    "source": "DEV Community",
+    "date": "2026-08-01T02:00:00.000Z",
+    "summary": "The Saga pattern solves microservices consistency by breaking cross-service transactions into sequences of local transactions with compensating actions, enabling rollback when failures occur without requiring distributed ACID transactions.",
+    "content": "One-liner: In microservices, you can't use a single database transaction across services — the Saga pattern breaks it into a sequence of local transactions with compensating rollbacks on failure.\nIn a monolith, you can wrap everything in one DB transaction:\nBEGIN;\n  UPDATE orders SET status='confirmed' WHERE id=1;\n  UPDATE inventory SET stock=stock-1 WHERE product_id=5;\n  INSERT INTO payments (order_id, amount) VALUES (1, 99.99);\nCOMMIT; -- all or nothing\n\nIn microservices, each service owns its own DB. You cannot do a cross-service ACID transaction. If the payment service fails after inventory was deducted, you're in an inconsistent state.\nA Saga is a sequence of local transactions. Each step publishes an event triggering the next. If any step fails, compensating transactions undo the previous steps.\nStep 1: Order Service      → Create order (PENDING)\nStep 2: Inventory Service  → Reserve items\nStep 3: Payment Service    → Charge customer\nStep 4: Shipping Service   → Schedule delivery\nStep 5: Order Service      → Mark order CONFIRMED\n\nHappy path ✅:\nOrder Created → Items Reserved → Payment Charged → Shipping Scheduled → Done ✅\n\nFailure at Payment ❌:\nOrder Created → Items Reserved → Payment FAILED\n                                       ↓\n                          Compensate: Release inventory\n                          Compensate: Cancel order\n\nEach service listens for events and reacts. No central coordinator.\nOrderService    ──publishes──► \"OrderCreated\"\nInventoryService ──listens──► reserves stock, publishes \"StockReserved\"\nPaymentService  ──listens──► charges card, publishes \"PaymentProcessed\"\nShippingService ──listens──► schedules delivery, publishes \"Shipped\"\n\nOn failure:\nPaymentService publishes \"PaymentFailed\"\nInventoryService listens, releases stock, publishes \"StockReleased\"\nOrderService listens, marks order CANCELLED\n\nPros: Simple, decoupled, no single point of failure\n\nCons: Hard to track overall saga state, cyclic dependencies possible\nA dedicated Saga Orc",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "微服务中的数据一致性——Saga模式",
+        "summary": "Saga模式通过将跨服务事务分解为一系列本地事务和补偿操作来解决微服务一致性问题，使得在发生故障时能够回滚，而无需分布式ACID事务。"
+      }
+    }
+  },
+  {
+    "title": "Updates in Next.js 16.3: AI-Native Development, Better Security, and Instant Navigation",
+    "slug": "nextjs-16-3-ai-native-development",
+    "url": "https://dev.to/kyl67899/whats-new-in-nextjs-163-ai-native-development-better-security-and-instant-navigation-2fm0",
+    "source": "DEV Community",
+    "date": "2026-08-01T01:57:30.000Z",
+    "summary": "Next.js 16.3 adds first-class AI assistant support through AGENTS.md documentation, built-in skills for multi-step workflows, and enhanced security via isolated MCP servers to reduce hallucinations and improve code suggestion accuracy.",
+    "content": "The Next.js team continues to push the boundaries of modern web development with the Next.js 16.3 Preview. While previous releases focused on performance and caching, version 16.3 shifts its attention toward AI-native development, developer security, and instant application navigation.\nAs AI coding assistants become a core part of the development workflow, Next.js is evolving into a framework that not only builds applications but also helps AI agents understand, debug, and improve them safely.\nLet's explore the biggest improvements in Next.js 16.3.\nOne of the most exciting additions in Next.js 16.3 is its first-class support for AI coding assistants.\nInstead of treating AI as an external tool, Next.js now includes built-in capabilities that help agents understand your project structure, documentation, and runtime behavior.\nKey improvements include:\nVersion-aware documentation through AGENTS.md, ensuring AI assistants reference the correct framework version.\nFirst-party Skills that guide AI through multi-step development workflows.\nAgent Browser with React introspection, allowing compatible AI tools to inspect component state and application behavior.\nActionable errors with copy-ready prompts that make troubleshooting faster.\nThese enhancements reduce hallucinations from AI assistants and provide more accurate, context-aware code suggestions.\nAs developers increasingly rely on AI to generate and modify code, security has become a critical concern.\nAdded 'skills' that would be useful for multi-step workflow. Visit skills.sh\nThe Skill requires agent-browser version 0.27 or later.\nnpx skills add vercel/next.js --skill next-dev-loop\nNext.js 16.3 introduces several improvements that make AI interactions safer and more reliable:\nThe built-in Model Context Protocol (MCP) server now exposes only the tools required for build diagnostics while separating larger knowledge-base functionality.\nBenefits include:\nReduced attack surface\nBetter isolation of tooling\nMore predictable A",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Next.js 16.3更新：AI原生开发、更好的安全性和即时导航",
+        "summary": "Next.js 16.3通过AGENTS.md文档添加了一级AI助手支持，内置了多步工作流技能，并通过隔离的MCP服务器增强安全性，以减少幻觉并提高代码建议的准确性。"
+      }
+    }
+  },
+  {
+    "title": "Fast, local, and offline dictation",
+    "slug": "local-offline-speech-to-text-nemotron",
+    "url": "https://dev.to/codisfy/fast-local-and-offline-dictation-22f3",
+    "source": "DEV Community",
+    "date": "2026-08-01T01:55:26.000Z",
+    "summary": "VS Code's inclusion of local speech-to-text models like Nemotron powered by Sherpa-ONNX enables fast, offline dictation without cloud dependency, with plans for release as a standalone keyboard-shortcut triggered tool.",
+    "content": "Finally found the local speech-to-text model I have been looking for!\nIn the latest release of VS Code, I noticed they included a local model (Nemotron) for giving voice commands to your AI agent. After researching it a bit, I discovered the backend uses a very small model that runs entirely locally without heavy lifting. \nI learned that Sherpa-ONNX can run these models, so I asked my AI agent to build a simple tool I can trigger with a keyboard shortcut to dictate text directly into my computer. Right now, I am amazed by the results-it is fast and accurate.\nAfter some polish, I plan to release this as a standalone tool. I know everyone \"could\" build this themselves, but that's still labor you have to put in. Hopefully, releasing it will save a few hours of your time. \nCheck out the quick demo below to see its speed and accuracy in action. \nDemo uses the parakeet-tdt-0.6b-v3-onnx model but nemotron works well too.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "快速、本地和离线听写",
+        "summary": "VS Code包含了由Sherpa-ONNX驱动的本地语音转文本模型（如Nemotron），能够实现快速、离线的听写，无需云依赖，并计划作为独立的键盘快捷键触发工具发布。"
+      }
+    }
+  },
+  {
+    "title": "Reviving K6's StatsD Extension for Datadog Observability",
+    "slug": "k6-statsd-datadog-extension",
+    "url": "https://dev.to/osnibjunior/reviving-k6s-statsd-extension-for-datadog-observability-299m",
+    "source": "DEV Community",
+    "date": "2026-08-01T01:54:34.000Z",
+    "summary": "After K6 v0.55.0 dropped StatsD support, a developer rebuilt K6 with the StatsD extension via xk6 to enable direct metric delivery to Datadog Agent, preserving important p95 metrics unavailable through alternative integration methods.",
+    "content": "A lot gets said about how data can help us with observability, but much less gets said about how much we can shape the collection itself to actually help us make decisions.\nUnfortunately, K6 v0.55.0 dropped support for sending metrics via StatsD, which happens to be Datadog's recommended way of receiving them. We looked into other ways of getting K6 metrics into Datadog, but every alternative came with trade-offs, including the absence of some extremely important p95 metrics.\nWhile going through K6's documentation, I found a path forward: it's possible to build a custom K6 binary and re-enable the StatsD extension through xk6. So that's exactly what I did.\nDockerfile, and after a few failed builds, I landed on a version that worked end to end, sending every metric to the local Datadog Agent and having it show up correctly in the platform.\nFor the client, I handed over everything: the full explanation of the problem and the original Dockerfile, so their team could build the image themselves and keep it internalized within their corporate environment.\nYou can find it here: osnijunior/k6-statsd on Docker Hub",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "恢复K6的StatsD扩展以实现Datadog可观测性",
+        "summary": "在K6 v0.55.0删除了StatsD支持后，一位开发者通过xk6使用StatsD扩展重建了K6，以实现直接向Datadog Agent交付指标，保留了通过其他集成方法无法获得的重要p95指标。"
+      }
+    }
+  },
+  {
+    "title": "Is Every SaaS Company Going to Need an MCP Server?",
+    "slug": "saas-mcp-server-future",
+    "url": "https://dev.to/bhavyshekhaliya/is-every-saas-company-going-to-need-an-mcp-server-1l79",
+    "source": "DEV Community",
+    "date": "2026-08-01T01:53:35.000Z",
+    "summary": "As AI agents become central to workflows, MCP servers are emerging as a necessary interface layer for SaaS products, similar to how REST APIs became standard—providing AI-friendly structured tool descriptions rather than human-focused documentation.",
+    "content": "Over the last year, I've noticed an interesting pattern.\nA few years ago, every software company wanted a REST API.\nToday, many of those same companies are asking a different question:\n\"How do we make our product work with AI agents?\"\nThat shift made me wonder:\nWill having an MCP server eventually become as common as having an API?\nI'm not convinced we're there yet.\nBut I do think we're heading in that direction.\nLet's discuss why.\nThink back to the early days of APIs.\nMany businesses didn't expose one publicly.\nIntegrations were built manually.\nPartners requested CSV exports.\nDevelopers wrote custom scripts.\nEverything worked—but only until the next integration request arrived.\nEventually, APIs became the standard because they reduced friction for everyone involved.\nNow AI is creating a similar moment.\nWhen people use tools like ChatGPT, Claude, Cursor, or other AI assistants, they don't want to switch between five browser tabs just to complete a task.\nInstead, they expect to say something like:\n\"Create a customer in our CRM.\"\nor\n\"Generate this invoice.\"\nor\n\"Show today's failed deployments.\"\nFor that to work, the AI needs a reliable way to interact with your product.\nThat's where the conversation around MCP starts.\nThis is probably the most common question.\nTechnically, AI can call a REST API.\nBut here's the problem.\nREST APIs were designed for software developers.\nDevelopers read documentation.\nDevelopers understand authentication.\nDevelopers know which endpoint to call first.\nDevelopers combine multiple requests together.\nAI agents don't \"read documentation\" the same way humans do.\nThey need structured descriptions of available actions.\nThey need context.\nThey need discoverable tools.\nThat's exactly what MCP provides.\nThis is probably the biggest misconception I see online.\nSome people talk about MCP as if REST APIs are becoming obsolete.\nI don't think that's true.\nYour API is still the foundation.\nThe MCP server simply becomes another interface for accessing it.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "每个SaaS公司都需要一个MCP服务器吗？",
+        "summary": "随着AI代理成为工作流的核心，MCP服务器正在成为SaaS产品的必要接口层，类似于REST API如何成为标准——提供AI友好的结构化工具描述，而不是以人为中心的文档。"
+      }
+    }
+  }
+]
