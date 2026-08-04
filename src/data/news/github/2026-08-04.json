@@ -1,5 +1,229 @@
 [
   {
+    "title": "Render invoices to PDF with a GET request instead of shipping Chromium",
+    "slug": "render-invoices-pdf-get-request",
+    "url": "https://dev.to/clausenetizen/render-invoices-to-pdf-with-a-get-request-instead-of-shipping-chromium-39o7",
+    "source": "DEV Community",
+    "date": "2026-08-04T14:01:05.000Z",
+    "summary": "SnapPDF enables serverless PDF generation by rendering HTML to PDF via HTTP GET requests, eliminating the need to bundle Chromium or maintain separate PDF libraries. The service accepts optional parameters for page format, background rendering, and wait selectors for dynamically-loaded content. This approach significantly reduces deployment size and complexity for applications that generate invoices or other HTML-based documents.",
+    "content": "Every \"generate a PDF invoice\" ticket ends the same way: you already have the invoice as an HTML template that looks right in the browser, and now you need bytes you can email or store. The usual answer is Puppeteer, which drags a ~300MB Chromium download into your image, needs a pile of shared libraries on slim base images, and falls over on the first serverless deploy that has a 250MB bundle limit. The alternative is rewriting your invoice layout in a PDF drawing library, which means maintaining the same document twice.\nA hosted renderer sidesteps both. You keep the HTML template, and the PDF is one HTTP GET.\nSnapPDF takes a public URL and returns PDF bytes:\ncurl -o invoice.pdf \\\n  \"https://snappdf.dedyn.io/v1/pdf?url=https://example.com\"\n\nNo headers, no auth dance on the direct base URL, no JSON envelope to unwrap. The response body is the PDF.\nQuery params, all optional:\n\n\n\nParam\nValues\nDefault\n\n\n\n\nformat\n\nA4, Letter, etc.\nA4\n\n\nlandscape\n\ntrue / false\n\nfalse\n\n\nbackground\n\ntrue / false\n\ntrue\n\n\nscale\nnumber\n1\n\n\nwait_for_selector\nCSS selector\nnone\n\n\n\nbackground matters more than it sounds for invoices. Chromium drops CSS backgrounds when printing by default, so your header bar and zebra-striped line items vanish unless it's on.\nwait_for_selector is the one that saves you. If your invoice template fetches line items client-side, the renderer will otherwise happily print an empty table. Have the template set something like <div id=\"invoice-ready\"> once totals are painted, and point the param at #invoice-ready.\ncurl -o invoice.pdf \\\n  \"https://snappdf.dedyn.io/v1/pdf?url=https%3A%2F%2Fexample.com&format=Letter&background=true&wait_for_selector=%23invoice-ready\"\n\nNode 18+ has fetch built in, so there's no dependency at all:\nimport { writeFile } from \"node:fs/promises\";\n\nasync function renderPdf(targetUrl, opts = {}) {\n  const qs = new URLSearchParams({ url: targetUrl, ...opts });\n  const res = await fetch(`https://snappdf.dedyn.io/v1/pdf?${qs}`);\n\n  if (!res.ok) {",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "通过 GET 请求将发票渲染为 PDF，而不是附带 Chromium",
+        "summary": "SnapPDF 通过 HTTP GET 请求将 HTML 渲染为 PDF，实现无服务器 PDF 生成，消除了捆绑 Chromium 或维护单独 PDF 库的需要。该服务接受可选参数用于页面格式、背景渲染和动态加载内容的等待选择器。这种方法为生成发票或其他基于 HTML 的文档的应用程序显著减少了部署大小和复杂性。"
+      }
+    }
+  },
+  {
+    "title": "An MCP server on Cloudflare's free plan, measured against the 10 ms CPU limit",
+    "slug": "mcp-server-cloudflare-free-plan",
+    "url": "https://dev.to/301st/an-mcp-server-on-cloudflares-free-plan-measured-against-the-10-ms-cpu-limit-468b",
+    "source": "DEV Community",
+    "date": "2026-08-04T14:00:54.000Z",
+    "summary": "Cloudflare deprecated its stateful McpAgent class in favor of stateless request handlers, coinciding with the Model Context Protocol's shift to stateless design. This enables MCP servers to run on Cloudflare's free plan without Durable Objects, constrained only by the 10ms CPU ceiling per request. The article measures whether practical MCP server implementations can operate within this hard limit.",
+    "content": "Two things happened this week that turn \"can I run an MCP server for free\" from a compromise into a plain yes, with one measurable condition. Today the Model Context Protocol shipped its 2026-07-28 revision, and the headline change is that the protocol core went stateless: sessions, the Mcp-Session-Id header, and the initialize handshake are gone. The release post states the consequence outright:\nAny request can now land on any server instance behind a plain round-robin load balancer without needing shared storage.\nAnd yesterday, one day ahead of the release, Cloudflare's own documentation flipped. The McpAgent class — the official path that backed every MCP server with a Durable Object because the transport needed somewhere to keep its session — is now marked deprecated and feature frozen, with a stateless request handler as the recommended replacement for new servers.\nThose two moves close the same gap from both ends. A Worker on the free plan was always a natural place for a small MCP server except for one thing: the transport demanded state, and state meant a Durable Object and a sticky instance. Now the protocol itself promises that every request is self contained. What remains is the free plan's one hard ceiling — 10 ms of CPU per request — and whether a real server fits under it is not a question you argue about. It is a question you measure. So we built one, on this site, and measured it.\nThe old lifecycle opened every connection with an initialize round trip, minted a session id, and required the client to carry it on every call. All of that is deleted. Version, client identity, and capabilities now travel inside each request's _meta fields, and the one thing a server must implement is server/discover, which reports its supported versions and capabilities to anyone who asks.\nThe transport got stricter in exchange. Every POST must carry an MCP-Protocol-Version header that matches the version inside the body, plus an Mcp-Method header mirroring the JSON-RPC m",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Cloudflare 免费计划上的 MCP 服务器，针对 10ms CPU 限制进行测量",
+        "summary": "Cloudflare 弃用了有状态的 McpAgent 类，转而采用无状态请求处理程序，与模型上下文协议的无状态设计转变相呼应。这使得 MCP 服务器可以在 Cloudflare 的免费计划上运行，无需持久对象，仅受每个请求 10ms CPU 上限的限制。该文章测量实际的 MCP 服务器实现是否可以在此硬限制内运行。"
+      }
+    }
+  },
+  {
+    "title": "I Was in 340 Telegram Groups, So I Built a Cleanup Tool",
+    "slug": "telegram-groups-cleanup-tool",
+    "url": "https://dev.to/aftersnow/i-was-in-340-telegram-groups-so-i-built-a-cleanup-tool-2kfl",
+    "source": "DEV Community",
+    "date": "2026-08-04T14:00:00.000Z",
+    "summary": "TG Cleaner is a web app and Telegram Mini App that lets users bulk-leave groups, mute chats, and remove bot DMs without requiring developer credentials or API setup. The tool solves the friction problem of existing solutions that demand creating a Telegram developer account, making chat management accessible to non-technical users. It addresses the practical problem of managing hundreds of accumulated group memberships.",
+    "content": "The problem I kept ignoring\n\n\nI was in 340 Telegram groups.\nCrypto project chats from 2021. Dev communities I joined once and never visited again. Random hobby groups I'd completely forgotten about. Every single one of them still sitting in my chat list muted, ignored, but never cleaned up.\nI knew I should fix it. But every time I started leaving groups manually open the group, scroll down, tap Leave, confirm I'd give up after about ten.\nThe math is brutal. For 300 groups at ~45 seconds each, that's roughly 225 minutes. Nearly four hours of pure repetitive tapping.\nSo I kept putting it off. Until I finally decided to build the tool I actually wanted.\nI figured this was a solved problem. Surely someone had built a bulk-leave tool already.\nThere were a few options. Almost every single one had the same requirement buried in the setup instructions:\nGo to my.telegram.org, create a developer account, generate an API ID and API Hash, then paste those credentials into our tool.\nThat's a 15–30 minute technical setup. For non-developers it's a complete wall. For developers who just want to clean their own Telegram, it's frustrating friction for something that should take 30 seconds.\nNobody should need a developer account to leave Telegram groups. So I built the version I actually wanted to use and then kept shipping until it became a full chat cleaner, not just a leave button.\nTG Cleaner is the tool I ended up building. It's a web app (and Telegram Mini App) that lets people clean up their Telegram chats without generating their own API credentials.\nYou go to the site (or open it as a Telegram Mini App via @TGCUtilityBot), enter your phone number, enter the code Telegram sends you, and you see your full list of groups and channels. From there you can:\nLeave groups and channels in bulk\nMute chats permanently without leaving\nArchive chats to clear your main list without losing membership\nClean deleted accounts scan and remove ghost \"Deleted Account\" DMs\nClean bots find bot DMs,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我加入了 340 个 Telegram 群组，所以我建立了一个清理工具",
+        "summary": "TG Cleaner 是一个网络应用和 Telegram Mini App，允许用户批量退出群组、静音聊天和删除机器人 DM，无需开发者凭据或 API 设置。该工具解决了现有解决方案的摩擦问题，这些解决方案需要创建 Telegram 开发者账户，使非技术用户也能进行聊天管理。它解决了管理数百个累积群组成员资格的实际问题。"
+      }
+    }
+  },
+  {
+    "title": "🤖 AI Agents vs AI Chatbots: What's the Difference?",
+    "slug": "ai-agents-vs-chatbots-difference",
+    "url": "https://dev.to/codexlancers/ai-agents-vs-ai-chatbots-whats-the-difference-4lf8",
+    "source": "DEV Community",
+    "date": "2026-08-04T14:00:00.000Z",
+    "summary": "AI agents execute multi-step tasks autonomously, while chatbots react to individual prompts by generating text. Where a chatbot provides flight-booking advice, an agent queries calendars, searches APIs, evaluates budgets, and completes the reservation end-to-end. This distinction represents a significant technical leap in AI systems' ability to pursue goals and take action without human guidance at each step.",
+    "content": "If you've been following AI news lately, you've probably noticed a major vocabulary shift happening across the tech world. A couple of years ago, everyone was talking about chatbots. Today, nearly every software pitch and product update is promising AI agents.\nAt first glance, it's easy to dismiss this as just another round of corporate marketing hype—a fancy new label stamped onto the same old text generator. But if we look under the hood at how these systems actually function, the technical leap between a chatbot and an AI agent is significant.\nSo, what actually separates an AI chatbot from an AI agent? Here's a breakdown of the fundamental differences.\nTo understand the difference, let's look at how both systems respond when given a real-world task.\nAn AI chatbot (such as early versions of ChatGPT or basic customer support bots) is a reactive conversationalist. You provide a prompt, it processes the text using learned statistical patterns, and it generates a response in a single interaction. It waits for your input, answers your question, and stops there.\nFor example, if you ask a chatbot to:\n\"Book a flight to San Francisco for next Tuesday.\"\nIt will typically provide a helpful list of travel websites to visit or outline the steps you should follow.\nAn AI agent, on the other hand, is a goal-driven worker built for execution. When you give an agent the same instruction—\"Book a flight to San Francisco for next Tuesday\"—it doesn't simply respond with advice. Instead, it breaks the objective into multiple independent tasks.\nFor example, it may:\n📅 Query your calendar API to check your availability.\n✈️ Access flight search APIs to compare real-time prices.\n💰 Evaluate your budget preferences against available options.\n📧 Complete the booking and send the confirmation directly to your email.\nIn short:\n\n\n\nAI Chatbot\nAI Agent\n\n\n\n\n💬 Gives answers\n🤖 Performs multi-step work on your behalf\n\n\n\nWhen evaluating these systems in real-world production environments, the distinc",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "🤖 AI智能体 vs AI聊天机器人：有什么区别？",
+        "summary": "AI智能体能够自主执行多步骤任务，而聊天机器人则对单个提示做出反应并生成文本。聊天机器人可能提供航班预订建议，而智能体则查询日历、搜索API、评估预算并端到端完成预订。这种区别代表了AI系统在追求目标和采取行动方面的重大技术飞跃，无需在每一步都进行人类指导。"
+      }
+    }
+  },
+  {
+    "title": "I wrote down 61 rules, then failed my own repos",
+    "slug": "61-rules-failed-own-repos",
+    "url": "https://dev.to/svyatov/i-wrote-down-61-rules-then-failed-my-own-repos-5351",
+    "source": "DEV Community",
+    "date": "2026-08-04T13:54:40.000Z",
+    "summary": "The author created oss-kit, a framework of 61 rules covering open-source governance across documentation, community, CI/CD, security, releases, and versioning. When applied to existing repositories, the tool revealed significant gaps between best-practice documentation and actual implementation. The framework codifies the unglamorous but critical work required to maintain sustainable and trustworthy open-source projects.",
+    "content": "Nobody starts a library because they wanted to write a SECURITY.md.\nYou start it because there is a thing you want to exist. Then you publish it, and a second job arrives that nobody signed up for: issue templates, a code of conduct, pinned action SHAs, a changelog that survives contact with a release, a publish job that does not leave a long-lived token lying around, and a README that still tells the truth eighteen months later.\nThat is the boring half. It is mostly mechanical, and it decides whether a stranger with a good patch can figure out how to send it to you.\nSo I wrote it down. oss-kit is 61 rules about that half of the job and nine agent skills that fix them. Then I pointed it at two repositories of my own. The first failed 27 rules. The second I had already put through the fixing loop, so it is the one that shows what is left at the other end.\nBefore you can hand the work off, somebody has to say what the work is. Seven areas:\n\n\n\nArea\nRules\nWhat it covers\n\n\n\n\nDocumentation\n10\nREADME order, claims that match the source, prose that is not marketing copy\n\n\nCommunity\n9\nLicense, contributing guide, code of conduct, security policy, issue forms, governance\n\n\nContinuous integration\n6\nWhat runs on push and on every change request, on which runtimes, and whether tests exist\n\n\nSecurity posture\n15\nPinned action SHAs, workflow permissions, branch and tag rules, lockfiles, signed tags\n\n\nRelease and publishing\n7\nTrusted publishing, provenance, approval gates, bills of materials\n\n\nChangelog and versioning\n7\nKeep a Changelog structure, the right bump, release notes that match\n\n\nAgent skills\n7\nLayout, frontmatter, licensing and portability, if your repo ships skills\n\n\n\nTwo areas are gated by a precondition rather than by a setting. Publishing needs a repository that ships a built artifact, and it then splits again: on the registry-push track every rule applies, and on the tag-published track, where the registry reads your forge and no publishing credential exists at all,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我写下了61条规则，然后在自己的仓库中失败了",
+        "summary": "作者创建了oss-kit，这是一个包含61条规则的框架，涵盖开源治理的各个方面，包括文档、社区、CI/CD、安全、发布和版本控制。当应用于现有存储库时，该工具揭示了最佳实践文档和实际实施之间的重大差距。该框架将维护可持续和可信开源项目所需的不起眼但至关重要的工作进行了编码。"
+      }
+    }
+  },
+  {
+    "title": "OpenAI Model Disproves Erdős Unit-Distance Conjecture in Discrete Geometry",
+    "slug": "openai-disproves-erdos-conjecture",
+    "url": "https://dev.to/alifar/openai-model-disproves-erdos-unit-distance-conjecture-in-discrete-geometry-4c64",
+    "source": "DEV Community",
+    "date": "2026-08-04T13:50:31.000Z",
+    "summary": "OpenAI disclosed that an internal model generated a proof disproving the Erdős unit-distance conjecture, a long-standing problem in discrete geometry, with external mathematicians verifying the key steps. This represents a carefully bounded example of AI contributing novel proof strategies to frontier mathematics when paired with rigorous human verification. The result demonstrates AI's capability for mathematical reasoning beyond summarization or routine assistance.",
+    "content": "OpenAI has disclosed that an internal model generated a proof disproving the Erdős unit-distance conjecture, a long-standing question in discrete geometry. The result, announced on May 20, 2026, was subsequently checked by external mathematicians and presented with accompanying mathematical commentary. It is a notable, but carefully bounded, example of AI-generated reasoning contributing to frontier mathematics.\nAccording to OpenAI's announcement on the discrete geometry result, the conjecture concerned the number of pairs of points at unit distance that can occur in point sets. The company says its internal model found a construction showing that, for infinitely many values of n, point sets can contain substantially more unit-distance pairs than constructions associated with the conjecture's previously believed upper-bound behavior.\nThe central significance is not simply that an AI system produced mathematical text. OpenAI says the output was turned into a proof whose key steps were examined by mathematicians outside the company. A companion remarks document, prepared by members of the mathematical community, supplies a human-oriented presentation of the argument, historical context, and discussion of the result's methods. That human verification is essential: a plausible-looking derivation is not a mathematical result until its reasoning can withstand expert scrutiny.\nThe Erdős unit-distance conjecture was a statement about extremal configurations in the plane. Its disproof changes the accepted picture of how many unit-distance pairs such configurations can have for infinitely many set sizes. OpenAI's account frames the model's construction as exceeding what the conjecture had suggested was possible.\nThis is distinct from using AI to search for numerical examples, summarize known papers, or assist with routine symbolic work. The reported contribution was a proof strategy for an open problem, followed by expert checking and exposition. The result therefore offers a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "OpenAI模型推翻了离散几何中的埃尔多斯单位距离猜想",
+        "summary": "OpenAI披露其内部模型生成了一个证明，推翻了离散几何中长期存在的埃尔多斯单位距离猜想，外部数学家验证了关键步骤。这代表了AI在与严格的人类验证配合时，对前沿数学贡献新颖证明策略的一个有限的例子。该结果证明了AI在数学推理方面的能力超越了摘要或常规协助。"
+      }
+    }
+  },
+  {
+    "title": "Explaining Stock Returns with the Fama-French 5 Factor Model",
+    "slug": "fama-french-5-factor-model",
+    "url": "https://dev.to/jerbouma/explaining-stock-returns-with-the-fama-french-5-factor-model-2ode",
+    "source": "DEV Community",
+    "date": "2026-08-04T13:50:00.000Z",
+    "summary": "The Fama-French 5-factor model decomposes stock returns into systematic components driven by known risk premiums, helping distinguish repeatable outperformance from temporary narratives. Using NVIDIA's 2023-2024 performance as a case study, the model's explanatory power shifted from 35% to 82% as AI narratives diffused into standard market factors. The framework helps investors and analysts understand whether stock performance reflects company-specific value or broader market trends.",
+    "content": "In 2023, the Fama-French 5-factor model could explain only 35% of NVIDIA's weekly return variation. In 2024, it explained 82%. That gap tells you something important: NVIDIA's 2023 surge was driven primarily by a narrative that no systematic factor had yet priced in - the sudden recognition that GPU scarcity would define AI infrastructure for years. By 2024, that insight had diffused into the market factor itself, and the stock began behaving like a large-cap bellwether rather than a thematic trade.\nThe Fama-French 5-factor model is the most widely used framework for decomposing stock returns into systematic components. Instead of asking \"did this stock go up?\", it asks \"how much of that return is explained by exposure to known risk premia, and how much is specific to the company?\" The answer has implications for both portfolio construction and for understanding whether outperformance is repeatable.\nThis article runs the model on NVIDIA, Apple, and Microsoft using the Finance Toolkit, interprets what each factor says about each company, and draws out the most useful comparisons across the three. For more information on the Finance Toolkit, have a look here. To explore the Finance Toolkit MCP, see here.\nBefore running any code, it helps to have the five factors clearly defined. Each represents a systematic source of return that the model holds responsible for a portion of a stock's performance.\n\n\n\nFactor\nFull Name\nWhat it measures\nNegative slope means\n\n\n\n\nMkt-RF\nMarket Risk Premium\nExcess return of the broad market over the risk-free rate. Slope ~= market beta.\nLess market-sensitive than average\n\n\nSMB\nSmall Minus Big\nHistorical premium of small-cap stocks over large-cap stocks.\nLarge-cap orientation - underperforms when small-caps lead\n\n\nHML\nHigh Minus Low\nHistorical premium of value stocks (high book-to-market) over growth stocks.\nGrowth stock - underperforms when value leads\n\n\nRMW\nRobust Minus Weak\nHistorical premium of high operating profitability over weak profit",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "用Fama-French五因素模型解释股票收益",
+        "summary": "Fama-French五因素模型将股票收益分解为由已知风险溢价驱动的系统性成分，有助于区分可重复的超额回报与临时性的市场叙事。以英伟达2023-2024年的表现为案例研究，随着AI叙事融入标准市场因素，该模型的解释力从35%上升至82%。该框架帮助投资者和分析师理解股票表现是反映公司特定价值还是更广泛的市场趋势。"
+      }
+    }
+  },
+  {
+    "title": "From Website URL to Useful AI Support Answers: A Practical Training Workflow",
+    "slug": "website-ai-support-training-workflow",
+    "url": "https://dev.to/kseniia_shevchenko_8f7081/from-website-url-to-useful-ai-support-answers-a-practical-training-workflow-2klc",
+    "source": "DEV Community",
+    "date": "2026-08-04T13:49:59.000Z",
+    "summary": "Reliable AI support assistants require defining authoritative source pages before crawling and continuously validating knowledge pipeline quality to prevent stale or inaccurate answers. The article outlines a four-step workflow for training AI chatbots on company-specific knowledge and emphasizes that assistant quality depends on source credibility and freshness, not just the interface. Key failure modes include false confidence from testing only ideal questions and allowing plausible but unsupported answers.",
+    "content": "Adding a chat interface to a website is easy. Making it answer company-specific questions reliably is the real engineering and content problem.\nStart with source ownership\nBefore crawling anything, define which pages the business considers authoritative.\nA crawler retrieves pages. A knowledge pipeline turns those pages into usable evidence.\nA common failure mode is allowing the assistant to answer whenever it can generate plausible text.\nTesting only a few ideal questions creates false confidence.\nWebsite knowledge becomes stale.\nFor Oscar Chat, we reduced the user-facing process to four steps: open the Train section, add the website URL, wait while the content is collected, and test the result in the Playground.\nThe quality of an AI support assistant is constrained by the quality, structure, and freshness of its sources.\nhttps://www.oscarchat.ai/ai-chatbot/.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "从网站URL到有用的AI支持答案：实践训练工作流",
+        "summary": "可靠的AI支持助手需要在爬取前定义权威源页面，并持续验证知识管道质量以防止陈旧或不准确的答案。该文章概述了一个四步工作流程来训练AI聊天机器人的公司特定知识，强调助手质量取决于信息源的可信度和新鲜度，而非仅仅依赖界面。关键的失败模式包括仅测试理想问题导致的虚假信心以及允许看似合理但无根据的答案。"
+      }
+    }
+  },
+  {
+    "title": "Things I Wish I Knew Before Studying Computer Science",
+    "slug": "computer-science-lessons-learned",
+    "url": "https://dev.to/blesskimbi/things-i-wish-i-knew-before-studying-computer-science-46db",
+    "source": "DEV Community",
+    "date": "2026-08-04T13:46:25.000Z",
+    "summary": "A computer science student reflects that practical projects matter more than exam scores, conceptual understanding trumps memorization, and persistent imposter syndrome is normal rather than a sign of incompetence. The author advises focusing on building shipped work, understanding the reasoning behind concepts, and not panicking about mathematics unless pursuing ML-specific roles. These insights challenge conventional academic pressures in favor of building intuition and demonstrable skills.",
+    "content": "My name is Bless Kimbi\nStarting a Computer Science degree, I thought I had a rough idea of what I was signing up for. I was wrong about a lot of it. Here's what I wish someone had told me before day one.\nI spent way too much energy chasing perfect exam scores early on. What actually opened doors later was having things I'd built: a scrappy CLI tool, a half-broken web app, a bot that automated something I was too lazy to do by hand. Employers and even professors care more about \"show me what you made\" than \"show me your transcript.\"\nTakeaway: Start a side project in your first semester, even a bad one. Ship something.\nBig-O notation, sorting algorithms, compiler theory some of it sticks, most of it fades unless you keep using it. What does stick is the way of thinking: breaking a messy problem into smaller pieces, reasoning about tradeoffs, knowing where to look things up. CS isn't really about memorizing facts, it's about training a particular kind of problem-solving muscle.\nTakeaway: Focus on understanding why something works, not memorizing syntax or formulas. You can always look up the formula.\nI assumed the constant feeling of \"everyone here is smarter than me\" would fade once I got comfortable. It didn't disappear; it just moved. First it was \"I don't understand recursion.\" Then it became \"I don't understand system design.\" Now it's \"I don't understand this new framework everyone's using.\" Turns out that's just what being in tech feels like — always slightly behind the frontier.\nTakeaway: That feeling isn't a signal you don't belong. It's a signal the field moves fast. Everyone's faking it a little.\nI worried a lot about being \"not a math person.\" In reality, most day-to-day CS work leans more on logical thinking than heavy calculus. But when math does show up discrete math, linear algebra for ML, probability for algorithms it shows up hard, and skipping the fundamentals makes those courses miserable.\nTakeaway: Don't panic about math, but don't blow off discret",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我希望在学习计算机科学前就知道的事",
+        "summary": "一位计算机科学学生反思认为实际项目比考试成绩更重要，概念理解胜过死记硬背，持久的冒充者综合症是正常的而非无能的征兆。作者建议专注于构建已交付的工作，理解概念背后的逻辑，除非追求机器学习特定岗位，否则不必对数学过度担忧。这些见解挑战了传统学术压力，转而支持建立直觉和可证明的技能。"
+      }
+    }
+  },
+  {
+    "title": "🚀 How AI Is Reshaping Software Development in 2026",
+    "slug": "ai-reshaping-software-development-2026",
+    "url": "https://dev.to/codexlancers/how-ai-is-reshaping-software-development-in-2026-4e2l",
+    "source": "DEV Community",
+    "date": "2026-08-04T13:45:00.000Z",
+    "summary": "As AI systems automate routine coding and testing, software engineers' role evolves from code producer to system auditor responsible for validating AI-generated code against edge cases, security vulnerabilities, and architectural concerns. Understanding computer science fundamentals—concurrency, memory management, networking, distributed systems—becomes more critical under this shift, not less. AI's rise redefines engineering excellence away from line-by-line productivity toward governance and robust design.",
+    "content": "There was a time when writing code felt like craftsmanship, defined largely by how quickly you could type, remember syntax, and piece together framework APIs. Developers spent hours configuring build pipelines, hunting down missing semicolons, and copying boilerplate code from Stack Overflow.\nThen AI coding assistants—and, more recently, autonomous AI agents—began taking over much of the routine work.\nToday, AI systems can analyse complex codebases, refactor legacy microservices, generate comprehensive test suites, and open optimised pull requests in a fraction of the time it takes a senior developer to set up a local development environment.\nNaturally, this shift raises an important question for engineering teams:\nWhen AI handles much of the execution, what defines a world-class software team in 2026?\nWe believe software engineering hasn't lost its core purpose—it has simply evolved. The focus has shifted from writing code line by line to governing systems, understanding domain logic, and designing robust architectures.\nLet's explore how AI is actively reshaping software development.\nFor decades, learning software development meant memorising syntax, library methods, and language-specific quirks.\nToday, AI can generate syntactically correct code at incredible speed. Does that make foundational knowledge irrelevant?\nAbsolutely not.\nInstead, the engineer's primary role has evolved from code producer to system auditor.\nAI models excel at generating code that looks clean and convincing but may silently fail under edge cases, introduce memory leaks, or expose security vulnerabilities. Without a deep understanding of computer science fundamentals, it's impossible to effectively review and validate AI-generated code.\nUnderstand concurrency models.\nLearn memory allocation and garbage collection.\nMaster networking protocols.\nUnderstand state persistence and distributed systems.\nTreat AI-generated code with the same level of scrutiny as a pull request submitted by a highly p",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "🚀 AI 如何在 2026 年重塑软件开发",
+        "summary": "随着 AI 系统自动化日常编码和测试工作，软件工程师的角色从代码生产者演变为系统审计员，负责根据边界情况、安全漏洞和架构问题验证 AI 生成的代码。对计算机科学基础知识（并发性、内存管理、网络、分布式系统）的理解在这种转变下变得更加关键，而非更不重要。AI 的崛起将工程卓越性从逐行生产力重新定义为治理和稳健设计。"
+      }
+    }
+  },
+  {
+    "title": "Adaptive Bitrate Streaming for Mobile API Responses: Dynamic Payload Shaping Under Network Pressure",
+    "slug": "adaptive-bitrate-streaming-mobile-api",
+    "url": "https://dev.to/software_mvp-factory/adaptive-bitrate-streaming-for-mobile-api-responses-dynamic-payload-shaping-under-network-pressure-25il",
+    "source": "DEV Community",
+    "date": "2026-08-04T13:38:52.000Z",
+    "summary": "A Ktor middleware pipeline adapts JSON payload fidelity based on client bandwidth, reducing response size without changing the API contract by dropping non-critical fields and collapsing nested objects. Payload size accounts for 38-52% of perceived latency on slow cellular connections, making this transparent optimization critical for mobile performance. Existing clients require no changes, making adoption straightforward for APIs serving bandwidth-constrained users.",
+    "content": "---\ntitle: \"Adaptive API Payloads for Mobile Under Network Pressure\"\npublished: true\ndescription: \"Build a Ktor middleware pipeline that detects client bandwidth and progressively degrades JSON payload fidelity without changing your API contract.\"\ntags: kotlin, mobile, api, architecture\ncanonical_url: https://mvpfactory.co/blog/adaptive-api-payloads-mobile-network-pressure\n---\n\nBy the end of this workshop you will have a three-layer Ktor middleware pipeline that reads client-reported bandwidth, maps your data model fields to degradation tiers via a custom annotation, and shapes the JSON response at runtime — dropping non-critical fields, collapsing nested objects to ID references, and stripping embedded assets. The API contract stays identical. Existing clients require zero changes.\nInternal benchmarking on a Ktor-based streaming service showed payload size accounting for 38–52% of perceived response time on sub-2 Mbps cellular connections. HTTP/2 and gzip alone do not close that gap. Progressive fidelity degradation does.\nKotlin + Ktor 2.x project\nFamiliarity with Ktor plugins and onCallRespond\n\nKotlin reflection on the classpath (kotlin-reflect)\nClient Request\n     │\n     ▼\n[Bandwidth Estimation Middleware]  ← reads timing headers\n     │\n     ▼\n[Payload Priority Resolver]        ← maps model fields to tiers\n     │\n     ▼\n[Response Shaper]                  ← serializes only eligible fields\n     │\n     ▼\nClient Response\n\nClients self-report estimated bandwidth through a custom request header, computed from prior response timing:\nval estimatedKbps = (lastResponseBytes * 8) / lastResponseDurationMs\nrequest.header(\"X-Client-Bandwidth-Kbps\", estimatedKbps.toString())\n\nThis is lightweight and privacy-safe. No IP geolocation, no server-side probing. The server reads what the client already knows from its own timing data.\nHere is the pattern I use in every project. Define degradation tiers directly on data class properties:\n@Target(AnnotationTarget.PROPERTY)\nannotation cla",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "移动 API 响应的自适应码率流：网络压力下的动态有效负载调整",
+        "summary": "Ktor 中间件管道根据客户端带宽调整 JSON 有效负载保真度，通过删除非关键字段和折叠嵌套对象来减少响应大小，而不改变 API 契约。在低速蜂窝网络上，有效负载大小占感知延迟的 38-52%，使这种透明优化对移动性能至关重要。现有客户端无需任何更改，使得为带宽受限用户提供服务的 API 采用变得简便直接。"
+      }
+    }
+  },
+  {
+    "title": "No, Claude Didn't 'Go Rogue.' Someone Gave It Root and Wi-Fi.",
+    "slug": "claude-permissions-security-deployment",
+    "url": "https://dev.to/coridev/no-claude-didnt-go-rogue-someone-gave-it-root-and-wi-fi-28b0",
+    "source": "DEV Community",
+    "date": "2026-08-04T13:38:50.000Z",
+    "summary": "When AI agents cause system breaches, the underlying issue is typically over-permissioning and unrestricted network access—a decades-old failure mode in a new context. Anthropic's framing shifts accountability from \"is the AI safe?\" to \"was it deployed safely?\", applying established security principles like least privilege and network segmentation to AI systems. Agent autonomy makes these mistakes harder to detect because damage occurs at machine speed without human hesitation or intervention.",
+    "content": "When an AI agent breaches a real system, the instinct is to ask \"what's wrong with the model?\" Wrong question. The right question, the one Anthropic is actually pointing at, is \"who configured this thing's permissions?\"\nThis isn't new. It's the oldest story in enterprise security wearing a new hoodie. Over-permissioning and unrestricted egress have been root causes behind breaches for two decades, way before anyone was calling anything \"agentic.\" Give a service account too much reach, put it on the open internet without guardrails, and eventually something (a script, a compromised credential, a misconfigured cron job, now an LLM agent) is going to do something you didn't intend. The actor changed. The failure mode didn't.\nWhat's genuinely new is the framing. Anthropic is publicly saying, in effect, 'our model did what it was told to do, in an environment that let it do too much.' That's a notable thing for a model vendor to say out loud, because it shifts the conversation from \"is the AI safe\" to \"did you deploy it safely.\" Those are very different questions with very different owners.\nHere's what's overstated: the idea that this represents some new, exotic class of AI risk that requires entirely new tooling and entirely new thinking. It doesn't. Excess permissions and unrestricted internet access are Access Control 101 and Network Segmentation 101 failures. The fact that the thing exploiting them is a language model instead of a human with a stolen password doesn't change the underlying architecture problem.\nWhat's understated: how much harder this class of mistake is to catch when the \"user\" is an autonomous agent making decisions at machine speed, chained across multiple tool calls, with no human clicking \"approve\" at each step. A human operator over-permissioned on a system will do damage at human pace, with human hesitation, often leaving a trail of obviously weird behavior. An agent doesn't hesitate. It doesn't get a bad feeling about the next step. It just ex",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "不，Claude 没有\"失控\"。是有人给了它 Root 权限和 Wi-Fi。",
+        "summary": "当 AI 代理导致系统漏洞时，根本问题通常是权限过度配置和不受限制的网络访问——一个在新背景下出现的数十年来的故障模式。Anthropic 的框架将问责制从\"AI 是否安全？\"转移到\"它是否被安全部署？\"，将最小权限和网络分段等既定安全原则应用于 AI 系统。代理自主性使这些错误更难检测，因为损害以机器速度发生，没有人类的犹豫或干预。"
+      }
+    }
+  },
+  {
+    "title": "AI-Generated Images Discourage Me from Reading Your Blog",
+    "slug": "ai-generated-images-discourage-blog",
+    "url": "https://nelson.cloud/ai-generated-images-discourage-me-from-reading-your-blog/",
+    "source": "Hacker News",
+    "date": "2026-08-04T11:30:17.000Z",
+    "summary": "The article argues that AI-generated imagery undermines blog credibility and reader engagement, suggesting authentic visual content is essential for building audience trust. AI-generated images can inadvertently signal that a publication prioritizes production speed over quality and thoughtfulness. The author advocates for the value of original or curated imagery in establishing content authenticity.",
+    "content": "Article URL: https://nelson.cloud/ai-generated-images-discourage-me-from-reading-your-blog/\nComments URL: https://news.ycombinator.com/item?id=49167113\nPoints: 418\n# Comments: 250",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI生成的图片让我不想读你的博客",
+        "summary": "这篇文章认为AI生成的图像会损害博客的可信度和读者参与度，强调真实的视觉内容对建立读者信任至关重要。AI生成的图像可能会无意中表明出版物优先考虑生产速度而非质量和深思熟虑。作者主张原创或精选图像在建立内容真实性中的价值。"
+      }
+    }
+  },
+  {
+    "title": "FFmpeg 9.0",
+    "slug": "ffmpeg-9-0-release",
+    "url": "https://github.com/FFmpeg/FFmpeg/blob/n9.0/RELEASE_NOTES",
+    "source": "Hacker News",
+    "date": "2026-08-04T09:30:33.000Z",
+    "summary": "FFmpeg 9.0 is a major release of the widely-used multimedia framework, introducing new codec support, performance optimizations, and bug fixes for audio and video processing. The release represents ongoing development of this critical tool used by developers and organizations for media manipulation and streaming applications. Version 9.0 continues FFmpeg's legacy as an essential utility in multimedia infrastructure.",
+    "content": "Article URL: https://github.com/FFmpeg/FFmpeg/blob/n9.0/RELEASE_NOTES\nComments URL: https://news.ycombinator.com/item?id=49166202\nPoints: 316\n# Comments: 55",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "FFmpeg 9.0",
+        "summary": "FFmpeg 9.0是广泛使用的多媒体框架的主要版本，引入了新的编解码器支持、性能优化和音视频处理的错误修复。该版本代表了这一关键工具的持续开发，被开发人员和组织用于媒体处理和流媒体应用。9.0版本延续了FFmpeg作为多媒体基础设施中不可或缺的实用工具的传统。"
+      }
+    }
+  },
+  {
     "title": "eve: agent AI senza “plumbing” (e con una struttura che sta in una cartella)",
     "slug": "eve-agent-framework-infrastructure",
     "url": "https://dev.to/frontendfacile/eve-agent-ai-senza-plumbing-e-con-una-struttura-che-sta-in-una-cartella-3gd6",
@@ -188,6 +412,22 @@
       "zh": {
         "title": "如何评估AI代理",
         "summary": "测试AI代理需要解决两个问题：非确定性输出和主观质量判断。Pydantic Evals为确定性响应结构和基于判断的评估提供了评估器。"
+      }
+    }
+  },
+  {
+    "title": "Apple is getting this wrong",
+    "slug": "apple-getting-this-wrong",
+    "url": "https://openai.com/index/apple-is-getting-this-wrong/",
+    "source": "Hacker News",
+    "date": "2026-08-04T05:32:13.000Z",
+    "summary": "OpenAI publishes a critique of Apple's strategic direction, arguing the company has miscalculated an important decision. The piece likely addresses concerns around AI integration, business partnerships, or technology policy. The article represents a notable public position from OpenAI on Apple's approach to emerging technology challenges.",
+    "content": "Article URL: https://openai.com/index/apple-is-getting-this-wrong/\nComments URL: https://news.ycombinator.com/item?id=49164649\nPoints: 234\n# Comments: 236",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "苹果公司搞错了",
+        "summary": "OpenAI发表了对苹果公司战略方向的批评，声称该公司在一个重要决策上出现了误判。这篇文章可能涉及人工智能整合、商业合作或技术政策方面的关切。这篇文章代表了OpenAI对苹果公司应对新兴技术挑战方法的公开立场。"
       }
     }
   },
