@@ -1,5 +1,197 @@
 [
   {
+    "title": "Java CMYK to RGB Conversion – Speed Comparison",
+    "slug": "java-cmyk-to-rgb-conversion-speed-comparison",
+    "url": "https://dev.to/idrsolutions/java-cmyk-to-rgb-conversion-speed-comparison-1onl",
+    "source": "DEV Community",
+    "date": "2026-08-06T14:03:12.000Z",
+    "summary": "This article compares performance approaches for CMYK to RGB image conversion in Java, demonstrating that manual pixel conversion with value caching significantly outperforms the standard ColorConvertOp approach. By caching repeated color values, the manual method can reduce conversion time from 73 seconds to seconds on typical images with repeated pixels. The comparison highlights when hardware-optimized Java operations are worth using versus hand-coded solutions that allow application-level optimization.",
+    "content": "Introduction\n\n\nSome optimisations are best left to Java. For example a System.arraycopy is the fastest way to create a new version because it is optimised in hardware inside Java. So in general, any function which might have hardware optimisation is best left to the JVM.\nSo what about image data conversion? Is it better to delegate it to Java or Do It Yourself? I have been looking at a file which was slow to decode. The bottleneck turned out to be the CMYK to RGB conversion so I decided to have a look…\nMy original code used a ColorConvertOp to do the image conversion on the raw CMYK data and then create an RGB image with the converted data. Here is the code.\nint[] bands = { 0, 1, 2, 3 };\n/**turn it into a BufferedImage so we can filter*/DataBuffer db = new DataBufferByte(data, data.length);\n/**create RGB colorspace and model*/ColorSpace rgbCS=GenericColorSpace.getColorSpaceInstance();\n/**define the conversion. hints can be replaced with null*/ColorConvertOp CSToRGB = new ColorConvertOp(\n   DeviceCMYKColorSpace.getColorSpaceInstance(), rgbCS,\n   ColorSpaces.hints);\n/**create RGB colorspace and model*/ComponentColorModel rgbModel = new ComponentColorModel(\n   rgbCS, new int[] { 8, 8, 8 }, false, false, ColorModel.OPAQUE,\n   DataBuffer.TYPE_BYTE);\nimage =new BufferedImage(width,height,BufferedImage.TYPE_INT_RGB);\nWritableRaster rgbRaster=rgbModel.\n   createCompatibleWritableRaster(width, height);\nCSToRGB.filter(Raster.createInterleavedRaster(db, width,\n   height, width*4, 4, bands, null), rgbRaster);\nimage.setData(rgbRaster);\n\n\nOn the sample page it takes 73 seconds on my fast Mac.\nVersion 2 does the pixel conversion manually and then builds the image from that. A major advantage of this is that I can add optimisations. In this case I cache the last value so I only need to do the conversion if the value changes – on an empty page of 10,000 white pixels, I will get a massive boost as I only need to convert the value once and reuse it.\nColorSpace CMYK=DeviceCMYKColorSpac",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Java CMYK 转 RGB 转换 – 速度对比",
+        "summary": "本文比较了 Java 中 CMYK 到 RGB 图像转换的性能方法，展示了带值缓存的手动像素转换明显优于标准 ColorConvertOp 方法。通过缓存重复的颜色值，手动方法可以在包含重复像素的典型图像上将转换时间从 73 秒降低到数秒。该对比突出说明了何时应使用硬件优化的 Java 操作，与允许应用级优化的手编码解决方案相比。"
+      }
+    }
+  },
+  {
+    "title": "React Suspense and Error Boundaries: How They Interact and How to Debug Failures",
+    "slug": "react-suspense-error-boundaries-interaction-debugging",
+    "url": "https://dev.to/mspk97/react-suspense-and-error-boundaries-how-they-interact-and-how-to-debug-failures-4i1e",
+    "source": "DEV Community",
+    "date": "2026-08-06T14:02:57.000Z",
+    "summary": "This article explains the subtle interaction between React's Suspense and Error Boundary mechanisms, clarifying why neither fallback UI sometimes appears when a component throws an error inside a Suspense boundary. The author explains that Suspense only catches suspensions while Error Boundaries catch errors, and React's internal fiber scheduling can cause conflicts when both are nested together. The piece provides debugging strategies to identify and fix these edge cases in async component rendering.",
+    "content": "Ever had your React component throw an error inside a Suspense boundary and wondered why neither your Suspense fallback nor your Error Boundary’s fallback UI showed up?\nI ran into this exact headache recently. I wrapped my lazy-loaded component with Suspense and an Error Boundary, expecting either a spinner or an error message. Instead, I got… nothing. Blank screen. No clues.\nTurns out, Suspense and Error Boundaries have a subtle but important dance happening under the hood. Let me walk you through what’s really going on, why React sometimes seems to silently swallow errors or fallbacks, and how you can debug these tricky states.\nImagine this setup:\n<Suspense fallback={<LoadingSpinner />}>\n  <ErrorBoundary fallback={<ErrorMessage />}>\n    <LazyComponent />\n  </ErrorBoundary>\n</Suspense>\n\nYour LazyComponent suspends while fetching data, so the spinner shows up. Great. But what if LazyComponent throws an error before the data arrives? You’d expect the ErrorBoundary to catch that and show the error message, right?\nNot always.\nIn React’s commit phase ,  that is, when React applies changes to the DOM ,  if a component suspends, React bails out of rendering that tree and instead shows the Suspense fallback immediately. But if the same component throws an error (instead of suspending), React tries to find the nearest Error Boundary to handle it.\nHere’s the catch: Suspense boundaries only catch suspensions. They don’t catch errors. Error Boundaries catch errors but don’t catch suspensions.\nWhen a component inside Suspense throws an error, React’s update flow attempts to recover by unwinding to the Error Boundary. But if Suspense is the outer wrapper, React’s internal scheduling and commit phases can get tangled, causing neither fallback UI to appear.\nReact uses a concept called \"lanes\" to prioritize updates and tracks whether a component tree is suspended or errored during render and commit phases.\nWhen an error is thrown during rendering, React marks the fiber tree as \"err",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "React Suspense 和 Error Boundaries：它们如何相互作用及故障调试方法",
+        "summary": "本文解释了 React 的 Suspense 和 Error Boundary 机制之间的微妙相互作用，阐明了为什么在 Suspense 边界内组件抛出错误时有时既不出现备用 UI。作者说明 Suspense 仅捕获暂停状态而 Error Boundaries 捕获错误，当两者嵌套时 React 的内部 fiber 调度会导致冲突。本文提供了调试策略来识别和修复异步组件渲染中的这些边界情况。"
+      }
+    }
+  },
+  {
+    "title": "A unique click id on a free Cloudflare redirect, no Worker involved",
+    "slug": "unique-click-id-free-cloudflare-redirect",
+    "url": "https://dev.to/301st/a-unique-click-id-on-a-free-cloudflare-redirect-no-worker-involved-1750",
+    "source": "DEV Community",
+    "date": "2026-08-06T14:00:21.000Z",
+    "summary": "This article reveals a free Cloudflare technique for adding unique click identifiers to redirects without using a Worker by leveraging the built-in cf.ray_id field. The solution uses Cloudflare's expression language in Single Redirect rules to append each request's unique ray ID to the target URL, enabling click tracking without additional infrastructure. The approach was tested and proven functional, with tradeoffs and limitations documented for practical implementation.",
+    "content": "You send paid or partner traffic through a redirect and you want every click to arrive at the destination carrying its own identifier — something to join against a conversion later. The obvious tool is a Worker, and for anything that needs to record the click, a Worker is still the only primitive that can. But if all you need is for each click to carry a unique id, there is a way to get one on the free plan, inside a plain Single Redirect, with no code in the request path at all.\nWe tested it on this site's zone on 30 July 2026. It works, and three of its edges bite. Here is the rule, the measurements, and the traps.\nThe ruleset expression language has uuidv4(). You cannot use it here. The documentation restricts it to rewrite expressions of Transform Rules, and the API enforces that at validation time. This is the live answer to an attempt to put it in a redirect target:\n\"'concat(\\\"https://301.sh/?click_id=\\\", uuidv4(cf.random_seed))' is not a valid\nvalue for target_url because the use of field cf.random_seed is not allowed,\nthe use of function uuidv4 is not allowed\" (code 20083)\n\nBoth the function and its seed field are named as forbidden. So the expression language cannot mint randomness in a redirect. What it can do is reuse an identifier Cloudflare has already minted for the request: cf.ray_id, the ray ID that every request through Cloudflare gets, the same value the CF-RAY response header and the dashboard logs show. Its field documentation carries no product restriction, and the validator accepts it in a redirect target.\nA dynamic Single Redirect. The match is ordinary; the target is an expression instead of a static URL:\nExpression:  (http.host eq \"301.sh\" and http.request.uri.path eq \"/go\")\nTarget URL:  concat(\"https://destination.example/?click_id=\", cf.ray_id)\nStatus:      302, preserve query string off\n\nFive requests in a row through that rule, on this zone:\nLocation: https://301.sh/…/?click_id=a23684c8a885b183-BTS   CF-RAY: a23684c8a885b183-BTS\nLocation",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "免费 Cloudflare 重定向中的唯一点击 ID，无需 Worker",
+        "summary": "本文揭示了一种免费的 Cloudflare 技术，通过利用内置的 cf.ray_id 字段，在不使用 Worker 的情况下为重定向添加唯一点击标识符。该解决方案在单个重定向规则中使用 Cloudflare 的表达式语言，将每个请求的唯一射线 ID 追加到目标 URL，实现点击跟踪而无需额外基础设施。该方法已测试并证明可行，并记录了实际应用中的权衡与限制。"
+      }
+    }
+  },
+  {
+    "title": "How I Built an iOS AI Companion That Can See What You Show It",
+    "slug": "ios-ai-companion-vision-camera",
+    "url": "https://dev.to/apoorvdarshan/how-i-built-an-ios-ai-companion-that-can-see-what-you-show-it-5hj",
+    "source": "DEV Community",
+    "date": "2026-08-06T14:00:19.000Z",
+    "summary": "Scowld is an iOS AI companion app that adds optional vision input alongside text and voice, allowing users to share single camera frames to give the AI visual context for answering questions. Built with bring-your-own-key support for providers like Claude, OpenAI, and Gemini, it processes frames on-device without storing images or proxying through servers. The app demonstrates practical applications of vision capabilities in conversational AI while maintaining privacy.",
+    "content": "Most AI companions only know what you type or say. Scowld adds an optional third input: a single camera frame you deliberately choose to share.\nDescribing an object is often harder than showing it. With vision enabled, you can hold something up, point the camera at a screen or show the room, then ask a question naturally. Scowld sends that one frame with your message to the vision-capable AI provider you selected and reads the reply aloud.\nThis is not continuous recording. Vision is off by default, a frame is captured only when you send a message with the camera enabled, and Scowld does not save that image to the photo library.\nScowld is bring-your-own-key. You can use a vision-capable provider such as Gemini, OpenAI or Claude, and the request goes from the device to that provider. There is no Scowld server proxying the frame or storing your API key.\nThe rest of the conversation still works by voice or text. The companion has animated reactions, multiple characters, configurable personalities and separate locally stored chats. Vision is just another optional way to give the conversation useful context.\nApp Store: https://apps.apple.com/app/id6760672848\n\nSource code: https://github.com/apoorvdarshan/scowld\n\nTechnical overview: https://scowld.xyz/blog/ai-companion-that-can-see\n\n\n\nScowld is available on iPhone and iPad and released under the MIT License.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何构建了一个能看到你展示内容的iOS AI伴侣",
+        "summary": "Scowld是一个iOS AI伴侣应用，在文本和语音之外添加了可选的视觉输入，允许用户分享单个摄像头画面为AI提供视觉上下文来回答问题。该应用为Claude、OpenAI和Gemini等提供商提供自带密钥支持，在设备上处理画面而无需存储图像或通过服务器代理。该应用展示了视觉能力在对话AI中的实际应用，同时保持隐私。"
+      }
+    }
+  },
+  {
+    "title": "Build a Load Testing Tool with Python and asyncio",
+    "slug": "build-load-testing-tool-python-asyncio",
+    "url": "https://dev.to/qingluan/build-a-load-testing-tool-with-python-and-asyncio-h3j",
+    "source": "DEV Community",
+    "date": "2026-08-06T14:00:09.000Z",
+    "summary": "This tutorial demonstrates building a real-time file synchronization tool using Python's watchdog library, which monitors filesystem events and automatically syncs changes between directories. The event-driven approach eliminates polling lag, making it suitable for keeping backup drives or deployment directories synchronized instantly. The implementation covers setup, event handling, and continuous operation without blocking the main workflow.",
+    "content": "Build a Load Testing Tool with Python and asyncio\n\n\ntags: python, testing, devops, tutorial\ntags: python, automation, tools, tutorial\ntags: python, automation, tools, tutorial\ntags: python, automation, tools, tutorial\nImagine you’re working on a project where you constantly edit files in one folder, but you need those changes instantly reflected in another location—maybe a backup drive, a cloud staging folder, or a deployment directory. Doing this manually is tedious, and relying on cron jobs introduces lag. What if you could build a tool that watches for changes and syncs them in real time? That’s exactly what we’re going to do today using Python and the powerful watchdog library.\nwatchdog is a cross-platform Python library that lets you monitor file system events—like file creation, modification, and deletion—and trigger custom actions in response [1][8]. Unlike polling-based solutions, it’s event-driven, meaning it reacts immediately when a change happens. This makes it perfect for building real-time sync tools, automated testers, or even live documentation generators.\nBy the end of this post, you’ll have a working file sync tool that:\nWatches a source directory for changes\nAutomatically copies new or modified files to a destination directory\nDeletes files in the destination if they’re removed from the source\nRuns continuously without blocking your main workflow\nAnd yes, you can use this today to automate your own workflows.\nFirst, make sure you have Python 3 installed. Then, install watchdog:\npip install watchdog\n\nYou’ll also need Python’s built-in os and shutil modules for file operations, so no extra installs there [2][4].\nCreate a project folder and set up two directories: one for your source files and one for the synced destination.\nmkdir file_sync_demo\ncd file_sync_demo\nmkdir source destination\n\nThe core of watchdog is the event handler—a class that defines what to do when specific file system events occur. We’ll create a custom handler that inherits from F",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用Python和asyncio构建负载测试工具",
+        "summary": "本教程演示了如何使用Python的watchdog库构建实时文件同步工具，该库监控文件系统事件并自动同步目录之间的更改。事件驱动方法消除了轮询延迟，适合保持备份驱动器或部署目录同步。该实现涵盖设置、事件处理和连续操作而不会阻止主工作流。"
+      }
+    }
+  },
+  {
+    "title": "Custom AI Development for Founders",
+    "slug": "custom-ai-development-founders",
+    "url": "https://dev.to/devaland/custom-ai-development-for-founders-29ah",
+    "source": "DEV Community",
+    "date": "2026-08-06T14:00:06.000Z",
+    "summary": "This article argues that off-the-shelf AI models are insufficient for handling sensitive business data because they hallucinate confidently without grounding in actual documents or company information. Custom AI systems address this by adding retrieval, citations, human approval workflows, and evaluation to ensure the model can only make claims backed by source material. The piece outlines the architectural patterns needed to build production AI systems that avoid confident wrong answers.",
+    "content": "Off-the-shelf AI is enough when a wrong answer is cheap and a human checks the output anyway. It stops being enough the moment the AI touches your real documents, your numbers, or a regulated decision, because a generic model will answer confidently even when it is wrong. A custom build fixes that with retrieval, citations, human approval, and evaluation, so the system either backs up a claim with a source or does not make the claim at all.\nThat last line is the whole article. Everything below is how you get there, when it is worth it, and how to find out cheaply before you commit a full budget.\nMost \"AI features\" you see are a text box wired to a model API. You type, the model answers, done. That is a demo, and demos are useful. The problem is that a demo has no idea what is true. It was trained on the public internet up to some cutoff date, and it has never seen your lease agreements, your lab results, your cap table, or last month's numbers.\nAsk a generic tool a question about your business and it does one of three things: it answers from stale general knowledge, it answers from whatever you happened to paste into the window, or it fills the gap with a plausible invention. The third one is the dangerous one. The model does not signal doubt. A fabricated clause and a real clause come out in the same calm, formatted sentence.\nFor a marketing first draft, fine. For a diligence memo, a compliance summary, or a customer-facing price, a confident wrong answer is worse than no answer, because someone acts on it.\nHallucination is not a bug you patch. It is what a language model does by default when it has no grounding. The fix is architectural. A production system is built so the model can only speak from material you control, and so its claims are checkable.\nHere is the machinery a real build puts around the model.\nRetrieval. Your documents are indexed so that, for any question, the system pulls the exact passages that matter and puts them in front of the model as the s",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为创始人提供的定制AI开发",
+        "summary": "本文论证现成的AI模型不足以处理敏感的业务数据，因为它们在没有基于实际文档或公司信息的基础上自信地产生幻觉。定制AI系统通过添加检索、引用、人类审批工作流和评估来解决这个问题，确保模型只能根据源材料做出声明。本文概述了构建生产AI系统所需的架构模式，以避免自信的错误答案。"
+      }
+    }
+  },
+  {
+    "title": "Do your agent system prompts do anything? I measured 19 of mine",
+    "slug": "agent-system-prompts-measurement-test",
+    "url": "https://dev.to/willianpinho/do-your-agent-system-prompts-do-anything-i-measured-19-of-mine-2ek1",
+    "source": "DEV Community",
+    "date": "2026-08-06T14:00:04.000Z",
+    "summary": "This article reports on an empirical measurement of whether agent system prompts meaningfully impact model behavior, testing 19 different configurations through ablation testing. The author found that 15 of 19 configurations performed worse without their prompts—contradicting assumptions that specialist prompts are ineffective and should be deleted. The measurement methodology and findings suggest that system prompt optimization remains valuable despite arguments that modern models outgrow such instructions.",
+    "content": "The body of an agent system prompt is text. It goes to the same model that would have answered without it, and by itself it changes no weights and adds no tools. The skeptical reading follows on its own: a specialist prompt is a checklist, the model reads the checklist, and whatever the checklist buys is too small to justify maintaining hundreds of them.\nThat position has a strong advocate. Boris Cherny, who built Claude Code, says in a talk given after the Opus 5 release that they deleted 80% of its system prompt for that release. He then describes deleting the rest as an experiment, and what they find: \"the model is actually a little bit more intelligent without these prompts.\"\nI had written the same argument myself, in a six-month audit of my own agent harness, as the case for deleting the delegation mandate: delegating to a specialist buys context and not competence, because it is the same model reading a different checklist. Then I ran the experiment, and the same document records what happened to my argument. Refuted by local measurement.\nFifteen of nineteen configurations scored lower without their prompt. Thirteen of those survive the noise floor I established afterwards. The gap between those two numbers is worth reading. So is the gap between my result and his, which comes down to scope.\nHere is the number, the procedure that produced it, and where it is weaker than the headline.\nThe audit these numbers live in runs someone else's protocol. It is the Six-Month Audit by Charlie Hills, a published checklist for finding the instructions in a Claude setup that newer models have outgrown: seven delete checks, five add checks, run against live guidance and never a hardcoded copy. What it asked me to do was judge which instructions had gone stale. The number is the part I added.\nThat measurement also has a real name I did not use in my own code. Cherny gives it in that talk: \"we call in research, you call this ablation... you delete the entire system prompt and t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的代理系统提示词有用吗？我测试了我的19个提示词",
+        "summary": "本文报告了对代理系统提示词是否能有意义地影响模型行为的实证测量，通过消融测试评估了19种不同的配置。作者发现19个配置中有15个在没有其提示词的情况下性能更差，这与\"专家提示词无效且应删除\"的假设相矛盾。测量方法和结果表明，尽管有论点认为现代模型已超越此类指令，但系统提示词优化仍然很有价值。"
+      }
+    }
+  },
+  {
+    "title": "Building an MCP tool-call test rig with the Python SDK in 2026",
+    "slug": "mcp-tool-call-test-rig-python-sdk",
+    "url": "https://dev.to/aidevhub/building-an-mcp-tool-call-test-rig-with-the-python-sdk-in-2026-4iln",
+    "source": "DEV Community",
+    "date": "2026-08-06T14:00:01.000Z",
+    "summary": "This article describes building an offline test framework for agent tool-call loops using Python's SDK, eliminating the need for API calls or model inference during testing. By replaying recorded tool calls against a real MCP server over stdio, developers can catch schema drift, renamed tools, and integration failures in seconds without cost. The approach solves common issues where tool-call loops silently degrade when server-side changes occur.",
+    "content": "Building an MCP tool-call test rig with the Python SDK in 2026\n\n\n\nYou can test an agent's tool-call loop without a model. Write down the calls the model would have made, replay them against your real MCP server over stdio, and assert on what comes back. It runs offline in about two seconds, costs nothing per run, and catches renamed tools and schema drift before a customer does. The model is the last thing you should be faking.\nThe Function Call Flow Simulator I link to below is one I built. I tried five existing playgrounds first and every one wanted an API key before it would render a single tool_use block, which is backwards when the whole point is sketching a flow you haven't paid for yet. Mine runs in the browser, free, no signup, nothing leaves the tab. If you know a better one, tell me and I'll link to it instead.\nHere's the picture I wanted on my screen. One command, one JSON file, six lines of output: each tool call my agent would make during a customer refund, run against the same MCP server that handles production traffic, with a failure line and an exit code of 1 the moment something breaks. No API key. Nothing over the network. Under two seconds.\nThe model is the easy part to fake. Everything around it is where I keep getting hurt. The loop that reads tool_use blocks, dispatches them, feeds results back, and decides when to stop is ordinary code, and it fails in ordinary ways. Someone renamed refund_order to issue_refund on the server and my agent quietly degraded into apologising to people instead of paying them. A required field got added to a schema and half the calls started coming back with isError set, which my loop passed straight back to the model as though it were a normal result.\nTesting that against a live model doesn't work the way people hope. Run the same prompt twice and you get different arguments, sometimes a different tool, sometimes a friendly paragraph and no call at all. That's correct behaviour from the model and useless behaviour",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用Python SDK构建MCP工具调用测试框架",
+        "summary": "本文介绍了使用Python SDK为代理工具调用循环构建离线测试框架，消除了测试期间对API调用或模型推理的需求。通过在stdio上针对真实MCP服务器重放记录的工具调用，开发人员可以在数秒内捕获模式漂移、重命名的工具和集成失败，无需成本。该方法解决了当服务器端更改发生时工具调用循环无声降级的常见问题。"
+      }
+    }
+  },
+  {
+    "title": "Dify vs Custom Development: When Visual AI Workflows Actually Work (and When They Don't)",
+    "slug": "dify-vs-custom-development-when-to-use",
+    "url": "https://dev.to/zediot/dify-vs-custom-development-when-visual-ai-workflows-actually-work-and-when-they-dont-62h",
+    "source": "DEV Community",
+    "date": "2026-08-06T14:00:00.000Z",
+    "summary": "This decision guide explains when to use Dify, a visual AI workflow platform, versus custom backend development based on specific requirements. Dify excels for orchestrating AI processes like RAG, agents, and workflows, but custom services should handle transactional consistency, complex state, strict latency targets, and regulated decisions. The article provides a matrix of use cases with clear recommendations for each.",
+    "content": "Dify can accelerate Workflow, RAG, Agent, and API-based AI applications, but it should not replace a complex business backend. This decision guide draws a clear boundary between what Dify should own and what belongs in custom code — so your prototype doesn't become a production liability.\nIf the main job is to connect user input, knowledge retrieval, model calls, branches, tools, and output into an observable AI process, Dify is often faster than starting from an empty backend. It puts workflows, knowledge bases, model configuration, plugins, and application APIs in one workspace, which gives product, domain, and engineering teams a shared operating surface.\nDify is not a replacement for every business backend. When a system requires strong transactional consistency, complex domain state, long-running scheduling, strict latency targets, fine-grained multi-tenant authorization, or core rules that must be protected by code review — keep custom services in control. Use Dify above them for AI orchestration, retrieval, prompts, and bounded tool calls.\n\n\n\nProject condition\nDefault choice\nCost to accept\n\n\n\n\nFAQ, document Q&A, internal knowledge assistant\nDify RAG / Chatflow first\nGovern document access, chunking, retrieval, and citations\n\n\nContent generation, ticket summaries, lead classification\nDify Workflow first\nAdd versioning, tests, and failure handling as flows grow\n\n\nAgent with a small, low-risk tool set\nDify Agent or Workflow + Tool\nEnforce allowlists, budgets, timeouts, and confirmation\n\n\nOrders, billing, inventory, device state, permissions\nCustom backend owns the ledger\nSlower delivery, but state and transaction boundaries are testable\n\n\nHigh concurrency, low latency, queues, or long jobs\nCustom execution plane + Dify orchestration\nDefine idempotency, callbacks, and observability across layers\n\n\nFast discovery with a likely productization path\nValidate in Dify, then extract by boundary\nPlan data and API exit paths early\n\n\n\nThe decision is not \"low code versus c",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Dify对比自定义开发：可视化AI工作流何时真正有效（何时无效）",
+        "summary": "本指南解释了何时应使用Dify（一个可视化AI工作流平台）与基于特定需求的自定义后端开发。Dify擅长编排AI流程（如RAG、代理和工作流），但自定义服务应处理事务一致性、复杂状态、严格的延迟目标和受管制的决策。本文提供了用例矩阵，对每个用例提供了明确的建议。"
+      }
+    }
+  },
+  {
+    "title": "How to measure development performance",
+    "slug": "how-to-measure-development-performance",
+    "url": "https://dev.to/omelianenko/how-to-measure-development-performance-50d5",
+    "source": "DEV Community",
+    "date": "2026-08-06T13:56:13.000Z",
+    "summary": "This article critiques common developer performance metrics like lines of code, commit frequency, and story points, showing how each incentivizes undesirable behavior and fails to measure quality. The author explains why these volume-based metrics lead to developers choosing easy tasks and cutting corners. The piece calls for better assessment systems that capture meaningful work output rather than countable outputs.",
+    "content": "My name is Anton Omelianenko and I’m Head of Software Development at EXANTE.\nA manager runs a team so that it delivers results for the business. To judge how well people are handling their work, a manager needs data and a system for assessing it. In software development this is harder than it looks.\nThis article covers three questions:\nWhy classic metrics fail when assessing developers.\nHow to measure performance properly.\nWhat to do when an employee may not be working only for you.\nThe question of how to measure developer performance is as old as software development itself. The industry has tried almost everything in that time. We tried to rely on the same data. Here is what didn’t work, both across the industry and for us.\nThis is the most intuitive method and the least reliable. On a simple section of code a developer writes more lines in a day than on a complex one. Complex work means long consideration of every decision.\nThe best-known illustration comes from Facebook, where a developer reportedly spent a week on a single line that later earned the company a million dollars.\nWe looked at our own statistics on lines of code as well. The chart was chaotic and gave us nothing to build on.\nProductive developers do commit several times a day. The reverse doesn’t hold.\nCommitting less often doesn’t mean a person is working less well. Tasks differ in complexity, volume and purpose. Counting commits rewards people for breaking work into pieces to improve a number.\nAt first glance this looks fair. Whoever closes more points is more productive.\nTeams that assess people this way soon meet a problem. People start taking easy tasks and avoiding difficult ones, and real work gives way to the appearance of work.\nA race for story points also removes the incentive to build something that lasts. The only motivation left is to close tasks faster, and the quality of the work suffers for it.\nAll of these metrics count volume rather than quality.\nWe tried them at EXANTE and found t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何衡量开发性能",
+        "summary": "这篇文章批评了代码行数、提交频率和故事点数等常见开发者性能指标，说明每一个指标如何激励不理想的行为并未能衡量代码质量。作者解释了为什么这些基于数量的指标会导致开发者选择简单任务和偷工减料。这篇文章呼吁建立更好的评估系统，以捕捉有意义的工作成果，而不是可计数的输出。"
+      }
+    }
+  },
+  {
+    "title": "Persistent Memory for a Financial Model: The Six Things That Must Survive a New Session",
+    "slug": "persistent-memory-financial-model-new-session",
+    "url": "https://dev.to/layerz/persistent-memory-for-a-financial-model-the-six-things-that-must-survive-a-new-session-n8",
+    "source": "DEV Community",
+    "date": "2026-08-06T13:53:41.000Z",
+    "summary": "This article addresses why AI assistants lose context in financial modeling across new sessions, arguing the problem is not memory but model readability when sessions restart. The author identifies six critical elements that must persist outside conversations—the deliverable, dependencies, assumptions, exclusions, constraints, and validation rules—so the assistant doesn't need to relearn the model structure. The piece emphasizes designing systems so information is readable rather than relying on conversation history compression.",
+    "content": "The second session is always worse than the first.\nThe first one goes well. You explain the model, the agent picks it up, you get real work done. Two days later you open a new session and you are back at the beginning: re-explaining what the model is for, which line is a driver and which is an output, why costs are positive, why that one warehouse is excluded from the ramp.\nThe usual diagnosis is that the AI has no memory. That is roughly true and completely unhelpful, because most memory features solve a different problem. They remember the conversation. What you need is for the model to be readable when the conversation starts.\nThose are not the same object, and the difference is why \"turn on memory\" rarely fixes this.\nA conversation is a lossy recording of work. Memory features compress it further, into something like a summary of what was discussed. Summaries of a financial model are exactly where the damage happens: \"revenue is driven by headcount\" is a sentence that survives compression, and it is not a formula.\nA model is a different kind of object. It has a shape, and the shape is either exactly right or it is wrong. There is no useful approximation of a dependency graph.\nSo the question is not \"how do I make the assistant remember more.\" It is \"what has to exist outside the conversation so the next session does not need to remember anything.\"\nThat list is short, and it is testable.\nThe first thing an agent needs is not a number. It is the deliverable.\nAn agent building a lender-facing budget under covenants behaves differently from one filling in a template: it stays conservative, it flags anything that moves headroom, it does not quietly improve your assumptions. Without that framing it defaults to generic competence, which is the wrong register for most finance work.\nThis is one paragraph. What the model produces, for whom, by when.\nFailure mode: the agent optimises for elegance instead of defensibility. It simplifies a structure your bank specifically as",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "财务模型的持久内存：新会话中必须保留的六件事",
+        "summary": "这篇文章探讨了为什么人工智能助手在跨新会话的财务建模中会失去上下文，认为问题不在于记忆，而在于会话重启时模型的可读性。作者确定了六个关键要素必须在对话外持久保存——可交付成果、依赖关系、假设、排除项、约束条件和验证规则——这样助手就不需要重新学习模型结构。这篇文章强调设计系统，使信息具有可读性，而不是依赖对话历史压缩。"
+      }
+    }
+  },
+  {
+    "title": "I Built a Free AI Background Remover Without Login Using JavaScript & ONNX — Here's How",
+    "slug": "free-ai-background-remover-javascript-onnx",
+    "url": "https://dev.to/huzaifa_khan_dab9fe94dae8/i-built-a-free-ai-background-remover-without-login-using-javascript-onnx-heres-how-2ke5",
+    "source": "DEV Community",
+    "date": "2026-08-06T13:52:28.000Z",
+    "summary": "NeumoStudio AI is a free, browser-based image toolkit built with React and ONNX that removes backgrounds from images without requiring login or server-side processing. The application runs entirely in the browser, with all processing happening client-side using JavaScript and the ONNX runtime. The author seeks community feedback on additional tools and features that could enhance the toolkit.",
+    "content": "I recently shipped NeumoStudio AI — a completely free browser-based image & PDF toolkit with NO login required and NO server-side processing.\nHere's what it does:\n✅ Remove Background from any image without login & without losing quality\nTech Stack:\nReact + Vite (frontend)\nhttps://neumorphism-studio.vercel.app/bg-remover\nWould love feedback from the dev community! What tools are you missing?",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我用JavaScript和ONNX构建了一个免费的AI背景移除工具——方法如下",
+        "summary": "NeumoStudio AI是一个免费的基于浏览器的图像工具包，使用React和ONNX构建，无需登录或服务器端处理即可从图像中删除背景。该应用程序完全在浏览器中运行，所有处理都使用JavaScript和ONNX运行时在客户端进行。作者寻求社区反馈，以获取可以增强该工具包的其他工具和功能的建议。"
+      }
+    }
+  },
+  {
     "title": "5 Browser APIs Every Web Developer Should Know (But Probably Aren't Using Enough)",
     "slug": "5-browser-apis-every-web-developer-should-know",
     "url": "https://dev.to/rickkm/5-browser-apis-every-web-developer-should-know-but-probably-arent-using-enough-3i8b",
@@ -188,6 +380,38 @@
       "zh": {
         "title": "你的自定义 AI SDK 后端返回 200 OK，而聊天 UI 仍然什么都不显示",
         "summary": "当自定义后端使用 Vercel AI SDK 但不遵循其确切的 Server-Sent Events 格式时，聊天 UI 会无声地失败——返回 200 状态，但没有错误消息——这使得 Go、Python、Rust 或代理后端的调试变得困难。AI SDK 流协议需要精确的事件序列化，包括特定的类型（text-delta、tool-input-start 等）和字段要求；即使是轻微的错误，比如缺失 text-end 事件或孤立的 delta，也会导致客户端无限期地停止响应。作者构建了一个验证器来捕捉这些错位的序列化错误，这些错误是纯 JSON 验证无法发现的。"
+      }
+    }
+  },
+  {
+    "title": "Crime Pays but Botany Doesn't",
+    "slug": "crime-pays-botany-doesnt",
+    "url": "https://www.crimepaysbutbotanydoesnt.com/reading-list",
+    "source": "Hacker News",
+    "date": "2026-08-06T04:46:35.000Z",
+    "summary": "This Hacker News submission links to a reading list, though the complete article content is unavailable in the provided excerpt. The title suggests a comparison or commentary on career paths or incentive structures. Additional context would be needed to determine the specific topic and relevance.",
+    "content": "Article URL: https://www.crimepaysbutbotanydoesnt.com/reading-list\nComments URL: https://news.ycombinator.com/item?id=49192566\nPoints: 377\n# Comments: 124",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "犯罪有回报，植物学没有",
+        "summary": "这是一篇Hacker News提交的文章，链接到一个阅读清单，但提供的摘录中没有完整的文章内容。标题暗示对职业道路或激励结构的比较或评论。需要额外的背景信息来确定具体主题和相关性。"
+      }
+    }
+  },
+  {
+    "title": "Nashville uses eminent domain to block data center near zoo",
+    "slug": "nashville-eminent-domain-data-center-zoo",
+    "url": "https://www.costar.com/article/970809918/nashville-council-approves-eminent-domain-action-to-halt-data-center-project",
+    "source": "Hacker News",
+    "date": "2026-08-06T02:15:14.000Z",
+    "summary": "Nashville's city council approved an eminent domain action to prevent a data center development project near a city zoo, representing an unusual use of eminent domain to block infrastructure development rather than facilitate acquisitions. The decision reflects local concerns about the project's impact on proximity to wildlife or residential areas. The case highlights tensions between technology infrastructure expansion and community preservation.",
+    "content": "Article URL: https://www.costar.com/article/970809918/nashville-council-approves-eminent-domain-action-to-halt-data-center-project\nComments URL: https://news.ycombinator.com/item?id=49191624\nPoints: 288\n# Comments: 367",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "纳什维尔动用征地权阻止动物园附近的数据中心",
+        "summary": "纳什维尔市议会批准了一项征地行动，以阻止城市动物园附近的数据中心开发项目，这代表了征地权的不寻常用途——用于阻止基础设施发展，而非促进土地收购。该决定反映了当地对该项目可能对野生动物或居住区附近造成影响的担忧。这个案例突出了技术基础设施扩张与社区保护之间的紧张关系。"
       }
     }
   },
