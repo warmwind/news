@@ -1,0 +1,194 @@
+[
+  {
+    "title": "Building a Ride-Share Zone-Balancing Agent with LangGraph — Part 5: Coordinating Two Zones at Once",
+    "slug": "building-ride-share-zone-balancing-agent-langgraph-part-5",
+    "url": "https://dev.to/ebrahim_arian_37097b72c7e/building-a-ride-share-zone-balancing-agent-with-langgraph-part-5-coordinating-two-zones-at-once-2c17",
+    "source": "DEV Community",
+    "date": "2026-08-08T01:24:29.000Z",
+    "summary": "LangGraph agent extends to coordinate two ride-share zones with a shared, finite driver pool, introducing cross-zone pull requests that trigger human approval when transfer requests exceed comfortable resource thresholds.",
+    "content": "This is Part 5, the last part of this series. Part 4 let a human step into the loop before a risky decision executes. Every part so far, though, has shared one assumption: a zone is evaluated completely on its own.\nThat assumption hides a real inconsistency. driver_bonus and surge_pricing both attract \"new drivers,\" as if from an unlimited outside pool. But a real regional driver pool is finite, and it's shared. Two zones both running an aggressive incentive at the same hour can't both be right about where their new drivers are actually coming from. Part 5 is the first part where the agent has to notice that.\nTwo zones, evaluated together every cycle — fixed at 2, not a general N, more on that below. Each zone gets two new supply channels, on top of its existing zone-local response:\nA local dormant pool. Off-platform drivers a zone can entice with a big enough incentive. It's fully local, finite, and it depletes as it's used.\nA cross-zone pull request. Asking to draw from the adjacent zone's genuine surplus. This is only ever a request at evaluation time — granting it depends on a resource the requesting zone doesn't unilaterally control, so nothing is finalized until both zones' evaluations are in.\nOne interrupt, not three. Part 4 had three interrupt categories: editing, approval, debugging. Part 5 keeps only approval, gated on a new condition specific to this stage: does a zone's cross-zone pull request exceed what the adjacent zone can comfortably spare? \"Comfortably\" is the key word — it's a conservative line, not a hard limit, so crossing it isn't dangerous, just tighter than usual. Most cycles, the answer is no, and both zones' policies run straight through. When a request does cross that line, a human decides: approve it anyway, reject it back down to the comfortable amount, or override it with a specific number.\n                 ┌──▶ evaluate_zone_a ──┐\nstart_cycle ─────┤                      ├──▶ reconcile_and_approve ──▶ simulate_and_report",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用LangGraph构建共享出行区域平衡代理 — 第5部分：同时协调两个区域",
+        "summary": "LangGraph代理扩展到协调两个共享出行区域，拥有共享的有限驾驶员池，引入跨区域拉取请求，当转移请求超过舒适的资源阈值时触发人工审批。"
+      }
+    }
+  },
+  {
+    "title": "Building a Ride-Share Zone-Balancing Agent with LangGraph — Part 4: Letting a Human Step In",
+    "slug": "building-ride-share-zone-balancing-agent-langgraph-part-4",
+    "url": "https://dev.to/ebrahim_arian_37097b72c7e/building-a-ride-share-zone-balancing-agent-with-langgraph-part-4-letting-a-human-step-in-5die",
+    "source": "DEV Community",
+    "date": "2026-08-08T01:24:26.000Z",
+    "summary": "Agent gains human-in-the-loop interrupts with conditional approval gates for critical-severity decisions, preventing expensive policies from executing unreviewed while allowing mild imbalances to run autonomously.",
+    "content": "This is Part 4 of a 5-part series. Part 3 gave the agent memory. It can now run for hours on its own, cycle after cycle, without forgetting what it already tried.\nThat's exactly the problem. A genuinely severe deficit might call for an aggressive surge multiplier, or a costly driver bonus. Right now, the agent applies whatever it decides immediately. Nobody has looked at it first. Nothing pauses for a second opinion, no matter how expensive the call.\nPart 4 adds that pause. It uses LangGraph's dynamic interrupt():\nA node calls interrupt(payload) — but only conditionally, when it actually wants to pause.\nExecution stops at that exact point.\napp.invoke(Command(resume=answer), config=thread) continues from there. answer becomes interrupt()'s return value, right at the call site.\nTwo gated pauses, not one:\nEarly — request_data_edit. Gated on cycle_number == 1. A human validates or corrects the raw starting snapshot once, before detect_imbalance even runs. Later cycles use the agent's own carried-forward numbers, not a fresh unverified reading — so re-confirming every cycle would just be noise.\nLate — request_approval. Gated on severity == \"critical\". A wrong automatic call is most expensive in a critical deficit, so that's where a human checkpoint earns its cost. Mild, moderate, balanced, and surplus cycles still run fully autonomously, exactly like Part 3.\nOne property worth naming: no new fields got added to the state. Every interrupt here only reads state Part 3 already has, and writes back a field Part 3 already has — zone, recommended_policy, explanation. Human review is a new control-flow capability. It's not new data.\nstart_cycle ──▶ apply_scheduled_conditions ──▶ request_data_edit ──▶ detect_imbalance ──▶ classify_severity ──▶ set_candidates\n   (gate: cycle_number == 1)                                                                                          │",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用LangGraph构建共享出行区域平衡代理 — 第4部分：让人类参与其中",
+        "summary": "代理获得人工循环中断能力，为关键严重性决策配备条件审批门，防止昂贵的策略在未审查的情况下执行，同时允许轻微不平衡自主运行。"
+      }
+    }
+  },
+  {
+    "title": "Building a Ride-Share Zone-Balancing Agent with LangGraph — Part 3: Giving the Agent Memory",
+    "slug": "building-ride-share-zone-balancing-agent-langgraph-part-3",
+    "url": "https://dev.to/ebrahim_arian_37097b72c7e/building-a-ride-share-zone-balancing-agent-with-langgraph-part-3-giving-the-agent-memory-obb",
+    "source": "DEV Community",
+    "date": "2026-08-08T01:24:22.000Z",
+    "summary": "Agent acquires persistent memory through MemorySaver and thread IDs, enabling multi-cycle continuity where zone state and scheduled conditions carry forward instead of resetting each evaluation.",
+    "content": "This is Part 3 of a 5-part series. Part 1 built a rule-based agent for one zone. Part 2 added an LLM for two narrow jobs: reading an ops note, and explaining the decision. Neither part changed one basic fact: the agent looks at a zone exactly once, then stops.\nThat's a real problem. A severe deficit often needs more than one 15-minute window to fix. But calling the agent again is first contact all over again:\nNo memory of what was already tried\nNo sense of whether this is cycle one or cycle six\nThe zone's own numbers reset, instead of carrying forward\nPart 3 fixes that with MemorySaver and a thread_id. One thread becomes one zone's ongoing story. One .invoke() call becomes one 15-minute cycle.\nThe decision logic itself doesn't change at all. detect_imbalance, classify_severity, resolved_imbalance, and choose_best_policy are the exact same deterministic functions from Part 1, reused directly.\nWhat memory actually buys here:\nThe zone's real state carries forward correctly, instead of resetting. That includes drivers, riders, and a little organic replenishment each cycle.\nA note can schedule something for future cycles — \"traffic bad for the next hour,\" \"the event starts at 6pm\" — without being repeated every time. The LLM extracts the fact once. Code applies it automatically from then on.\nTwo new nodes get added at the front. Both are plain Python — no LLM:\nstart_cycle ──▶ apply_scheduled_conditions ──▶ detect_imbalance ──▶ classify_severity ──▶ set_candidates\n                                                                                                │\n                                                                                   ┌────────────┴────────────┐\n                                                                                   ▼ (balanced)               ▼ (deficit/surplus)\n                                                                           trivial_do_nothing            reconcile_inputs  ← LLM #1",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用LangGraph构建共享出行区域平衡代理 — 第3部分：赋予代理记忆",
+        "summary": "代理通过MemorySaver和线程ID获得持久性记忆，实现多周期连续性，其中区域状态和计划条件向前推进，而不是在每次评估时重置。"
+      }
+    }
+  },
+  {
+    "title": "Building a Ride-Share Zone-Balancing Agent with LangGraph — Part 2: Teaching the Agent to Read Ops Notes",
+    "slug": "building-ride-share-zone-balancing-agent-langgraph-part-2",
+    "url": "https://dev.to/ebrahim_arian_37097b72c7e/building-a-ride-share-zone-balancing-agent-with-langgraph-part-2-teaching-the-agent-to-read-ops-3706",
+    "source": "DEV Community",
+    "date": "2026-08-08T01:24:17.000Z",
+    "summary": "Agent gains an LLM narrowly scoped to parse free-text ops notes and explain decisions, while policy selection remains deterministic code—demonstrating when LLMs add value versus when code is more reliable.",
+    "content": "This is Part 2 of a 5-part series. Part 1 built a rule-based agent for a single ride-share zone — no LLM, just structured numbers and deterministic rules.\nIt worked, but with one obvious hole. An ops person doesn't type structured fields. They write something like \"the event got cancelled, and there's an accident backing up traffic near the venue.\" Stage 1's agent only understands rain_flag/event_flag/traffic as raw values. It has no way to read that sentence at all.\nThis is where an LLM earns its place — for exactly two jobs a lookup table genuinely can't do, and nothing more:\nReconcile an ops note. Read the free text and correct rain_flag/event_flag/traffic before the decision runs.\nExplain the decision. Write a plain-English justification for a human reviewer, after the policy is already chosen.\nPolicy selection itself doesn't change at all. It's the exact same deterministic logic from Part 1, reused directly — never redone, never second-guessed by the LLM.\nA small local model isn't automatically trustworthy, even at a narrow job like this. So I also compare five of them side by side, to see which one actually holds up.\nAn earlier version of this project tried that. It used a ReAct loop, where the LLM called several tools and picked the final policy itself, via free-text output.\nIt didn't hold up. Even qwen2.5:14b sometimes compared the wrong pair of candidates, or dropped the best option from its own answer. That wasn't a prompt-tuning problem — it was the wrong tool for the task.\nAn LLM doesn't compute an argmax. It generates plausible-sounding text, with no guarantee every candidate actually got compared. max() never makes that mistake.\nHere's the rule I use throughout this project: if a task can be solved with plain numbers and a fixed answer, write it in code. Code gets it right every time. An LLM only earns its place when the input is a sentence a lookup table can't parse, or the output has to be a sentence a lookup table can't write. Handing a plain numeri",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "用LangGraph构建共享出行区域平衡代理 — 第2部分：教代理读取运营笔记",
+        "summary": "代理获得了一个范围狭窄的大型语言模型来解析自由文本运营笔记并解释决策，而政策选择仍然由确定性代码完成——演示了何时大型语言模型增加价值与代码更可靠的时机。"
+      }
+    }
+  },
+  {
+    "title": "Building a Ride-Share Zone-Balancing Agent with LangGraph — Part 1: A Rule-Based Agent, No LLM Yet",
+    "slug": "building-ride-share-zone-balancing-agent-langgraph-part-1",
+    "url": "https://dev.to/ebrahim_arian_37097b72c7e/building-a-ride-share-zone-balancing-agent-with-langgraph-part-1-a-rule-based-agent-no-llm-yet-6pm",
+    "source": "DEV Community",
+    "date": "2026-08-08T01:24:04.000Z",
+    "summary": "Foundation rule-based agent for single ride-share zone handles supply-demand imbalances using deterministic logic to decide pricing adjustments, driver bonuses, and rider redirects without LLM involvement.",
+    "content": "It's 5pm on a weekday, and you're standing outside a stadium after an event just wrapped up. You open your ride-share app. Estimated wait: 12 minutes. Meanwhile, three neighborhoods over, drivers are circling empty streets with nobody requesting a ride.\nThis happens constantly on any ride-share platform. It's not a bug — it's just supply and demand failing to line up on their own.\nSomeone, or something, has to watch each part of the city. It needs to notice when a zone is out of balance, then decide what to do:\nRaise prices, to pull in more drivers\nPay drivers a bonus to reposition\nRedirect riders to a calmer zone\nOr just leave it alone, if it'll sort itself out\nThat decision-maker is what I'm building in this series, using LangGraph — one capability at a time.\nThis is Part 1 of a 5-part series. Each part adds exactly one thing the previous one genuinely couldn't do, so the agent gets closer to how this would actually have to work in production:\nPart 1 (this one): a rule-based agent for a single zone — no LLM, everything is structured numbers\nPart 2: an LLM, but only for the two jobs a lookup table can't do — reading a human's free-text note, and explaining the decision back\nPart 3: memory, so the agent remembers what it already tried on a zone instead of deciding once and forgetting\nPart 4: a human-in-the-loop pause, so a risky or unusual decision doesn't just execute unattended\nPart 5: coordinating two zones at once, since pulling a driver from one zone is a decision that affects both\nNothing above is built yet in Part 1. That's deliberate. Every one of those additions is real complexity, and real complexity should only show up once the problem actually needs it — not because it sounds impressive.\nSo Part 1 stays as plain as the problem allows: one zone, one decision cycle, and rules a human ops person could write on a whiteboard.\nBefore there's an agent, there's a city to look at. I generate a synthetic snapshot of 8 zones — downtown, an airport, a couple of subu",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "用LangGraph构建共享出行区域平衡代理 — 第1部分：基于规则的代理，暂无大型语言模型",
+        "summary": "单个共享出行区域的基础规则代理使用确定性逻辑处理供需不平衡，以决定定价调整、司机奖励和乘客重定向，不涉及大型语言模型。"
+      }
+    }
+  },
+  {
+    "title": "Neuron-Level Explanations and Their Limits",
+    "slug": "neuron-level-explanations-and-their-limits",
+    "url": "https://dev.to/multigrid/neuron-level-explanations-and-their-limits-2oof",
+    "source": "DEV Community",
+    "date": "2026-08-08T01:21:18.000Z",
+    "summary": "Neuron-level interpretation suffers from three compounding problems: extreme-activation selection bias, unreliable human pattern-matching, and corpus-dependent explanations that contradict across datasets.",
+    "content": "The obvious way to understand a neuron is to find the inputs that make it fire hardest and read them. It is also the way that produces confident, wrong explanations, and the fixes — automated explanation with automated scoring — are interesting precisely because of how they are scored.\nRun a large corpus through the model, record one neuron’s activation at every token, sort, and look at the top few hundred. Sometimes the answer is immediate: a neuron that fires on quotation marks, or on tokens inside URLs, or on the word after “Dr”.\nThe multimodal neuron work at OpenAI (Goh and colleagues, 2021) is the most striking result in this genre — units in a vision-and-language model that responded to a concept across photographs, drawings and the written word for it. That is a real finding about representation and it is why the approach stayed popular.\nThree distinct problems, and they compound.\nYou are reading the tail. The top 0.01% of activations is not a description of a neuron’s behaviour. A unit can look like a “French text” neuron in its top hundred examples and fire moderately, across a much larger set of tokens, on something else entirely. Since contribution to the output is roughly activation times its outgoing weight, moderate activations on millions of tokens can matter more than extreme activations on a few.\nHuman pattern-matching is unreliable and unfalsifiable. Shown twenty examples with any shared property, a person will find one. Without a held-out prediction, the explanation cannot be wrong.\nThe interpretability illusion. Bolukbasi and colleagues demonstrated in 2021 that the apparent meaning of a neuron can depend on which corpus you look at — the same unit yields different clean-looking explanations from different datasets. Neither explanation is a lie about its own data; both are incomplete, and nothing in the procedure tells you so.\nOpenAI published the standard structure in 2023 (Bills and colleagues): use a language model to explain another language",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "神经元级别的解释及其局限性",
+        "summary": "神经元级别的解释存在三个复合问题：极端激活选择偏差、不可靠的人类模式匹配和依赖于语料库的解释在数据集之间产生矛盾。"
+      }
+    }
+  },
+  {
+    "title": "Nested and Recursive Schemas: The Depth Limit Nobody Documents",
+    "slug": "nested-recursive-schemas-depth-limit-nobody-documents",
+    "url": "https://dev.to/multigrid/nested-and-recursive-schemas-the-depth-limit-nobody-documents-32po",
+    "source": "DEV Community",
+    "date": "2026-08-08T01:21:15.000Z",
+    "summary": "Schema nesting has published hard limits enforced at request time and undocumented soft limits where models drift semantically, placing values in wrong nested objects while remaining syntactically valid.",
+    "content": "There are two ceilings on schema depth and they behave completely differently. One is published, enforced at request time and easy to discover. The other is not a limit at all — it is a gradual change in what a failure looks like, and it has no error message.\nThe hard limit is a documented cap in the provider implementation. OpenAI’s Structured Outputs guide has published caps on nesting depth, on total object properties across a schema, and on the combined character length of names and enum values. Those numbers exist, they are enforced with a 400, and they have been raised at least once since the feature launched in August 2024 — so any figure you read anywhere, including here, needs checking against the current docs before you design around it. That is why the section below is a probe rather than a table.\nThe soft limit is the depth at which the model starts putting correct values in the wrong place. There is no announcement. Every response still validates. It is not a property of the provider at all; it is a property of the model, your schema and your document together, which is why nobody can publish a number for it that would mean anything for your case.\nThis is the important idea in the page. Constrained decoding does not remove errors, it relocates them — and nesting is where the relocation is most visible.\nWithout enforcement, a model that loses track of nesting emits unbalanced braces and your parser raises. Loud, immediate, traceable. With enforcement, unbalanced braces are unreachable: the mask will not emit } where the grammar does not allow one. So the model, having drifted, produces the only thing still available to it — a syntactically perfect document with the value in the wrong sub-object.\nunconstrained, drifted:            constrained, drifted:\n\n{ \"parties\": [                     { \"parties\": [\n    { \"name\": \"Acme\",                  { \"name\": \"Acme\",\n      \"address\": {                       \"address\": {\n        \"city\": \"Utrecht\"                  \"",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "嵌套和递归模式：没有人记录的深度限制",
+        "summary": "模式嵌套具有在请求时强制执行的已发布硬限制和未记录的软限制，其中模型在语义上漂移，将值放在错误的嵌套对象中，同时保持语法有效性。"
+      }
+    }
+  },
+  {
+    "title": "Neural Radiance Fields and Gaussian Splatting",
+    "slug": "neural-radiance-fields-and-gaussian-splatting",
+    "url": "https://dev.to/multigrid/neural-radiance-fields-and-gaussian-splatting-3m4e",
+    "source": "DEV Community",
+    "date": "2026-08-08T01:20:40.000Z",
+    "summary": "Neural radiance fields encode scenes as neural network weights for photo-realistic rendering; Gaussian splatting replaces networks with point clouds, achieving millisecond render times instead of seconds.",
+    "content": "A neural radiance field is a small neural network whose weights encode one specific scene — not a model of scenes in general, a model of your kitchen. Gaussian splatting keeps the idea of fitting a scene to photographs and throws away the network, which is why it renders in milliseconds instead of seconds.\nThe function being learned takes a point in space and a viewing direction, and returns a colour and a density:\nF(x, y, z, theta, phi) -> (r, g, b, sigma)\n\n  5 numbers in, 4 numbers out.\n\nOriginal NeRF (Mildenhall and colleagues, 2020):\n  8 hidden layers of 256 units\n  roughly 600,000 parameters\n  about 2.4 MB in fp32\n\nTraining input: 50-100 photographs of ONE scene, with camera poses\n                recovered by structure-from-motion.\nTraining time:  hours to about a day on one GPU, in the original work.\n\nThat is what “a scene becomes weights” means. There is no mesh, no point cloud, no texture atlas. The geometry and the appearance of the room are stored as 600,000 floating-point numbers in a multi-layer perceptron, and the only way to find out what is at a point is to evaluate the network there.\nIt also means the model generalises to nothing. Train on your kitchen and you have a kitchen; a different room requires training again from scratch. These are per-scene fits, which is a genuinely unusual thing for a neural network to be and is the source of most confusion about them.\nOne detail is load-bearing: the input coordinates are not fed in directly. They are expanded with sines and cosines at many frequencies first — the same Fourier positional encoding idea used in transformers. Without it the MLP produces a smooth blur, because a small network fed raw coordinates has a strong bias toward low-frequency functions. With it, sharp edges become representable. That one change is the difference between the technique working and not.\nThere is no rasteriser. To find the colour of one pixel you cast a ray from the camera through it and integrate what the ray passes throu",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "神经辐射场和高斯泼溅",
+        "summary": "神经辐射场将场景编码为神经网络权重以实现照片级逼真渲染；高斯泼溅用点云替换网络，实现毫秒级渲染时间而不是秒级。"
+      }
+    }
+  },
+  {
+    "title": "Negative Prompts and How They Work Mechanically",
+    "slug": "negative-prompts-and-how-they-work-mechanically",
+    "url": "https://dev.to/multigrid/negative-prompts-and-how-they-work-mechanically-709",
+    "source": "DEV Community",
+    "date": "2026-08-08T01:20:36.000Z",
+    "summary": "Negative prompts work mechanically by substituting text in the unconditional guidance branch of diffusion models, creating a noise-space direction to move against rather than filtering outputs post-hoc.",
+    "content": "There is no negative-prompt mechanism in a diffusion model. There is a text field that gets encoded and put where the empty string normally goes — in the unconditional branch of classifier-free guidance — and every property of negative prompts, including the surprising ones, falls out of that one substitution.\nGuidance evaluates the denoiser twice per step: once with your prompt, once with an empty prompt. The two predictions are combined by extrapolating away from the empty-prompt one. A negative prompt simply puts text in that second slot, so you are now extrapolating away from a specific prediction rather than a generic one.\nIt is not a filter, not a constraint, and not a post-generation check. It is a direction in noise space that the sampler is told to move against.\nStandard classifier-free guidance, no negative prompt:\n\n    eps_hat = eps(\"\")        +  w · ( eps(prompt) − eps(\"\") )\n\nWith a negative prompt, \"\" is replaced by the negative text:\n\n    eps_hat = eps(negative)  +  w · ( eps(prompt) − eps(negative) )\n\nExpanded into coefficients:\n\n    eps_hat = w · eps(prompt)  +  (1 − w) · eps(negative)\n\nThe negative prompt is therefore weighted 1 − w, which is negative for any guidance scale above 1. That is the whole thing. Read off the coefficients at the usual settings, using the same table worked in the guidance page:\n  w        weight on prompt     weight on negative prompt\n-----------------------------------------------------------\n  1.0            1.00                 0.00     no effect at all\n  2.0            2.00                −1.00\n  3.5            3.50                −2.50\n  5.0            5.00                −4.00\n  7.5            7.50                −6.50\n 12.0           12.00               −11.00     very strong; expect damage\n\nAt w = 1 the coefficient on the negative prompt is exactly zero. Substitute it into the equation and see it disappear:\n    eps_hat = 1 · eps(prompt)  +  (1 − 1) · eps(negative)\n            = eps(prompt)\n\nThe negative prompt term",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "负面提示及其机制工作原理",
+        "summary": "负面提示通过在扩散模型的无条件引导分支中替换文本来机械地工作，创建一个噪声空间方向来对抗，而不是在事后过滤输出。"
+      }
+    }
+  },
+  {
+    "title": "Building a Bulletproof Multi-Platform Content Publishing Architecture",
+    "slug": "building-bulletproof-multi-platform-content-publishing-architecture",
+    "url": "https://dev.to/publiflow/building-a-bulletproof-multi-platform-content-publishing-architecture-4pg8",
+    "source": "DEV Community",
+    "date": "2026-08-08T01:20:18.000Z",
+    "summary": "Write-once publish-everywhere architecture normalizes content to AST format, translates via platform adapters, and queues jobs with rate-limiting to reliably deliver across Medium, Dev.to, and Hashnode simultaneously.",
+    "content": "Building a Bulletproof Multi-Platform Content Publishing Architecture\n\n\nIf you’ve ever written a high-quality technical article, you know the drill. You finish the draft, hit publish on your personal blog, and then the real work begins. You copy the text into Medium, only to find your code blocks lost their syntax highlighting. You paste it into Dev.to, and realize your cover image is broken because they require images to be uploaded to their specific CDN. You try Hashnode, and the GraphQL mutation rejects your payload because of a missing canonical URL tag.\nCopy-pasting and manually tweaking content across platforms is a massive waste of time and a breeding ground for inconsistencies. As developers building SaaS products or personal brands, we need a unified engine. We need a \"Write Once, Publish Everywhere\" (WOPE) architecture.\nIn this article, we’ll dive deep into designing a robust, multi-platform content publishing system. We will cover content normalization, the adapter pattern for disparate APIs, and resilient job queuing.\nA scalable publishing pipeline isn't just a script that loops through an array of API keys. It requires a decoupled architecture that separates the content representation from the platform delivery.\nThe architecture consists of three main phases:\nNormalization Engine: Converts raw Markdown/MDX into a normalized Abstract Syntax Tree (AST), resolving platform-specific quirks (like image hosting or liquid tags).\nAdapter Layer: Translates the normalized payload into the specific API formats required by Medium (GraphQL), Dev.to (REST), and Hashnode (GraphQL).\nExecution & Scheduling Layer: A message queue (like BullMQ) that handles rate limiting, retries, idempotency, and scheduled publishing.\nLet’s break down each layer with production-ready code.\nThe biggest mistake developers make is treating Markdown as a raw string. Markdown parsers have subtle differences. To build a reliable system, we must parse the Markdown into an AST, transform it, and",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建防弹的多平台内容发布架构",
+        "summary": "一次编写、随处发布的架构将内容规范化为AST格式，通过平台适配器进行翻译，并使用速率限制对作业进行队列处理，以可靠地同时跨Medium、Dev.to和Hashnode传递。"
+      }
+    }
+  },
+  {
+    "title": "Model Extraction and Distillation Attacks",
+    "slug": "model-extraction-and-distillation-attacks",
+    "url": "https://dev.to/multigrid/model-extraction-and-distillation-attacks-1cej",
+    "source": "DEV Community",
+    "date": "2026-08-08T01:11:40.000Z",
+    "summary": "Model extraction attacks split into three distinct threats—parameter extraction, behavioral cloning, and training-data extraction—each with different feasibility and defenses despite sharing the name.",
+    "content": "“Stealing a model through its API” describes two attacks that share nothing but a name. One recovers parameters. The other recovers behaviour. They have different costs, different feasibility and different defences, and the confusion between them produces a lot of bad advice.\n\n\n\nAttack\nDescription\n\n\n\n\nparameter extraction\nRecovering actual weights or structural facts about the model by exploiting the mathematics of what the API returns. Precise, and limited to what the exposed outputs mathematically determine.\n\n\nbehavioural cloning\nQuerying at volume and training a smaller model on the outputs. Recovers capability on the queried distribution, never the weights. This is distillation, and it works.\n\n\n\nExtraction of a full frontier model’s weights through an API is not a realistic threat today. Cloning a specific capability of one for a few thousand dollars is routine, and it is what most people who say “model extraction” are actually worried about.\nA third attack is regularly filed under the same heading and is genuinely different again: recovering training data rather than the model. Membership inference asks whether a particular record was in the training set, and extraction of memorised sequences has been demonstrated repeatedly against language models — the risk is highest for data that appeared verbatim and rarely, which is precisely the shape of a private document in a fine-tuning corpus. If you fine-tune on customer data, that is the attack to model, and its defences — deduplication, filtering secrets before training, and not fine-tuning on data whose disclosure would matter — have nothing in common with the two above.\nThe academic line starts with Tramèr and colleagues in 2016 (“Stealing Machine Learning Models via Prediction APIs”), which showed exact or near-exact recovery of simple models — logistic regression, decision trees, small networks — from prediction APIs that returned confidence values. The lesson was already the durable one: every extra bit of in",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "模型提取和蒸馏攻击",
+        "summary": "模型提取攻击分为三种不同的威胁——参数提取、行为克隆和训练数据提取——尽管共享相同的名称，但每种都有不同的可行性和防御方法。"
+      }
+    }
+  },
+  {
+    "title": "Canary and Blue-Green Deploys for Model Changes",
+    "slug": "canary-and-blue-green-deploys-for-model-changes",
+    "url": "https://dev.to/multigrid/canary-and-blue-green-deploys-for-model-changes-3i9c",
+    "source": "DEV Community",
+    "date": "2026-08-08T01:10:23.000Z",
+    "summary": "Model deployments require quality gates alongside health checks since failures are silent and distributional; canary, blue-green, and shadow strategies trade capacity cost against rollback speed and evidence accumulation.",
+    "content": "A code deploy either works or throws. A model deploy usually does neither: the new version returns 200s at the same latency and is slightly worse at the thing you care about. That is why model rollouts need a quality gate as well as a health gate, and why the honest question about a canary is not “did it error?” but “have I seen enough requests to tell?”\nThree properties break the usual assumptions.\n  Failure is silent and distributional. A 2% drop in extraction accuracy produces no errors, no latency change and no alert. It shows up as support tickets three weeks later.\n  Output is non-deterministic. You cannot diff two responses and conclude anything from one pair. Comparison has to be statistical, over a sample.\n  Capacity is the constraint on the strategy. Running blue and green simultaneously means holding two full sets of GPUs. For a large model that doubles the most expensive line in the budget for the duration of the rollout, which is a real reason to prefer a small canary over blue-green.\nAdd one more, which applies when you are switching between hosted models rather than your own weights: providers update models under a stable name. Silent model updates covers that case, and the defence is the same eval gate applied on a schedule rather than on a deploy.\n\n\n\nStrategy\nDescription\n\n\n\n\nBlue-green\nTwo complete environments; flip all traffic at once, flip back to roll back. Fastest rollback available and the simplest to reason about. Costs double capacity during the overlap, and gives you no gradual signal — the first evidence of a problem is 100% of users having it.\n\n\nCanary\nA small fraction of traffic to the new version, increased in steps as metrics hold. Cheap in capacity, and limits the blast radius to the fraction you chose. The cost is time: a 1% canary needs a hundred times as long to accumulate the same evidence.\n\n\nShadow\nReal traffic is duplicated to the new version and its responses are recorded and discarded. Zero user risk, and the only shape that l",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "模型变更的金丝雀和蓝绿部署",
+        "summary": "模型部署需要质量门与健康检查并行，因为故障是无声的且分布式的；金丝雀、蓝绿和影子策略在容量成本与回滚速度和证据积累之间进行权衡。"
+      }
+    }
+  }
+]
