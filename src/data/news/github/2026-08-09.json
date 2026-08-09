@@ -1,5 +1,213 @@
 [
   {
+    "title": "Where Does Judgment End and Runtime Policy Begin?",
+    "slug": "judgment-runtime-policy-temporal-policies",
+    "url": "https://dev.to/kikashy/where-does-judgment-end-and-runtime-policy-begin-59cf",
+    "source": "DEV Community",
+    "date": "2026-08-09T18:24:35.000Z",
+    "summary": "AWS Bedrock's new temporal policies enable runtime validation of agent action sequences rather than individual invocations, preventing issues like multiple purchases that individually comply but collectively exceed limits. This represents a broader architectural shift toward externalizing agent control logic into inspectable artifacts.",
+    "content": "AWS introduced something this week that is close enough to the problem I have been working on that I do not think it should be casually labeled complementary.\nAmazon Bedrock AgentCore added temporal policies, along with an open-source policy language called Dogwood.\nInstead of asking only whether an individual tool invocation is allowed, the gateway can evaluate the sequence of actions that led to it.\nConsider a purchasing agent with this rule:\npurchases under $10,000 do not require escalation\n\nThe agent makes six purchases of $9,000.\nEvery individual action satisfies the rule.\nThe sequence may violate the organization's intended limit.\nThe same problem appears with approvals.\nAn API call may be permitted only if a human approval occurred earlier in the workflow. Looking only at the final call cannot establish that condition. Something needs to remember the relevant execution history and evaluate policy against it.\nThat is the class of problem temporal policy addresses.\nThe interesting architectural choice is that this logic lives outside the agent.\nThe model does not need to faithfully remember the constraint from its prompt. The runtime owns the control.\nThis is not the only sign that agent instructions are moving out of conversations and into inspectable artifacts.\nA recent ESEM 2026 study of Agent Plans screened 36,710 engineered GitHub repositories and found 85 Markdown plan files across 10 repositories.\nThat is a very small population, so I would not interpret the result as evidence of broad adoption.\nBut the content is interesting.\nThose plans commonly described implementation steps, specific files or locations, and testing or validation instructions.\nThe agent's execution intent was being preserved as part of the repository.\nThere is a similar pattern in distribution.\nTenable's CyberAgents Exchange treats agents, skills, MCP servers, and multi-agent playbooks as separate reusable components.\nThe ecosystem is gradually decomposing \"the agent\" into more explic",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "判断在何处结束，运行时策略从何处开始?",
+        "summary": "AWS Bedrock的新时间策略通过运行时验证代理行动序列（而非单个调用）来防止问题，如多次购买单独看时合规但累积超限的情况。这代表了向外部化代理控制逻辑为可检查工件的更广泛架构转变。"
+      }
+    }
+  },
+  {
+    "title": "How I Protected My Express API from Spam and High AI Costs Using Redis",
+    "slug": "protect-api-spam-redis-rate-limiting",
+    "url": "https://dev.to/nikhil_singh_e20fff10a888/how-i-protected-my-express-api-from-spam-and-high-ai-costs-using-redis-40c",
+    "source": "DEV Community",
+    "date": "2026-08-09T18:24:10.000Z",
+    "summary": "Production APIs calling external AI services require centralized rate limiting to prevent spam and cost explosion; a distributed Redis store solves memory leaks and scaling issues inherent to naive in-memory approaches.",
+    "content": "When I was building my backend API, I realized a big problem: anyone could spam my endpoints. \nIf a user repeatedly reloads a page or hits an endpoint calling an external AI service, it can crash the server or run up high API costs.\nTo fix this, I added Rate Limiting. Here is why I used Redis for it and how I set it up.\nAt first, I thought about saving request counts in a simple JavaScript object:\n// ❌ Simple in-memory check (Not good for production)\nconst requestCounts = {};\n\napp.use((req, res, next) => {\n  const ip = req.ip;\n  requestCounts[ip] = (requestCounts[ip] || 0) + 1;\n\n  if (requestCounts[ip] > 100) {\n    return res.status(429).json({ error: \"Too many requests\" });\n  }\n  next();\n});\n\nThis works locally, but has two big flaws:\n1)Memory Leaks: The requestCounts object keeps growing in memory forever.\n2)Breaks when Scaling: If you deploy multiple instances of your app behind a load balancer, each server keeps its own count. A user can easily bypass the limit by hitting different servers.\nThe Solution: Centralized Redis Store\n\n           [ Incoming Client Requests ]\n                     │\n                     ▼\n           [ Cloud Load Balancer ]\n                     │\n     ┌───────────────┼───────────────┐\n     ▼               ▼               ▼\n[ Express Node 1 ] [ Express Node 2 ] [ Express Node 3 ]\n     │               │               │\n     └───────────────┼───────────────┘\n                     ▼\n          [ Central Redis Store ]\n         (Checks Request Limits)\n\n\nHow I Configured It in My Project\nGlobal Limit: 100 requests per 15 minutes for normal routes.\nStrict Limit: 5 requests per 10 minutes for heavy routes (like AI generation or OTP emails).\n1. Redis Connection (config/redis.js)\n\nimport { createClient } from 'redis';\n\nconst redisClient = createClient({\n  url: process.env.REDIS_URL || 'redis://localhost:6379'\n});\n\nredisClient.on('error', (err) => console.error('Redis Error:', err));\nredisClient.on('connect', () => console.log('Connected to Redis'));",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何使用Redis保护Express API免受垃圾信息和高AI成本影响",
+        "summary": "生产环境中调用外部AI服务的API需要集中式速率限制来防止垃圾信息和成本激增；分布式Redis存储解决了天真的内存方法中固有的内存泄漏和扩展问题。"
+      }
+    }
+  },
+  {
+    "title": "Cpynet a pastebin you talk to with curl, that forgets everything you send it",
+    "slug": "cpynet-ephemeral-pastebin-curl-tool",
+    "url": "https://dev.to/eminbuyuk/why-i-built-a-zero-dependency-single-file-go-clipboard-for-terminal-junkies-2ob6",
+    "source": "DEV Community",
+    "date": "2026-08-09T18:21:49.000Z",
+    "summary": "Cpynet is a minimal single-file Go pastebin enabling secure text sharing via curl one-liners, with burn-after-read default, dual encryption layers, and zero external dependencies or persistent storage.",
+    "content": "A zero-dependency, single-file Go pastebin built for terminals — burn-after-read by default, two independent encryption layers, and a curl one-liner instead of a login form.\nI keep ending up in situations where I need to move a small piece of text — a\nSo I built CPYNET — a paste-sharing tool with\ncurl.\necho \"hello world\" | curl --data-binary @- https://cpynet.com/\n# https://cpynet.com/482913\ncurl https://cpynet.com/482913\n# hello world\n\nThat's the whole thing. No account, no API key, no clicking around. Two\ncurl calls and you've moved text between two machines that have nothing in\nThe paste above is gone the instant that second curl runs. Not \"gone in 24\nthe moment it's read, whether that's one second later or one\n404. It also auto-expires on a timer (2 minutes by\nNone of this lives on disk. It's a Go map behind a mutex, in memory, for\ncurl -s https://cpynet.com/install.sh -o install.sh && bash -n install.sh && . install.sh\n\nThat wires up two functions, cpy and pst:\n$ journalctl -u myservice -n 200 | cpy\n482913\ncurl https://cpynet.com/482913\n\n# on the other machine\n$ pst 482913\nAug 08 14:02:11 myservice[1823]: connection refused: db.internal:5432\n...\n\npst also drops the text on your clipboard if it can find a way to\npbcopy/wl-copy/xclip/xsel/clip.exe) — pure convenience, never\nis the product.\nPassword protection (?p= / cpy -password=xxx) is AES-256-GCM with a\nTrue end-to-end encryption (the shield icon, or cpy -e) is a different\n#key= fragment — browsers never send fragments to a server, by\nopenssl enc\n with a random passphrase printed on its own line,\ngo.mod has one line: go 1.22. No router package, no ORM, no crypto\ncrypto/* in the standard library, no frontend build step —\nhtml/template, and\n//go:embedded straight into the binary.\nmain.go file.\nThat's not a purity flex. It means:\nYou can read the entire thing in an afternoon. No dependency tree to\naudit, no transitive CVE to track down at 2am.\ndocker build produces one static binary on distroless. No shell in\nthe",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Cpynet：一个用curl交互的粘贴板，忘记你发送给它的一切",
+        "summary": "Cpynet是一个最小化的单文件Go粘贴板，通过curl单行命令实现安全文本共享，具有默认阅后即焚、双层加密和零外部依赖或持久存储的特点。"
+      }
+    }
+  },
+  {
+    "title": "Topic selected: Option A – Purely Technical: \"Building a Secure AI Proxy for Browser Tools",
+    "slug": "secure-ai-proxy-cloudflare-workers",
+    "url": "https://dev.to/obed_avorlenu/topic-selected-option-a-purely-technical-building-a-secure-ai-proxy-for-browser-tools-5bc",
+    "source": "DEV Community",
+    "date": "2026-08-09T18:20:32.000Z",
+    "summary": "Client-side API key exposure is critical security risk; a lightweight Cloudflare Workers proxy centralizes authentication to enable secure LLM calls from browsers while keeping credentials server-side.",
+    "content": "This is the strongest choice. It teaches a tangible, highly demanded skill (API key security) with actual code, making the backlink to AfriWidget feel like a natural, neutral citation rather than a sales pitch.\nHere is the article, rewritten to be strictly technical, objective, and genuinely useful for dev.to readers.\nStop Exposing Your AI API Keys: Build a Secure Proxy with Cloudflare Workers\nWe have all seen it. You open the browser's DevTools on a \"cutting-edge\" AI startup's landing page, check the Network tab, and find a direct POST request to api.openai.com containing a plaintext API key in the headers.\nIt is one of the most common—and dangerous—mistakes in modern web development. Exposing your LLM API key client-side is an open invitation for abuse, leading to stolen credits, hefty bills, and potential account suspension.\nThe standard solution is the Backend-for-Frontend (BFF) proxy pattern. But how do you implement it practically, cheaply, and securely without spinning up a heavy Express server?\nIn this guide, I will walk you through building a lightweight, serverless AI proxy using Cloudflare Workers to securely call Groq (or OpenAI) APIs from your browser-based calculators and tools.\nThe Architecture: How It Works\nInstead of your frontend talking directly to the AI provider, we introduce a stateless middleware layer:\nBrowser App → Cloudflare Worker (Proxy) → Groq/OpenAI API\n     ↑                ↑\n  (No API Key)   (API Key stored securely in Worker env vars)\n\nThe Worker's responsibilities:\nReceive the sanitized calculation context from the frontend (numbers, not PII).\nAttach the secret API key via environment variables.\nForward the request to the LLM provider.\nStream or return the generated insight back to the client.\nStep 1: Scaffolding the Cloudflare Worker\nWe will use the new create-cloudflare CLI. Make sure you have Node.js installed.\nnpm create cloudflare@latest ai-proxy\n\nChoose \"Hello World\" worker and TypeScript. Once inside the directory, install th",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为浏览器工具构建安全的AI代理",
+        "summary": "客户端API密钥泄露是一个严重的安全风险；轻量级Cloudflare Workers代理可以集中管理身份验证，使浏览器能够安全地调用大语言模型，同时将凭证保持在服务器端。"
+      }
+    }
+  },
+  {
+    "title": "Who Did This? Identity Across Async Boundaries",
+    "slug": "identity-async-boundaries-event-driven",
+    "url": "https://dev.to/ramesh-yara/who-did-this-identity-across-async-boundaries-1n4n",
+    "source": "DEV Community",
+    "date": "2026-08-09T18:20:05.000Z",
+    "summary": "In event-driven architectures, authentication context established at the gateway evaporates crossing into async workflows; the transactional outbox pattern preserves caller identity as durable, replayable event metadata.",
+    "content": "You put a lot of work into authentication. A gateway validates the Keycloak JWT, maps realm roles to authorities, checks that the caller is allowed. By the time a request reaches your service, you know exactly who is calling.\nThen the request crosses into async land, and all of that evaporates.\nThis is the story of the point where identity quietly disappears in an event-driven system, why the dead-letter queue is the worst possible place for it to disappear, and how I made the acting user as durable and replay-safe as the event itself.\nThe platform is a set of Spring Boot services: an API gateway in front, a user-service on MySQL, a notification-service on PostgreSQL, and Kafka carrying events between them. A user is created, an event is published, a notification is sent.\nAuthentication is handled at the edge. The gateway is an OAuth2 Resource Server; it validates the token once and propagates the caller's identity downstream as headers:\n// api-gateway — IdentityPropagationFilter (@Order(2), after security)\nIdentityContext identity = identityContextExtractor.extract(jwt);\n\n// Always set all three headers (empty when absent) to mask any spoofed values.\nenrichedRequest.putHeader(IdentityHeaders.USER_NAME,  nullToEmpty(identity.username()));\nenrichedRequest.putHeader(IdentityHeaders.USER_EMAIL, nullToEmpty(identity.email()));\nenrichedRequest.putHeader(IdentityHeaders.USER_ROLES, identity.rolesAsString(DELIM));\n\nOne detail here matters more than it looks. The headers are always overwritten, even when a claim is absent. If a client tries to inject X-User-Name: admin on the inbound request, the gateway stomps it with the validated value (or empty). Downstream trust in those headers is only safe because the perimeter guarantees they cannot be forged. Miss that, and you've built an impersonation API.\nSo far, so good. The synchronous hop carries identity. The problem starts one line later.\nI don't publish to Kafka inside the request. I use the transactional outbox pattern: t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "是谁干的？异步边界中的身份",
+        "summary": "在事件驱动架构中，在网关建立的身份验证上下文在进入异步工作流时会丢失；事务性发件箱模式将调用者身份保存为持久的、可重放的事件元数据。"
+      }
+    }
+  },
+  {
+    "title": "Absorber les +50 % de l'API Claude sans couper une feature",
+    "slug": "claude-sonnet-5-pricing-caching-batch",
+    "url": "https://dev.to/hernanz/absorber-les-50-de-lapi-claude-sans-couper-une-feature-4nj",
+    "source": "DEV Community",
+    "date": "2026-08-09T18:13:52.000Z",
+    "summary": "Claude Sonnet 5's 50% price increase on September 1st can be absorbed through prompt caching and batch processing; cache reads cost 90% less than full inputs, making repeated context effectively free after the first call.",
+    "content": "Le 1er septembre 2026, le tarif de lancement de Claude Sonnet 5 s'arrête. L'input passe de 2 $ à 3 $ le million de tokens, l'output de 10 $ à 15 $ : +50 % sur les deux lignes, pour tout le monde qui appelle l'API en paiement à l'usage. La panique par défaut, c'est de couper des fonctionnalités ou de rétrograder vers un modèle plus faible. Il y a mieux, et c'est déjà dans l'API. Deux mécanismes — le prompt caching et le batch — encaissent la hausse à ta place, souvent avec de la marge. Voici le code, les chiffres, et les pièges que j'ai payés pour que tu ne les paies pas.\nTrois lignes suffisent à raisonner. Le reste du barème (Opus, Haiku, contexte 1M) ne change pas.\n\n\n\nPoste Sonnet 5 (par M de tokens)\nJusqu'au 31 août\nDès le 1er sept.\n\n\n\n\nInput standard\n2 $\n3 $\n\n\nOutput\n10 $\n15 $\n\n\nLecture cache (hit)\n0,20 $\n0,30 $\n\n\n\nRetiens la troisième ligne, parce que c'est elle qui gagne la partie. Un cache hit coûte 10 % du prix d'input. Même après la hausse, lire depuis le cache à 0,30 $ reste moins cher que l'ancien input plein à 2 $. Autrement dit, le contexte que tu répètes à chaque appel — un system prompt costaud, une doc, des exemples few-shot — peut être payé une fois puis relu pour trois fois rien.\nLe principe est simple : tu marques un bloc stable avec cache_control, et tout ce qui précède ce marqueur est mis en cache. Le premier appel paie une écriture ; les suivants, dans la fenêtre TTL, lisent à 10 %.\nimport anthropic\n\nclient = anthropic.Anthropic()\nDOCS = load_docs()  # ~20 000 tokens, identiques à chaque requête\n\ndef ask(question: str):\n    return client.messages.create(\n        model=\"claude-sonnet-5\",\n        max_tokens=1024,\n        system=[\n            {\"type\": \"text\", \"text\": \"Assistant support de l'app Lumière.\"},\n            {\n                \"type\": \"text\",\n                \"text\": DOCS,\n                \"cache_control\": {\"type\": \"ephemeral\"},  # TTL 5 min\n            },\n        ],\n        messages=[{\"role\": \"user\", \"content\": question}],\n    )\n\nLa questio",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "不削减功能的情况下应对Claude API 50%的成本上升",
+        "summary": "Claude Sonnet 5在9月1日的50%价格上涨可以通过提示缓存和批处理来应对；缓存读取的成本比完整输入低90%，使得重复的上下文在第一次调用后实际上是免费的。"
+      }
+    }
+  },
+  {
+    "title": "Our AI Agent Failed 5 Times in One Day. Here is Why It Never Happened Again.",
+    "slug": "ai-agent-runtime-protection-failure-anchors",
+    "url": "https://dev.to/zwiserfit/our-ai-agent-failed-5-times-in-one-day-here-is-why-it-never-happened-again-1e5p",
+    "source": "DEV Community",
+    "date": "2026-08-09T18:12:48.000Z",
+    "summary": "LAO agent orchestration system detected and permanently prevented five distinct failure modes across three agents in 24 hours through immutable anchors—persistent rules making failure classes structurally impossible rather than documenting bugs.",
+    "content": "Our AI Agent Failed 5 Times in One Day. Here is Why It Never Happened Again.\n\n\nLAO Runtime Protection in action — real failures, self-repaired, permanently prevented, zero repeats.\nAugust 9, 2026 · by the ZWISERFIT engineering team\nAI agents fail silently. LAO makes failures visible and fixable.\nOn August 8, 2026, our agent orchestration system — LAO — ran a full 24-hour cycle under autonomous governance. The result: 5 distinct failures detected, repaired, anchored, and permanently prevented across 3 agents (Shuyu, Luna, Hermes) in 5 different failure modes.\nNot one error repeated. Not once did a founder intervene in the repair loop.\nThat is the claim. Here is the evidence.\n错误不会降低信任，隐藏错误才降低信任。\nThis isnt motivational rhetoric. Its an engineering constraint. Every event in our trust ledger follows the same chain:\nfailure → detection → repair → prevention → anchor\n\nAn anchor is the key word. Not a bug report that gets archived. A persistent, versioned rule that makes the same class of error structurally impossible going forward. Anchors are the immune memory of the system.\nAll metrics below are verified from ledger data.\nAn agent pushed a platform integration the founder never asked for, then forgot the corrected instruction entirely. Correcting an agent without persisting the correction fixes nothing.\nRepair: Three immutable anchors locked output standards. Intent Validation Gate v2 now blocks any non-requested platform integration before it is attempted.\nAn agent understood the right pattern but executed the wrong port — twice. Knowing and doing diverged.\nRepair: Structural prevention, not a better prompt.\nThe same class of mistake hit multiple agents independently. One gate stopped all of them.\n\n\n\nMetric\nValue\n\n\n\n\nFailures in 24h\n5\n\n\nRepeats\n0\n\n\nAnchors hardened\n114\n\n\nFounder interventions\n0\n\n\nToken compression\n99.0%\n\n\nMemory density gain\n62.2%\n\n\n\nModels dont remember. Each generation is fresh text. An agent can know the correct behavior in its context window and st",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我们的AI代理一天内失败了5次。以下是为什么它再也没有发生过的原因。",
+        "summary": "LAO代理编排系统通过不可变锚点在24小时内检测并永久阻止了三个代理上的五种不同故障模式——持久性规则使故障类别在结构上不可能发生，而不仅仅是记录错误。"
+      }
+    }
+  },
+  {
+    "title": "Your Service Map Is Lying",
+    "slug": "service-map-observability-async-gaps",
+    "url": "https://dev.to/ramesh-yara/your-service-map-is-lying-4g47",
+    "source": "DEV Community",
+    "date": "2026-08-09T18:10:22.000Z",
+    "summary": "Observability tools auto-generate service maps from instrumented spans but miss asynchronous dependencies falling outside client-server tracing; manual topology verification reveals critical gaps that automated discovery cannot detect.",
+    "content": "You attach the OpenTelemetry Java agent, point it at a collector, and within minutes Grafana is drawing a service map you never drew. A box for each service, arrows between them, latency on every edge. It feels like magic, and — more dangerously — it feels complete. \"The agent traces everything\" is the sentence repeated in every onboarding doc.\nThis is the story of the moment that sentence stopped being true on my platform, why I'm glad it did, and the difference between a system that is working and a system you can actually see.\nThe platform is an event-driven set of Spring Boot services: an API gateway in front, a user-service backed by MySQL, a notification-service backed by PostgreSQL, and Kafka carrying events between them. A user is created, an event is published, a notification is sent.\nI didn't want to draw that topology. A hand-drawn architecture diagram is documentation that drifts — true the day you commit it, slightly wrong a month later, actively misleading after a quarter. I wanted the dependency graph generated from live traffic, so it would always reflect what the system actually does.\nGrafana Tempo does exactly this. Its service-graphs processor reads matched client/server span pairs out of trace data and emits a metric — traces_service_graph_request_total — that Grafana renders as a node graph. No edge is ever wired by hand. The topology is derived, continuously, from real spans.\nI generated the graph and the synchronous edges lit up immediately:\napi-gateway → user-service\nuser-service → MySQL\nnotification-service → PostgreSQL\nThen I looked for the one edge I actually cared about — user-service → notification-service, the asynchronous hop over Kafka.\nIt wasn't there.\nThe tempting read is immediate and obvious: the async hop is broken. The event isn't getting across. Go debug the consumer.\nSo I checked. And the consumer was completely fine. notification-service had consumed every event and written every corresponding row to PostgreSQL. Its database",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的服务地图在撒谎",
+        "summary": "可观测性工具从仪表化跨度自动生成服务地图，但错过了落在客户端-服务器跟踪之外的异步依赖关系；手动拓扑验证揭示了自动发现无法检测的关键差距。"
+      }
+    }
+  },
+  {
+    "title": "Why a 24 GB GPU Does Not Give Your Local LLM 24 GB",
+    "slug": "gpu-memory-local-llm-budgeting",
+    "url": "https://dev.to/deep_mehta_b12a764b0ec6b5/why-a-24-gb-gpu-does-not-give-your-local-llm-24-gb-4b0k",
+    "source": "DEV Community",
+    "date": "2026-08-09T18:07:01.000Z",
+    "summary": "GPU memory budgeting for local LLMs requires accounting for display stack, runtime overhead, model weights, and KV cache; a 24 GB card typically provides only ~16 GB usable after overhead, with context length dramatically increasing cache needs.",
+    "content": "I keep seeing the same local LLM sizing mistake:\n\"The model file is smaller than my GPU, so it should fit.\"\nThat is only the first check. A 24 GB GPU does not give your model a clean 24 GB memory budget. The display stack, runtime, temporary buffers, model weights, and KV cache all compete for the same space.\nHere is the worksheet I use before I download a model or rent a GPU.\nThe simplest weight estimate is:\nweight_memory_gib = parameters * bits_per_parameter / 8 / 1024^3\n\nFor a simple 4-bit estimate:\n\n\n\nModel size\nWeight floor\n\n\n\n\n7B\n3.3 GiB\n\n\n13B\n6.1 GiB\n\n\n70B\n32.6 GiB\n\n\n\nThese are floors, not promises. Real quantized files can also contain scales, metadata, and layers stored at higher precision. If you know the exact checkpoint size, use that instead of the simple bits-per-parameter estimate.\nAlso use total parameters for a sparse mixture-of-experts model unless your runtime really offloads inactive experts. Active parameters describe compute per token. They do not automatically describe how many weights must be stored.\nI normally start with 90 percent usable VRAM for planning:\nusable_vram = physical_vram * usable_fraction\n\nFor a 24 GB card:\n24 * 0.90 = 21.6 GiB usable\n\nThe exact reserve depends on the OS, display use, driver, runtime, graph capture, allocator behavior, and other processes. The important part is to stop treating the number on the box as fully available.\nThe KV cache is where context length and concurrency become expensive.\nA useful planning formula is:\nkv_cache_bytes =\n  2\n  * layers\n  * kv_heads\n  * head_dimension\n  * context_tokens\n  * concurrent_sequences\n  * bytes_per_kv_value\n\nThe factor of two stores keys and values.\nTake a model with:\n32 layers\n8 KV heads\n128 dimensions per head\n8,192 cached tokens\n1 concurrent sequence\n16-bit KV values, which use 2 bytes\nThe KV cache is about 1 GiB.\nRaise the context to 32,768 tokens and it becomes about 4 GiB. Keep that context and run four concurrent sequences, and it becomes about 16 GiB.\nThis is why",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么24 GB GPU不能给你的本地LLM 24 GB",
+        "summary": "本地LLM的GPU内存预算需要考虑显示堆栈、运行时开销、模型权重和KV缓存；24 GB显卡在开销后通常只提供约16 GB可用内存，而上下文长度会显著增加缓存需求。"
+      }
+    }
+  },
+  {
+    "title": "Technical Documentation Template: Build Product Docs With a Tested Structure",
+    "slug": "technical-documentation-template",
+    "url": "https://dev.to/ninadpathak/technical-documentation-template-build-product-docs-with-a-tested-structure-39m7",
+    "source": "DEV Community",
+    "date": "2026-08-09T18:02:39.000Z",
+    "summary": "A reusable technical documentation template reduces initial structural decisions through five focused pages—index, getting-started, guides, reference, and troubleshooting—with built-in validation ensuring product docs start with proven structure.",
+    "content": "Originally published at https://ninadpathak.com/articles/technical-documentation-template/.\nCreating documentation often forces several decisions at once: where readers begin, how they complete the first task, where exact details belong, and how they recover when a step fails. A template reduces that first pass to a structure you can inspect and adapt.\nI built this template to solve a narrow problem: an empty documentation repository leaves every contributor to invent navigation, page responsibilities, and release checks again. It provides five focused pages, a local validator, and a strict build path so the structure is useful before the product-specific writing begins.\nDownload the template\nUnpack the archive, then replace the placeholders with evidence from your product. The remaining sections show what belongs in each page and how to verify the result.\nA technical documentation template is a reusable starting structure for product or engineering documentation. It should tell a contributor where a reader begins, where they complete a task, where they look up stable details, and where they recover from a known failure.\nA table of contents alone cannot do that work. It can label a page “Getting started” without establishing prerequisites, a tested command, an expected result, or a recovery path.\nThe starter contains five pages because they create a complete first route without pretending every product needs the same collection.\n\n\n\nPage\nReader job\nEvidence to add before publishing\n\n\n\n\nindex.md\nChoose the first useful task\nA direct route to the right starting page\n\n\ngetting-started.md\nComplete first setup\nPrerequisites, a tested command, expected output\n\n\nguides/send-a-request.md\nPerform one bounded task\nA full request and response or observable state\n\n\nreference/configuration.md\nLook up stable details\nNames, types, defaults, and constraints\n\n\ntroubleshooting.md\nRecover from a known failure\nSymptom, diagnostic check, cause, and recovery\n\n\n\nTutorials, how-to guides, r",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "技术文档模板：用经过验证的结构建立产品文档",
+        "summary": "可复用的技术文档模板通过五个专注的页面——索引、快速开始、指南、参考和故障排除——减少初期结构决策，并配备内置验证机制，确保产品文档从经过验证的结构开始。"
+      }
+    }
+  },
+  {
+    "title": "Beyond the Black Box: Reclaiming Developer Agency in an Era of AI-Assisted Coding",
+    "slug": "developer-agency-ai-assisted-coding",
+    "url": "https://dev.to/tamizuddin/beyond-the-black-box-reclaiming-developer-agency-in-an-era-of-ai-assisted-coding-2mf0",
+    "source": "DEV Community",
+    "date": "2026-08-09T18:00:33.000Z",
+    "summary": "AI-assisted coding risks eroding developer agency by encouraging acceptance of generated output without verification; the fluency heuristic makes working code appear trustworthy, potentially hiding subtle flaws in logic, error handling, or security.",
+    "content": "Originally published on tamiz.pro.\nThe promise of AI-assisted coding is seductive: velocity, reduced boilerplate, and the elimination of context-switching fatigue. Tools like GitHub Copilot, Cursor, and various IDE plugins have transitioned from novelty to necessity in many modern codebases. However, a subtle but dangerous drift is occurring in our development practices. We are witnessing a shift from \"writing code\" to \"reviewing AI output,\" and in doing so, we are ceding our most valuable asset as engineers: agency. When we stop asking how a system works and start accepting what the machine says it does, we degrade our ability to debug, architect, and innovate. This article argues that maintaining developer agency in the age of automation is not just a philosophical stance, but a critical engineering requirement for building robust, secure, and maintainable systems.\nThe primary threat to developer agency is the illusion of competence. When an AI generates a complex React component, a sophisticated regex, or a multi-join SQL query in seconds, it creates a cognitive shortcut. The human mind, prone to efficiency, often skips the deep verification step because the output \"looks right.\" This is known in psychology as the fluency heuristic—the ease with which information is processed is mistaken for its truthfulness.\nConsider the following scenario. You are tasked with implementing a rate-limiting middleware for an API endpoint. Instead of reviewing the existing express-rate-limit library or writing a simple in-memory counter, you ask your AI assistant to \"create a custom rate limiter using Redis.\" It provides a snippet using ioredis with a sliding window algorithm. The code compiles. It runs in your local environment. You merge the PR.\nThree months later, under load, your Redis connection pool exhausts. The AI-generated code did not handle connection errors gracefully, nor did it account for the latency spikes introduced by the network round-trip. Because you did not wr",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "超越黑箱：在人工智能辅助编码时代重塑开发者的自主权",
+        "summary": "人工智能辅助编码通过鼓励接受生成的代码而不进行验证，存在削弱开发者自主权的风险；流利性启发式使工作代码看起来可信，可能隐藏逻辑、错误处理或安全方面的微妙缺陷。"
+      }
+    }
+  },
+  {
+    "title": "A backup you haven't restored isn't a backup",
+    "slug": "database-backup-restoration-point-in-time",
+    "url": "https://dev.to/takiuddinahmed/a-backup-you-havent-restored-isnt-a-backup-4lj",
+    "source": "DEV Community",
+    "date": "2026-08-09T18:00:14.000Z",
+    "summary": "Migrating from managed cloud backups to self-hosted databases requires implementing continuous point-in-time recovery; Percona Backup for MongoDB enables arbitrary-moment recovery with acceptable CPU and restore-time trade-offs.",
+    "content": "Migrating from MongoDB Atlas to a self-hosted replica set bought us control and cut our bill. It also quietly removed something we had stopped thinking about: Atlas had been taking continuous backups for us the entire time.\nAfter the migration, production data for Prochesta lived in /var/db/mongo on a single VPS. No snapshots. No off-box copy. A rm -rf, a bad migration script, or a dead disk would have been the end of it. We had written \"backups\" as a follow-up task in the migration spec, which is the engineering equivalent of a sticky note on a bank vault.\nThe requirement we actually cared about was narrower than \"back up the database\". Most real-world data loss at our scale isn't hardware failure — it's a deploy that writes garbage, or someone running an update without a filter. Recovering to last night doesn't help when the damage happened at 14:20 and you noticed at 14:50. We needed to recover to an arbitrary moment, not to a nightly snapshot.\n$backupCursor\n\n\nWe chose Percona Backup for MongoDB (PBM), and immediately hit the limitation that shapes every decision downstream.\nPBM offers physical backups — fast file-level copies that restore in minutes and barely touch the running server. They work by opening a backup cursor via the $backupCursor aggregation stage. That stage exists in Percona Server for MongoDB and in MongoDB Enterprise. It does not exist in MongoDB Community, which is what the official mongo:8.0 image ships.\nSo on Community, PBM gives you logical backups only: every document read out through mongod, compressed, and shipped off-box. Two consequences, both accepted deliberately rather than discovered later:\nBackups cost CPU on the primary — and with a single-member replica set there's no secondary to offload the read to.\nRestores insert documents and rebuild indexes, so restore time grows with data size much faster than backup time does.\nAt our current size that's minutes, not hours. It's also the thing that will eventually justify swapping the ima",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "没有恢复过的备份不是真正的备份",
+        "summary": "从托管云备份迁移到自托管数据库需要实现持续的时间点恢复；MongoDB的Percona备份可以实现任意时刻恢复，具有可接受的CPU和恢复时间权衡。"
+      }
+    }
+  },
+  {
+    "title": "Mea Culpa – Dark Hours",
+    "slug": "mea-culpa-dark-hours",
+    "url": "https://blog.terrygodier.com/2026/08/09/mea-culpa-dark-hours.html",
+    "source": "Hacker News",
+    "date": "2026-08-09T13:20:43.000Z",
+    "summary": "Personal narrative exploring failure, growth, and lessons learned; 351 points and 147 comments on Hacker News indicate significant community engagement with the author's reflection on challenges and resilience.",
+    "content": "Article URL: https://blog.terrygodier.com/2026/08/09/mea-culpa-dark-hours.html\nComments URL: https://news.ycombinator.com/item?id=49231154\nPoints: 351\n# Comments: 147",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我的错误 – 黑暗时刻",
+        "summary": "个人叙述探讨失败、成长和经验教训；Hacker News上的351个点赞和147条评论表明社区对作者关于挑战和韧性反思的高度参与。"
+      }
+    }
+  },
+  {
     "title": "AmaliTech Apprenticeship Program (AAP) (AAP)",
     "slug": "amalitech-apprenticeship-program",
     "url": "https://dev.to/rukundokevin/amalitech-apprenticeship-program-aap-aap-2ojd",
