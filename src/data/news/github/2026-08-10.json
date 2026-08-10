@@ -1,5 +1,197 @@
 [
   {
+    "title": "Linking Go pprof Samples to OpenTelemetry Traces with OTLP Profiles",
+    "slug": "linking-go-pprof-samples-opentelemetry-traces-otlp",
+    "url": "https://dev.to/trknhr/linking-go-pprof-samples-to-opentelemetry-traces-with-otlp-profiles-1mf0",
+    "source": "DEV Community",
+    "date": "2026-08-10T07:37:34.000Z",
+    "summary": "This article demonstrates linking Go's CPU profiling (pprof) data to OpenTelemetry traces, enabling developers to correlate slow requests with specific functions consuming CPU time. The approach converts pprof samples to OTLP Profiles and connects them to trace spans, creating a workflow in Grafana that navigates from a slow span directly to a flame graph showing which functions caused the slowdown.",
+    "content": "Traces tell us which request was slow. CPU profiles tell us which functions consumed CPU time.\nCan we start from a slow span and open only the CPU profile samples captured while that span was running?\nThis article explores that question by converting Go's built-in pprof data into OTLP Profiles, then linking individual Profile Samples to OpenTelemetry Trace and Span IDs. The final result is a Grafana workflow that starts from a GET /cpu-heavy span and opens a Pyroscope flame graph containing main.countPrimes.\nThe complete lab is available in the go-pprof-otlp-profile-link repository.\nGo application -- OTLP Traces --> Collector --> Tempo\n       |\n       +-- Go pprof pull -------> Collector --> OTLP Profiles --> Pyroscope\n\nTempo + Pyroscope --> Grafana\n\nThis is a fixed-version experiment, not a production deployment guide. OpenTelemetry Profiles is still evolving, so API, Collector, and backend compatibility must be revalidated when versions change.\nThe main versions used in the lab are:\n\n\n\nComponent\nVersion\n\n\n\n\nOpenTelemetry Collector Core / Contrib\n0.158.0\n\n\nPyroscope\n2.2.0\n\n\nTempo\n3.0.2\n\n\nGrafana\n13.1.2\n\n\nGo\n1.25\n\n\n\nA Profile aggregates observations of a running program over a period of time. A CPU profiler periodically samples the active call stack and records where CPU time was spent.\nA four-second CPU Profile can be pictured like this:\nProfile (four-second CPU capture)\n├─ Sample A\n│  ├─ stack: main.countPrimes → main.burnCPU\n│  └─ value: CPU time\n├─ Sample B\n│  ├─ stack: runtime.gc\n│  └─ value: CPU time\n└─ Sample C\n   ├─ stack: main.countPrimes → main.burnCPU\n   └─ value: CPU time\n\nA Sample is an entry in the Profile. Multiple observations with the same stack and labels may be aggregated into one Sample entry. A Sample can contain:\nA call stack.\nOne or more measured values, such as CPU time.\nAttributes derived from profiler labels.\nAn optional Link to a Trace and Span.\nOTLP Profiles represents this data using shared dictionary tables. Samples refer to strings, fu",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用OTLP配置文件链接Go pprof样本到OpenTelemetry追踪",
+        "summary": "本文展示了如何将Go的CPU性能分析(pprof)数据链接到OpenTelemetry追踪,使开发者能够将慢请求与消耗CPU时间的特定函数相关联。该方法将pprof样本转换为OTLP配置文件并将其连接到追踪跨度,在Grafana中创建一个工作流,可以从慢跨度直接导航到火焰图,显示哪些函数导致了性能下降。"
+      }
+    }
+  },
+  {
+    "title": "Git: ডেভেলপার ও শিক্ষার্থীদের জন্য একটি পূর্ণাঙ্গ গাইড",
+    "slug": "git-developer-students-complete-guide",
+    "url": "https://dev.to/jeyaul_hoque/git-ddebhelpaar-o-shikssaarthiider-jny-ektti-puurnnaangg-gaaidd-5b1a",
+    "source": "DEV Community",
+    "date": "2026-08-10T07:29:09.000Z",
+    "summary": "This comprehensive Bengali-language guide introduces Git as a distributed version control system, covering essential concepts like repositories, branches, commits, and merge conflicts. The article walks through practical workflows and important commands, positioning Git as a time machine for project development that enables teams to track changes, recover from errors, and collaborate effectively.",
+    "content": "🚀 Git: ডেভেলপারদের জন্য Version Control-এর সম্পূর্ণ গাইড\n\n\n\n\"Code লিখা যতটা গুরুত্বপূর্ণ, সেই code-এর পরিবর্তনগুলো সঠিকভাবে manage করাও ততটাই গুরুত্বপূর্ণ।\"\nআপনি যদি Web Development, Software Development অথবা Programming শেখেন, তাহলে খুব দ্রুতই Git নামটির সঙ্গে পরিচিত হবেন।\nশুরুতে Git-এর commandগুলো একটু কঠিন মনে হতে পারে। git add, git commit, git push, git pull, branch, merge—সবকিছু একসাথে দেখলে মাথা ঘুরে যেতে পারে! 😅\nকিন্তু চিন্তার কিছু নেই।\nএই লেখায় আমরা একদম শুরু থেকে Git-এর গুরুত্বপূর্ণ বিষয়গুলো সহজ ভাষায় বুঝব এবং শেষে একটি practical workflow তৈরি করব।\nএই ব্লগটি পড়ার পর আপনি জানতে পারবেন:\nGit কী এবং কেন ব্যবহার করা হয়\nGit এবং GitHub-এর মধ্যে পার্থক্য\nRepository কী\nWorking Directory কী\nStaging Area কী\nCommit কী\nBranch কী\nHEAD কী\nMerge কী\nRemote Repository কী\npush এবং pull কীভাবে কাজ করে\nMerge Conflict কী এবং কীভাবে সমাধান করতে হয়\nreset, revert, rebase, cherry-pick কী\n.gitignore কী\nGit-এর সাধারণ workflow\nগুরুত্বপূর্ণ Git commands\nGit-এর ভালো practice\nGit হলো একটি Distributed Version Control System (DVCS)।\nসহজ ভাষায় বললে—\nGit আপনার project-এর পরিবর্তনের history সংরক্ষণ করে।\nধরুন আপনি একটি website তৈরি করছেন।\nআজ আপনার project এমন:\nindex.html\nstyle.css\nscript.js\n\nআগামীকাল আপনি অনেক পরিবর্তন করলেন।\nতারপর ভুল করে পুরো website নষ্ট হয়ে গেল! 😱\nএখন যদি Git ব্যবহার করেন, তাহলে আগের কোনো একটি commit-এ ফিরে গিয়ে project-এর পুরোনো অবস্থাটি দেখতে বা পুনরুদ্ধার করতে পারবেন।\nঅর্থাৎ Git অনেকটা আপনার project-এর time machine-এর মতো। ⏰\nGit তৈরি করা হয় ২০০৫ সালে, Linux Kernel-এর development-এর প্রয়োজন থেকে।\nGit-এর প্রধান লক্ষ্য ছিল:\n⚡ দ্রুত কাজ করা\n📦 বড় project handle করা\n🔀 শক্তিশালী branching ও merging\n🌐 Distributed ভাবে কাজ করা\nবর্তমানে Git software development-এর অন্যতম গুরুত্বপূর্ণ tool।\nএকজন developer হিসেবে Git আপনার অনেক সমস্যা সহজ করে দেয়।\nCode-এর পরিবর্তন track করা যায়\nআগের version দেখা যায়\nপুরোনো অবস্থায় ফিরে যাওয়া যায়\nএকাধিক developer একসাথে কাজ করতে পারে\nআলাদা feature-এর জন্য branch তৈরি করা যায়\nCode merge করা যায়\nProject-এর history সংরক্ষণ করা যায়\nRemote repositor",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Git:开发者与学生完全指南",
+        "summary": "这份综合性指南介绍了Git作为分布式版本控制系统,涵盖了仓库、分支、提交和合并冲突等基本概念。文章演练了实际工作流程和重要命令,将Git定位为项目开发的时间机器,使团队能够跟踪更改、从错误中恢复并有效协作。"
+      }
+    }
+  },
+  {
+    "title": "It speaks German. It cannot read a part number.",
+    "slug": "german-text-speech-qwen-part-numbers",
+    "url": "https://dev.to/aws-builders/it-speaks-german-it-cannot-read-a-part-number-1lc6",
+    "source": "DEV Community",
+    "date": "2026-08-10T07:25:17.000Z",
+    "summary": "Testing Qwen3-TTS 1.7B, a local German speech synthesis model running on Apple Silicon, revealed significant derailments when processing industrial documents containing part numbers and acronyms, with the model confidently reading incorrect content without error signals. Adding a text rewrite layer eliminated these failures completely, though the solution remains less stable than AWS Polly and requires ongoing maintenance.",
+    "content": "Local speech synthesis on a laptop, tested against the text that fills industrial documents.\nTL;DR\nTested Qwen3-TTS 1.7B (Apache 2.0) on Apple Silicon against forty German sentences full of part numbers, acronyms, dates and currency. Raw text derails: the model stops mid-identifier and reads twenty seconds of unrelated fluent German, no error. A text rewrite layer removes that completely, and what's left sits in identifiers. Polly on the same sentences, raw: zero derailments, no rules. The local voice also drifts, accent and speaker identity both, and no accuracy number catches it.\nUse Amazon Polly. Local is finally good enough to consider, but it costs you stability plus a rewrite layer to maintain. Worth it only for data residency, air-gapped sites, or cost at volume.\nThree of forty test sentences never got read.\nThe model started on a currency figure, stopped, and produced twenty seconds of fluent German about something else. No error, no warning. A confident voice saying the wrong thing.\nThat was the raw baseline. With a rewrite layer in front of the model, forty sentences it had never seen produced zero derailments.\nQwen3-TTS, Apache 2.0, 1.7B parameters, running on Apple Silicon through MLX. Nothing leaves the laptop. The fixtures were forty German sentences of the kind that fill workshop documentation and service records: compound nouns, acronyms, AWS service names, currency in German convention, dates, alphanumeric part identifiers.\nAlibaba's Qwen team shipped the model in January 2026, in two sizes and three modes. Custom voice picks from built-in speakers. Voice design builds a voice from a written description. Cloning takes three seconds of reference audio and carries that voice into the output. The official runtime targets CUDA. The Apple Silicon path came from the MLX community.\nThe smaller size got one exploratory pass: English fixtures, raw text, no rewrite layer. It derailed zero times where 1.7B derailed twice, but it missed more terms, five against",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "它会说德语。但它无法读取零件号。",
+        "summary": "对运行在Apple Silicon上的本地德语语音合成模型Qwen3-TTS 1.7B的测试显示,在处理包含零件号和缩写词的工业文档时存在严重脱轨现象,该模型在没有错误信号的情况下自信地读取不正确的内容。添加文本重写层完全消除了这些故障,尽管该解决方案比AWS Polly不太稳定,需要持续维护。"
+      }
+    }
+  },
+  {
+    "title": "Open Source WordPress Contribution: My July 2026 Recap",
+    "slug": "open-source-wordpress-contribution-july-2026",
+    "url": "https://dev.to/faisalahammad/open-source-wordpress-contribution-my-july-2026-recap-1f28",
+    "source": "DEV Community",
+    "date": "2026-08-10T07:11:01.000Z",
+    "summary": "The author contributed 24 pull requests across 9 WordPress repositories in July 2026, with 10 merges to WooCommerce core addressing issues ranging from one-line performance tweaks to new REST endpoints. Notable contributions include fixing a batch deletion bug in log cleanup that left expired logs accumulating and improving ListTable query optimization.",
+    "content": "July felt different from the start. I opened the month with a WooCommerce logging bug and closed it 24 pull requests later, spread across 9 different WordPress repositories. Some fixes took ten minutes. One took a full week of back and forth with a maintainer over a single line of code.\nThis post is my open source WordPress contribution recap for July 2026. I am sharing the actual code from each pull request, not just a list of links, so you can see what changed and why it mattered.\nWooCommerce took up the biggest chunk of my month. I merged 10 pull requests into the core plugin, ranging from a one-line performance tweak to a new REST endpoint. I will walk through each one.\nThe month opened with PR #66073. LogHandlerFileV2::delete_logs_before_timestamp() fetched expired log files without setting a per_page value, so it inherited the admin UI default of 20. On sites with more than 20 expired log sources, the daily cleanup cron deleted only the first 20 and left the rest sitting in wp-content/uploads/wc-logs/ forever.\nThe fix batches the deletion instead of trusting a single page:\n// BEFORE:\n$files = $this->file_controller->get_files( [ 'before' => $timestamp ] );\nforeach ( $files as $file ) {\n    $this->delete_log_file( $file );\n}\n\n// AFTER (batched with a no-progress guard):\ndo {\n    $files = $this->file_controller->get_files( [\n        'before'   => $timestamp,\n        'per_page' => 100,\n    ] );\n    $deleted_this_pass = 0;\n    foreach ( $files as $file ) {\n        if ( $this->delete_log_file( $file ) ) {\n            $deleted_this_pass++;\n        }\n    }\n} while ( $files && $deleted_this_pass > 0 );\n\nA site with 101 leftover log files now gets all of them removed instead of just 20. I added a no-progress guard so the loop stops if a batch cannot be deleted, which prevents an infinite loop on a stuck file.\nPR #66207 fixed a subtler bug. ListTable::prepare_items() decides whether to skip SQL_CALC_FOUND_ROWS by checking the query args before any filters run. If a deve",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "开源 WordPress 贡献：我的 2026 年 7 月回顾",
+        "summary": "作者在 2026 年 7 月向 9 个 WordPress 仓库提交了 24 个拉取请求，其中 10 个合并到 WooCommerce 核心，解决了从单行性能优化到新 REST 端点等各种问题。值得注意的贡献包括修复日志清理中的批量删除错误（该错误导致过期日志积累）以及改进 ListTable 查询优化。"
+      }
+    }
+  },
+  {
+    "title": "Build vs Buy: What Founders Get Wrong About Templates",
+    "slug": "build-buy-react-native-templates-framework",
+    "url": "https://dev.to/nikolas_mi_5f4aa63cc4080/build-vs-buy-what-founders-get-wrong-about-templates-494m",
+    "source": "DEV Community",
+    "date": "2026-08-10T07:10:19.000Z",
+    "summary": "The article frames the \"build or buy\" question for React Native apps as actually four separate questions: whether output will look generic, getting locked into third-party choices, whether templates are recycled code, and ethical concerns about code authorship. Most consumer apps derive differentiation from product features rather than infrastructure, making template adoption a pragmatic engineering choice.",
+    "content": "Every week a founder DMs me the same question: \"Should I build my React Native app from scratch or buy a template?\" Here's the framework I use to answer it, plus the five wrong assumptions that make the debate louder than it needs to be.\nDifferentiation lives in the product (AI pipeline, marketplace mechanics, workflow)? Buy a template and spend your engineering budget on the differentiation.\nDifferentiation lives in the infrastructure (custom protocol, native audio pipeline, novel storage engine)? Build from scratch.\nRoughly 90% of consumer and prosumer apps live in bucket one and pretend to live in bucket two.\n\"Build or buy\" is really four separate questions wearing a trench coat. Answer them separately or the debate never resolves.\n\"Build or buy\" is a stand-in for four separate questions:\nWill my app look like shovelware?\nWill I get stuck when I need to change something?\nIs a $79 template recycled GitHub code?\nAm I \"cheating\" if I didn't write every line?\nEach has a different answer. Bundling them together is why the debate never resolves.\nBoth paths start from the same primitives: React Native, Expo, a DB, an auth provider. A template just made 200 opinionated decisions for you: the same 200 you'd make identically after two months of research.\n# What a template saves you from doing yourself\nnpx create-expo-app my-app\n# ... then 60 hours of:\n# - navigation library selection\n# - auth flow\n# - form validation\n# - RLS policies\n# - Stripe webhook handlers\n# - EAS build config\n# - push notification setup\n# - offline handling\n# - error boundaries\n# - image caching\n\nYou still have full control. Templates ship source code. You just skip the mandatory chores.\nTake away the color, logo, and copy from the App Store's top 100. What's left? Tab bar, list, detail, modal, auth. Uniqueness comes from brand, motion, and product concept, not from the base template.\nA React Native template that uses NativeWind can be re-themed in an afternoon:\n// tailwind.config.js: the entire re-b",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建 vs 购买：创始人对模板的误解",
+        "summary": "文章将 React Native 应用的\"构建或购买\"问题框架化为四个独立的问题：输出是否看起来通用、是否被锁定到第三方选择、模板是否是回收代码，以及关于代码所有权的伦理问题。大多数消费者应用的差异化来自产品功能而非基础设施，使模板采用成为一个务实的工程选择。"
+      }
+    }
+  },
+  {
+    "title": "Automatically Renewing Tailscale HTTPS Certificates on PiKVM",
+    "slug": "automatically-renewing-tailscale-https-certificates",
+    "url": "https://dev.to/vast-cow/automatically-renewing-tailscale-https-certificates-on-pikvm-58e9",
+    "source": "DEV Community",
+    "date": "2026-08-10T07:08:34.000Z",
+    "summary": "This guide explains how to automate HTTPS certificate renewal for Tailscale certificates on PiKVM using a systemd timer that checks certificate expiration daily and renews when less than 30 days of validity remain. The approach integrates the renewal process into PiKVM's nginx configuration, ensuring certificates stay current without manual intervention.",
+    "content": "It is appropriate to continue using\nssl_certificate /etc/kvmd/nginx/ssl/server.crt;\nssl_certificate_key /etc/kvmd/nginx/ssl/server.key;\n\nin /etc/kvmd/nginx/ssl.conf, with a systemd timer checking the certificate expiration and updating these two files only when necessary.\nThe official PiKVM documentation also describes placing the Tailscale certificate in /etc/kvmd/nginx/ssl/server.{crt,key}, setting the group to kvmd-nginx, and then restarting kvmd-nginx. (Pikvm) Also, certificates obtained as files using tailscale cert are not automatically renewed, so users need to implement their own renewal process. --min-validity is also officially available in the current CLI. (Tailscale)\nNormally, the setup looks like this.\nTailscale\n   │\n   │ 100.x / MagicDNS\n   ▼\nPiKVM nginx :443\n   │\n   ├─ /etc/kvmd/nginx/ssl/server.crt\n   └─ /etc/kvmd/nginx/ssl/server.key\n\nDo not use tailscale serve.\ntailscale serve --https=443 off\n\nThe certificate renewal process will be:\nTimer runs once a day\n        │\n        ▼\nCheck current server.crt\n        │\n        ├─ FQDN is correct\n        │  and at least 30 days remain\n        │       → Do nothing\n        │\n        └─ Less than 30 days / no certificate / hostname mismatch\n                │\n                ▼\n               rw\n                │\n                ▼\n        tailscale cert\n                │\n                ▼\n        Validate cert/key\n                │\n                ▼\n        Replace nginx files\n                │\n                ▼\n        nginx -t\n                │\n                ▼\n        restart kvmd-nginx\n                │\n                ▼\n               ro\n\nLet’s Encrypt certificates are valid for 90 days, so attempting renewal starting 30 days before expiration provides plenty of margin. (Tailscale)\nCreate /usr/local/sbin/pikvm-tailscale-cert-renew.\n#!/usr/bin/env bash\nset -Eeuo pipefail\n\nexport PATH=/usr/local/sbin:/usr/local/bin:/usr/bin\n\nCERT=\"/etc/kvmd/nginx/ssl/server.crt\"\nKEY=\"/etc/kvmd/nginx/ssl/server.key\"\n\n# 30 days",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在 PiKVM 上自动续期 Tailscale HTTPS 证书",
+        "summary": "本指南解释了如何使用 systemd 定时器自动续期 PiKVM 上的 Tailscale HTTPS 证书，该定时器每天检查证书过期情况，并在有效期少于 30 天时进行续期。该方法将续期过程集成到 PiKVM 的 nginx 配置中，确保证书在没有手动干预的情况下保持最新。"
+      }
+    }
+  },
+  {
+    "title": "Three public HTTP APIs I read daily without registering for a key",
+    "slug": "three-public-http-apis-without-api-key",
+    "url": "https://dev.to/morinaga/three-public-http-apis-i-read-daily-without-registering-for-a-key-1aid",
+    "source": "DEV Community",
+    "date": "2026-08-10T07:06:01.000Z",
+    "summary": "The article describes three keyless public HTTP APIs—Hacker News, dev.to, and one other—used in a daily GitHub Actions pipeline to identify trending development stories without storing API credentials. Eliminating API keys reduces operational complexity by removing secrets that expire, need rotation, and create failure surfaces in CI environments.",
+    "content": "My daily trends fetch is a Node.js script that runs in GitHub Actions, hits three APIs, and writes a JSON file that feeds my X-drafts pipeline later in the day. None of the three sources require an API key. No OAuth flow, no dashboard signup, no rate-limit token to rotate.\nThat sounds trivial, but it matters for CI pipelines. Every API key stored in GitHub Secrets is a secret that can expire, a secret that has to be rotated when a team member leaves, a secret that creates a failure surface. Keyless reads eliminate all of that for the sources where it's possible.\nHere are the three I use and the practical limits of each.\nThe HN API is publicly documented on GitHub and hosted on Firebase. No key, no auth header, no rate limit published in the official docs.\nconst ids = await fetchJSON(\n  \"https://hacker-news.firebaseio.com/v0/topstories.json\"\n);\nconst items = await Promise.all(\n  ids.slice(0, 20).map((id) =>\n    fetchJSON(`https://hacker-news.firebaseio.com/v0/item/${id}.json`)\n  )\n);\n\nThis returns the top story IDs, then fetches each item. The item objects include title, url, score, and descendants (comment count). For my use case — grabbing the top 20 stories to identify what's trending in dev — that's everything I need.\nThe practical limit is latency. Fetching 20 items individually over Firebase takes 2–4 seconds depending on cold-start behavior. Parallelizing with Promise.all handles this fine in a script context. In a browser context, sequential fetches would be painful.\nFirebase occasionally throttles aggressively for a few minutes if you hit it from many IPs in a short window. In four months of daily runs from GitHub Actions I've hit this once. The fix was a 500ms delay between item fetches, which is enough to avoid triggering it in practice.\ndev.to exposes a read-only articles endpoint that works without authentication for public content. The top=1 parameter returns articles sorted by recent reaction count.\nconst items = await fetchJSON(\n  \"https://dev.to/api/",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我每天阅读的三个无需注册密钥的公共HTTP API",
+        "summary": "本文介绍了三个无需密钥的公共HTTP API——Hacker News、dev.to和另一个API——在日常GitHub Actions管道中用于识别热门开发故事，无需存储API凭证。消除API密钥通过移除会过期、需要轮换并在CI环境中造成故障点的机密来降低操作复杂性。"
+      }
+    }
+  },
+  {
+    "title": "Notable this week: WeatherNext, Oracle OpenJDK AI ban, DeepMind reshuffle, Shieldstral",
+    "slug": "notable-week-weathernext-oracle-deepmind",
+    "url": "https://dev.to/morinaga/notable-this-week-weathernext-oracle-openjdk-ai-ban-deepmind-reshuffle-shieldstral-57o6",
+    "source": "DEV Community",
+    "date": "2026-08-10T07:05:57.000Z",
+    "summary": "This week's notable releases include DeepMind's WeatherNext weather forecasting model with improved cyclone trajectory prediction, Google's leadership restructuring with Demis Hassabis moving to Chair, Oracle's prohibition on AI-generated code in OpenJDK, and other technical announcements. These developments signal potential shifts in how frontier AI labs prioritize commercialization versus open research.",
+    "content": "Five things I bookmarked this week. They span a range — a climate AI model, an open-source policy move, a lab restructuring, an operational scraper account, and a new small moderation model. None of these appeared in last Saturday's notable releases post, which focused on agent frameworks and frontier models.\nHN score: 366, 494 comments on August 5 — one of the higher-comment threads of the week. Google announced that Demis Hassabis moves from CEO to Chair of Google DeepMind, and Jeff Dean is departing. The announcement came through Google's official blog. These transitions at frontier research labs tend to shift what gets prioritized over the following 12-18 months. Moving a founder to Chair often signals a pivot toward product or commercialization under new leadership — which says something about where DeepMind sits in Google's roadmap. I'm watching whether this changes DeepMind's stance on open weights; that's been a point of differentiation between DeepMind and the pure commercial labs, and it tends to get re-litigated when leadership changes. Source: Google blog.\nScore: 341, 106 comments on August 8. WeatherNext is DeepMind's new weather forecasting model with announced improvements on cyclone trajectory prediction. The specific framing — breakthrough on severe weather events rather than general forecast accuracy — is meaningful because cyclone prediction errors have historically had direct emergency-response consequences. I don't have a clear view yet on how it compares to ECMWF operationally; that comparison matters and I'll revisit once there's independent benchmarking. What seems defensible now: AI weather models crossing from \"research interesting\" to \"potentially useful for emergency response\" is a distinct capability threshold from the frontier LLM race, and worth tracking separately. Source: DeepMind blog.\nScore: 317, 225 comments on August 7. Oracle prohibited AI-generated code contributions from being merged into OpenJDK, despite Larry Ellison's publi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "本周值得关注：WeatherNext、Oracle OpenJDK AI禁令、DeepMind改组、Shieldstral",
+        "summary": "本周值得关注的发布包括DeepMind的WeatherNext天气预报模型（改进了台风轨迹预测）、Google的领导力重组（Demis Hassabis担任主席）、Oracle禁止在OpenJDK中使用AI生成的代码以及其他技术公告。这些发展表明前沿AI实验室对商业化与开放研究优先级的潜在转变。"
+      }
+    }
+  },
+  {
+    "title": "How We Built an Evidence-Backed Directory for AI Email Assistants",
+    "slug": "evidence-backed-directory-ai-email-assistants",
+    "url": "https://dev.to/elie222/how-we-built-an-evidence-backed-directory-for-ai-email-assistants-376k",
+    "source": "DEV Community",
+    "date": "2026-08-10T07:05:29.000Z",
+    "summary": "The article describes building an evidence-based directory of AI email assistants by focusing on a specific product category with consistent buying questions rather than a broad AI directory. The approach uses detailed research dossiers covering capabilities, pricing, privacy, and provider support to create meaningful product comparisons unavailable in typical software directories.",
+    "content": "Most software directories have the same failure mode: they look comprehensive, but the entries are thin rewrites of vendor landing pages.\nThat is especially risky for AI email tools. A product may call itself an “AI email assistant” while doing anything from suggesting a single reply to autonomously triaging a shared support inbox. Pricing changes, provider support differs, and the privacy details matter because the software may read the most sensitive data in a company.\nWe wanted a better way to compare the category, so we built AI Email Assistants, a focused directory generated from research dossiers rather than a hand-maintained list of cards.\nThis is the process behind it and what we learned.\nOur first temptation was to build a broad AI-assistant directory. That would have given us a much larger pool of products and keywords.\nIt also would have made the site less useful.\n“AI assistant” can describe a coding tool, meeting recorder, research agent, calendar app, or email client. A visitor cannot meaningfully compare those products. Email gave us a constrained problem with real buying questions:\nDoes it work with Gmail, Outlook, or other providers?\nIs it an assistant inside the existing inbox or a replacement email client?\nDoes it draft, triage, send, or act autonomously?\nIs it for a personal inbox, sales, or customer support?\nWhat does it cost after the trial?\nWhat email data does it retain or send to model providers?\nA vertical directory can answer those questions with a consistent data model. A broad directory usually cannot.\nWe researched dozens of products before deciding what each card should show.\nEach product has a Markdown dossier covering the same broad areas:\nProduct identity and current status\nEmail-provider and platform support\nCore AI capabilities\nPricing, limits, and trial terms\nPrivacy, security, and permissions\nBest-fit use cases and important limitations\nFirst-party evidence\nIndependent reviews and recent community signal\nThe dossier is the source",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我们如何为AI邮件助手构建了一个证据支持的目录",
+        "summary": "本文介绍了通过专注于具有一致购买问题的特定产品类别而不是广泛的AI目录来构建AI邮件助手的证据支持的目录。该方法使用详细的研究档案，涵盖功能、定价、隐私和提供商支持，以创建典型软件目录中不可用的有意义的产品比较。"
+      }
+    }
+  },
+  {
+    "title": "Native HTTP Engine for Node: Performance Benchmarks Against uWS, Bun, Fastify, and Hono",
+    "slug": "native-http-engine-node-performance-benchmarks",
+    "url": "https://dev.to/raiyanu/native-http-engine-for-node-performance-benchmarks-against-uws-bun-fastify-and-hono-ne8",
+    "source": "DEV Community",
+    "date": "2026-08-10T07:05:20.000Z",
+    "summary": "A native HTTP engine for Node.js using a C++ core with raw V8 bindings shows performance improvements over the standard node:http module and competitive results against uWebSockets, particularly in pipelined request scenarios where response corking and batching achieve approximately 10% gains. The design minimizes JavaScript/C++ boundary crossings from typical 10-20 per request down to 2-4, improving throughput.",
+    "content": "Overview\n\n\nA native HTTP engine for Node.js has been developed with the goal of providing a faster, built-in alternative to the standard node:http module. This engine is designed to address performance bottlenecks and reduce the overhead of third-party native addons.\nBenchmarks were conducted on a Node 24.11 environment running on an M2 Ultra machine. The testing tool was wrk with 100 connections over a 40-second duration, recording the best result of three runs. All packages were pulled from npm rather than built locally.\n\n\n\nServer\nNon-pipelined\nPipelined ×10\n\n\n\n\n@morojs/engine\n105,974\n663,735\n\n\nuWebSockets.js\n103,744\n647,530\n\n\nraw Bun.serve\n\n107,119\n21,686\n\n\nraw node:http\n\n69,045\n109,538\n\n\nHono\n56,926\n100,278\n\n\n\n  Non-pipelined Performance: The non-pipelined column appears to be limited by the test machine's maximum capacity, with native transports converging around 105k requests per second. Bun.serve marginally leads in this metric. Adding a framework like Elysia on top of Bun.serve reduces its performance to 96.7k requests per second.\n  Pipelined Performance: The new engine shows a significant advantage in pipelined requests, achieving about a 10% improvement over uWebSockets.js once a framework is integrated. This is attributed to response corking and batching pipeline requests into a single write operation.\nA full performance matrix and testing harness are available in the benchmark repository.\nThe engine is built with a C++ core using raw V8 bindings instead of N-API. The primary design principle is to minimize boundary crossings between C++ and JavaScript.\n  General-purpose bindings typically perform 10-20 JavaScript crossings per request.\n  This engine reduces crossings to 2-4 per request by batching request snapshots and response writes.\nCorking is central to the performance gains, particularly for pipelined requests. Version 1.1.0 introduced batching of an entire pipeline into a single write, along with a zero-allocation hot path, resulting in a 3.7x impr",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Node.js原生HTTP引擎：与uWS、Bun、Fastify和Hono的性能基准测试",
+        "summary": "一个使用C++核心和原始V8绑定的Node.js原生HTTP引擎相比标准node:http模块显示性能改进，并与uWebSockets相比具有竞争力，特别是在管道请求场景中，响应软木塞和批处理实现了约10%的增益。该设计将JavaScript/C++边界交叉从典型的每个请求10-20次最小化到2-4次，提高了吞吐量。"
+      }
+    }
+  },
+  {
+    "title": "Gyroscope tilt steering (mobile)",
+    "slug": "gyroscope-tilt-steering-mobile-devlog",
+    "url": "https://dev.to/weirdcodesofficial/gyroscope-tilt-steering-mobile-2k4g",
+    "source": "DEV Community",
+    "date": "2026-08-10T07:04:00.000Z",
+    "summary": "This devlog documents adding device gyroscope tilt steering to a mobile chariot game, enabling players to control using device orientation rather than touch controls. The implementation includes iOS 13+ permission handling, baseline calibration, configurable deadzone, and HUD controls for enable/recalibration, with i18n support for English and Hindi.",
+    "content": "Devlog — Gyroscope tilt steering (mobile)\n\n\n\nDate: 2026-08-10\n\nAuthor: pj90 (weirdcodesofficial)\n\nCommit: 947f78d3e9474549c86db5dae7d199cdd9ca0712\n\nCloses: #28\nAdded device-tilt (gyroscope) steering for mobile so players can control the chariot (ratha) using the DeviceOrientation API. The feature includes iOS 13+ permission flow, baseline calibration, a configurable deadzone to avoid accidental steering, a HUD button for enable/re-calibrate, and i18n strings + UI alerts.\nNew GyroscopeControls class that reads DeviceOrientation gamma and injects arrow keys into the shared keys object used by the engine.\niOS 13+ permission-aware flow via DeviceOrientationEvent.requestPermission() (called inside a user gesture).\nCalibration: the first orientation event after enabling is recorded as baseline; re-clicking the HUD button re-zeroes baseline.\nDeadzone ±10° (configurable) to avoid accidental steering.\nKey-ownership semantics so the gyro only clears keys it set (prevents clobbering keyboard/touch input).\nHUD UX: a #gyro-btn icon is added (visible only on touch+sensor devices). Button toggles to a recalibrate state and shows alerts when permission is granted/denied or calibration occurs.\ni18n: added English + Hindi strings for gyro UI and alerts.\nStyling: added .gyro-active CSS for the active button state.\nIntegration in main.js: imported/instantiated GyroscopeControls, logic to show UI, requestPermission flow on button click, and language-aware title updates.\nindex.html\n\n\nAdded HUD button: <button id=\"gyro-btn\" ... style=\"display:none;\">🌀</button>\n\n\n\n\nsrc/i18n.js\n\n\nAdded i18n keys: gyro.title, gyro.recalibrate, alert.gyroEnabled.*, alert.gyroDenied.*, alert.gyroCalibrate.* (Hindi + English)\nsrc/main.js\n\n\nImported GyroscopeControls\n\nInstantiated gyro controller\nShow/hide gyro button when touch + orientation supported\nClick handler for #gyro-btn: requestPermission(), calibrate() on re-click, and engine alerts\nUpdated applyStartScreenLanguage() to update gyro button title per l",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "陀螺仪倾斜转向（手机版）",
+        "summary": "本开发日志记录了为手机战车游戏添加设备陀螺仪倾斜转向功能，使玩家能够使用设备方向而不是触摸控制进行操作。该实现包括iOS 13+权限处理、基线校准、可配置的死区和用于启用/重新校准的HUD控制，支持英语和印地语的国际化。"
+      }
+    }
+  },
+  {
+    "title": "Designing Idempotent and Observable API Integrations in MuleSoft: A Production-Ready Approach",
+    "slug": "idempotent-observable-api-integrations-mulesoft",
+    "url": "https://dev.to/prowesssoft/designing-idempotent-and-observable-api-integrations-in-mulesoft-a-production-ready-approach-99a",
+    "source": "DEV Community",
+    "date": "2026-08-10T07:00:45.000Z",
+    "summary": "The article explains how to design production-ready MuleSoft integrations by implementing idempotency (preventing duplicate operations on retries) and observability (tracing what happened during failures). A stable identifier for each business operation enables the system to distinguish between retried requests and new requests, preventing duplicate orders, invoices, and payments that occur when connections drop.",
+    "content": "A MuleSoft integration can work perfectly during development and still behave unexpectedly in production.\nThe reason is simple: production systems are messy.\nConnections drop. External applications respond slowly. Clients retry requests. Workers restart. A downstream system may complete an operation even though Mule never receives the response.\nThat is when a seemingly harmless retry can become a duplicate order, duplicate invoice, repeated employee record, or—worse—a duplicate payment.\nReliable integrations therefore need to answer two very different questions:\nHave we already processed this business request?\nAnd:\nIf something goes wrong, can we trace exactly what happened?\nThe first is an idempotency problem.\nThe second is an observability problem.\nFor enterprise MuleSoft applications, both should be part of the design rather than something added after an incident.\nWhy Successful API Calls Are Not Enough\nConsider a simple order flow:\nCustomer Application\nThe client sends:\nPOST /orders\nThe Process API calls the ERP.\nThe ERP creates the order successfully.\nBut before the success response gets back to Mule, the connection times out.\nMule sees a failure.\nThe ERP sees a completed transaction.\nThe client sees no confirmation and sends the same request again.\nNow the important question is not:\nDid the HTTP call succeed?\nIt is:\nHas this business operation already been completed?\nWithout a way to answer that question, retries become dangerous.\nGive Every Important Business Operation an Identity\nThe foundation of idempotency is a stable identifier.\nSuppose an application creates an order and sends:\nPOST /orders\nIf the client retries the same order creation request, it should send the same key.\nThat gives the integration something meaningful to check before processing the request again.\nConceptually:\nRequest arrives\nIn MuleSoft, the Idempotent Message Validator can be used as one part of this pattern.\nA simplified configuration might look like:\n<os:private-object-store\n    a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在MuleSoft中设计幂等和可观测的API集成：生产就绪方法",
+        "summary": "本文解释了如何通过实现幂等性（防止重试时的重复操作）和可观测性（追踪故障期间发生的情况）来设计生产就绪的MuleSoft集成。为每个业务操作提供稳定的标识符使系统能够区分重试请求和新请求，防止连接断开时发生的重复订单、发票和付款。"
+      }
+    }
+  },
+  {
     "title": "[Advanced Rust] 2.8. API Design Principles of Flexibility Pt.4 - Problems with Explicit Destructors and Three Solutions",
     "slug": "advanced-rust-explicit-destructors-drop-trait",
     "url": "https://dev.to/someb1oody/advanced-rust-28-api-design-principles-of-flexibility-pt4-problems-with-explicit-destructors-h7k",
