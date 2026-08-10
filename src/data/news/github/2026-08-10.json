@@ -1,0 +1,194 @@
+[
+  {
+    "title": "[Advanced Rust] 2.8. API Design Principles of Flexibility Pt.4 - Problems with Explicit Destructors and Three Solutions",
+    "slug": "advanced-rust-explicit-destructors-drop-trait",
+    "url": "https://dev.to/someb1oody/advanced-rust-28-api-design-principles-of-flexibility-pt4-problems-with-explicit-destructors-h7k",
+    "source": "DEV Community",
+    "date": "2026-08-10T01:43:35.000Z",
+    "summary": "This article explores problems that arise when implementing the Drop trait for resource-managing types like file handles. When Drop is implemented, you cannot move fields out of self, and since Drop takes &mut self rather than owning self, it creates fundamental constraints on explicit destructors. The article sets up solutions to these design challenges.",
+    "content": "2.8.1. Problems with Explicit Destructors\n\n\nProblems arise when you add an explicit destructor:\nWhen a type implements Drop, you cannot move any of its fields out inside the destructor. That is because after the explicit destructor runs, drop() will still be called, and it takes &mut self, which requires all parts of self to remain in place.\nDrop takes &mut self rather than self, so Drop cannot simply call the explicit destructor and ignore its result, because Drop does not own self\n\n\n\nBased on the example from the previous article, if we add both a Drop implementation and a close method:\nuse std::os::fd::{FromRawFd, IntoRawFd};\nuse std::fs::{File as StdFile, OpenOptions, metadata};\nuse std::io::Error;\n\n/// A type that represents a file handle\nstruct File {\n    /// File name\n    name: String,\n    /// File descriptor\n    fd: i32,\n}\n\nimpl File {\n    /// A constructor that opens a file and returns a `File` instance\n    fn open(name: &str) -> Result<File, Error> {\n        // Open the file with read and write permissions using `OpenOptions`\n        let file: StdFile = OpenOptions::new()\n            .read(true)\n            .write(true)\n            .open(name)?;\n\n        // Obtain the file descriptor\n        let fd: i32 = file.into_raw_fd();\n\n        // Return a `File` instance\n        Ok(File {\n            name: name.to_string(),\n            fd,\n        })\n    }\n\n    /// An explicit destructor that closes the file and returns any error\n    fn close(self) -> Result<(), Error> {\n        // Convert the fd back into a `File` using `FromRawFd`\n        let file: std::fs::File = unsafe {\n            std::fs::File::from_raw_fd(self.fd)\n        };\n\n        // Flush file data to disk\n        file.sync_all()?;\n\n        // Truncate the file to 0 bytes\n        file.set_len(0)?;\n\n        // Flush the file again\n        file.sync_all()?;\n\n        // Drop the file instance; it will close the file automatically\n        drop(file);\n\n        // Return success\n        Ok(())\n    }\n}\n\n// Impl",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "[高级 Rust] 2.8. 灵活性 API 设计原则第 4 部分 - 显式析构函数的问题和三个解决方案",
+        "summary": "本文探讨了为文件句柄等资源管理类型实现 Drop trait 时出现的问题。实现 Drop 时，无法将字段从 self 中移出，由于 Drop 使用 &mut self 而不是拥有 self，这对显式析构函数造成了根本性的约束。该文章为这些设计挑战提供了解决方案。"
+      }
+    }
+  },
+  {
+    "title": "How to Set Up an OpenClaw Agent on a VPS (Step-by-Step)",
+    "slug": "setup-openclaw-agent-vps-24-7",
+    "url": "https://dev.to/hakiimi_claw/how-to-set-up-an-openclaw-agent-on-a-vps-step-by-step-abo",
+    "source": "DEV Community",
+    "date": "2026-08-10T01:40:38.000Z",
+    "summary": "A step-by-step guide to deploying an OpenClaw agent on a Linux VPS for 24/7 automation without keeping your laptop on. The setup covers installing Node.js and OpenClaw, configuring the gateway with security best practices (binding to loopback, using strong tokens), and integrating with communication channels for remote job scheduling.",
+    "content": "Running an OpenClaw agent on a VPS unlocks 24/7 automation without keeping your laptop on. This is the setup I use for my content agents. Here is the exact path.\nA VPS gives your agents a permanent home: always-on, stable IP, no sleep mode, and room for multiple agents and scheduled jobs. Any basic Linux VPS (2GB RAM) is enough to start.\nChoose a Linux distro (Ubuntu 22.04 LTS is the easiest start).\nConnect over SSH.\nUpdate everything: sudo apt update && sudo apt upgrade -y.\ncurl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -\nsudo apt-get install -y nodejs\nnode --version\n\nnpm i -g openclaw\nopenclaw --version\n\nConfigure the gateway token and keep it bound to loopback or behind a reverse proxy.\nCreate /etc/systemd/system/openclaw.service, enable and start it, and your gateway comes back automatically after any reboot.\nWith the agent headless on the server, connect a chat channel (Telegram, Slack, Discord) and schedule jobs on the server clock.\nKeep the gateway bound to 127.0.0.1 or behind HTTPS reverse proxy.\nUse a strong auth token.\nNever expose raw ports publicly.\nThat is the whole flow: server, Node, OpenClaw, systemd, remote access. Once it is running, your agent works around the clock - the entire point of a VPS.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何在 VPS 上设置 OpenClaw Agent（分步指南）",
+        "summary": "这是一份在 Linux VPS 上部署 OpenClaw agent 的分步指南，用于 24/7 自动化而无需保持笔记本电脑开启。该设置涵盖安装 Node.js 和 OpenClaw、使用安全最佳实践配置网关（绑定到本地环回、使用强令牌）以及与通信渠道集成以进行远程作业调度。"
+      }
+    }
+  },
+  {
+    "title": "How AI Website Builders Actually Work: From Prompt to Production App",
+    "slug": "ai-website-builders-prompt-to-code",
+    "url": "https://dev.to/victor_azubuike_cbe29672b/how-ai-website-builders-actually-work-from-prompt-to-production-app-47p2",
+    "source": "DEV Community",
+    "date": "2026-08-10T01:35:18.000Z",
+    "summary": "This article breaks down how AI website builders translate natural language prompts into complete applications by first converting vague intent into structured requirements, then planning architecture, and finally generating code. The process involves multiple stages from initial understanding through iteration and deployment.",
+    "content": "AI website builders look almost magical from the outside.\nYou type something like:\nBuild a modern SaaS website for an AI accounting tool.\n\nAnd a few moments later, you have:\na hero section\nnavigation\nfeatures\npricing\nFAQs\nbuttons\nresponsive layouts\nsometimes even working application logic\nIt can look like the AI simply “understood the website” and created it.\nBut there’s much more happening underneath.\nA useful mental model is:\nPrompt\n  ↓\nIntent Understanding\n  ↓\nStructure Planning\n  ↓\nComponent Generation\n  ↓\nCode Generation\n  ↓\nPreview\n  ↓\nUser Feedback\n  ↓\nIteration\n  ↓\nDeployment\n\nModern AI website builders are essentially turning natural language into a development workflow.\nThat’s what makes them interesting.\nLet’s break down how the process works.\nImagine a user enters:\nBuild a landing page for a cybersecurity startup\nselling compliance software to financial companies.\n\nThe AI shouldn’t interpret this as only:\nCreate HTML.\n\nIt needs to infer much more.\nFor example:\nWebsite Type:\nB2B SaaS\n\nAudience:\nFinancial institutions\n\nIndustry:\nCybersecurity / Compliance\n\nPrimary Goal:\nGenerate demos or trials\n\nDesign Direction:\nProfessional\nSecure\nEnterprise\n\nLikely Sections:\nHero\nTrust Signals\nProblem\nFeatures\nCompliance\nIntegrations\nTestimonials\nCTA\nFAQ\n\nThe initial prompt becomes a set of structured requirements.\nThat’s the first major job of an AI website builder:\nturn vague human intent into implementation decisions.\nOnce the system understands the project, it needs to decide what should exist.\nFor a simple landing page:\nHome\n├── Navigation\n├── Hero\n├── Benefits\n├── Features\n├── Social Proof\n├── Pricing\n├── FAQ\n└── Footer\n\nFor a larger SaaS site:\n/\n├── Home\n├── Pricing\n├── Features\n├── Use Cases\n├── About\n├── Blog\n└── Contact\n\nFor an ecommerce site:\n/\n├── Home\n├── Products\n│   └── Product Detail\n├── Collections\n├── Cart\n├── Checkout\n└── Account\n\nThis architectural step matters because the builder isn't just creating pretty sections.\nIt is determining:\nwhat pages exi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI 网站构建器实际上如何工作：从提示到生产应用",
+        "summary": "本文分解了 AI 网站构建器如何通过首先将模糊意图转换为结构化需求、然后规划架构、最后生成代码，将自然语言提示转化为完整应用的过程。该过程涉及从初始理解到迭代和部署的多个阶段。"
+      }
+    }
+  },
+  {
+    "title": "I Gave My Agent One Signed Permission It Couldn’t Mint Itself",
+    "slug": "agent-signed-permission-single-execution",
+    "url": "https://dev.to/kenielzep97/i-gave-my-agent-one-signed-permission-it-couldnt-mint-itself-2lpc",
+    "source": "DEV Community",
+    "date": "2026-08-10T01:35:13.000Z",
+    "summary": "A technical account of implementing a permission system where an agent can execute exactly one human-approved job without gaining the ability to mint or alter permissions. The article provides cryptographic verification of a successful test run where a single-use approval could not be reused or broadened by the agent.",
+    "content": "Evidence status. The supervised operator run completed on 2026-08-09. An operator-signed job executed once and a replay of the same still-valid receipt was refused. Every value in the live-result block below was read back from the machine; no expected value was written into that result. The final worker, module and checker bytes received an independent breaker verdict before that run. The bounded claim and its limits are stated at the end. External reproduction remains zero. Every hash, contract, breaker verdict and receipt below is published at github.com/keniel13-ui/signed-resumption-evidence. The operator signature can be verified against the published public key with stock OpenSSH; the repo's VERIFY.md gives the exact commands, including a negative control. \"Independent breaker\" here means a separate review seat that did not author the candidate under test. It does not mean an outside organisation.\nSince the July 31 repair, the safest part of my agent system was also the least useful:\nIt could not run anything.\nThat was not an accident. A previous repair had left the worker with no reachable True branch. Deleting the pause file did not restore authority. Dropping a marker beside the agent did not restore authority. Every route ended at the same answer: refuse.\nThe gate was safe in the narrowest possible sense. It was also a dead end.\nThe harder question was not whether I could block an agent. It was whether I could open exactly one position without giving the agent the ability to open a second one:\nCan the worker execute one human-approved job without being able to mint, broaden or alter that approval — and can that receipt be single-use while the spend ledger is intact?\nThe answer required more than a signature check. It required moving the authority to sign outside the system being governed, binding the signature to the exact interpreter and entry-script bytes read immediately before execution, and proving that the legitimate path worked without weakening the",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我给了我的代理一个签署的权限，它无法自行创建",
+        "summary": "一个技术叙述，介绍了实现一个权限系统的过程，其中代理可以执行恰好一个人类批准的工作，而无法获得创建或更改权限的能力。该文章提供了一个成功测试运行的密码学验证，其中单次使用的批准无法被代理重复使用或扩展。"
+      }
+    }
+  },
+  {
+    "title": "H100 vs H200 vs B200: How to Choose a GPU for AI Workloads in 2026",
+    "slug": "gpu-h100-h200-b200-choose-ai-2026",
+    "url": "https://dev.to/victor_azubuike_cbe29672b/h100-vs-h200-vs-b200-how-to-choose-a-gpu-for-ai-workloads-in-2026-4410",
+    "source": "DEV Community",
+    "date": "2026-08-10T01:29:38.000Z",
+    "summary": "This comparison of NVIDIA's H100, H200, and B200 GPUs emphasizes that GPU selection depends on specific workload needs—training vs. inference, model size, memory requirements—rather than raw performance metrics. The article shows why infrastructure context matters as much as the accelerator itself when planning AI deployments.",
+    "content": "Choosing a GPU for AI infrastructure is becoming less straightforward.\nA few years ago, the question might have been:\nWhat's the fastest GPU we can afford?\nToday, infrastructure teams have more variables to consider.\nDo you need the GPUs for training or inference?\nHow large are your models?\nHow much GPU memory does the workload require?\nHow important is memory bandwidth?\nAre you buying individual GPUs, complete servers, or multi-node infrastructure?\nWill the hardware run continuously?\nShould you even buy the infrastructure — or rent compute instead?\nAnd then there's the hardware itself.\nH100.\nH200.\nB200.\nDifferent generations, different capabilities, and potentially very different infrastructure economics.\nSo instead of simply asking:\n\"Which GPU is better?\"\nA more useful question is:\n\"Which GPU makes sense for our workload?\"\nLet's break it down.\nThese GPUs belong to NVIDIA's data-center accelerator lineup.\nThey're designed for workloads such as:\nlarge language model training\nLLM inference\ngenerative AI\nfine-tuning\nscientific computing\nmachine learning\nhigh-performance computing\ndata analytics\nThey're also typically deployed as part of larger systems.\nYour architecture may look more like:\nApplication\n     ↓\nAI Framework\n     ↓\nGPU Compute\n     ↓\nMultiple Accelerators\n     ↓\nHigh-Speed Interconnect\n     ↓\nNetworking\n     ↓\nStorage\n\nThat's why comparing AI GPUs only by looking at one performance number can be misleading.\nThe accelerator is one component of the complete infrastructure.\nThe NVIDIA H100 became one of the defining accelerators of the generative-AI boom.\nIt's based on NVIDIA's Hopper architecture and was designed for demanding AI and HPC workloads.\nFor many organizations, H100 remains relevant because it has already been deployed extensively across AI infrastructure.\nThat creates an important advantage:\nmaturity.\nInfrastructure teams aren't evaluating H100 as a theoretical product.\nThere's substantial deployment experience around it.\nH100 can still be attra",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "H100 vs H200 vs B200：2026年如何为AI工作负载选择GPU",
+        "summary": "这是对NVIDIA的H100、H200和B200 GPU的比较，强调GPU选择取决于具体的工作负载需求——训练与推理、模型大小、内存需求——而不是原始性能指标。该文章展示了为什么在规划AI部署时，基础设施环境与加速器本身一样重要。"
+      }
+    }
+  },
+  {
+    "title": "Give Your AI CLI a Second Opinion — In a Second Terminal",
+    "slug": "second-opinion-ai-cli-parallel-sessions",
+    "url": "https://dev.to/bradpenney/give-your-ai-cli-a-second-opinion-in-a-second-terminal-dea",
+    "source": "DEV Community",
+    "date": "2026-08-10T01:23:13.000Z",
+    "summary": "A technique for validating debugging conclusions by running two separate AI CLI sessions in parallel and having the second critique the first model's diagnosis rather than independently answering the same question. This approach reveals exactly where ambiguity exists in the problem and prevents correlated blind spots.",
+    "content": "You're mid-incident or mid-debug. You ask an AI CLI to explain a stack trace, and it comes back with a confident, specific, plausible-sounding root cause.\nIt's also the only opinion you've got.\nGetting a second opinion used to mean paging a colleague in an incident, or breaking their flow during a debug session. Now it can mean opening a second terminal and asking a different model to critque the answer of the first.\nOpen two terminals — two windows, two tabs, whatever you already use. Run one AI CLI in each: Claude Code, Codex CLI, Gemini CLI, any combination. The only requirement is that they're genuinely separate sessions with separate context — nothing you tell the first one is visible to the second unless you paste it there yourself.\n(If you already run tmux, splitting panes instead of alt-tabbing between windows is a nicer way to do this once you're doing it often. Worth knowing about, not required to start.)\nThe easy way to get this wrong is asking the second model the same vague question. Here's what to do, in order:\nAsk the first session something concrete. \"Here's a stack trace from the checkout service, what's the likely cause?\" — not \"what's wrong with this?\" Treat the answer as a draft, not a verdict.\nPaste the real answer into the second session, not a paraphrase. \"Here's another model's diagnosis of this stack trace. What's missing, or what would you check before trusting it?\" A vague question gets a generic response; a concrete claim gets a concrete critique.\nWeigh disagreement instead of averaging it away. If both agree, that's mild evidence, not proof — correlated training data can produce correlated blind spots. If they disagree, that's telling you exactly where the ambiguity in your problem or your data is.\nThat's the whole technique: two independent sessions, and the discipline to paste the answer instead of the question.\nCross-examining every question doubles your round-trip time for a fix you were probably going to get right anyway. Use your j",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为您的AI CLI提供第二意见——在第二个终端中",
+        "summary": "一种验证调试结论的技术，通过并行运行两个独立的AI CLI会话，让第二个会话批评第一个模型的诊断，而不是独立地回答同一个问题。这种方法能精确揭示问题中歧义的存在位置，并防止相关的盲点。"
+      }
+    }
+  },
+  {
+    "title": "Private & Fast: Building a Local-First Mental Health Assistant with WebLLM and WebGPU 🧠💻",
+    "slug": "local-first-mental-health-webllm-webgpu",
+    "url": "https://dev.to/wellallytech/private-fast-building-a-local-first-mental-health-assistant-with-webllm-and-webgpu-c8j",
+    "source": "DEV Community",
+    "date": "2026-08-10T01:21:00.000Z",
+    "summary": "This tutorial demonstrates building a privacy-preserving CBT assistant that runs entirely in the browser using WebLLM and WebGPU, executing models like Llama 3 locally without sending data to remote servers. TVM Unity compiles models into browser-compatible kernels, enabling low-latency inference on client GPUs.",
+    "content": "Privacy is no longer just a feature; it's a human right—especially when it comes to mental health. Imagine a Cognitive Behavioral Therapy (CBT) assistant that lives entirely in your browser, never sends a single byte of your conversation to a remote server, and runs at lightning speed. \nThanks to the explosion of Edge AI and the maturing WebGPU standard, this isn't science fiction anymore. In this tutorial, we will explore how to use WebLLM, TVM Unity, and React to build a high-performance, offline-capable mental health assistant. By leveraging WebLLM and Local-first AI principles, we can provide low-latency support while keeping sensitive user data exactly where it belongs: on the user's device.\nMental health data is incredibly sensitive. Using traditional LLM APIs (like OpenAI or Claude) means sending private thoughts to the cloud. By using WebGPU acceleration, we can run models like Llama 3 or Mistral directly on the client's GPU via the browser.\nThe magic happens through TVM Unity, which compiles machine learning models into high-performance kernels that the browser can execute via the WebGPU API.\ngraph TD\n    A[User Input] --> B[React UI State]\n    B --> C[WebLLM Worker]\n    subgraph Browser Environment\n    C --> D[TVM Runtime]\n    D --> E[WebGPU API]\n    E --> F[Local GPU / VRAM]\n    F --> G[Model Inference]\n    G --> D\n    end\n    D --> H[Streaming Response]\n    H --> B\n    I[(IndexedDB Cache)] -.-> C\n\nTo follow along, you’ll need:\nNode.js & npm/pnpm\n\nA browser with WebGPU support (Chrome 113+, Edge, or Firefox Nightly)\nThe following stack: React, WebLLM, and Vite.\nFirst, let's install the core dependencies:\nnpm install @mlc-ai/web-llm react\n\nThe heart of our application is the ChatWorker. We want to run the LLM in a Web Worker to ensure the UI remains responsive during heavy inference.\n// engine.ts\nimport { CreateWebWorkerEngine, type ChatOptions } from \"@mlc-ai/web-llm\";\n\nconst SELECTED_MODEL = \"Llama-3-8B-Instruct-q4f16_1-MLC\";\n\nexport async function initi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "私密且快速：使用 WebLLM 和 WebGPU 构建本地优先的心理健康助手",
+        "summary": "本教程演示如何使用WebLLM和WebGPU构建一个隐私保护的认知行为疗法助手，该助手完全在浏览器中运行，使用Llama 3等模型在本地执行，无需将数据发送到远程服务器。TVM Unity将模型编译为浏览器兼容的内核，在客户端GPU上实现低延迟推理。"
+      }
+    }
+  },
+  {
+    "title": "10 Claude Code Projects That Will Actually Teach You How to Build With AI",
+    "slug": "claude-code-10-projects-learn-shipping",
+    "url": "https://dev.to/victor_azubuike_cbe29672b/10-claude-code-projects-that-will-actually-teach-you-how-to-build-with-ai-4i93",
+    "source": "DEV Community",
+    "date": "2026-08-10T01:20:54.000Z",
+    "summary": "An argument for learning Claude Code through progressive project-based work rather than passive content consumption, presenting 10 projects from simple websites to AI agents. The approach emphasizes shipping working software while learning concepts on-demand, creating a cycle of building, encountering problems, and solving them incrementally.",
+    "content": "There's a strange way to learn AI coding tools that looks productive but isn't.\nYou watch a Claude Code tutorial.\nThen another.\nThen you save a thread with 37 \"must-know\" prompts.\nThen you watch someone build an entire SaaS product in 14 minutes.\nTwo weeks later, you've consumed hours of Claude Code content and still haven't shipped anything.\nThere's a better approach:\nBuild increasingly difficult projects.\nClaude Code is particularly well suited to project-based learning because you can learn concepts as you encounter them.\nInstead of trying to understand everything before starting, you can move through a loop like this:\nLearn enough to start\n        ↓\nBuild something\n        ↓\nGet stuck\n        ↓\nInvestigate\n        ↓\nFix it\n        ↓\nShip\n        ↓\nBuild something harder\n\nIf I were learning Claude Code from scratch in 2026, these are the 10 projects I'd build — in roughly this order.\nStart embarrassingly simple.\nDon't build an AI agent.\nDon't connect twelve MCP servers.\nDon't build a SaaS product.\nBuild a website.\nYour goal is to understand the basic Claude Code workflow.\nCreate something like:\n/\n├── index.html\n├── styles.css\n└── assets/\n\nOr use whatever framework you're comfortable experimenting with.\nYour landing page could contain:\nNavigation\n\nHero\n├── Headline\n├── Description\n└── CTA\n\nAbout\n\nProjects\n\nContact\n\nFooter\n\nThe actual website doesn't matter very much.\nWhat you're learning is the interaction loop.\nAsk Claude Code to build something.\nInspect what it creates.\nAsk for changes.\nBreak something.\nFix it.\nContinue.\nbasic Claude Code interaction\nproject structure\nfile editing\niterative prompting\ndebugging\nfrontend fundamentals\nOnce the page works, deploy it.\nDon't spend three weeks perfecting it.\nShip Project #1.\nNow build another website.\nBut introduce a constraint:\nThis website needs to convince someone to take an action.\nImagine you're creating a SaaS landing page.\nYou could give Claude something like:\nProduct:\nAI meeting assistant\n\nAudience:\nRemote sale",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "10个Claude Code项目，真正教会你如何用AI构建应用",
+        "summary": "倡议通过渐进式的项目实践来学习Claude Code，而非被动消费内容，展示了从简单网站到AI代理的10个项目。该方法强调在学习过程中及时交付可工作的软件，通过构建、遇到问题、增量式解决的循环来学习概念。"
+      }
+    }
+  },
+  {
+    "title": "Why Is My SQL Query Slow Only in Production? (The Parameter Sniffing Trap)",
+    "slug": "sql-parameter-sniffing-production-slow",
+    "url": "https://dev.to/azhadsuhaimi/why-is-my-sql-query-slow-only-in-production-the-parameter-sniffing-trap-1ki9",
+    "source": "DEV Community",
+    "date": "2026-08-10T01:08:43.000Z",
+    "summary": "This article explains SQL parameter sniffing, where SQL Server caches an execution plan based on initial parameter values, causing severe slowdowns when later queries with different parameters reuse that plan. The article shows how to detect the issue using DMVs and why a query runs fast manually but times out in production.",
+    "content": "It’s every developer's favorite Friday afternoon nightmare:\nA user complains that a feature in the app is hanging. You take the exact SQL query executed by the application, paste it into SQL Server Management Studio (SSMS), hit Execute... and it finishes in 0.02 seconds. \nYou run it again. Blazing fast. \nYet, inside the application, it continues to time out. \nIf you’ve been building database-backed apps long enough, you’ve almost certainly run into Parameter Sniffing.\nWhen a parameterized query or Stored Procedure runs for the very first time, SQL Server looks at the parameters passed in at that specific moment. It uses those values to estimate how many rows will be returned and compiles an execution plan tailored for that payload.\nScenario A: The first run passes a parameter that returns 5 rows. SQL Server creates a plan using an Index Seek. Fast and lightweight.\nScenario B: Later, another user passes a parameter that returns 500,000 rows. SQL Server reuses the cached \"Index Seek\" plan instead of doing an Index Scan. \nResult? The server chokes trying to force a lightweight plan onto a massive dataset.\nInstead of guessing or restarting the SQL Server service (which wipes the entire cache and hides the evidence!), you can inspect the plan cache to see what parameter values were used during compilation versus execution.\nHere’s a quick DMV snippet I use to find queries where the average execution duration is wildly higher than expected:\nSELECT TOP 10\n    qs.execution_count AS [Exec_Count],\n    (qs.total_elapsed_time / 1000.0) / qs.execution_count AS [Avg_Duration_ms],\n    (qs.total_worker_time / 1000.0) / qs.execution_count AS [Avg_CPU_ms],\n    qs.total_logical_reads / qs.execution_count AS [Avg_Logical_Reads],\n    SUBSTRING(st.text, (qs.statement_start_offset / 2) + 1,\n        ((CASE qs.statement_end_offset\n              WHEN -1 THEN DATALENGTH(st.text)\n              ELSE qs.statement_end_offset\n          END - qs.statement_start_offset) / 2) + 1) AS [Query_Text],",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么我的SQL查询只在生产环境中变慢？(参数嗅探陷阱)",
+        "summary": "本文解释了SQL参数嗅探现象，即SQL Server根据初始参数值缓存执行计划，当后续查询使用不同参数重用该计划时会导致严重性能下降。本文展示了如何使用DMV检测此问题，以及为什么查询在手动执行时快速但在生产环境中超时。"
+      }
+    }
+  },
+  {
+    "title": "Compression Is Understanding: Two July Papers That Prove AI Gets Smarter by Compressing Physics",
+    "slug": "compression-understanding-ai-physics",
+    "url": "https://dev.to/lanternproton/compression-is-understanding-two-july-papers-that-prove-ai-gets-smarter-by-compressing-physics-5399",
+    "source": "DEV Community",
+    "date": "2026-08-10T01:06:38.000Z",
+    "summary": "The article argues that AI achieves understanding through compression rather than information accumulation, supporting this with two July 2026 papers. PhiZero compresses video prediction into a 'physical language' achieving 175x token reduction, enabling models to reason about physics before rendering, making compression itself the mechanism of understanding.",
+    "content": "Compression Is Understanding: Two July Papers That Prove AI Gets Smarter by Compressing Physics\n\n\nThere's a thesis I keep coming back to: AI doesn't understand by accumulating information — it understands by compressing it. A model that can reconstruct a concept from fewer bits has, in a real sense, captured its structure. Compression forces you to find what matters and discard what doesn't.\nJuly 2026 handed me two independent, concrete demonstrations of exactly this — one from a world-model paper, one from a 35-year-old scientist on the MIT TR35 list.\nOn August 7, the Chinese Academy of Sciences' Institute of Automation released PhiZero (arXiv:2607.28624), a world model built around what they call a \"physical language.\"\nThe setup: predicting what happens next in a video. The naive approach predicts pixels. But pixels mix two very different kinds of information:\nAppearance — texture, lighting, material. Huge volume, mostly static.\nState transitions — how objects move, interact, deform. Small volume, entirely dynamic.\nWhen you predict pixels directly, the dynamic structure gets drowned out by appearance noise.\nPhiZero's fix is a clean act of compression:\nCurrent state + action intent → physical language tokens → future evolution\n\nA Physical Language Tokenizer compresses video changes into a compact discrete vocabulary (~25K symbols). A 33-frame, 4-second video becomes 256 physical-language tokens — versus 44,800 continuous visual tokens with a standard VAE. That's a 175x reduction.\nThen a Reasoner (initialized from Qwen3-VL-4B) predicts the next token sequence — i.e., it reasons about how the world will evolve in the compressed space — and a decoder renders the future video from the first frame plus the predicted token sequence.\nThe key insight: the model thinks about physics before it draws pictures. It predicts state transitions symbolically, then renders. Understanding happens in the compressed space — the 175x reduction isn't a lossy hack, it's the actual mechani",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "压缩就是理解:两篇七月论文证明AI通过压缩物理学变得更聪明",
+        "summary": "文章论证AI通过压缩而非信息积累来实现理解,并用两篇2026年七月的论文来支持这一观点。PhiZero将视频预测压缩成\"物理语言\",实现了175倍的令牌缩减,使模型能在渲染前推理物理现象,使压缩本身成为理解的机制。"
+      }
+    }
+  },
+  {
+    "title": "I Built My AI Team a Blackboard — How to Stop Parallel Claude Sessions From Colliding",
+    "slug": "ai-team-blackboard-coordinate-sessions",
+    "url": "https://dev.to/dexterlung/i-built-my-ai-team-a-blackboard-how-to-stop-parallel-claude-sessions-from-colliding-j71",
+    "source": "DEV Community",
+    "date": "2026-08-10T01:05:50.000Z",
+    "summary": "A guide to coordinating multiple parallel Claude Code sessions using a shared markdown 'blackboard' file that tracks work status, prevents collisions, and maintains an area map. The approach solves the problem of amnesiac sessions by centralizing the state of who is doing what and how far each session has progressed.",
+    "content": "Series: Indie Dev Notes · T12\nIn the last post (T11), I said I'd turned my AI into a team and promoted myself from employee to CEO.\nthe moment the team grew, it started crashing into itself.\nThe way I develop now is to keep several Claude Code sessions open at once — one on the home page, one on orders, one sweeping governance debt. Each in its own git worktree (a worktree: a separate working folder cut from the same repo, each on its own branch, files isolated from each other).\nSounds great. Until one day:\nFrom \"memory,\" I assumed some branch was dead and nearly deleted it (remote included) — turns out it was another session's actively-developed branch, 10 commits ahead of the mainline. Only git's reflog (git's \"undo of last resort,\" which keeps a record of every recent HEAD move) saved it intact.\nAnother time, I was editing a coordination doc and went to push — and got blocked, because in those very seconds another session had merged its branch into the mainline.\nThe common thread: these sessions have no idea what the others are doing. I (the human) became the only one who knew the whole picture — and my memory expires and gets things wrong.\nAt first I thought the problem to solve was parallelism — how to run more agents at once. It wasn't.\nParallelism is easy (just open more sessions). The hard part is: when work is scattered across a pile of sessions over several days, there is no single place that remembers \"who's doing what, how far, and what's left.\" Every new session is like an amnesiac new hire who has to re-grep (keyword-search the whole codebase) just to get oriented.\nThe solo developer's bottleneck was never the AI's compute. It's my own context not being laid out and reconnected across sessions.\nWhat I made is crude: one markdown file. But it has rules:\nOne shared blackboard: a file every session reads and writes, tracking \"in progress / backlog / done,\" plus an \"area map\" marking which work touches which files.\nClaim before you act: any session that wa",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我为我的AI团队建立了一个黑板——如何防止平行Claude会话相互冲突",
+        "summary": "一份指南,介绍如何使用共享的markdown\"黑板\"文件来协调多个平行的Claude代码会话,该文件跟踪工作状态,防止冲突,并维持一个区域地图。该方法通过集中管理谁在做什么以及每个会话的进展程度来解决健忘会话的问题。"
+      }
+    }
+  },
+  {
+    "title": "A Practical Guide to Adding Nano Banana Image Tools to Claude Desktop, VS Code, and Cursor",
+    "slug": "nano-banana-mcp-image-tools-ide",
+    "url": "https://dev.to/germey/a-practical-guide-to-adding-nano-banana-image-tools-to-claude-desktop-vs-code-and-cursor-1ilm",
+    "source": "DEV Community",
+    "date": "2026-08-10T01:04:13.000Z",
+    "summary": "This guide explains integrating the Nano Banana MCP server into Claude Desktop, VS Code, and Cursor to enable image generation and editing within the IDE. The server provides a compact set of tools (generate, edit, query status) supporting nano-banana, nano-banana-2, and nano-banana-pro models for iterative image workflows.",
+    "content": "If your coding assistant can already read files, run commands, and reason about a project, the next useful step is often visual: generating mockups, editing product shots, or iterating on image assets without leaving the IDE.\nNano Banana MCP is an MCP server for connecting image generation and image editing tools to AI clients such as Claude Desktop, VS Code, and Cursor. Once it is configured, the assistant can call a small set of image-focused tools during a normal conversation instead of forcing you to switch to a separate image UI.\nThe documented tool surface is intentionally compact:\nnanobanana_generate_image — generate images from text prompts\nnanobanana_edit_image — edit or combine existing images\nnanobanana_get_task — query the status of one task\nnanobanana_get_tasks_batch — query multiple task statuses\nThe server supports the nano-banana, nano-banana-2, and nano-banana-pro models. That makes it a good fit for builder workflows where you want to move from a text idea to an image, then keep refining that image in the same chat.\nTypical examples from the integration guide include prompts like:\n\"Help me generate a watercolor landscape painting\"\n\"Photoshop this clothing onto this person\"\n\"Place this product in a café scene\"\n\"Generate a high-quality portrait using the nano-banana-pro model\"\nThose examples are useful because they show the real shape of the workflow: the user describes the image task in natural language, and the MCP client routes the request to the available Nano Banana tool.\nMCP, or Model Context Protocol, gives AI clients a standard way to call external tools. In this setup, the local MCP server is mcp-nanobanana-pro. Your client starts that command, passes an Ace Data Cloud token through the ACEDATACLOUD_API_TOKEN environment variable, and then exposes the Nano Banana tools to the assistant.\nThe basic installation path is:\npip install mcp-nanobanana-pro\n\nIf you prefer installing from source, the documented path is:\ngit clone https://github.com/Ac",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "将Nano Banana图像工具添加到Claude Desktop、VS Code和Cursor的实用指南",
+        "summary": "本指南说明如何将Nano Banana MCP服务器集成到Claude Desktop、VS Code和Cursor中,以在IDE内启用图像生成和编辑。该服务器提供一套紧凑的工具(生成、编辑、查询状态),支持nano-banana、nano-banana-2和nano-banana-pro模型,用于迭代式图像工作流。"
+      }
+    }
+  }
+]
