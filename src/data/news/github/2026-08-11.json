@@ -1,5 +1,245 @@
 [
   {
+    "title": "ShowDev: I built a bulk HTML-to-Markdown converter that runs entirely in the browser",
+    "slug": "bulk-html-to-markdown-converter-browser",
+    "url": "https://dev.to/cdieck88/showdev-i-built-a-bulk-html-to-markdown-converter-that-runs-entirely-in-the-browser-3p3e",
+    "source": "DEV Community",
+    "date": "2026-08-11T18:52:10.000Z",
+    "summary": "Developer built a client-side HTML-to-Markdown converter using Go/WebAssembly that processes batch exports (200+ pages) entirely in the browser without uploading files to a server. The tool strips boilerplate, preserves folder structure, and converts to GitHub-Flavored Markdown for LLM knowledge bases and training data.",
+    "content": "Most HTML-to-Markdown tools handle one file at a time. You paste some HTML, get Markdown back, repeat. That works for a quick snippet but not when you have 200+ pages from a help center export sitting in a folder.\nI needed exactly that. I had a full site mirror (grabbed with wget --mirror) and wanted clean Markdown I could feed into an LLM knowledge base. Nothing I found could handle it without uploading files to a server or converting one by one.\nSo I built HTML to Markdown AI.\nYou drop a ZIP file (or individual HTML files) into the browser\nA Go-based conversion pipeline compiled to WebAssembly processes everything locally\nYou get a ZIP back with clean GitHub-Flavored Markdown, folder structure preserved\nNo server involved. Your files never leave your machine.\nThe heavy lifting happens in Go/WASM. The pipeline:\nStrips navigation, footers, scripts, styles, and other boilerplate noise\nExtracts the main content from the page\nConverts to GFM with proper heading hierarchy, tables, code blocks, and links\nHandles batch processing so you can throw hundreds of files at it\nIntentional decision. Downloading HTML from someone else's site has legal implications depending on jurisdiction and terms of service. I don't want to be in that business.\nDownloading is also the easy part:\nwget -r -l 0 -np -k -E -p -e robots=off \\\n  --reject-regex '\\.(png|jpe?g|gif|svg|webp|woff2?|ttf|css|js|zip|pdf)$' \\\n  -w 0.5 --random-wait \\\n  https://docs.example.com/\n\nThat gives you a local folder with all the HTML. The hard and annoying part is turning that into clean, usable Markdown. That's what this tool solves.\nFrontend: Astro + Tailwind\nConversion engine: Go compiled to WebAssembly\nProcessing: Entirely client-side, zero backend\nhttps://www.html-to-markdown-ai.com\nUse cases I've tested it with:\nHelp center exports (Zendesk, Confluence, custom wikis)\nDocumentation sites mirrored with wget/httrack\nScraped content for RAG pipelines\nTraining data prep for fine-tuning\nIf you work with LLMs and regul",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "ShowDev：我构建了一个完全在浏览器中运行的批量HTML转Markdown转换器",
+        "summary": "开发者使用Go/WebAssembly构建了一个客户端HTML转Markdown转换器，可以在浏览器中完全处理批量导出（200多页），无需将文件上传到服务器。该工具可以去除样板代码、保留文件夹结构，并转换为GitHub风味Markdown，用于LLM知识库和训练数据。"
+      }
+    }
+  },
+  {
+    "title": "Part 7: Iterating to Green: Real Bugs, and When You'd Actually Reach for a Framework",
+    "slug": "iterating-to-green-real-bugs-framework",
+    "url": "https://dev.to/akashpal/part-7-iterating-to-green-real-bugs-and-when-youd-actually-reach-for-a-framework-3np1",
+    "source": "DEV Community",
+    "date": "2026-08-11T18:44:00.000Z",
+    "summary": "Final part of an agent-building series documenting real bugs caught during evaluation, including trajectory matching issues, transient error handling, model alias quota problems, and testing edge cases. Examines whether agents need multiple instances or framework abstraction, providing concrete production iteration lessons.",
+    "content": "Part 7 (final) of a series building a support-ticket agent with no framework. Previous: Part 6 (observability). Repo: github.com/akash-pal/agent-from-scratch\nThe other six parts described the finished design. This one is about what \"finished\" actually took — the real bugs the eval set caught, and the two questions every agent build eventually has to answer honestly: do you need more than one agent, and do you need a framework. Full detail on everything below: docs/iteration-log.md.\n1. Exact trajectory matching was the wrong check. First eval run: 12/21 passed. Most failures were the agent correctly sending a confirmation email where the eval only expected a lookup — correct behavior, wrong assertion. Fix: switched the harness from exact-array equality to ordered-subsequence matching (every expected tool must appear, in order; extra steps in between are fine). Still catches a missing, reordered, or wrong tool. Stops false-failing on benign non-determinism.\n2. No retry/backoff meant a transient error crashed the whole run. A 503 — model overloaded on case 1 took down the entire eval harness. Fixed with exponential backoff on 429/503 specifically, plus inter-case pacing to stay under free-tier rate limits.\n3. A -latest model alias silently rolled onto a stricter quota. gemini-flash-latest worked, then started failing with a 20 requests/day cap after quietly resolving to a newer model. Fixed by pinning an explicit model version instead of an alias, after checking the provider's live usage dashboard for actual quota — 25x more headroom on the pinned model. The takeaway generalizes past this one provider: \"latest\" aliases optimize for capability, not quota stability, and what they resolve to changes over time without your code changing at all.\n4. A testing artifact that looked like a real bug. Piping multiple answers into the interactive CLI via printf \"a\\nb\\n\" | npm run agent intermittently hung after the first prompt. Root cause: a Node.js readline/promises quirk with q",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第7部分：迭代到成功：真实错误以及何时真正需要框架",
+        "summary": "代理构建系列的最后一部分，记录了评估过程中捕获的真实错误，包括轨迹匹配问题、瞬态错误处理、模型别名配额问题和边界情况测试。探讨代理是否需要多个实例或框架抽象，提供具体的生产迭代经验。"
+      }
+    }
+  },
+  {
+    "title": "Part 6: Observability for AI Agents: Tracing, Metrics, and Drift",
+    "slug": "observability-ai-agents-tracing-metrics-drift",
+    "url": "https://dev.to/akashpal/part-6-observability-for-ai-agents-tracing-metrics-and-drift-2pgh",
+    "source": "DEV Community",
+    "date": "2026-08-11T18:43:58.000Z",
+    "summary": "Part 6 covers implementing structured logging and observability for production AI agents through trace records capturing tool calls, timing, and token usage while protecting secrets via argument hashing. Explains why offline evaluation and production monitoring require different infrastructure to surface unexpected behavior early.",
+    "content": "Part 6 of a series building a support-ticket agent with no framework. Previous: Part 5 (guardrails). Repo: github.com/akash-pal/agent-from-scratch\n\"Run the eval set\" and \"is this agent healthy right now\" are different questions, and it's easy to only build infrastructure for the first one. Eval sets run offline, on cases you already thought of. Production traffic doesn't ask permission to send you a ticket type you didn't anticipate. Observability is what tells you when that's happening — and it's also, unglamorously, what makes offline evaluation possible in the first place: you can't debug a failing eval case without knowing what the agent actually did, step by step.\nEvery tool call in this build logs a structured record — src/trace.ts:\nexport interface TraceStep {\n  trace_id: string;\n  step_id: number;\n  tool_name: string;\n  args_hash: string;        // hashed, never raw args\n  duration_ms: number;\n  result_summary: string;\n  model: string;\n  token_usage: { input: number; output: number };\n}\n\nTwo details here that look small and aren't:\nargs_hash, not raw args. This trace log is meant to be safe to keep around, ship to a monitoring system, or paste into a bug report — none of which should require thinking about what secrets might be embedded in a tool call's arguments. Hashing means you can still confirm two calls used identical arguments (for debugging idempotency, for instance) without ever persisting the actual values:\nexport function hashArgs(args: Record<string, unknown>): string {\n  return \"sha256:\" + createHash(\"sha256\").update(JSON.stringify(args)).digest(\"hex\").slice(0, 8);\n}\n\nresult_summary, truncated. Full tool results can be large (a kb_search returning full article bodies, for instance) — logging the whole thing on every step makes trace output unreadable and bloats whatever's storing it. summarizeResult takes the first few fields and truncates long values:\nconst MAX_FIELD_LEN = 70;\nexport function summarizeResult(result: Record<string, unknown>): st",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第6部分：AI代理的可观测性：追踪、指标和漂移",
+        "summary": "第6部分介绍如何为生产AI代理实现结构化日志记录和可观测性，通过追踪记录捕获工具调用、时序和令牌使用情况，同时通过参数哈希保护敏感信息。解释了为什么离线评估和生产监测需要不同的基础设施来及时发现意外行为。"
+      }
+    }
+  },
+  {
+    "title": "Part 5: Guardrails That Live in Code, Not the Prompt",
+    "slug": "guardrails-code-not-prompt",
+    "url": "https://dev.to/akashpal/part-5-guardrails-that-live-in-code-not-the-prompt-m3j",
+    "source": "DEV Community",
+    "date": "2026-08-11T18:43:53.000Z",
+    "summary": "Demonstrates why critical agent behaviors like approvals and rate limits must be enforced in code rather than prompts alone, using a real incident where an agent claimed to approve refunds without calling the tool. Shows how to implement allowlists, approval gates, and auto-escalation patterns outside LLM control.",
+    "content": "Part 5 of a series building a support-ticket agent with no framework. Previous: Part 4 (the loop). Repo: github.com/akash-pal/agent-from-scratch\nHere's the finding this whole article is built around: partway through eval iteration, the agent started reporting that a refund had been proposed — a clean, plausible-sounding message — without ever having called the tool that proposes refunds. No approval was ever requested. No confirmation existed. The model just said it happened.\nThat's the failure mode this part is about, and the fix is the actual argument for why guardrails belong in code, not in prompt text alone.\nsrc/policy.ts is a plain data object — an allowlist, an approval list, rate limits, and regex patterns — checked by the agent loop, not asked of the model:\nexport const policy: Policy = {\n  allowTools: [\"order_lookup\", \"refund_eligibility\", \"issue_refund\", \"kb_search\", \"send_email\"],\n  requireApprovalFor: [\"issue_refund\", \"send_email\"],\n  rateLimits: { maxToolCallsPerRun: 8, maxCostPerRunUsd: 0.3 },\n  autoEscalatePatterns: {\n    legal_threat: /\\b(lawyer|attorney|sue|legal action|better business bureau|\\bbbb\\b)\\b/i,\n    fraud_flag: /\\b(fraud|unauthorized|without my permission|didn't authorize|stolen card)\\b/i,\n    duplicate_ticket: /\\b(already submitted|second ticket|duplicate ticket|already reported)\\b/i,\n  },\n};\n\nEvery one of these is enforced outside the LLM's control. The model can't talk its way past requireApprovalFor — the loop checks it before executing the tool, full stop. The autoEscalatePatterns regexes run against the raw ticket text before the model is even called (this is that expected_trajectory: [] behavior from Part 3's edge-case bucket) — a legal threat or fraud flag never reaches the LLM at all, straight to a human queue.\nNot every consequential action needs the same review pattern. This build uses pre-action approval — human approves before execution — for issue_refund and send_email, because both are rare, high-stakes, and hard to revers",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第五部分：代码中的护栏，而非提示中的护栏",
+        "summary": "演示为什么批准和速率限制等关键代理行为必须在代码中强制执行而非仅依靠提示，并通过一个真实案例说明——某个代理声称批准退款却未调用相应工具。展示如何在LLM控制范围外实现允许列表、批准门和自动升级模式。"
+      }
+    }
+  },
+  {
+    "title": "Part 4: The Raw ReAct Loop: ~100 Lines, No Framework",
+    "slug": "raw-react-loop-no-framework",
+    "url": "https://dev.to/akashpal/part-4-the-raw-react-loop-100-lines-no-framework-5bi6",
+    "source": "DEV Community",
+    "date": "2026-08-11T18:43:50.000Z",
+    "summary": "Presents a ~100-line agent loop implementing the ReAct pattern of reasoning and tool-calling without framework abstraction. Demonstrates that understanding loop structure matters more than framework complexity, including full source code for LLM integration, tool execution with guardrails, and iterative reasoning.",
+    "content": "Part 4 of a series building a support-ticket agent with no framework. Previous: Part 3 (the eval set). Repo: github.com/akash-pal/agent-from-scratch\nThis is the part everyone reaches for a framework to skip. Here's the argument for not doing that, at least the first time: if you can't explain what your agent loop does in plain English, no framework is going to fix that — it's just going to make the loop harder to see.\nHere's src/agent.ts, trimmed to the actual loop:\nexport async function runAgent(\n  ticket: Ticket,\n  customer: Customer | null,\n  approvalFn: ApprovalFn,\n  maxSteps = 8,\n): Promise<AgentResult> {\n  const state = initState(ticket, customer);\n\n  // Guardrail check happens BEFORE any model call — see Part 5.\n  const escalatePattern = matchAutoEscalate(`${ticket.subject} ${ticket.body}`);\n  if (escalatePattern) {\n    return { outcome: \"escalated\", finalText: `ESCALATED: auto-escalated — \"${escalatePattern}\"`, state };\n  }\n\n  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });\n  const contents: Content[] = [{ role: \"user\", parts: [{ text: ticketToUserMessage(ticket) }] }];\n\n  for (let step = 0; step < maxSteps; step++) {\n    const response = await withRetry(() =>\n      ai.models.generateContent({\n        model: MODEL,\n        contents,\n        config: { systemInstruction: buildSystemPrompt(COMPANY), tools: [{ functionDeclarations }] },\n      }),\n    );\n\n    const calls = response.functionCalls ?? [];\n    if (calls.length === 0) {\n      // No tool call — the model produced a final answer. Done.\n      const text = (response.text ?? \"\").trim();\n      return { ...enforceOutcomeIntegrity(parseOutcome(text), state), state };\n    }\n\n    // Otherwise: execute the requested tool(s), feed results back, loop again.\n    contents.push({ role: \"model\", parts: response.candidates?.[0]?.content?.parts ?? [] });\n    const responseParts = [];\n    for (const call of calls) {\n      const result = await executeToolWithGuardrails(call, state, approvalFn); // Part",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第四部分：原生ReAct循环：约100行代码，无需框架",
+        "summary": "展示了一个约100行的代理循环实现，采用ReAct推理和工具调用模式，无需框架抽象。演示理解循环结构比框架复杂性更重要，包含完整的LLM集成、带护栏的工具执行和迭代推理源代码。"
+      }
+    }
+  },
+  {
+    "title": "Part 3: Build the Eval Set Before the Agent Exists",
+    "slug": "build-eval-set-before-agent",
+    "url": "https://dev.to/akashpal/part-3-build-the-eval-set-before-the-agent-exists-40lk",
+    "source": "DEV Community",
+    "date": "2026-08-11T18:43:48.000Z",
+    "summary": "Argues for writing evaluation test cases before building the agent, using a specification-driven approach with 21 cases across easy, hard, and edge scenarios rather than post-hoc validation against demo behavior. Prevents silent failures by measuring against a fixed target instead of the agent's actual output.",
+    "content": "Part 3 of a series building a support-ticket agent with no framework. Previous: Part 2 (tool contracts). Repo: github.com/akash-pal/agent-from-scratch\nHere's the ordering that trips people up: build the eval set before the agent loop exists. Not after, not alongside — before. It feels backwards. You can't run an eval against an agent that doesn't exist yet.\nThat's exactly the point. If you write the eval set after the agent is working, you're unconsciously grading against whatever the agent already does. Cases you didn't think to write are cases your agent silently fails on forever. Writing 21 cases against a specification (the use case and tool contracts from Part 2) means you're measuring against a real target, not tuning your eval to match your own demo.\neval/cases.json\n\n\n21 cases, three buckets:\n\n\n\nBucket\nCount\nCovers\n\n\n\n\nEasy\n12\nShipping-status lookups, simple KB questions, a cancelled-order info request, one no-KB-match case that must escalate rather than fabricate\n\n\nHard\n6\nRefund eligibility inside/outside the 30-day window, multi-item orders where only one item is refunded, boundary cases just past the window\n\n\nEdge\n3\nLegal-threat, fraud-flag, and duplicate-ticket patterns — must auto-escalate with zero tool/LLM calls\n\n\n\nA sample case, checking both the outcome and the trajectory that produced it:\n{\n  \"case_id\": \"hard_03\",\n  \"bucket\": \"hard\",\n  \"ticket\": {\n    \"ticket_id\": \"hard_03\",\n    \"subject\": \"Wrong size shoes, keep the socks\",\n    \"body\": \"The running shoes from order ord_1004 are the wrong size. I want a refund for just the shoes, not the socks.\",\n    \"customer_id\": \"cust_002\",\n    \"order_id\": \"ord_1004\"\n  },\n  \"expected_trajectory\": [\"order_lookup\", \"refund_eligibility\", \"issue_refund\"],\n  \"expected_outcome\": \"refund_proposed\",\n  \"expected_max_steps\": 4,\n  \"policy_checks\": [\n    \"refund amount reflects only the shoe item (~$74), not the full order total\",\n    \"issue_refund gated behind human approval\"\n  ]\n}\n\nThree things being checked per case, not",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第三部分：在构建代理之前先构建评估集",
+        "summary": "主张在构建代理之前编写评估测试用例，采用规范驱动方法，包含21个涵盖简单、困难和边界场景的用例，而非针对演示行为的事后验证。通过对标固定目标而非代理实际输出来防止隐性故障。"
+      }
+    }
+  },
+  {
+    "title": "Part 2: Pinning the Use Case and Writing Tool Contracts Like Specs",
+    "slug": "pinning-use-case-tool-contracts-specs",
+    "url": "https://dev.to/akashpal/part-2-pinning-the-use-case-and-writing-tool-contracts-like-specs-4462",
+    "source": "DEV Community",
+    "date": "2026-08-11T18:43:46.000Z",
+    "summary": "Establishes foundational work before coding: defining bounded inputs/outputs, capping tool count, and writing detailed tool specifications that serve as LLM instructions. These gates and contracts create a fixed target that downstream evals, prompts, and monitoring can reliably measure against.",
+    "content": "Part 2 of a series building a support-ticket agent with no framework. Part 1 covered why. This part covers Steps 1–2 of the build order: pinning the use case, and writing tool contracts. Repo: github.com/akash-pal/agent-from-scratch\nBefore any code, two documents: docs/use-case.md and docs/tool-contracts.md. Skipping this step is the single most common reason teams end up with an agent nobody trusts — not because the idea was bad, but because nothing downstream (evals, prompts, memory) had a fixed target to hit.\nFour gates, filled in before writing a line of code:\n\n\n\nGate\nDefinition\n\n\n\n\nBounded input\nOne support ticket: { subject, body, customer_id, order_id? }\n\n\n\nBounded output\nExactly one of: resolved, refund_proposed (pending approval), escalated (with a reason)\n\n\nTool count\n5\n\n\nSuccess metric\nResolution rate > 85% without escalation; escalation rate < 10%\n\n\n\nThe tool count cap matters more than it looks. An agent given 10+ tools starts hallucinating tool names and picking the wrong one — a cognitive load problem, not a dependency problem. Keeping this agent to 5 tools, covering exactly three request types (order status, refunds, KB lookups), keeps every run in the healthy 3–8 tool-call range instead of ballooning into a system that needs to be split into multiple specialist agents. (Part 7 covers the actual cost math for when a split is worth it.)\nBounded output matters too: resolved / refund_proposed / escalated isn't just documentation — it becomes a literal parseable prefix (RESOLVED:, REFUND_PROPOSED:, ESCALATED:) that the agent's final message must start with. Part 4 shows exactly how that gets parsed, and Part 5 shows why trusting that string alone turned out to be a real bug.\nThis is the part that's easy to under-invest in. A tool's description field isn't a comment for future developers — it's the only thing the LLM reads to decide when to call the tool. Treat it as a specification.\nHere's the actual refund_eligibility definition from src/tools/index.ts:",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第2部分：确定用例并编写工具契约规范",
+        "summary": "在编码前建立基础工作：定义有限的输入/输出、限制工具数量，以及编写详细的工具规范作为大语言模型指令。这些限制和契约创造了一个固定目标，下游评估、提示和监控可以可靠地针对该目标进行测量。"
+      }
+    }
+  },
+  {
+    "title": "From coder to orchestrator: How agents shift the role of a developer",
+    "slug": "coder-to-orchestrator-agents-developer-role",
+    "url": "https://github.blog/developer-skills/career-growth/from-coder-to-orchestrator-how-agents-shift-the-role-of-a-developer/",
+    "source": "GitHub Blog",
+    "date": "2026-08-11T18:38:17.000Z",
+    "summary": "Explores how developers increasingly orchestrate complex delivery systems around code, not just writing code itself. Introduces themes about how AI agents shift developer responsibilities and roles, discussed at GitHub Universe.",
+    "content": "Developers are owning more of the delivery system around code, not just code itself. Join us during GitHub Universe to meet other devs, learn something new, and explore what's next.\nThe post From coder to orchestrator: How agents shift the role of a developer appeared first on The GitHub Blog.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "从编码员到编排者：代理如何改变开发者的角色",
+        "summary": "探讨开发者如何越来越多地围绕代码编排复杂的交付系统，而不仅仅是编写代码本身。介绍了在GitHub Universe讨论的关于AI代理如何改变开发者责任和角色的主题。"
+      }
+    }
+  },
+  {
+    "title": "I Built a Team of AI Agents to Find Startup Opportunities",
+    "slug": "team-ai-agents-startup-opportunities",
+    "url": "https://dev.to/vivek_shetye/i-built-a-team-of-ai-agents-to-find-startup-opportunities-3309",
+    "source": "DEV Community",
+    "date": "2026-08-11T18:37:09.000Z",
+    "summary": "Built a specialized team of four AI agents using Hermes Agent that research markets, investigate competitors, and rank B2B AI SaaS opportunities with evidence-backed scores and sources. Produces structured research with validation experiments rather than speculative markdown lists.",
+    "content": "Most people use AI for startup research like this:\n“Give me 10 promising AI startup ideas.”\nA few seconds later, you get a polished list.\nThe problem?\nYou have almost no idea which conclusions are backed by evidence, which are assumptions, and which are simply the model confidently connecting dots.\nSo I tried something different.\nInstead of asking one AI agent to find startup ideas, I built a small Startup Intelligence team using Hermes Agent.\nThe system uses four specialized AI agents that research markets, investigate competitors, audit evidence, challenge each other’s conclusions, and ultimately rank promising B2B AI SaaS opportunities.\nAnd rather than producing another Markdown document full of ideas, the workflow produces structured research containing:\nMarket opportunity scores\nCompanies and competitors\nCustomer pain and unmet needs\nEvidence-backed claims\nSource URLs and supporting passages\nAI advantages and workflows\nLow-cost validation experiments\nHere’s how the system works.\n  \n  \n\n\n\n\n\n\n  \n  \n  The Problem With Asking One AI Agent to Find Startup Ideas\n\n\nStartup research looks easy until you actually need to decide where to spend your time and money.\nA few signals can be surprisingly misleading.\nA market receiving hundreds of millions in venture capital doesn’t necessarily mean customers are willing to pay for another product.\nEspecially when the numbers come directly from vendors.\nA logo doesn’t tell you how much the customer pays, how heavily they use the product, or whether they’ll renew.\nBut those companies may target completely different buyers, workflows, or budgets.\nGeneric AI research tends to compress all these signals into something like:\n“This is a rapidly growing market with strong demand and significant opportunity.”\nThat sounds convincing.\nBut as a founder, it doesn’t tell me what I actually need to know:\nIs this opportunity strong enough to investigate further?\nSo instead of optimizing the system for generating ideas, I optimized it for reduc",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个AI代理团队来寻找创业机会",
+        "summary": "使用Hermes Agent构建了一个由四个AI代理组成的专业团队，用于研究市场、调查竞争对手，并根据证据支持的评分和来源排列B2B AI SaaS机会。提供了具有验证实验的结构化研究，而不是推测性的markdown列表。"
+      }
+    }
+  },
+  {
+    "title": "OOP Object-Oriented Programming",
+    "slug": "oop-object-oriented-programming",
+    "url": "https://dev.to/mohamed_fakhr_eldin/oop-object-oriented-programming-42mg",
+    "source": "DEV Community",
+    "date": "2026-08-11T18:35:31.000Z",
+    "summary": "Covers fundamental object-oriented programming concepts including class definition, encapsulation with access modifiers (public/private/protected), static methods, inheritance, and polymorphism. Provides practical explanations of key OOP features and usage patterns.",
+    "content": "Advantages of using OOP:\nIs faster and easier to execute.\nProvides a clear structure for the programs.\nHelps to keep code DRY \"Don't Repeat Yourself\" and makes code easier to maintain, modify, and debug.\nMakes it possible to create fully reusable applications with less code and shorter development time.\nDefine a Class:\n{}. All its properties and methods go inside the braces.\nDelegation:\nnew keyword.\nNote:\n$this keyword refers to the current class and is only available inside methods.\n__construct() function:\n__destruct() function:\nEncapsulation:\nAccess Modifier:\nPublic: Variables or functions can be accessed from everywhere.\nPrivate: Variables or functions can ONLY be accessed inside the class.\nProtected: Variables or functions can be accessed inside the class and by child classes that extend from the parent class.\nConstants: \nIt can’t be changed once it is declared.\nDeclared inside a class with the const keyword.\nIt is recommended to name the constants in all uppercase letters.\nAccess outside the class by using the class name followed by the scope resolution operator ::.\nAccess a constant inside the class by using the self keyword.\nStatic Functions and Variables:\nStatic functions or variables can be called directly - without creating an instance of the class first.\nStatic functions or variables are declared with the static keyword.\nTo access a static function or variable, use the class name, double colon ::, and the function name.\nA static function can be accessed from a function in the same class using the self keyword and double colon ::.\nTo call a static method from a child class, use the parent keyword inside the child class.\nThe static method can be public or protected.\nNote:\nfinal keyword can be used to prevent class inheritance or to prevent method overriding.\nPolymorphism:\nAbstract:\nCan have both abstract methods (without body) and regular methods (with implementation).\nCan have properties (variables).\nA class can extended single abstract (single inheritance",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "面向对象编程",
+        "summary": "涵盖面向对象编程的基础概念，包括类定义、访问修饰符（公开/私有/受保护）的封装、静态方法、继承和多态性。提供了关键面向对象编程特性和使用模式的实用解释。"
+      }
+    }
+  },
+  {
+    "title": "I built 109 tools that never touch a server - here is the architecture",
+    "slug": "109-tools-never-touch-server-architecture",
+    "url": "https://dev.to/korelyy/i-built-109-tools-that-never-touch-a-server-here-is-the-architecture-499k",
+    "source": "DEV Community",
+    "date": "2026-08-11T18:34:13.000Z",
+    "summary": "Built 109 browser-based tools on korelyy.com running entirely client-side using FileReader, Canvas, Web Crypto API, and OffscreenCanvas with zero backend, uploads, or tracking. Each tool is a static HTML/CSS/JS file served from a CDN that processes files in-memory with no network communication.",
+    "content": "I built 109 tools that never touch a server - here is the architecture\n\n\nMost \"tools\" sites you have used do this:\nYou upload a file\nIt goes to a server\nThe server processes it\nYou download the result\nSometimes the server stores it. Sometimes it leaks. Sometimes it disappears with the company.\nI wanted something different. Every tool on korelyy.com runs 100% in your browser. Zero backend. Zero upload. Zero tracking.\nHere is the actual architecture, the real numbers after 90 days, and what I learned.\nFor each of the 109 tools:\nThe entire app is a static HTML + CSS + JS file\nIt is served as-is from a CDN (Cloudflare Pages)\nAll file processing happens in your browser via FileReader, canvas, Web Crypto API, or OffscreenCanvas\n\nYour file never leaves your device\n\nClosing the tab = the data is gone (no cookies, no localStorage, no account)\nThis is not a marketing claim. It is verifiable:\nOpen DevTools -> Network tab\nUse any tool that requires a file (image converter, JSON formatter, etc.)\nReload. The only network request is for the static HTML/CSS/JS bundle.\nNo fetch() to a server. No XHR. No upload. The file is read, processed in-memory, and downloaded.\nWhen you remove a backend, you are left with the browser. The browser is more capable than most people think.\nFileReader and URL.createObjectURL\n\n\nRead any file the user gives you:\nconst file = document.querySelector('input[type=file]').files[0];\nconst url = URL.createObjectURL(file);\nconst img = new Image();\nimg.onload = () => {\n  // process image\n  canvas.toBlob(blob => {\n    const downloadUrl = URL.createObjectURL(blob);\n    // trigger download\n  });\n};\nimg.src = url;\n\nImage conversion, PDF generation, audio trimming - all the same pattern. Read blob, process, create new blob, download.\ncrypto.subtle (Web Crypto API)\n\n\nHashing, encryption, signing - all client-side:\nconst hash = await crypto.subtle.digest('SHA-256', arrayBuffer);\nconst hex = Array.from(new Uint8Array(hash))\n  .map(b => b.toString(16).padStart(2, '0'))",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了109个不需要服务器的工具——这是它的架构",
+        "summary": "在korelyy.com上构建了109个基于浏览器的工具，完全在客户端运行，使用FileReader、Canvas、Web Crypto API和OffscreenCanvas，无后端、无上传和无跟踪。每个工具都是从CDN提供的静态HTML/CSS/JS文件，在内存中处理文件，无网络通信。"
+      }
+    }
+  },
+  {
+    "title": "The Guy Who Invented the Internet's Front Door and Refused to Charge Rent",
+    "slug": "tim-berners-lee-invented-internet-refused-charge-rent",
+    "url": "https://dev.to/lovestaco/the-guy-who-invented-the-internets-front-door-and-refused-to-charge-rent-4igd",
+    "source": "DEV Community",
+    "date": "2026-08-11T18:31:35.000Z",
+    "summary": "Reflects on Tim Berners-Lee's decision to not license the World Wide Web commercially in 1993, despite having the legal right to charge fees that would have made him extraordinarily wealthy. Contrasts this with the University of Minnesota's decision to charge for Gopher, which accelerated the Web's adoption.",
+    "content": "Hello, I'm Maneshwar. I'm building git-lrc, a Micro AI code reviewer that runs on every commit. It is free and source-available on Github. Star git-lrc to help devs discover the project. Do give it a try and share your feedback.\nOkay so here's a fun one for you.\nImagine you invent the thing that eventually becomes the substrate for Google, Facebook, Amazon, your bank, your ex's Instagram, and every cursed cookie consent banner known to man.\nNow imagine you had the legal right to charge a licensing fee for it. \nLike, a reasonable one. A cent per page load, say.\nYou would never have to work again. \nYour great-great-grandchildren would never have to work again. \nYou'd be sipping something expensive on a boat named after a HTTP status code.\nTim Berners-Lee looked at that exact opportunity in 1993 and said, essentially, \"nah, you guys keep it.\"\nThis has been rattling around in my head for days, so let's talk about it properly, with all the nerdy details.\nBerners-Lee built the World Wide Web in 1989 at CERN, laid out in a proposal called Information Management: A Proposal, mostly so physicists could stop emailing each other giant papers and just... link to things. Wild concept, I know.\nBut here's the part people forget: the Web wasn't the obvious winner in the early 90s. \nIt had a genuine rival called Gopher, built at the University of Minnesota, and for a while Gopher was winning. \nIt was simpler, it was faster on the slow modems of the era, and it had a head start in adoption among universities and libraries.\nThen in February 1993, the University of Minnesota did something that, in hindsight, ranks among the great unforced errors in computing history: they announced they'd start charging licensing fees for commercial use of Gopher server software. \nReasonable-sounding at the time (they needed to fund development), catastrophic in practice. \nThe developer community, which had spent years contributing code for free on the assumption this was an open commons, felt betrayed",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "发明互联网的人拒绝了收费的机会",
+        "summary": "思考了蒂姆·伯纳斯-李在1993年选择不对万维网进行商业许可的决定，尽管他有法律权利收取费用，这本会使他异常富有。这与明尼苏达大学对Gopher收费的决定形成对比，后者加速了万维网的采用。"
+      }
+    }
+  },
+  {
+    "title": "I Built This to Fix One Task. It Turned Into Something You Can Run.",
+    "slug": "built-fix-one-task-became-runnable",
+    "url": "https://dev.to/jeelvankhede/i-built-this-to-fix-one-task-it-turned-into-something-you-can-run-3hn9",
+    "source": "DEV Community",
+    "date": "2026-08-11T18:28:06.000Z",
+    "summary": "Describes a multi-part series building an AI agent workflow that enforces structured processes (briefing, planning, building, review, rollout, retrospective) and discovered the agent naturally enforces this discipline without prompting. Agent classifies tasks appropriately and produces verification-based rather than confidence-based results.",
+    "content": "There are two ways to work with an AI agent and I had tried both. Write the thing yourself and hand over only the tedious parts. Or hand over the whole task and audit whatever comes back at the end. The first is slow. The second is fast right up until it is wrong, and by then the wrong thing is finished.\nI expected this series to be about forcing a third option into existence. Nine parts of making an agent follow a workflow it would rather skip.\nThat is not what happened. I never had to enforce it once.\nThe queue that started this had a payload contract nobody had verified, and each phase after that cost me something before it gave anything back. A plan that would not move until the risk register named the provider contract the brief had only guessed at. A build that missed nothing except what my own brief left out. A review that stopped handing back a feeling and started handing back a verdict on every requirement I had already called done. A matrix instead of a trusted green run. A rollback with a name on it before anything got called shipped. And a retrospective that would not let a lesson through until it had checked itself against the trail.\nEight parts of that. What I did not expect was which part turned out to be automatic.\nBy the time I finish writing a requirement, I already know roughly what it is going to cost. Most engineers do. You can feel the difference between a one-line fix and something that is going to touch four files and a migration before you have written a single line of it.\nWhat I assumed was that the agent could not feel that, and that policing the gap would be my job forever. Reminding it to run the chain. Catching it when it decided a spike was small enough to skip.\nIt has not needed the reminder. Small bugs do not trigger a brief and a plan, and they should not. A standard requirement, a spike, anything long or cross-cutting, runs the full cycle in order. The classification lands where I would have put it, without me putting it there.\nTha",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我为了修复一个任务而构建了这个工具。它演变成了你可以运行的东西。",
+        "summary": "描述了一个多部分系列，构建了一个AI代理工作流，强制执行结构化流程（简报、规划、构建、审查、发布、回顾），并发现该代理自然地强制执行这种纪律而无需提示。代理适当地分类任务，并产生基于验证而非基于信心的结果。"
+      }
+    }
+  },
+  {
+    "title": "Woman pulled over twice after Flock-linked software connected her to homicide",
+    "slug": "woman-pulled-over-flock-facial-recognition-error",
+    "url": "https://guessingheadlights.com/yall-failed-me-woman-pulled-over-at-gunpoint-twice-after-flock-camera-glitch/",
+    "source": "Hacker News",
+    "date": "2026-08-11T17:02:59.000Z",
+    "summary": "Woman was pulled over twice after facial recognition software from Flock incorrectly linked her vehicle to a homicide investigation. Incident highlights risks of flawed facial recognition algorithms in law enforcement without proper oversight and safeguards.",
+    "content": "https://local12.com/news/nation-world/flock-camera-error-lea...\nComments URL: https://news.ycombinator.com/item?id=49261218\nPoints: 224\n# Comments: 192",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "女性因Flock面部识别软件错误将其车辆与谋杀案联系起来而被拦下两次",
+        "summary": "女性因来自Flock的面部识别软件错误地将其车辆与谋杀案调查联系起来而被拦下两次。这一事件强调了在没有适当监督和保障措施的情况下，执法中存在的有缺陷的面部识别算法的风险。"
+      }
+    }
+  },
+  {
+    "title": "Apple Silicon and macOS VMs: 11–16× Faster LLM Inference with Llama.cpp",
+    "slug": "apple-silicon-macos-vms-faster-llm-inference",
+    "url": "https://github.com/trycua/cua/blob/main/blog/gpu-passthrough-macos-vms.md",
+    "source": "Hacker News",
+    "date": "2026-08-11T14:50:33.000Z",
+    "summary": "Technical guide demonstrating 11-16x faster LLM inference on Apple Silicon when running macOS virtual machines with GPU passthrough using Llama.cpp. Details optimizations for efficient LLM inference on Apple hardware.",
+    "content": "Article URL: https://github.com/trycua/cua/blob/main/blog/gpu-passthrough-macos-vms.md\nComments URL: https://news.ycombinator.com/item?id=49259339\nPoints: 221\n# Comments: 32",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Apple Silicon和macOS虚拟机：使用Llama.cpp实现11-16倍更快的LLM推理",
+        "summary": "技术指南演示了在运行具有GPU直通的macOS虚拟机时，使用Llama.cpp在Apple Silicon上实现11-16倍更快的LLM推理。详细介绍了在Apple硬件上进行高效LLM推理的优化。"
+      }
+    }
+  },
+  {
     "title": "\"nginx doesn't run your config top to bottom: two traps with rewrite, try_files, and if\"",
     "slug": "nginx-config-rewrite-try-files-if-traps",
     "url": "https://dev.to/shinagawa-web/nginx-doesnt-run-your-config-top-to-bottom-two-traps-with-rewrite-tryfiles-and-if-2hlm",
