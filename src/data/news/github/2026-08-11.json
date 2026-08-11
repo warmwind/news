@@ -1,5 +1,197 @@
 [
   {
+    "title": "Docker BuildKit Cache Setup That Actually Speeds Up CI",
+    "slug": "docker-buildkit-cache-setup-speeds-ci",
+    "url": "https://dev.to/oleksandr_kuryzhev_42873f/docker-buildkit-cache-setup-that-actually-speeds-up-ci-44di",
+    "source": "DEV Community",
+    "date": "2026-08-11T07:01:43.000Z",
+    "summary": "Docker BuildKit cache is often misconfigured in CI, with the most common failure mode being stale cache sources that silently fall back to full rebuilds. The article explains how BuildKit's content-addressable caching differs from legacy Docker builds and covers three cache backends (inline, registry, and local/GHA) that matter in CI environments. Proper cache configuration can dramatically reduce build times by ensuring cache hits actually occur.",
+    "content": "Originally published on kuryzhev.cloud\nLast month a client asked me why their \"cached\" Docker builds still took nine minutes on every single pull request. They had --cache-from in their GitHub Actions workflow, a green checkmark, and a nagging suspicion something was off. Turned out their BuildKit cache had never actually hit once in three months — it was pulling a stale :latest tag as cache source and silently falling back to a full rebuild every time. This is the single most common failure mode I see with Docker BuildKit cache CI setups, and it's almost always invisible until someone actually times the build.\nWhat BuildKit Cache Actually Does Under the Hood\nThe legacy Docker build cache (pre-BuildKit) was dead simple: each instruction in the Dockerfile produced a layer, and that layer was reused if the instruction and its parent layer hadn't changed. It's content-addressable, but tightly coupled to instruction order. Change line 3, and everything below it invalidates — no exceptions.\nBuildKit changes the model. Cache is keyed by a digest computed from the actual inputs to a step: the base image digest, the build context checksum for anything copied in, and the resolved command. That's why two builds with identical Dockerfiles but different base image digests will miss cache even though the text is byte-identical — the input hash changed, not the instruction.\nThere are three cache backends that matter in CI. Inline cache (BUILDKIT_INLINE_CACHE=1) embeds cache metadata directly into the pushed image — this is deprecated since Buildx v0.10 in favor of registry cache. Registry cache (--cache-to type=registry) pushes cache blobs to a separate manifest in your registry, independent of the final image tag. And local/GHA cache (type=local, type=gha) stores cache on disk or in GitHub's Actions cache service, capped at 10GB per repo.\nThe key thing to internalize: a cache \"hit\" requires the build context checksum, base image digest, AND the instruction to all match what's in",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "真正加速 CI 的 Docker BuildKit 缓存设置",
+        "summary": "Docker BuildKit 缓存在 CI 中经常被配置错误，最常见的失败模式是陈旧的缓存源无声地回退到完整重建。该文章解释了 BuildKit 的内容可寻址缓存与传统 Docker 构建的区别，以及在 CI 环境中重要的三个缓存后端（内联、注册表和本地/GHA）。正确的缓存配置可以通过确保缓存命中实际发生来显著减少构建时间。"
+      }
+    }
+  },
+  {
+    "title": "What I learned building a payments page with no payment processor - A free, self-hosted, zero commission donation platform",
+    "slug": "payments-page-no-payment-processor-upi-donations",
+    "url": "https://dev.to/shivams136/what-i-learned-building-a-payments-page-with-no-payment-processor-a-free-self-hosted-zero-lne",
+    "source": "DEV Community",
+    "date": "2026-08-11T07:01:09.000Z",
+    "summary": "buy-me-a-chai is an open-source donation platform for Indian creators that eliminates payment processors entirely by leveraging UPI (Unified Payments Interface), which encodes payment requests as simple URIs that route directly between bank accounts. The platform requires no backend, database, or API—just string concatenation to generate payment URIs that any UPI app can open with pre-filled details. This approach demonstrates how existing payment infrastructure can eliminate traditional processor overhead and commissions.",
+    "content": "I just shipped buy-me-a-chai: an open-source \"Buy Me a Coffee\"-style donation page for Indian creators that charges 0% commission, forever. Not as a promotion — as architecture. There is no backend, no database, no accounts, and no payment processor anywhere in the project. It's a static site template: fork it, edit one YAML file, deploy free on GitHub Pages, and donors pay your bank account directly.\nBuilding a payments page with no payment infrastructure sounds like a contradiction. It's not — but only because of one deliberate trade-off, and getting there taught me more about URL encoding, mobile browser policy, and Unicode than any project I've done. Here's the tour.\nTemplate Repo: github.com/ShivamS136/buy-me-a-chai\n\nDemo Page: shivams136.github.io/buy-me-a-chai\n\nMy Chai Page: shivams136.github.io/chai-for-me\n\n\n\n\n  \n  \n  UPI in 90 seconds (for readers outside India)\n\n\nUPI (Unified Payments Interface) is India's instant payment system — public infrastructure that moves money bank-to-bank in seconds, for free, between any two people. It processes more transactions than any comparable system on earth, and the street vendor selling you chai accepts it via a paper QR code taped to their cart.\nThat QR code encodes a standardized URI:\nupi://pay?pa=creator@bank&pn=Creator%20Name&am=150.00&cu=INR&tn=Thanks%20for%20the%20blog\n\npa is the payment address (a \"VPA\" like shivam@okaxis), am the amount, tn a note. Any UPI app — Google Pay, PhonePe, Paytm, BHIM — opens this URI with everything pre-filled. The payer confirms with their PIN, and money moves directly between bank accounts.\nRead that again: a plain-text URI is a complete payment request. No API keys, no SDK, no server. My entire \"payments integration\" is string concatenation.\nSo why do donation platforms in India still take ~5% of a ₹20 chai?\nBecause UPI person-to-person payments have no callback API. Nothing tells your page \"payment completed.\" To confirm payments you must become a payment aggregator — a regulated",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我在构建无支付处理器的支付页面中学到的东西 - 一个免费、自托管、零佣金的捐赠平台",
+        "summary": "buy-me-a-chai 是一个为印度创作者设计的开源捐赠平台，它完全消除了支付处理器，通过利用 UPI（统一支付界面）来实现，UPI 将支付请求编码为简单的 URI，直接在银行账户之间路由。该平台不需要后端、数据库或 API——只需字符串连接来生成支付 URI，任何 UPI 应用都可以打开并使用预填充的详细信息。这种方法展示了现有支付基础设施如何消除传统处理器的开销和佣金。"
+      }
+    }
+  },
+  {
+    "title": "How to Block SQL Injection Attacks with a Free WAF",
+    "slug": "block-sql-injection-attacks-free-waf",
+    "url": "https://dev.to/lialiago/how-to-block-sql-injection-attacks-with-a-free-waf-2dda",
+    "source": "DEV Community",
+    "date": "2026-08-11T07:01:02.000Z",
+    "summary": "SQL injection remains the #1 web vulnerability in 2026, accounting for 23% of reported vulnerabilities, and can be blocked at the WAF layer before reaching the database. SafeLine's semantic WAF engine detects injection patterns by analyzing SQL structure rather than regex rules, making it more effective against obfuscated payloads. Even with prepared statements in place, a WAF provides defense-in-depth protection against vulnerabilities in legacy code and third-party libraries.",
+    "content": "SQL Injection Is Still the #1 Threat in 2026\n\n\nOWASP Top 10 hasn't changed. SQL injection remains the most dangerous web vulnerability — and the most common. In 2025, 23% of all reported web vulnerabilities were injection flaws. A WAF can block 99% of them at the proxy level before they reach your database.\nAttackers probe for SQL injection with payloads like:\n' OR '1'='1\n'; DROP TABLE users; --\n' UNION SELECT username,password FROM users--\n1 AND (SELECT COUNT(*) FROM users) > 0\n' OR 1=1 LIMIT 1 --\n\nThese all follow a pattern: they try to escape the SQL query context and inject their own commands. A semantic WAF can detect this pattern structure, not just specific payload strings.\nPrepared statements (the gold standard) prevent SQL injection. But:\nNot every query in your codebase uses them\nThird-party libraries might have raw queries\nLegacy code exists and nobody wants to touch it\nORMs have edge cases (raw queries, dynamic joins)\nA WAF is defense in depth. Even if your application is perfect, the WAF catches what you missed.\nSafeLine's semantic engine detects SQL injection without regex rules. It parses the SQL structure of incoming payloads and tests whether they could modify query behavior.\nNo custom rules needed. The semantic engine ships with SQL injection detection built in. To enable:\n1. Dashboard -> Settings -> Detection Profile\n2. SQL Injection: Block (not just Detect)\n3. Confidence threshold: 80 (default)\n\nThat's it. Every SQL injection attempt hitting your server is now blocked at the WAF layer.\nPattern matching (old WAFs):\nRule: /\\b(UNION|SELECT|DROP|INSERT)\\b/i\nProblem: Blocks \"SELECT * FROM products\" in a search query\n         Misses: \"U%4EION SEL%45CT\" (URL-encoded bypass)\n\nSemantic analysis (SafeLine):\n1. Parse the payload as SQL structure\n2. Identify: this modifies the query's logic tree\n3. Classify: SQL injection with 98% confidence\n4. Block\n\nAfter setting up SafeLine, test with a safe probe:\n# This should be blocked (returns 403)\ncurl \"https://your",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何使用免费 WAF 阻止 SQL 注入攻击",
+        "summary": "SQL 注入在 2026 年仍然是排名第一的网络漏洞，占报告漏洞的 23%，可以在 WAF 层阻止，防止到达数据库。SafeLine 的语义 WAF 引擎通过分析 SQL 结构而不是正则表达式规则来检测注入模式，使其对混淆的有效载荷更有效。即使采用了预准备语句，WAF 也为遗留代码和第三方库中的漏洞提供了纵深防御保护。"
+      }
+    }
+  },
+  {
+    "title": "Docker Compose WAF: Add SafeLine to Any Existing Stack in 3 Steps",
+    "slug": "docker-compose-waf-safeline-existing-stack",
+    "url": "https://dev.to/lialiago/docker-compose-waf-add-safeline-to-any-existing-stack-in-3-steps-np5",
+    "source": "DEV Community",
+    "date": "2026-08-11T07:00:53.000Z",
+    "summary": "SafeLine WAF can be integrated into existing Docker Compose stacks by creating a shared bridge network and routing traffic through SafeLine's reverse proxy with minimal changes. The setup requires only modifications to Nginx configuration and Docker network definitions, without altering application containers or code. This demonstrates how WAF protection can be transparently added as middleware without disrupting production deployments.",
+    "content": "The Situation\n\n\nYou already have a Docker Compose stack running: Nginx + your app + PostgreSQL + Redis. It works. You don't want to rebuild it. But you want WAF protection in front.\nHere's how to add SafeLine to an existing Docker Compose project without disrupting anything.\n# docker-compose.yml (add to your existing file)\nnetworks:\n  webnet:\n    driver: bridge\n\nConnect your existing services to this network:\nservices:\n  app:\n    networks:\n      - webnet\n  nginx:\n    networks:\n      - webnet\n\nSafeLine uses its own Compose file. The installer creates it automatically:\nbash -c \"$(curl -fsSLk https://waf.chaitin.com/release/latest/manager.sh)\" -- --en\n\nThe generated docker-compose.yml (for SafeLine) will be something like /opt/safeline/docker-compose.yml. Leave it alone — SafeLine manages this.\nEdit SafeLine's Compose file (/opt/safeline/docker-compose.yml) and add your existing network as external:\nnetworks:\n  safeline:\n    driver: bridge\n  webnet:\n    external: true  # Your existing network\n\nThen connect SafeLine's reverse proxy to both networks:\nservices:\n  safeline-tengine:\n    networks:\n      - safeline\n      - webnet\n\nUpdate your Nginx config to route traffic through SafeLine:\n# Before (direct to app)\nlocation / {\n    proxy_pass http://app:3000;\n}\n\n# After (through SafeLine)\nlocation / {\n    proxy_pass http://safeline-tengine:80;\n    proxy_set_header X-Real-IP $remote_addr;\n    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n}\n\nThen in SafeLine's dashboard, point the site backend to your app container: app:3000.\n# Start all your services\ndocker compose up -d\n\n# SafeLine should already be running from the installer\ndocker compose -f /opt/safeline/docker-compose.yml ps\n\nTraffic flow:\nInternet → Nginx:80 → SafeLine (inspection) → app:3000\n\nYour app doesn't change. SafeLine sits between Nginx and your app as a middleware proxy. No code changes. No config changes to your app containers. Just 3 lines in your Nginx config and one network connection.\nSafeLin",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Docker Compose WAF：3个步骤将SafeLine添加到任何现有堆栈",
+        "summary": "SafeLine WAF可以通过创建共享桥接网络并通过SafeLine的反向代理路由流量，以最小改动集成到现有Docker Compose堆栈中。该设置仅需要修改Nginx配置和Docker网络定义，无需更改应用容器或代码。这演示了如何以透明方式将WAF保护添加为中间件，而不会中断生产部署。"
+      }
+    }
+  },
+  {
+    "title": "How to Fix LocalWP Not Opening on Linux (Fedora 44 / Wayland)",
+    "slug": "fix-localwp-not-opening-linux-fedora-wayland",
+    "url": "https://dev.to/devvsakib/how-to-fix-localwp-not-opening-on-linux-fedora-44-wayland-2677",
+    "source": "DEV Community",
+    "date": "2026-08-11T06:58:27.000Z",
+    "summary": "LocalWP fails to launch on modern Wayland-based Linux distributions due to corrupted JSON config caches, Chromium/Electron compatibility issues, and GPU acceleration glitches. The fix involves clearing corrupted configuration files from ~/.config/Local/ and launching with Electron flags like --no-sandbox to work around Wayland display server incompatibilities. This addresses a widespread issue affecting users on Fedora 44 and other modern Linux distributions.",
+    "content": "How to Fix LocalWP Not Opening on Linux (Fedora 44 / Wayland / Gnome)\n\n\nIf you’ve recently installed LocalWP on Fedora or any modern Wayland-based Linux distribution, you may have encountered a frustrating issue: you click the application icon, see a brief loading spinner, and then... nothing happens.\nEven worse, running the binary from the terminal might show that the Node.js backend initializes successfully (Electron Event ready), yet no graphical window ever pops up on your screen.\nThis issue is caused by three main factors:\nCorrupted JSON configuration cache from aborted startups.\nChromium/Electron Wayland display server incompatibilities.\nHardware GPU acceleration glitches under modern Linux graphics pipelines.\nHere is the exact, tested, step-by-step fix to get LocalWP running smoothly on your machine.\nBefore applying fixes, run LocalWP directly from your terminal to see if the process is stuck or throwing errors:\n/opt/Local/local\n\n\nIf your output hangs around Electron Event ready without showing a UI window, or if it throws a SyntaxError: Unexpected end of JSON input error, move to the next steps.\nWhen LocalWP crashes during initial launches, it often leaves behind empty or malformed JSON files in your local user directory (~/.config/Local/). These corrupted files block the UI renderer process.\nRun the following commands to clean up the application state cache without touching your WordPress site files:\n# Kill any hidden background Local processes\nkillall local\n\n# Remove corrupted hub config and GPU/window state caches\nrm -f ~/.config/Local/hub-api.json\nrm -rf ~/.config/Local/GPUCache ~/.config/Local/Local-Storage ~/.config/Local/\"window-state.json\"\n\n\nModern Linux distributions like Fedora run Wayland by default instead of legacy X11, while LocalWP uses an older version of Electron that requires explicit flags to render correctly under Wayland without GPU hardware acceleration hangs.\nTest launching LocalWP using the following flags:\n/opt/Local/local --no-sandb",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何修复LocalWP在Linux上无法打开的问题（Fedora 44 / Wayland）",
+        "summary": "LocalWP在现代基于Wayland的Linux发行版上无法启动，原因是JSON配置缓存损坏、Chromium/Electron兼容性问题和GPU加速故障。修复方法涉及从~/.config/Local/清除损坏的配置文件，并使用Electron标志（如--no-sandbox）启动以解决Wayland显示服务器不兼容问题。这解决了影响Fedora 44和其他现代Linux发行版用户的广泛问题。"
+      }
+    }
+  },
+  {
+    "title": "TypeScript 6.0 Type-Only Imports Are Now Enforced: What `verbatimModuleSyntax` Actually Breaks in Real Codebases",
+    "slug": "typescript-6-0-type-only-imports-enforced",
+    "url": "https://dev.to/jsmanifest/typescript-60-type-only-imports-are-now-enforced-what-verbatimmodulesyntax-actually-breaks-in-aic",
+    "source": "DEV Community",
+    "date": "2026-08-11T06:55:53.000Z",
+    "summary": "TypeScript 6.0's verbatimModuleSyntax flag enforces explicit import type vs. import declarations, breaking existing codebases that relied on compiler import elision guessing. The migration surfaces hundreds of ambiguous import statements that were previously tolerated, requiring teams to explicitly declare import intent or disable the flag. This strict enforcement improves build integrity but requires substantial code changes in existing projects.",
+    "content": "TypeScript 6.0 Type-Only Imports Are Now Enforced: What verbatimModuleSyntax Actually Breaks in Real Codebases\n\n\n\nThis article was written with the assistance of AI, under human supervision and review.\nMost TypeScript build failures after a major version upgrade stem from one assumption: the compiler will figure out which imports are types and which are runtime values. That assumption breaks the moment teams enable verbatimModuleSyntax in tsconfig.json. The flag eliminates the compiler's guesswork around import elision, but it does so by enforcing an explicit contract that existing codebases violate in subtle, expensive ways.\nThe failure mode here is subtle but expensive. A codebase that compiled cleanly under TypeScript 5.x throws hundreds of errors under 6.0 with verbatimModuleSyntax enabled. The errors point to mixed import statements, namespace re-exports, and side-effect modules that the compiler previously tolerated. Teams either spend days migrating every import, or they disable the flag and lose the build integrity it guarantees.\n\nProblem flow showing mixed imports silently elided\nThe fix requires understanding what verbatimModuleSyntax actually enforces: every import and export statement must declare its intent explicitly. If a statement imports types, it must use import type. If it imports runtime values, it must use import. If it does both, the statement must split into two separate lines. The compiler no longer guesses, which means the migration surfaces every ambiguous import in the codebase.\n\nSolution flow showing explicit type imports\nThis distinction is critical. The problem is not that verbatimModuleSyntax is strict. The problem is that teams wrote ambiguous imports because the compiler accepted them, and now the compiler refuses to guess on their behalf.\nverbatimModuleSyntax eliminates import elision guessing by requiring explicit import type or import syntax for every statement.\nMixed imports that combine types and runtime values in a single state",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "TypeScript 6.0仅类型导入现已强制执行：`verbatimModuleSyntax`在真实代码库中实际破坏的内容",
+        "summary": "TypeScript 6.0的verbatimModuleSyntax标志强制显式import type与import声明，破坏了依赖编译器导入省略猜测的现有代码库。迁移暴露了数百个之前被容忍的模糊导入语句，要求团队明确声明导入意图或禁用该标志。这种严格的强制执行提高了构建完整性，但需要对现有项目进行大量代码更改。"
+      }
+    }
+  },
+  {
+    "title": "Deploy ReplicaSet in Kubernetes Cluster",
+    "slug": "deploy-replicaset-kubernetes-cluster",
+    "url": "https://dev.to/janak0ff/deploy-replicaset-in-kubernetes-cluster-2n07",
+    "source": "DEV Community",
+    "date": "2026-08-11T06:42:41.000Z",
+    "summary": "This tutorial covers creating a Kubernetes ReplicaSet with nginx:latest image, 4 replicas, and proper labels for application deployment. The steps include generating the YAML manifest, configuring container names and replica counts, and verifying successful pod deployment. Understanding ReplicaSet configuration is fundamental for managing containerized applications and ensuring high availability in Kubernetes clusters.",
+    "content": "The Nautilus DevOps team is gearing up to deploy applications on a Kubernetes cluster for migration purposes. A team member has been tasked with creating a ReplicaSet outlined below:  \nCreate a ReplicaSet using nginx image with latest tag (ensure to specify as nginx:latest) and name it nginx-replicaset.\n\nApply labels: app as nginx_app, type as front-end.\n\nName the container nginx-container. Ensure the replica count is 4.\nFirst, let's generate a base ReplicaSet manifest:\nkubectl create replicaset nginx-replicaset \\\n  --image=nginx:latest \\\n  --dry-run=client -o yaml > nginx-replicaset.yaml\n\nOpen the file and modify it according to the requirements:\nnano nginx-replicaset.yaml\n\nUpdate the file with:\nReplica count: 4\nLabels: app: nginx_app, type: front-end\n\nContainer name: nginx-container\n\n\n\nHere's the complete YAML:\napiVersion: apps/v1\nkind: ReplicaSet\nmetadata:\n  name: nginx-replicaset\n  labels:\n    app: nginx_app\n    type: front-end\nspec:\n  replicas: 4\n  selector:\n    matchLabels:\n      app: nginx_app\n      type: front-end\n  template:\n    metadata:\n      labels:\n        app: nginx_app\n        type: front-end\n    spec:\n      containers:\n      - name: nginx-container\n        image: nginx:latest\n        ports:\n        - containerPort: 80\n\nCreate the ReplicaSet in your cluster:\nkubectl apply -f nginx-replicaset.yaml\n\nExpected output:\nreplicaset.apps/nginx-replicaset created\n\nCheck that the ReplicaSet was created successfully:\nkubectl get replicasets\n\nExpected output:\nNAME                DESIRED   CURRENT   READY   AGE\nnginx-replicaset    4         4         4       10s\n\nCheck that 4 pods were created:\nkubectl get pods\n\nExpected output:\nNAME                      READY   STATUS    RESTARTS   AGE\nnginx-replicaset-xxxxx    1/1     Running   0          15s\nnginx-replicaset-yyyyy    1/1     Running   0          15s\nnginx-replicaset-zzzzz    1/1     Running   0          15s\nnginx-replicaset-wwwww    1/1     Running   0          15s\n\nCheck that the labels are correctly applied:",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在 Kubernetes 集群中部署 ReplicaSet",
+        "summary": "本教程涵盖如何创建包含 nginx:latest 镜像、4 个副本和适当标签的 Kubernetes ReplicaSet。步骤包括生成 YAML 清单、配置容器名称和副本数量，以及验证 Pod 部署成功。理解 ReplicaSet 配置对于管理容器化应用程序和确保 Kubernetes 集群中的高可用性是基础。"
+      }
+    }
+  },
+  {
+    "title": "Adrak Chai & Samosa — Comfort Food Edition (Corporate Tech Office Tea Break)",
+    "slug": "adrak-chai-samosa-comfort-food-css-art",
+    "url": "https://dev.to/sayista_yazdani_3c0e9f4f9/adrak-chai-samosa-comfort-food-edition-corporate-tech-office-tea-break-b2m",
+    "source": "DEV Community",
+    "date": "2026-08-11T06:39:57.000Z",
+    "summary": "This pure-CSS interactive art project celebrates Indian workplace culture through handcrafted animations of chai and samosas alongside a detailed corporate pantry scene with multiple characters. The project leverages Web Speech API for character narration, CSS animations for gaze-tracking and mouth movements, and advanced techniques like gradient meshes and pseudo-element layering. It demonstrates how developers blend cultural nostalgia with advanced frontend techniques.",
+    "content": "This is a submission for Frontend Challenge - Comfort Food Edition, CSS Art.\nIn an Indian tech office, no product release, critical bug fix, or late-night deployment is complete without a 5-minute pantry chai break. A steaming clay Kulhad of Ginger Adrak Chai paired with crisp Garma-Garam Samosas is the ultimate comfort food that powers developers through endless coding sprints. \nThis authentic workplace culture and rich street-food nostalgia inspired me to build a pure-CSS interactive art and corporate pantry scene.\nLive Interactive Demo: Corporate Chai & Samosa Experience\n\n\nCodePen Embed:\ncodepen.io\n          \n\n        \n      \nGitHub Repository: Sayista-Yazdani/corporate-chai\n\n\n\n\n\n\n\n  \n  \n  What I Built\n\n\nAdrak Chai & Samosa is an interactive web experience featuring:\nPure CSS Hero Artwork:\nHandcrafted clay-textured Kulhad Chai cup with a shimmering tea surface, malai rim, and layered rising steam animations.\nGolden-brown samosas with crisp crimped edges, served on a traditional plate alongside mint and tamarind chutneys.\nInteractive Corporate Pantry Corner:\nFully detailed tea kitchen equipped with a glowing gas stove, boiling tea saucepan with foam, spice jars (Adrak, Elaichi, Chai Patti), and stacked clay cups.\n4 Distinct Characters: Rohan (Frontend Dev), Amit (Tech Lead), Priya (Product Manager), and Kaka (Pantry Specialist).\nWeb Speech API & Audio Narration:\nReal voice speech synthesis with gender-matched voice profiles for each character.\nCharacter Gaze & Mouth Choreography:\nCharacters automatically look toward whoever is currently speaking with dynamic gaze shifting, listening poses, and animated mouth movements.\nCSS Artwork: Built entirely with CSS gradient meshes, polygon shapes, keyframe animations, and layered pseudo-elements (::before / ::after).\nAudio Engine: Powered by native window.speechSynthesis with dynamic voice selection and text cleaning.\nState Management: Reactive data-speaker HTML attributes driving multi-character gaze direction and speech b",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Adrak 茶和萨摩萨 — 舒适食物版（企业科技办公室茶歇）",
+        "summary": "这个纯 CSS 交互艺术项目通过精心制作的茶和萨摩萨动画以及包含多个角色的详细企业食品室场景来庆祝印度工作场所文化。该项目利用 Web Speech API 进行角色叙述，CSS 动画用于眼睛追踪和嘴部运动，以及渐变网格和伪元素分层等高级技术。它展示了开发人员如何将文化怀旧与先进的前端技术融合在一起。"
+      }
+    }
+  },
+  {
+    "title": "Union-Find: The Fellowship of the Sets",
+    "slug": "union-find-fellowship-sets-data-structure",
+    "url": "https://dev.to/timevolt/union-find-the-fellowship-of-the-sets-10dd",
+    "source": "DEV Community",
+    "date": "2026-08-11T06:38:04.000Z",
+    "summary": "Union-Find (Disjoint Set Union) is a data structure that efficiently maintains partitioned elements with near-O(1) amortized operations through path compression and union-by-rank heuristics. The article uses LeetCode examples to show why this structure outperforms naive approaches like DFS on graphs with hundreds of thousands of nodes and edges. Understanding Union-Find is critical for efficiently solving graph connectivity problems in competitive programming.",
+    "content": "The Quest Begins (The \"Why\")\n\n\nI still remember the first time I saw LeetCode 323 “Number of Connected Components in an Undirected Graph”. I stared at the adjacency list, thought “I’ll just run a DFS from every node”, and coded it up in ten minutes. The solution passed the easy tests, but when the hidden test cases hit a graph with 10⁵ nodes and 10⁵ edges, my DFS started to choke—stack overflows, repeated visits, and a sinking feeling that I was brute‑forcing a problem that deserved a smarter tool.  \nThat night, after a few too many coffees, I stumbled upon a tiny comment in a discussion thread: “Union‑Find can do this in almost O(1) per operation”. My curiosity sparked like a power‑up in a retro arcade game. I had to know why this seemingly simple data structure could turn a nightmare into a breeze.  \nAt its heart, Union‑Find (aka Disjoint Set Union, DSU) maintains a collection of elements partitioned into disjoint subsets. It supports two operations:  \nFind(x) – returns the representative (root) of the set containing x.\n\n\nUnion(x, y) – merges the sets containing x and y.\n\n\n\nThe magic lies in two simple heuristics:  \nPath Compression – when we walk up the tree to find a root, we make every node on that path point directly to the root. Future finds become flat, almost constant‑time.\n\n\nUnion by Rank/Size – we always attach the smaller tree under the root of the larger one, keeping the overall tree shallow.\n\n\n\nWhy does this give us near‑O(1) amortized time? Think of each Find as paying a small “tax” to flatten the path. The tax is paid only a few times per node before it becomes a direct child of the root. Over a sequence of m operations, the total work is bounded by O(m α(n)), where α is the inverse Ackermann function—so slow‑growing it’s practically a constant for any realistic n.  \nIn plain English: every time we climb up, we leave a shortcut behind. The next climber benefits from that shortcut, and the structure keeps getting better. It’s like building a network o",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "并查集：集合的团契",
+        "summary": "并查集（不相交集合并）是一种数据结构，通过路径压缩和按秩合并启发式方法以接近 O(1) 的平摊操作来有效维护分割的元素。本文通过 LeetCode 示例展示为什么这种结构在具有数十万个节点和边的图上优于 DFS 等朴素方法。理解并查集对于在竞争性编程中有效解决图连通性问题至关重要。"
+      }
+    }
+  },
+  {
+    "title": "AI Is Making Financial Tools Feel Less Complicated",
+    "slug": "ai-making-financial-tools-less-complicated",
+    "url": "https://dev.to/julia0811/ai-is-making-financial-tools-feel-less-complicated-10h8",
+    "source": "DEV Community",
+    "date": "2026-08-11T06:38:00.000Z",
+    "summary": "AI in fintech is primarily reducing friction through information organization and automation rather than making predictions, with examples like Stripe's payment simplification and BYDFi's automated trading strategies. The trend shows that effective AI makes complicated financial processes easier and less overwhelming for users rather than adding complexity. For developers, the challenge is building intuitive tools that reduce the number of decisions users must make.",
+    "content": "I used to think financial apps were designed mostly for people who already understood finance.\nYou open an app, see dozens of charts, numbers, and settings, and sometimes your first thought is: “Okay… where do I even start?”\nAI is slowly changing that experience.\nThe most useful AI applications in fintech are not always about making predictions. In many cases, they are about removing friction: organizing information, automating repetitive tasks, and helping users understand complicated processes.\nWe can already see this trend in different areas. Companies like Stripe are using technology to simplify online payments, while platforms like Plaid help connect financial data between different services.\nThe same idea is appearing in other parts of finance too. Some digital financial platforms are exploring automation tools that help users create more structured workflows instead of manually managing every step.\nFor example, platforms like BYDFi have introduced automated tools that allow users to use predefined strategies rather than constantly monitoring every market movement.\nOf course, automation does not replace human decisions. A smarter tool does not mean a person can ignore research or risk management.\nFor developers, the interesting challenge is not building the most complicated system. It is building something that makes complicated things easier for real users.\nMaybe the future of fintech is not about adding more buttons.\nMaybe it is about helping people need fewer buttons.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "人工智能让金融工具变得不那么复杂",
+        "summary": "金融科技中的人工智能主要通过信息组织和自动化来减少摩擦，而不是进行预测，例如 Stripe 的支付简化和 BYDFi 的自动交易策略。这一趋势表明，有效的人工智能使复杂的金融过程对用户来说更简单，而不是增加复杂性。对开发者来说，挑战在于构建直观的工具，以减少用户必须做出的决定次数。"
+      }
+    }
+  },
+  {
+    "title": "Build a JSON-RPC 2.0 API in Symfony in 15 minutes: from composer require to OpenAPI",
+    "slug": "json-rpc-2-0-api-symfony-15-minutes",
+    "url": "https://dev.to/otezvikentiy/build-a-json-rpc-20-api-in-symfony-in-15-minutes-from-composer-require-to-openapi-5bpk",
+    "source": "DEV Community",
+    "date": "2026-08-11T06:35:02.000Z",
+    "summary": "JSON-RPC 2.0 provides a simpler alternative to REST for verb-based operations by using a single endpoint with method + params calls instead of mapping operations to HTTP verbs and resources. The article demonstrates building a complete task tracker API in Symfony with DTO validation, batch request support, and auto-generated OpenAPI documentation in minimal code. The approach is production-tested and suited for domains where operation semantics matter more than resource management.",
+    "content": "REST works great while your API describes resources. But as soon as the domain becomes verb-shaped - recalculateInvoice, mergeAccounts, assignTask - you end up bending verbs into nouns and arguing about which HTTP method cancels an order. JSON-RPC 2.0 cuts through all of that: every call is just method + params, one endpoint, a spec that fits on two pages, and batching out of the box.\nIn this article we will build a working JSON-RPC 2.0 API on Symfony: a task tracker with DTO validation, batch requests and generated OpenAPI documentation. There is surprisingly little code to write: methods are declared with attributes, validation is derived from property types, and Swagger is generated by a console command.\nEverything below lives as a ready-to-run project on GitHub: symfony-jsonrpc-api-demo - clone it and poke it with curl while you read. We will use the otezvikentiy/json-rpc-api bundle (PHP 8.2-8.5, Symfony 6.4/7/8; this article uses PHP 8.4 and Symfony 7.4).\nFull disclosure: I am the author of the bundle. It has been running in production for three years - internal fintech tooling, an HRM system - nothing glamorous load-wise, but the correctness, logging and audit requirements were real, and they shaped most of what you will see below.\ncomposer create-project symfony/skeleton:\"7.4.*\" tasks-api\ncd tasks-api\ncomposer require otezvikentiy/json-rpc-api\n\nIf Flex has contrib recipes enabled, the bundle registers itself. If not, it is two lines by hand:\n// config/bundles.php\nreturn [\n    // ...\n    OV\\JsonRPCAPIBundle\\OVJsonRPCAPIBundle::class => ['all' => true],\n];\n\nWire up the route and a minimal config:\n# config/routes/ov_json_rpc_api.yaml\nov_json_rpc_api:\n    resource: '@OVJsonRPCAPIBundle/config/routes/routes.yaml'\n\n# config/packages/ov_json_rpc_api.yaml\nov_json_rpc_api:\n    access_control_allow_origin_list:\n        - 'http://localhost:8000'\n\nThe bundle registers a single route, /api/v{version} - every request goes through it. Note the CORS list format: these are fu",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在15分钟内用 Symfony 构建 JSON-RPC 2.0 API：从 composer require 到 OpenAPI",
+        "summary": "JSON-RPC 2.0 为基于动词的操作提供了一个比 REST 更简单的替代方案，通过使用单个端点的方法+参数调用，而不是将操作映射到 HTTP 动词和资源。该文章演示了在 Symfony 中构建完整的任务追踪器 API，包括 DTO 验证、批量请求支持和自动生成的 OpenAPI 文档，代码量最少。这种方法经过生产测试，适用于操作语义比资源管理更重要的领域。"
+      }
+    }
+  },
+  {
+    "title": "What AI Coding Tools Are Actually Changing About Technical Interviews",
+    "slug": "ai-coding-tools-changing-technical-interviews",
+    "url": "https://dev.to/redyellow/what-ai-coding-tools-are-actually-changing-about-technical-interviews-30fh",
+    "source": "DEV Community",
+    "date": "2026-08-11T06:34:42.000Z",
+    "summary": "Technical interviews have shifted from testing pure code-writing ability to evaluating how developers understand code, debug it, and direct AI tools effectively, with many companies allowing AI usage during technical rounds. The skills being tested have moved from writing code from memory to reasoning clearly with code and verifying AI-generated output for correctness and design decisions. Candidates should practice reading and debugging code, explaining reasoning, and understanding fundamental concepts—areas where AI cannot substitute human judgment.",
+    "content": "A few years ago, a technical interview mostly tested one thing: can you write correct code, from memory, under pressure. That bar has quietly shifted — and a lot of developers preparing for interviews right now haven't fully clocked it.\nAI coding assistants are part of daily work at most companies now, from big IT services firms to small product teams. Interview panels have adjusted to that reality faster than most prep guides have.\nWhat's actually different now\nInterviewers care less about whether you can produce a function from scratch, and more about whether you understand what code is doing and why. It's increasingly common to be handed a piece of AI-generated code and asked to find the bug, justify a design decision, or optimize it — instead of writing something from zero on a whiteboard.\nSome companies go further and let you use AI tools during the technical round, then evaluate how well you direct the tool, verify its output, and catch its mistakes. The skill being tested has moved from \"can you write code\" to \"can you reason clearly with code as your material.\"\nThree things I keep seeing candidates get wrong\nTreating a finished course or degree as the finish line.\n\n\nLeaning on AI tools without understanding the output.\n\n\nUnderrating communication and debugging skills.\n\n\n\nWhat's actually worth practicing\nIf you're prepping for interviews right now, a few adjustments make a real difference:\nPractice reading and debugging other people's code, not just writing your own — it mirrors what the job looks like today\nGet comfortable explaining your reasoning out loud — more interviews are structured as conversations, not silent coding tests\nSpend time on the\"why\" behind core concepts — data structures, system design basics, how a query actually behaves — since that's the judgment an AI tool can't substitute for you\nFundamentals still matter — arguably more than before, because they're what separates someone who can direct and verify an AI tool from someone who's just",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "人工智能编码工具实际上改变了技术面试的什么",
+        "summary": "技术面试已从测试纯粹的代码编写能力转向评估开发者如何理解代码、调试代码和有效引导人工智能工具，许多公司在技术轮中允许使用人工智能。被测试的技能已从凭记忆编写代码转向用代码进行清晰的推理和验证人工智能生成的输出的正确性和设计决策。候选人应该练习阅读和调试代码、解释推理和理解基本概念——这些是人工智能无法替代人类判断的领域。"
+      }
+    }
+  },
+  {
     "title": "How to Calculate Distance Between Two GPS Coordinates in JavaScript",
     "slug": "calculate-distance-gps-coordinates-javascript",
     "url": "https://dev.to/echoluoluo/how-to-calculate-distance-between-two-gps-coordinates-in-javascript-3f13",
@@ -28,6 +220,22 @@
       "zh": {
         "title": "早期预警系统：使用手腕上的 LSTM 检测流感和感染 ⌚️🔬",
         "summary": "构建边缘 AI 系统的指南，使用 LSTM 神经网络通过分析智能手表心率异常与 7 天基线的对比来检测早期感染迹象，在可穿戴设备上启用实时隐私保护的健康警报。"
+      }
+    }
+  },
+  {
+    "title": "H3-metal – Native MiniMax-H3 inference for Apple Silicon",
+    "slug": "h3-metal-native-minimax-h3-inference-apple-silicon",
+    "url": "https://github.com/antirez/h3.c",
+    "source": "Hacker News",
+    "date": "2026-08-11T01:22:09.000Z",
+    "summary": "H3-metal enables native MiniMax-H3 model inference optimized for Apple Silicon hardware, providing efficient AI model execution on Apple's processors. This project addresses the need for performant inference workloads on Apple Silicon machines. It matters for developers and researchers seeking to run AI models efficiently on Apple hardware.",
+    "content": "Article URL: https://github.com/antirez/h3.c\nComments URL: https://news.ycombinator.com/item?id=49252179\nPoints: 194\n# Comments: 24",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "H3-metal – Apple Silicon 原生 MiniMax-H3 推理",
+        "summary": "H3-metal 为 Apple Silicon 硬件提供原生 MiniMax-H3 模型推理优化，在苹果处理器上提供高效的 AI 模型执行。该项目解决了在 Apple Silicon 机器上进行高性能推理工作的需求。这对寻求在苹果硬件上高效运行 AI 模型的开发人员和研究人员很重要。"
       }
     }
   },
