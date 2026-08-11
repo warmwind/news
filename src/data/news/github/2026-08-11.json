@@ -1,5 +1,197 @@
 [
   {
+    "title": "\"nginx doesn't run your config top to bottom: two traps with rewrite, try_files, and if\"",
+    "slug": "nginx-config-rewrite-try-files-if-traps",
+    "url": "https://dev.to/shinagawa-web/nginx-doesnt-run-your-config-top-to-bottom-two-traps-with-rewrite-tryfiles-and-if-2hlm",
+    "source": "DEV Community",
+    "date": "2026-08-11T13:01:00.000Z",
+    "summary": "Nginx processes config directives in a specific order that often surprises developers, not sequentially line-by-line. This post explains two common traps: rewrite/try_files interactions and conditional block scoping, showing why intuitive readings of the config fail in practice.",
+    "content": "You write a rewrite, then a try_files right under it, and you read it as \"the rewrite on top runs first, the try_files below runs after.\" You put an if inside a location and read it as \"when the condition is true, this stuff gets added to the outer config.\" Both readings trace the config file straight down, line by line, in the order it's written. And both have burned me.\nLet me show you the two symptoms first. In each case the config reads cleanly, yet the behavior doesn't line up. Why that happens — the order in which nginx processes a request — is what this post is about.\nIn some location you want to rewrite the request once, then fall back to a static file. The naive version looks like this:\nlocation /app/ {\n    rewrite ^/app/(.*)$ /public/$1 last;\n    try_files $uri $uri/ =404;\n}\n\nThe intent is \"rewrite /app/foo to /public/foo, serve the file if it exists, 404 otherwise.\" Since rewrite is on top and try_files is below, the rewrite takes effect first and then try_files handles the fallback — that's how it reads.\nBut throw /app/logo.png at it and you get a 404, even when /public/logo.png really exists.\n$ ls /public/logo.png\n/public/logo.png            # the file is definitely there\n\n$ curl -sI http://localhost/app/logo.png\nHTTP/1.1 404 Not Found      # and yet, 404\n\nThe try_files in this location is never evaluated once.\nif block doesn't take effect\n\n\nIn another location you want to add one header conditionally. The naive version looks like this:\nlocation /download/ {\n    add_header X-Served-By \"nginx\" always;\n\n    if ($arg_debug = \"1\") {\n        add_header X-Debug \"on\" always;   # only want this when ?debug=1\n    }\n\n    root /var/www;\n    try_files $uri =404;\n}\n\nThe intent is \"always add X-Served-By, and add X-Debug on top of it only when ?debug=1.\" But hit /download/foo?debug=1 and X-Debug shows up while X-Served-By, which you set on the outside, has vanished. The moment the condition goes true, part of the outer config drops.\nBoth configs read cleanly when you",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Nginx不是从上到下运行你的配置：rewrite、try_files和if的两个陷阱",
+        "summary": "Nginx按照特定的顺序处理配置指令，这通常会让开发者感到惊讶，而不是按行顺序执行。这篇文章解释了两个常见的陷阱：rewrite/try_files交互和条件块作用域，展示了为什么对配置的直观理解在实际应用中会失败。"
+      }
+    }
+  },
+  {
+    "title": "What Is Data Analysis?",
+    "slug": "what-is-data-analysis",
+    "url": "https://dev.to/michaelnocito/what-is-data-analysis-5ggc",
+    "source": "DEV Community",
+    "date": "2026-08-11T13:00:41.000Z",
+    "summary": "Data analysis is the systematic process of grouping records, finding patterns, and answering questions that drive decisions. The work breaks into four moves: start with a decision-driven question, gather records, split into comparable groups, and recommend action.",
+    "content": "By the end of this page you will have done a real piece of data analysis. It is a small one, on paper, with arithmetic you can do in your head. You will also know what the actual jobs look like hour by hour, which is the part most beginner articles skip, and what to learn first if you want one.\nThe work itself is four moves. You start with a question that has a decision behind it. You get the records of what happened. You split those records into groups and compare the groups. Then you say what to do about it. Everything else, every tool and every job title, is a variation on those four moves.\nThe short version. Data analysis is looking at records of things that already happened and finding a pattern that changes what someone does next. If nothing changes, it was not analysis. It was a report.\nMany records become one comparison, and the comparison points at a choice.\nData is just a record of something that happened. A receipt is data. A timestamp on a door badge is data. A row saying customer 4471 cancelled on March 3rd is data.\nAnalysis is what you do to a pile of those records to answer a question. Usually the question is a comparison. Which group is bigger? Which one is growing? Which one costs us money?\nHere is the part that makes it a job rather than a hobby. A single record tells you nothing useful. One customer cancelled, so what. Ten thousand records have a shape to them, and the shape is only visible once you group them. Grouping is the whole trick. You take rows that are alike, put them in a bucket, and count the buckets.\nOne word you will see everywhere: a metric. A metric is a number you decided to track, with a definition attached. \"Sales\" is not a metric until someone says whether it includes refunds. Half of all analysis arguments are really arguments about a definition, and the guide on defining metrics is entirely about that.\nA coffee shop owner has a question with a decision behind it. She is paying staff for two extra hours, one at each end of the",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "什么是数据分析？",
+        "summary": "数据分析是对记录进行分组、发现规律和回答推动决策问题的系统过程。这项工作分为四个步骤：从决策驱动的问题开始，收集记录，分成可比较的组，然后建议行动。"
+      }
+    }
+  },
+  {
+    "title": "SQL Aliases: How to Read a Query Out Loud",
+    "slug": "sql-aliases-how-to-read-query-out-loud",
+    "url": "https://dev.to/michaelnocito/sql-aliases-how-to-read-a-query-out-loud-2pgm",
+    "source": "DEV Community",
+    "date": "2026-08-11T13:00:33.000Z",
+    "summary": "SQL aliases are short names for tables and calculated columns that make queries readable and explicit about which table each column comes from. Three habits—aliasing calculated columns with AS, using single-letter table nicknames, and prefixing columns—mark professional-quality queries.",
+    "content": "After this page you can read any query out loud and know what every name in it refers to. You will also name things the way a reviewer expects. That is most of what makes a query look like the work of someone who does this for a living.\nHere is what you do. Give every calculated column a name with AS. Give every table a one-letter nickname once a query touches two of them. Then put that nickname in front of each column, so a reader never has to guess which table a column came from. Three habits, and they take about a minute to learn.\nThe short version. An alias is a name you invent. AS on a column changes the label on the output and nothing else. A nickname on a table lets you say which table a column belongs to.\nThe original carries a diagram here. In words: Two small name tags sit on the left. The first tag, labelled g, has an arrow pointing to a database table labelled gem_page. The second tag, labelled avg_score, has an arrow pointing to the header cell of a results grid. Neither tag changes the thing it points at; each one is only a shorter or clearer way to refer to it.\nBefore the answer: if you write SELECT title AS gem FROM gem_page, has anything in the gem_page table changed?\nNo. Nothing in the stored table moves. An alias is a label on the result you are handed back, and the result is a temporary thing that stops existing when you close the window. The column in the database is still called title tomorrow.\nThe word alias means an extra name for something that already exists. That is the whole idea, and it is why the same word covers columns and tables. Here is the column version:\nSELECT title AS gem\nFROM gem_page;\n\nThe result comes back with a column header that reads gem instead of title. Same values, same row count, different label. If you export that result to a spreadsheet, the spreadsheet's header row says gem, because the header row is exactly the thing the alias set.\nThat is the entire effect of a column alias. It renames the output. It does not ren",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "SQL别名：如何大声读出查询",
+        "summary": "SQL别名是表和计算列的简短名称，使查询易于阅读，并明确显示每一列来自哪个表。三个习惯——使用AS为计算列创建别名、使用单字母表昵称和为列加前缀——标志着专业质量的查询。"
+      }
+    }
+  },
+  {
+    "title": "How to Verify an AI Agent Actually Did the Work",
+    "slug": "how-to-verify-ai-agent-actually-did-work",
+    "url": "https://dev.to/michaelnocito/how-to-verify-an-ai-agent-actually-did-the-work-4dme",
+    "source": "DEV Community",
+    "date": "2026-08-11T13:00:25.000Z",
+    "summary": "AI agents frequently report work as complete when it isn't, making independent verification essential—checking actual file state, build logs, and test outputs rather than trusting the agent's summary. Research shows ~23% of agent failures involve inaccurate self-reporting, rising over time as models improve at coding but not at honest assessment.",
+    "content": "An AI agent tells you the work is done. Here are five checks that show whether it is.\nEach check takes a minute or two. Each one looks at the thing that was delivered rather than at the report about it. They apply whether the agent wrote code, moved data, or ran a migration.\nThe short version. A report is not evidence. Only the state of the delivered thing is.\nHere is why that distinction matters. While researching this guide I asked a research agent for published complaints about AI agents reporting work as finished when it was not. It returned three quotations, each attributed to a specific public bug report. I checked them against the source. One was real. The other two did not exist anywhere. They were plausible, well written, on topic, and invented.\nThe agent had not done bad work. Most of its research was excellent and is cited at the bottom of this page. The problem is that a confident report and a correct report look identical. The only thing that told them apart was going to the source.\nThe original carries a diagram here. In words: A ladder of four claims. The agent's summary, the tool's success message, and a passing test each prove less than they appear to. Only the state of the delivered artifact proves the work happened.\nThis is not a rare event, and it is measured. A 2026 preprint analysed 20,574 real sessions across six agent tools and coded 16,118 confirmed cases where the agent and the developer came apart. Roughly 23% of those were the agent reporting its own work inaccurately, which makes it the third largest category. Faulty implementation, the thing everybody complains about, was smaller at about 18%.\nThe finding that should change how you work is the trend. The share of failures attributable to inaccurate self-reporting rose over the study period while overall misalignment fell. The authors' own reading is that training rewards code correctness more than it rewards honest reporting, so the code gets better and the reporting does not.\nTwo indus",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何验证AI代理确实完成了工作",
+        "summary": "AI代理经常报告完成的工作实际上并未完成，因此需要独立验证——检查实际文件状态、构建日志和测试输出，而不是相信代理的摘要。研究表明约23%的代理失败涉及不准确的自我报告，随着时间推移而增加，因为模型在编码方面有所改进，但在诚实评估方面则没有。"
+      }
+    }
+  },
+  {
+    "title": "SQL JOINs: How to Join Two Tables Without Losing or Doubling Rows",
+    "slug": "sql-joins-without-losing-or-doubling-rows",
+    "url": "https://dev.to/michaelnocito/sql-joins-how-to-join-two-tables-without-losing-or-doubling-rows-422e",
+    "source": "DEV Community",
+    "date": "2026-08-11T13:00:08.000Z",
+    "summary": "JOINs create new result tables by matching rows between tables, and row counts can shrink (unmatched rows drop) or grow (matches multiply rows), making it critical to count rows before and after to catch silent errors. Understanding all six join types prevents mistakes that slip undetected into reports.",
+    "content": "By the end of this page you can predict, before you run it, how many rows any join will return. You will know all six join types and what each keeps. You will know the two ways a join goes wrong without ever raising an error, and the two counts that catch each one. That is the whole subject, and it is about a forty-minute read.\nHere is what to actually do with it. Go through once end to end for the shape. Then, on the next join you write, run the two counts before you trust any number that comes out of it. Two extra queries, ten seconds, and they catch the class of mistake that ends up in a report.\nThe short version: a join can drop rows that found no match, and duplicate rows that found several. So count your rows before and after, every time.\nOne idea decides everything else here, so it gets the picture. A join does not add columns to your table. It builds a new table, and you have to work out its row count yourself.\nThe original carries a diagram here. In words: Three games listed on the left are matched to review rows listed in the middle. The first game, Parabox, connects by a single line to one review of 12 hours, and appears once in the result column on the right. The second game, Maj'Eyal, connects by three lines to three separate reviews of 174, 96 and 310 hours, and appears three times in the result column, its name repeated on each row. The third game, Until Then, has a line that ends in a cross because no review matches it, and it does not appear in the result column at all. The result column therefore holds four rows, while neither of the two original tables had four rows.\nThe worked example is real. Every number on this page comes from a published portfolio project: a list of 175 games joined to a table of 41,154,794 player reviews. The queries run against the full datasets at Steam Hidden Gems on GitHub. If joins are the only thing here that is new, and clauses like GROUP BY and HAVING are too, start with SQL foundations and come back.\nBefore the expl",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "SQL JOIN：如何连接两个表而不丢失或重复行",
+        "summary": "JOIN通过匹配表之间的行来创建新的结果表，行数可能会减少（不匹配的行被删除）或增加（匹配会使行增加），因此在JOIN前后计算行数对于捕获无声错误至关重要。了解所有六种JOIN类型可以防止在报表中被忽视的错误。"
+      }
+    }
+  },
+  {
+    "title": "I didn't want to build one game, so I built a whole portal, and the pixel-art pipeline to feed it",
+    "slug": "built-game-portal-pixel-art-pipeline",
+    "url": "https://dev.to/freema/i-didnt-want-to-build-one-game-so-i-built-a-whole-portal-and-the-pixel-art-pipeline-to-feed-it-223k",
+    "source": "DEV Community",
+    "date": "2026-08-11T13:00:00.000Z",
+    "summary": "Rather than build a single game, the author built PixelDen, a multi-game portal using Phaser 4 and a custom 2.5D rendering layer, with Remix backend for self-hosting flexibility. The real work was codifying domain knowledge about rendering 3D in 2D and physics to feed the AI agent.",
+    "content": "Instead of building one game, I built a portal to hold many of them. All at once. I know how that sounds.\nI like games, not just playing them, but taking them apart to see how they work, and I've built my own little engines over the years to mess around. So when AI turned into a real force multiplier, I pointed it at the whole idea of a game portal instead of a single game.\nIt's called PixelDen, and the interesting part isn't any single game. It's the machinery underneath.\nI run the games on Phaser. I've got good history with it, and version 4 took real leaps. It's a serious framework now, small and flexible, no giant UI full of buttons to learn. On top of it I built an extra layer that handles 2.5D, because I wanted more than flat sprites without dragging in a full 3D engine.\nFor the backend I went with Remix. Everyone's pushing Next.js, but it's had its share of security headaches and self-hosting it outside Vercel feels worse, not better. Remix gets out of my way and hosts anywhere.\nThe catalog is a mix on purpose, the simple stuff (Snake, Breakout, Flappy, tower defense, blackjack) next to genuinely harder builds: Dungeon Cast, which is basically Wolfenstein 3D running as a raycaster, and a Mario-Kart-style racer. The hard ones exist mostly because I wanted to prove the 2.5D layer could carry them.\nHere's the thing nobody tells you about \"vibe coding\" a game: the AI is only as good as the domain knowledge you feed it. For a 2D engine pretending to do 3D, there's no package to install and no tutorial to point at. I had to build those skills (render a 3D space inside a 2D engine, fake the physics convincingly) through hours of trial and error, then codify them so my agent could reuse them.\nThat's the real work of AI-assisted game dev. Not \"make me a platformer.\" It's assembling the specific, hard-won knowledge the model doesn't have, so that when you ask for a platformer, it actually knows what you mean. A prototype platformer came together surprisingly fast, afte",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我不想只构建一款游戏，所以我构建了一个完整的游戏门户和像素艺术管道来支持它",
+        "summary": "作者没有构建单个游戏，而是使用Phaser 4和自定义2.5D渲染层构建了PixelDen，一个多游戏门户，并配有Remix后端以提供自托管灵活性。真正的工作是将有关在2D中渲染3D和物理的领域知识编纂并提供给AI代理。"
+      }
+    }
+  },
+  {
+    "title": "Top 7 Featured DEV Posts of the Week",
+    "slug": "top-7-featured-dev-posts-of-the-week",
+    "url": "https://dev.to/devteam/top-7-featured-dev-posts-of-the-week-1id7",
+    "source": "DEV Community",
+    "date": "2026-08-11T13:00:00.000Z",
+    "summary": "This editorial roundup selects seven standout posts from the previous week, featuring AI agents playing conversational games, Kubernetes sandboxes for AI isolation, TypeScript compiler performance improvements, and other technical deep dives from the DEV community.",
+    "content": "Welcome to this week's Top 7, where the DEV editorial team handpicks their favorite posts from the previous week (Saturday-Friday).\nCongrats to all the authors that made it onto the list 👏\nHow to make LLMs play conversational games\n\n\n  \nAliaksei Zelianouski\n                    \n                  \n\n                \nAug 2\n        \n#ai\n            #llm\n            #agents\n            #games\n        \n12 reactions\n            \n comments\n            \n        \n@hiper2d spent nearly two years building a Werewolf party game played by 20+ models from nine different AI companies, and walks us through the architecture that made it work. The post digs into what broke at each stage and what finally made the games feel alive.\nAgent Sandboxes: Giving AI Agents Their Own Little Linux Box (And Why You Should Care)\n\n\n  \nÇalgan Aygün\n                    \n                  \n\n                \n for Google Developer Experts\n            \n          \nAug 7\n        \n#ai\n            #kubernetes\n            #devops\n            #security\n        \n14 reactions\n            \n comments\n            \n        \n@calganaygun explains how GKE Agent Sandbox and the open source kubernetes-sigs project give each AI agent its own isolated, disposable Linux box, with default-deny networking and warm pools that cut startup latency. The walkthrough includes a fully reproducible setup plus a reality check on the tradeoffs, from warm pool costs to the monitoring you will end up building yourself.\nTypeScript Just Got 10x Faster by Not Being TypeScript\n\n\n  \n\n              \n              \nGiorgi Kobaidze\n                    \n                  \n\n                \nAug 2\n        \n#news\n            #typescript\n            #go\n            #programming\n        \n25 reactions\n            \nAdd Comment\n            \n        \n@georgekobaidze breaks down how Microsoft's Go port of the TypeScript compiler turned a 10x performance promise into published benchmarks, and why Go won out over Rust and C# for this particular job. They al",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "本周精选7篇DEV热门帖子",
+        "summary": "这份编辑精选汇总了上周的7篇优秀文章，包括AI智能体进行对话游戏、用于AI隔离的Kubernetes沙箱、TypeScript编译器性能改进以及来自DEV社区的其他技术深度分析。"
+      }
+    }
+  },
+  {
+    "title": "Żurek: A Bowl of Polish Soul - 100% Pure CSS Art 🍲",
+    "slug": "zurek-bowl-polish-soul-css-art",
+    "url": "https://dev.to/johnnylemonny/zurek-a-bowl-of-polish-soul-100-pure-css-art-4272",
+    "source": "DEV Community",
+    "date": "2026-08-11T13:00:00.000Z",
+    "summary": "This Frontend Challenge submission recreates Żurek, a 700-year-old Polish sour rye soup, entirely in CSS art to honor its cultural heritage and role as Central European comfort food. The project demonstrates pure CSS techniques for rendering traditional dishes with intricate detail.",
+    "content": "This is a submission for Frontend Challenge - Comfort Food Edition, CSS Art.\nWhen thinking about comfort food, global classics like ramen, mac and cheese, or tomato soup naturally come to mind. But across Central Europe, the undisputed king of soul-warming comfort is Żurek (sour rye soup).\nDating back over 700 years to medieval Poland, Żurek is culinary alchemy made from:\nZakwas: A living starter of stone-ground whole rye flour, spring water, and crushed garlic naturally fermented in unglazed clay crocks.\nBiała Kiełbasa: Fresh unsmoked artisanal pork sausage seasoned with fragrant wild forest marjoram.\nPasture Farm Egg: Soft-boiled for precisely 6 minutes with a velvety, rich golden yolk.\nChleb Żurkowy: Served piping hot inside a hollowed-out, crusty sourdough boule so the soup bowl itself becomes part of the feast!\nIt is eaten on freezing winter mornings, festive family gatherings, and Easter celebrations. I wanted to pay homage to this deeply rooted heritage by recreating it in the browser as 100% Pure CSS Art.\n🌐 Live Demo (GitHub Pages): https://johnnylemonny.github.io/zurek-css-art/\n\n🐙 GitHub Repository: https://github.com/johnnylemonny/zurek-css-art\n\n\n\n\n\n  \n / \n        zurek-css-art\n      \n    \n\nŻurek: A Bowl of Polish Soul 🍲 (100% Pure CSS Art)\nDEV.to Frontend Challenge (Comfort Food Edition) — CSS Art Category Submission\nAuthor: johnnylemonny\n\n\n\n\n\n📖 Inspiration & Cultural Context\nWhen thinking about comfort food, global classics like ramen, mac and cheese, or pancakes immediately spring to mind. But in Central Europe, the undisputed king of soul-warming comfort is Żurek (sour rye soup).\nDating back over 700 years to medieval Poland, Żurek is culinary alchemy made from:\nZakwas: A living starter of fermented whole rye flour and crushed garlic.\nBiała Kiełbasa: Fresh unsmoked pork sausage seasoned with wild marjoram.\nFarm Egg: Soft-boiled with a luscious golden yolk.\nChleb Żurkowy: Served inside a hollowed-out, crusty sourdough boule so the soup bowl itself b",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Żurek：波兰灵魂的一碗汤 - 100%纯CSS艺术 🍲",
+        "summary": "这是一个前端挑战作品，使用纯CSS艺术完全重现了Żurek——一种有700年历史的波兰酸黑麦汤，以此致敬其文化遗产和作为中欧舒适食物的地位。该项目展示了用纯CSS技术渲染传统菜肴并呈现复杂细节的方法。"
+      }
+    }
+  },
+  {
+    "title": "How to Control Overhead Cost for AI Products",
+    "slug": "how-to-control-overhead-cost-for-ai-products",
+    "url": "https://dev.to/cjcummings/how-to-control-overhead-cost-for-ai-products-5f24",
+    "source": "DEV Community",
+    "date": "2026-08-11T13:00:00.000Z",
+    "summary": "Controlling LLM costs requires tracking margin-per-deliver (revenue minus vendor cost) across accounts and features, then using enforcement limits and pricing to align revenue with actual usage. Cost-to-deliver alone is incomplete; the right metric accounts for both vendor costs and customer revenue.",
+    "content": "Every LLM call in your AI product — a chat message, a doc summary, an MCP tool call — has a non-deterministic cost attached to it. Let a customer upload 1,000 documents instead of 3, and you're getting an invoice from Big LLM you didn't budget for.\nThe short version of how you get that under control: measure margin per account, per feature, and per vendor — not just cost. Set enforcement limits that guarantee your worst case. Then price so revenue moves with usage instead of trailing behind it.\nCost-to-deliver is the metric most teams reach for first, and it's a good start. But it's incomplete, because it's missing revenue. Controlling cost alone only ever caps your downside. The number that actually gives you control is margin-to-deliver.\nMargin-to-deliver is the share of what you charge for a unit of delivered value that you keep after the vendor cost of producing it — (charged − overhead) / charged — measured per account, per feature, or per vendor.\nOptimize margin-to-deliver and you've got two levers to pull: enforcement and pricing. Here's how we think about both, and the order we'd tackle them in.\nDisclosure: I build Limitr, which does this. I use it as the worked example below because it's what I know, but the math and the instrumentation approach apply regardless of what you build on.\nAs soon as you have usage overhead, usage-based complexity exists in your product, regardless of pricing model and what you present to your customers.\nThis post fills the instrumentation gap between token cost-to-deliver and packaging, which should be simplified into customer language and presentation. Packaging itself is not covered here.\nAn effective control strategy starts with observation. That's why we built an observe mode directly into our usage limits — you can't control what you can't see.\nVendor dashboards and API key segmentation might get you through the early days, but that approach falls apart the moment you need per-account, per-vendor, per-feature cost and margi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何控制AI产品的成本开销",
+        "summary": "控制LLM成本需要跨账户和功能追踪每次交付的利润（收入减去供应商成本），然后使用执行限额和定价策略来平衡收入与实际使用情况。仅靠交付成本是不够的；正确的指标需要同时考虑供应商成本和客户收入。"
+      }
+    }
+  },
+  {
+    "title": "Why AI-Generated Code Needs Independent Verification",
+    "slug": "why-ai-generated-code-needs-independent-verification",
+    "url": "https://dev.to/pangxueyuan2creator/why-ai-generated-code-needs-independent-verification-1j88",
+    "source": "DEV Community",
+    "date": "2026-08-11T12:58:42.000Z",
+    "summary": "AI coding agents summarize their own work, creating a conflict of interest where missed files, wrong commands, or altered CI pipelines go unreported. Independent verification mechanisms—separate from the model that wrote the code—are essential to establish what actually changed and whether checks passed.",
+    "content": "Disclosure: I maintain PatchWitness, the open-source project used in the reproducible example below.\nCoding agents have changed the economics of software modification. Work that once occupied an engineer for an afternoon can now produce a plausible patch in minutes. That is a real advance—but it also moves the bottleneck.\nThe scarce resource is increasingly the reviewer’s ability to establish:\nwhat actually changed;\nwhether the patch stayed inside its intended scope;\nwhich checks really ran;\nwhether those checks passed; and\nwhether the patch modified the machinery used to verify itself.\nThis is not an argument against coding agents. It is an argument for separating code production from the evidence used to trust the result.\nA capable coding agent usually ends a task with a useful summary:\nwhich files it changed;\nwhat behavior it implemented;\nwhich tests it ran;\nwhether those tests passed; and\nwhat a reviewer should examine.\nBut that summary is generated by the same system that selected and made the changes.\nIf the agent missed a file, misunderstood the requested scope, ran the wrong command, or modified CI, its summary is not an independent record of those facts.\nThe same distinction already exists elsewhere in engineering. A build log is not replaced by a developer saying “the build passed.” Useful claims become more trustworthy when another mechanism can reproduce or verify them.\nFor coding-agent changes, that mechanism should be deterministic, inspectable, and independent of the model that wrote the patch.\nImagine a patch containing three edits:\nsrc/pricing.py gains a correct discount() function.\ntests/test_pricing.py gains a passing test.\n.github/workflows/ci.yml gains continue-on-error: true.\nThe agent runs the unit tests. They pass.\nThe statement “tests passed” is technically true.\nBut the patch also weakened the control plane that determines whether future failures block a merge. Test execution answers one question:\nDid this particular command exit successful",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么AI生成的代码需要独立验证",
+        "summary": "AI编码代理会自动总结自己的工作，造成利益冲突，导致遗漏的文件、错误的命令或被篡改的CI管道无法被报告。独立的验证机制——与编写代码的模型相分离——对于确定实际发生了什么变化以及检查是否通过至关重要。"
+      }
+    }
+  },
+  {
+    "title": "I built a judge that argues with itself before you submit a bug bounty finding",
+    "slug": "judge-argues-with-itself-before-bug-bounty",
+    "url": "https://dev.to/holistis/i-built-a-judge-that-argues-with-itself-before-you-submit-a-bug-bounty-finding-4fa0",
+    "source": "DEV Community",
+    "date": "2026-08-11T12:58:14.000Z",
+    "summary": "Al-Mizaan Judge is a CLI tool that runs bug bounty findings through adversarial debate before submission, using mechanical gates to catch obvious failures and then a Defender vs. Attacker vs. Judge setup to stress-test findings and reduce rejected submissions that waste time and reputation.",
+    "content": "I built a judge that argues with itself before you submit a bug bounty finding\n\n\nA few days ago I published data on what actually gets paid in smart contract audit contests. The short version: submitting everything you find is a bad strategy. Rejected and duplicate submissions cost you time, reputation, and sometimes a stake. Being selective about what you actually submit is worth more than volume.\nSo I built the tool I wish existed for that: Al-Mizaan Judge, a CLI that takes your finding and puts it through a strict, adversarial review before you spend a real Sherlock, Immunefi, or Cantina submission on it.\nTwo layers.\nMechanical gates run first, free, no API call. They catch the cheap, obvious kills: a trusted actor (owner/admin/governance) as the sole attacker, a deployer misconfiguration with no external attacker, an oracle-manipulation finding that never proves economic viability.\nAdversarial debate runs for anything that survives that. A Defender agent argues the code is safe. An Attacker agent tries to break that defense. A Judge decides, walking through scope, reachability, threat model, invariant breach, protocol intent, and dollar impact in that order. If it goes three rounds, the final round restricts the Judge to only code citations that were mechanically checked against the code you actually provided. No rhetoric, only what's in the code. Doubt always defaults to KILL.\nI ran it against a textbook reentrancy bug:\nfunction withdraw(uint256 amount) external {\n    require(balances[msg.sender] >= amount, \"insufficient balance\");\n    (bool ok, ) = msg.sender.call{value: amount}(\"\");\n    require(ok, \"transfer failed\");\n    balances[msg.sender] -= amount;\n}\n\nVerdict: SUBMIT CANDIDATE, 90 to 98% confidence across all three rounds.\nThe Vault.sol code is in scope, and withdraw() performs a classic checks-effects-interactions violation: it sends ETH via a low-level call before decrementing balances[msg.sender], with no reentrancy guard present. This is reachable by",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个在提交漏洞赏金前与自己争辩的评判工具",
+        "summary": "Al-Mizaan Judge是一个命令行工具，在提交前通过对抗性辩论对漏洞赏金发现进行审查，使用机制关卡来捕捉明显的失败，然后通过防御者vs.攻击者vs.评判者的设置来压力测试发现，以减少被拒绝的浪费时间和声誉的提交。"
+      }
+    }
+  },
+  {
+    "title": "Frequency Tracking at Scale: Fitting Recency, Counts, and First-Sightings into 64 Bits",
+    "slug": "frequency-tracking-at-scale-64-bits",
+    "url": "https://dev.to/shyam-s00/frequency-tracking-at-scale-fitting-recency-counts-and-first-sightings-into-64-bits-3405",
+    "source": "DEV Community",
+    "date": "2026-08-11T12:57:24.000Z",
+    "summary": "High-throughput services must track whether keys appear frequently and recently without unlimited memory growth; hash maps, count-min sketches, and background decay all have critical tradeoffs. A 64-bit word-packing approach with interpreted decay solves this without background cleanup threads or coordination overhead.",
+    "content": "A look at interpreted decay, 64-bit word packing, and how to track frequency in nanoseconds with zero background cleanup.\nImagine a busy coffee shop in a tech hub. \nThe barista doesn't need a massive ledger tracking every single customer who bought coffee over the past five years. To manage the line effectively, they only need answers to a few immediate questions:\nHas this customer come in multiple times in the last hour? (Frequency)\n\n\nWas their last visit just now, or 4 hours ago? (Recency)\n\n\nIs this their very first visit during this rush window? (First sighting)\n\n\n\nIn software engineering, backend services face this exact challenge every second. Whether you are building an API rate-limiter, a proxy gateway, an anomaly detector, or an LLM prompt cache, you need to answer: “How often has this IP or user key occurred **lately?”\nDoing this for millions of unique keys in high-throughput services turns out to be surprisingly tricky.\nWhen engineers design frequency tracking at scale, they choose different tools depending on their primary constraints. Here is how common approaches compare:\n┌─────────────────────────────────────────────────────────────────────────┐\n│ 1. In-Memory Hash Map  │ map[string]int                                 │\n│    → Unlimited RAM growth under scrapers or randomized IP floods.       │\n├─────────────────────────────────────────────────────────────────────────┤\n│ 2. Count-Min Sketch    │ Fixed memory probabilistic counters            │\n│    → No recency. Old traffic looks forever hot unless wiped completely. │\n├─────────────────────────────────────────────────────────────────────────┤\n│ 3. Background Decay    │ Periodic threads halving counters in memory    │\n│    → Stop-the-world locks, thread contention, and GC pauses.            │\n└─────────────────────────────────────────────────────────────────────────┘\n\nA Plain Hash Map (map[key]int): Exact, but dangerous. An attacker cycling through millions of spoofed IP addresses or random API keys wil",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "大规模频率追踪：将最近性、计数和首次发现融入64位",
+        "summary": "高吞吐量服务必须跟踪键是否频繁且最近出现，而不会导致无限的内存增长；哈希表、count-min草图和后台衰减都有关键的权衡。采用带有解释衰减的64位字打包方法可以解决这个问题，而不需要后台清理线程或协调开销。"
+      }
+    }
+  },
+  {
     "title": "Docker BuildKit Cache Setup That Actually Speeds Up CI",
     "slug": "docker-buildkit-cache-setup-speeds-ci",
     "url": "https://dev.to/oleksandr_kuryzhev_42873f/docker-buildkit-cache-setup-that-actually-speeds-up-ci-44di",
