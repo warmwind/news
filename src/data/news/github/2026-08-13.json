@@ -1,0 +1,194 @@
+[
+  {
+    "title": "BIO Baochip/Dabao - FIFO and Events",
+    "slug": "bio-fifo-processors-data-transfer",
+    "url": "https://dev.to/danielmx/bio-baochipdabao-fifo-and-events-25jf",
+    "source": "DEV Community",
+    "date": "2026-08-13T02:00:00.000Z",
+    "summary": "Technical explanation of how FIFO queues work in BIO processors for inter-processor communication. Covers blocking reads from processor cores and non-blocking pops from the host, with examples of using FIFOs for data exchange between components.",
+    "content": "FIFO\n\n\nThe BIO has 4 FIFOs mapped to the BIO processors as x16-x19 r/w registers (blocking on read until new data is pushed), and in the host through BIO_BDMA_SFR_TXFx for writing data (PUSH) and BIO_BDMA_SFR_RXFx for reading (POP) data (or returning the last data read if nothing else is found), where x is a number 0-3 for the 4 FIFOs.\nSo in a BIO processor, an instruction like this:\nmv t0, x16      # wait for FIFO0\n\nThis will block until there is info in FIFO0.\nli x16, 0x10\n\nor from the host processor:\nBIO_BDMA_SFR_TXF0 = 0x10; // bio_push_fifo0(0x10); in SDK\n\nTo read in the host processor:\nuint32_t data = BIO_BDMA_SFR_RXF0; // bio_pop_fifo0(); in SDK\n\nThis will always return a value and won't block execution, so for example:\nBIO_BDMA_SFR_TXF0 = 0x10; // FIFO0 has 0x10\nBIO_BDMA_SFR_TXF0 = 0x20; // FIFO0 has 0x10,0x20\n\nuint32_t data;\ndata = BIO_BDMA_SFR_RXF0; // data = 0x10\ndata = BIO_BDMA_SFR_RXF0; // data = 0x20\ndata = BIO_BDMA_SFR_RXF0; // data = 0x20\n\nSo the last data read/popped will always be available to the host.\nThere is an example here: https://github.com/danguer/embedded-boards101/tree/main/daobao-baochip/bio_multiply_fifo\nmv t0, x16      # wait for FIFO0\nli t1, 2        # load multiplier\nmul x16, t0, t1 # multiply and store back in fifo\n\nSo the BIO will get a value from FIFO0, multiply by 2, and store it again in FIFO0.\nadd the value to FIFO0\nread the value from FIFO0\ncheck that the value is different from the original value\n\n\n\nbio_start_cores(1);\nbio_push_fifo0(multiplicand);\n// wait until is multiplied\ndo {\n  result = bio_pop_fifo0();\n} while(result == multiplicand);\nbio_stop_cores(BIO_CORE);\n\nEven though this code works, the issue is that the FIFO read register will ALWAYS return a value.\nTo avoid this issue, there is another register called BIO_BDMA_SFR_FLEVEL.\nuint8_t fifo0_length = BIO_BDMA_SFR_FLEVEL & 0xF; // or bio_fifo_level(0); in SDK\n\nStill, for this example, the issue is that we need to use another FIFO to avoid collisions:\nmv t0, x16      #",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "BIO Baochip/Dabao - FIFO和事件",
+        "summary": "BIO处理器中FIFO队列如何工作的技术说明，用于处理器间通信。涵盖来自处理器核心的阻塞读取和来自主机的非阻塞弹出，包含使用FIFO进行组件间数据交换的示例。"
+      }
+    }
+  },
+  {
+    "title": "Cloudflare Agents Week Was the Memo: Your Agent Needs a Cloud, Not a Demo",
+    "slug": "cloudflare-agents-week-infrastructure",
+    "url": "https://dev.to/andrew_otema_6833c25d2ff5/cloudflare-agents-week-was-the-memo-your-agent-needs-a-cloud-not-a-demo-55hl",
+    "source": "DEV Community",
+    "date": "2026-08-13T01:59:17.000Z",
+    "summary": "Cloudflare's Agents Week highlighted that production AI agents require robust cloud infrastructure with persistent runtimes, not just demos. The announcements introduced a platform stack including deployment controls, monitoring, access models, and integration capabilities for enterprise agent deployment.",
+    "content": "Cloudflare Agents Week Was the Memo: Your Agent Needs a Cloud, Not a Demo\nAgents Week (Aug 3–7, 2026) was not one feature drop. It was a product narrative with receipts. If you build agents for money—or you are about to let them touch money—this is the memo.\nWhy this matters now\nWhere does the agent run when the workflow lasts hours?\nThey are not alone. In the same window you have Amazon Bedrock AgentCore runtime instances (persistent, multi-day, GPU-capable agent hosts), LangChain Managed Deep Agents in public beta (harness you own, infra they run), and a wave of \"agent harness GA\" announcements elsewhere. The market rhyme is loud: scaffolding is product now.\nThe core idea\nCloudflare packaged that as five days of primitives. You do not need to marry Cloudflare to steal the architecture.\nMental model: Agent Cloud stack\nWhat Cloudflare actually shipped (builder's cut)\n1) Runtime: a computer, not a container cosplay\nIf your agent still shells out into a shared CI runner with everyone's secrets in the env, you do not have an agent platform. You have a liability with autocomplete.\n2) ADLC: admit the SDLC is the wrong metaphor\ntrajectory review (not only unit tests)\n3) Cloudflare Agents: watch the run live\n4) Agent Access Model + WriteGuard\n5) Wallets, WebMCP, MCPv2, agent-first browsing\nHow does an agent pay for an API call without holding your corporate card in plaintext?\nThe wider wave (so you do not tunnel-vision)\nLangChain Managed Deep Agents (public beta). Open-source Deep Agents harness (tools, files, subagents, skills, approvals) plus managed runtime: durable execution, sandboxes, channels (Slack), memory, identity scoping, Harbor eval packaging, mda deploy. Translation: the market is splitting harness you control from infra you refuse to rebuild.\nYou can mix these ideas without picking a religion. The winning teams will.\nArchitecture pattern worth stealing\nCommon failure modes I keep seeing\na control plane that can hard-stop\nWhat to do Monday\nGateway service (Cl",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Cloudflare Agent周的启示：您的代理需要云，而非演示",
+        "summary": "Cloudflare的Agent周强调，生产环境中的AI代理需要强大的云基础设施和持久运行时，而不仅仅是演示。这些公告推出了一个平台堆栈，包括部署控制、监控、访问模型和企业代理部署的集成功能。"
+      }
+    }
+  },
+  {
+    "title": "Markov Chain, จากสมการร้อยปี สู่จุดกำเนิด Google และ AI ที่เปลี่ยนโลก",
+    "slug": "markov-chain-history-ai-foundation",
+    "url": "https://dev.to/sarantoon/markov-chain-cchaaksmkaarrypii-suucchudkamenid-google-aela-ai-thiiepliiynolk-557",
+    "source": "DEV Community",
+    "date": "2026-08-13T01:51:30.000Z",
+    "summary": "History of Markov Chains from a Russian mathematician's 1913 poetry analysis to their foundational role in modern AI and search algorithms. Explains the \"memoryless property\" enabling probabilistic prediction based on current state alone, without knowledge of past events.",
+    "content": "Markov Chain, จากสมการร้อยปี สู่จุดกำเนิด Google และ AI ที่เปลี่ยนโลก\n\n\nโดย Nokka (นก-กา) | 12 สิงหาคม 2026\nบทความนี้เขียนโดย AI (deepseek-v4-pro) ผ่าน Hermes Agent ภายใต้การควบคุมและตรวจสอบคุณภาพโดยมนุษย์, Nokka (นก-กา)\nในปี 1913, นักคณิตศาสตร์ชาวรัสเซียคนหนึ่งนั่งนับสระและพยัญชนะในบทกวี, โดยไม่รู้ว่าสิ่งที่เขากำลังทำจะกลายเป็นรากฐานของ Google, AI, และทุกอย่างที่เราใช้ในปัจจุบัน\nนี่คือเรื่องราวของ Markov Chain, จากสมการคณิตศาสตร์อายุ 113 ปี, สู่เทคโนโลยีที่เปลี่ยนโลก [1]\nMarkov Chain คือแบบจำลองทางคณิตศาสตร์ที่ทำนาย \"สิ่งที่จะเกิดต่อไป\" โดยดูจาก \"สิ่งที่เป็นอยู่ตอนนี้\", โดยไม่สนใจอดีต\nหลักการสำคัญ, \"Memoryless Property\":\n\"อนาคตขึ้นอยู่กับปัจจุบันเท่านั้น, ไม่ขึ้นอยู่กับอดีต\"\nตัวอย่างง่ายๆ:\nสภาพอากาศวันนี้: ฝนตก\n↓ (Markov Chain ทำนาย)\nสภาพอากาศพรุ่งนี้: มีโอกาส 60% ที่จะฝนตก, 30% ที่จะเมฆมาก, 10% ที่จะแดดออก\n\n— ไม่ต้องรู้ว่าเมื่อวานเป็นยังไง, แค่รู้ว่าวันนี้ฝนตกก็พอ\n\nองค์ประกอบของ Markov Chain:\n\n\n\nองค์ประกอบ\nคำอธิบาย\nตัวอย่าง\n\n\n\n\nStates\nสถานะที่เป็นไปได้ทั้งหมด\nฝนตก, เมฆมาก, แดดออก\n\n\nTransition Probability\nความน่าจะเป็นที่จะเปลี่ยนจาก state หนึ่งไปอีก state หนึ่ง\nฝนตก → ฝนตก: 60%\n\n\nTransition Matrix\nตารางความน่าจะเป็นทั้งหมด\nตาราง 3×3 สำหรับ 3 states\n\n\nCurrent State\nสถานะปัจจุบัน, สิ่งเดียวที่ต้องรู้\nวันนี้ฝนตก\n\n\n\nทำไมถึงสำคัญ: Markov Chain เปลี่ยน \"การทำนายอนาคต\" จาก \"เดาสุ่ม\" → \"คำนวณด้วยความน่าจะเป็น\", และนี่คือรากฐานของ AI สมัยใหม่ [2]\nAndrey Andreyevich Markov (1856-1922), นักคณิตศาสตร์ชาวรัสเซีย, ต้องการพิสูจน์ว่า \"ความน่าจะเป็น\" ไม่ได้ใช้ได้แค่กับเหตุการณ์อิสระ (เช่น โยนเหรียญ), แต่ใช้ได้กับเหตุการณ์ที่ \"เชื่อมโยงกัน\" ด้วย\nการทดลองของ Markov:\nMarkov หยิบบทกวี Eugene Onegin ของ Alexander Pushkin, 20,000 ตัวอักษรแรก\nเขานับ สระ และ พยัญชนะ ทีละตัว\nเขาคำนวณความน่าจะเป็นที่ \"สระจะตามหลังสระ\" หรือ \"พยัญชนะจะตามหลังสระ\"\nเขาพบว่า: การปรากฏของตัวอักษรถัดไปขึ้นอยู่กับตัวอักษรปัจจุบัน, ไม่ใช่การสุ่มอิสระ\nผลลัพธ์:\n\n\n\nPattern\nความน่าจะเป็น\n\n\n\n\nสระ → สระ\n12.8%\n\n\nสระ → พยัญชนะ\n87.2%\n\n\nพยัญชนะ → สระ\n66.3%\n\n\nพยัญชนะ → พยัญชนะ\n33.7%\n\n\n\nข้อค้นพบ: ในภาษารัสเซีย, พยัญชนะมีแนวโน้ม",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "马尔可夫链：从百年方程到谷歌和改变世界的AI起源",
+        "summary": "从俄国数学家1913年的诗歌分析到马尔可夫链在现代AI和搜索算法中的基础作用的历史。解释了\"无记忆性\"这一特性，它使得概率预测可以仅基于当前状态进行，而无需了解过去的事件。"
+      }
+    }
+  },
+  {
+    "title": "How to Build a Client-Side Hash Calculator with Web Crypto API and MD5",
+    "slug": "client-side-hash-calculator-crypto-api",
+    "url": "https://dev.to/ggwork/how-to-build-a-client-side-hash-calculator-with-web-crypto-api-and-md5-4b2a",
+    "source": "DEV Community",
+    "date": "2026-08-13T01:47:17.000Z",
+    "summary": "Guide to building a client-side file hash calculator using the browser's Web Crypto API for SHA algorithms and vanilla JavaScript for MD5 support. Implements hashing entirely in the browser sandbox, avoiding dependencies and third-party upload risks.",
+    "content": "Last week, I was debugging an issue where a file upload kept failing silently. After hours of digging, I realized the problem: the file was corrupted during transfer, but nothing was catching it. I needed to verify file integrity, and the quickest way was comparing hashes.\nThe problem? I didn't have a hash tool installed, and uploading sensitive files to random online services felt wrong. Classic \"I should just build this myself\" moment. Because apparently I enjoy reinventing wheels.\nHere's the thing about modern browsers: they have this beautiful API called crypto.subtle.digest() that handles SHA-1, SHA-256, SHA-384, and SHA-512 natively. It's fast, secure, and requires zero dependencies.\nconst hashBuffer = await crypto.subtle.digest('SHA-256', data);\n\nSimple, right? But there's a catch: MD5 is not supported. Web Crypto API deliberately excludes it because MD5 is cryptographically broken. Fair enough, but sometimes you need MD5 for legacy systems, checksums, or just comparing against old database records.\nSo I faced a decision: use a library like crypto-js or implement MD5 from scratch.\nLibraries are great until they're not. For a single-page tool, pulling in a library means:\nExtra HTTP requests\nPotential supply chain risks\nBundle size bloat\nFighting with module systems\nThe alternative? Implementing MD5 in vanilla JavaScript. The algorithm is well-documented (RFC 1321), and honestly, it's only about 100 lines of carefully crafted bit manipulation.\nfunction md5(string) {\n  // The classic algorithm: padding, preprocessing, \n  // 64 rounds of F, G, H, I functions with a 512-bit block\n  // Returns hex string\n}\n\nWas it worth it? For this specific use case, absolutely. The tool runs entirely client-side, no network requests, no dependencies. Everything happens in the browser's sandbox.\nNext challenge: file hashing. The naive approach is reading the entire file into memory and hashing it. That works for small files, but try hashing a 2GB video file that way and watch your",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何使用 Web Crypto API 和 MD5 构建客户端哈希计算器",
+        "summary": "使用浏览器 Web Crypto API 构建客户端文件哈希计算器的指南，支持 SHA 算法和原生 JavaScript 的 MD5。在浏览器沙箱中完全实现哈希计算，避免依赖和第三方上传风险。"
+      }
+    }
+  },
+  {
+    "title": "O que tem em um .class do Java?",
+    "slug": "java-class-file-format-bytecode-generation",
+    "url": "https://dev.to/edysilva/o-que-tem-em-um-class-do-java-2agm",
+    "source": "DEV Community",
+    "date": "2026-08-13T01:47:10.000Z",
+    "summary": "Technical explanation of Java's .class binary file format and bytecode structure that the JVM expects. Covers critical details like big-endian byte ordering and constant pool structure needed to generate valid Java bytecode from scratch.",
+    "content": "Na parte 1 a gente construiu um interpretador de Brainfuck com tokenizer, parser e uma Representação Intermediária. Agora a gente precisa entender o formato que a JVM espera receber pra poder gerar nosso próprio bytecode.\nQuando você roda javac Hello.java, o compilador gera um Hello.class. Esse arquivo é binário - não é texto, não é JSON, não é XML. São bytes crus numa estrutura muito específica definida na especificação da JVM.\nNesse post, a gente vai abrir um .class com xxd, entender cada byte, e construir um gerador que monta essa estrutura do zero em Node.js.\nA JVM usa big endian pra representar números de múltiplos bytes. Isso é importante porque o processador do seu computador (x86/ARM) provavelmente usa little endian, que é a ordem inversa.\nQual a diferença? Imagina o número 30.000 (em hex: 0x7530). Ele ocupa 2 bytes:\n\n\n\nFormato\nByte 1\nByte 2\n\n\n\n\nBig endian\n0x75\n0x30\n\n\nLittle endian\n0x30\n0x75\n\n\n\nBig endian coloca o byte mais significativo primeiro. Little endian coloca o menos significativo primeiro.\nNo nosso gerador, toda vez que a gente escrever um número de 2 ou 4 bytes, precisa respeitar essa ordem. A função pra converter um número de 16 bits (2 bytes) pra big endian:\nfunction intTo2Bytes(num) {\n  return [(num >> 8) & 0xFF, num & 0xFF];\n}\n\nO >> 8 desloca 8 bits pra direita, pegando o byte alto. O & 0xFF mascara o byte baixo. Pra 4 bytes, a lógica é a mesma mas com mais shifts.\nSe você errar a ordem dos bytes, a JVM vai ler valores completamente errados. Um 0x7530 (30.000) vira 0x3075 (12.405) se os bytes ficarem invertidos. Então se o seu .class gerado dá erros estranhos no constant pool, confere se você tá escrevendo big endian.\nVamos criar o programa Java mais simples possível:\npublic class Hello {\n  public static void main(String[] args) {\n    return;\n  }\n}\n\nCompila com javac Hello.java e abre o binário com xxd Hello.class:\n00000000: cafe babe 0000 0034 000d 0a00 0200 0307  .......4........\n00000010: 0004 0c00 0500 0601 0010 6a61 7661 2f6c  ..........j",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Java .class 文件里有什么？",
+        "summary": "关于 Java 的 .class 二进制文件格式和 JVM 期望的字节码结构的技术说明。涵盖从零生成有效 Java 字节码所需的关键细节，包括大端字节序和常量池结构。"
+      }
+    }
+  },
+  {
+    "title": "The WordPress Security Nightmare: How 100,000 Sites Were Hacked in One Blow published: true",
+    "slug": "wordpress-supply-chain-attack-100k-sites",
+    "url": "https://dev.to/jahidshah/the-wordpress-security-nightmare-how-100000-sites-were-hacked-in-one-blowpublished-true-3pkd",
+    "source": "DEV Community",
+    "date": "2026-08-13T01:46:16.000Z",
+    "summary": "Over 100,000 WordPress sites were compromised in a coordinated supply chain attack targeting upstream cloud infrastructure of a third-party component. Attackers leveraged unsanitized user input to deliver XSS payloads and establish persistent backdoors despite clean file integrity monitoring.",
+    "content": "File Integrity Monitoring (FIM) tools reported 0 modifications and a 100% clean status, yet over 100,000 WordPress sites were compromised simultaneously in a single, coordinated supply chain attack.\nIf you rely solely on local code audits or repository checksums to keep your web applications safe, this breach is a massive wake-up call for modern web architecture.\nI just published a full technical video breakdown analyzing how this attack unfolded, and here is a brief rundown of what happened under the hood.\n  \n  \n\n\n\n  \n  \n  1. Bypassing WordPress.org Repositories Entirely\n\n\nThe attackers didn't bother tampering with the official WordPress.org plugin repository. Instead, they targeted the vendor's upstream cloud infrastructure (specifically, a DigitalOcean Spaces bucket) powering dynamic promotional banners within the BigOpti component shipped with BdThemes plugins.\nBy gaining write access to this third-party storage, they served poisoned JSON responses directly to end-user servers.\nThe BigOpti component fetched JSON data containing a display_id parameter. The application failed to sanitize or escape this parameter on the client side before rendering it in wp-admin.\n{\n  \"status\": \"success\",\n  \"display_id\": \"<script>execute()</script>\",\n  \"promotions\": [...]\n}\n\n\nBecause the input was rendered live as executable code, the XSS payload triggered silently the exact moment any logged-in administrator opened their WordPress dashboard. Zero clicks required from the attacker.\nw2.js Payload\n\n\nTriggered via the api-data-all-records endpoint, the w2.js script immediately initiated three automated routines:\nC2 Connection: Contacted command-and-control servers (a-cdn.com) for targeting instructions.\nRogue Admin Account: Created an admin-level user directly inside the database.\nWeb Shell Extraction: Dropped emer-run.php via a fake plugin upload and created hidden scripts inside wp-content/mu-plugins/ (including a URL parameter backdoor: ?_wplogin=).\nx.js)\n\n\nIn parallel, an alternat",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "WordPress 安全危机：10 万个网站如何在一次攻击中被攻破",
+        "summary": "超过 10 万个 WordPress 网站在针对第三方组件上游云基础设施的协调供应链攻击中遭到破坏。攻击者利用未经清理的用户输入传递 XSS 有效负载并建立持久后门，尽管文件完整性监控显示无异常。"
+      }
+    }
+  },
+  {
+    "title": "Do I Still Need a Monkey Patch for Gemini Live?",
+    "slug": "gemini-live-adk-upgrade-monkey-patch",
+    "url": "https://dev.to/gde/do-i-still-need-a-monkey-patch-for-gemini-live-4c3e",
+    "source": "DEV Community",
+    "date": "2026-08-13T01:41:40.000Z",
+    "summary": "Upgrading Gemini Live API integration from ADK 1.x to 2.x eliminated the need for a 187-line monkey patch that worked around deprecated media_chunks field. Simplified implementation of a biometric security scanner that streams webcam and microphone data to Gemini 3.1 Flash Live.",
+    "content": "No. And deleting 187 lines of it was the single biggest benefit of moving to ADK 2.x — but it was not the only one, and it was not the last thing that needed fixing.\nThe project is a biometric security scanner, built to exercise the parts of the Gemini Live API that a text chatbot never touches. A browser captures webcam and microphone, streams both to a FastAPI backend over a single WebSocket, and the backend forwards them to Gemini 3.1 Flash Live through the Agent Development Kit. The model watches the video feed, counts the fingers being held up, and calls a tool.\nThree tools are registered:\nreport_digit(count) — the detected finger count, which drives the UI\ntrigger_system_error() — fired on an offensive gesture, which terminates the session\ntrigger_heavy_metal_mode() — fired on the \"Devil's Horns\", a secret override\nThe transport is deliberately plain. Binary WebSocket frames carry a 1-byte type prefix — 1 for audio, 2 for JPEG — with 16 kHz PCM going up and 24 kHz PCM coming back, played through an AudioWorklet so the main thread stays free. Everything runs locally with make run, or on Cloud Run behind make deploy.\ngit clone https://github.com/xbill9/way-back-home\ncd way-back-home/level_3_new\n\nTwo versions live side by side in that repo: level_3, the original design, and level_3_new, the current one. Most of this article is the diff between them.\nThe original build ran on google-adk 1.27.2, and it worked — but only because a file named patch_adk.py sat next to it, 187 lines long, applied at import time before anything else could run.\nThe problem it solved was real. Gemini 3.1 deprecated media_chunks, the field a 1.x ADK used to send realtime media. A 1.x ADK talking to a 3.1 Live model would send the deprecated shape and get nothing useful back. The patch monkey-patched three separate call sites to translate:\n# level_3_gemini/backend/app/patch_adk.py\nif hasattr(rt_input, \"media_chunks\") and rt_input.media_chunks:\n    logger.info(\"[PATCH] Unrolling 'media_chunk",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我还需要为Gemini Live打补丁吗？",
+        "summary": "将Gemini Live API集成从ADK 1.x升级到2.x消除了对187行猴子补丁的需求，该补丁用于解决已弃用的media_chunks字段问题。简化了生物识别安全扫描仪的实现，该扫描仪将网络摄像头和麦克风数据流式传输到Gemini 3.1 Flash Live。"
+      }
+    }
+  },
+  {
+    "title": "Homelab barato en Japón (y cómo instalarlo) 2026",
+    "slug": "homelab-japan-hardware-setup-guide",
+    "url": "https://dev.to/kilydev/homelab-barato-en-japon-2026-1pb9",
+    "source": "DEV Community",
+    "date": "2026-08-13T01:33:50.000Z",
+    "summary": "Comprehensive guide to building an affordable home server in Japan, covering specific hardware models with pricing, installation paths using Ubuntu or Proxmox, and configuration of 20+ services. Includes pre-purchase verification checklist and setup instructions tailored for the Japanese used equipment market.",
+    "content": "La guía que preparé para quienes vivimos en Japón y queremos montar un servidor local sin gastar una fortuna: los modelos exactos que vale la pena buscar (ThinkCentre M720q, M920x, M710q, OptiPlex Micro, EliteDesk 800 Mini, Wyse 5070, Raspberry Pi) con precios de referencia para el mercado japonés y consumo de cada uno. Incluye los requisitos de hardware y software, los 7 chequeos antes de pagar por un equipo usado, la instalación completa por los dos caminos (Ubuntu Server directo y Proxmox VE), más de 20 servicios útiles para empezar ordenados por para qué sirven, y la configuración de Cloudflare Tunnel paso a paso.\nLa pregunta que más me hacen cuando hablo de montar un servidor en casa no es técnica: es “¿y cuánto cuesta empezar?”. La respuesta honesta es que probablemente cero, porque quizá ya tienes una laptop o una PC vieja guardada. Pero si vas a comprar, en Japón hay varios modelos concretos que vale la pena buscar y muchos otros que son dinero tirado.\nEsta guía va en orden: primero qué necesita de verdad la máquina, después los modelos exactos con nombre y apellido, después cómo elegirla (por Ubuntu Server directo o por Proxmox, con las dos rutas explicadas), y al final los servicios con los que empezar y cómo sacarlos a internet.\nNota sobre precios: los importes en yenes de esta guía son referencias orientativas para buscar equipos en Japón. En Mercari, Yahoo!オークション, Hard Off, Janpara, Dospara y otras tiendas de segunda mano pueden variar bastante según RAM, SSD, estado y accesorios incluidos. Antes de comprar, compara siempre varias publicaciones.\nParte 1: los requisitos mínimos reales, de hardware y de software\nParte 2: los modelos exactos que sirven, uno por uno\nParte 3: cómo elegir entre ellos en tres preguntas\nParte 4: los 7 chequeos antes de pagarle a un desconocido\nParte 5: instalación, camino A (Ubuntu Server) y camino B (Proxmox)\nParte 6: Docker, que es la base de todo lo demás\nParte 7: los servicios para empezar, ordenados por para qué sirven\nPar",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "2026年日本廉价家庭实验室（及其安装方式）",
+        "summary": "在日本建立廉价家庭服务器的综合指南，包括具体硬件型号和价格、使用Ubuntu或Proxmox的安装路径以及20多项服务的配置。包括购前验证检查清单和针对日本二手设备市场定制的设置说明。"
+      }
+    }
+  },
+  {
+    "title": "Stop Uploading Your Vitals! 🍎 Build a Private Health AI using Llama-3 and MLX on Your MacBook",
+    "slug": "private-health-ai-llama-mlx-mac",
+    "url": "https://dev.to/wellallytech/stop-uploading-your-vitals-build-a-private-health-ai-using-llama-3-and-mlx-on-your-macbook-pnf",
+    "source": "DEV Community",
+    "date": "2026-08-13T01:30:00.000Z",
+    "summary": "Tutorial for building a 100% offline health data analyzer using MLX framework and Llama-3 on Apple Silicon Macs. Processes Apple Health exports locally without cloud uploads, enabling private analysis of sensitive biometric data entirely on-device.",
+    "content": "Your health data is arguably the most sensitive information you own. From heart rate variability to sleep cycles, this data tells a story that should belong to you and you alone. However, traditional AI analysis often requires uploading these massive XML exports to the cloud, risking your privacy.\nIn this tutorial, we are going to leverage the MLX framework and Llama-3 to build a 100% offline, privacy-preserving health consultant. By utilizing Edge AI on Mac and optimized Apple Silicon inference, we can perform deep Apple Health data analysis without a single byte leaving your machine. 🚀\nApple's mlx is an array framework designed specifically for machine learning on Apple Silicon. Unlike generic frameworks, MLX takes full advantage of the Unified Memory Architecture, allowing Llama-3 to run at blistering speeds on a MacBook Pro or even an Air.\nThe following diagram illustrates how we process the bulky Apple Health export.xml file, compress it into meaningful features using Pandas, and feed it into a quantized Llama-3 model.\ngraph TD\n    A[Apple Health Export.xml] --> B[Python / Pandas Parser]\n    B --> C{Data Cleaning}\n    C -->|Filter Stats| D[Structured Health Summary]\n    D --> E[MLX Local Inference Engine]\n    F[Llama-3-8B-Instruct Quantized] --> E\n    E --> G[Local Privacy Dashboard / Insights]\n    G --> H[100% Offline Report]\n    style E fill:#f9f,stroke:#333,stroke-width:4px\n\nBefore we dive in, ensure you have:\n  A Mac with an M1, M2, or M3 chip.\n  Python 3.10+ installed.\n  The export.xml from your Apple Health app (Settings > Profile > Export Health Data).\n\n\n\n\npip install mlx-lm pandas lxml\n\nApple Health exports can be gigabytes in size. We use Pandas to extract only the metrics we care about, such as HKQuantityTypeIdentifierStepCount and HKQuantityTypeIdentifierHeartRate.\nimport pandas as pd\nimport xml.etree.ElementTree as ET\n\ndef parse_health_data(file_path):\n    # We only parse specific tags to save memory\n    context = ET.iterparse(file_path, events=(\"e",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "停止上传您的生命体征！🍎 在MacBook上使用Llama-3和MLX构建私人健康AI",
+        "summary": "使用MLX框架和Llama-3在Apple Silicon Mac上构建100%离线健康数据分析器的教程。在本地处理Apple Health导出，无需上传到云端，使敏感生物识别数据的私密分析完全在设备上进行。"
+      }
+    }
+  },
+  {
+    "title": "Claude Code 2.1.229: Keep Vertex and Bedrock Gateway Streams Alive",
+    "slug": "claude-code-2-1-229-gateway-keepalive",
+    "url": "https://dev.to/ahab_indieseek/claude-code-21229-keep-vertex-and-bedrock-gateway-streams-alive-1f9n",
+    "source": "DEV Community",
+    "date": "2026-08-13T01:21:02.000Z",
+    "summary": "Claude Code 2.1.229 adds SSE keepalive pings to prevent idle-timeout disconnects during long model thinking on Google Vertex AI and Amazon Bedrock gateways. Fixes streaming liveness issues for high-effort reasoning that pauses long enough to trigger proxy timeouts.",
+    "content": "Claude Code 2.1.229: keep Vertex and Bedrock gateway streams alive during long thinking\n\n\n\n  \n  \n  Quick answer\n\n\nClaude Code 2.1.229 adds SSE keepalive pings to gateway streaming responses during long model-thinking pauses. Anthropic says the change prevents idle-timeout disconnects on Google Vertex AI and Amazon Bedrock upstreams.\nUpgrade the Claude Code client that actually opens the provider stream, then replay one workload that previously failed with Stream idle timeout. Do not declare success because a short prompt works. Record a quiet interval longer than the old failure threshold and prove that the same request later resumes content and reaches a terminal result without a new request.\nThe patch is a liveness fix, not a universal timeout override. It does not repair expired credentials, provider quotas, a buffering reverse proxy, a total request timeout, or a broken network path.\nThis guide is for platform and developer-experience teams routing Claude Code through Vertex AI or Bedrock, directly or through an enterprise LLM gateway. It is especially useful when high-effort reasoning pauses long enough for a proxy, load balancer, or client watchdog to assume the stream is dead.\nIf your problem is runner isolation, credentials, hooks, or repository access, use the Claude Code self-hosted environment checklist. This page covers one narrower task: proving streaming liveness across a provider gateway.\nThe August 12 UTC release states that gateway streaming responses now emit SSE keepalive pings during long thinking pauses, preventing idle-timeout disconnects on Vertex and Bedrock upstreams.\nClaude Code's gateway documentation defines three supported API shapes: Anthropic Messages, Bedrock invoke-with-response-stream, and Vertex streamRawPredict. A gateway must preserve the provider-specific streaming request and required version or beta fields. Claude Code also sends X-Claude-Code-Session-Id, which lets operators correlate a session without reading prompt bodies.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Claude Code 2.1.229：保持Vertex和Bedrock网关流连接活跃",
+        "summary": "Claude Code 2.1.229添加了SSE保活ping来防止在Google Vertex AI和Amazon Bedrock网关上长时间模型思考时因空闲超时导致的断开连接。修复了长时间暂停足以触发代理超时的高效率推理的流连接问题。"
+      }
+    }
+  },
+  {
+    "title": "Japan invented flow, then refused to use it.",
+    "slug": "japan-kanban-excel-workflow-irony",
+    "url": "https://dev.to/gigaelk/japan-invented-flow-then-refused-to-use-it-137k",
+    "source": "DEV Community",
+    "date": "2026-08-13T01:17:04.000Z",
+    "summary": "Japan pioneered Kanban as a visual workflow system adapted from American supermarket supply chains, yet modern Japanese workplaces predominantly use Excel instead. Explores the ironic rejection of their own process engineering innovation in favor of spreadsheet-based management.",
+    "content": "The Genesis on the Factory Floor\n\n\nLong before user stories, sprints and swimlanes, Taiichi Ohno looked at a supermarket and said, \"なるほど\".\nIn the late 1940s and 1950s, Toyota was struggling to compete with American automotive giants. While visiting the United States, Ohno noticed American supermarkets operated on a pull system: shelves were only restocked with what customers actually bought, rather than pushing massive batches of goods into a warehouse hoping someone would eventually want them.\nHe brought that concept back to the manufacturing line at Toyota and named it \"Kanban\" (看板) - literally translating to \"signboard\" or \"visual card.\"\nThe core premise was radically simple: stop starting work, start finishing work. Physical cards tracked inventory and workflow bottlenecks in real-time, ensuring that a part was only manufactured when downstream stations actually needed it. It was transparent, it eliminated waste, and it was designed to prevent human cognitive overload by visualising the exact flow of a process. One look at the board shows exactly what is done, what needs to be done, and often who is currently doing it.\nIt was one of the greatest process-engineering breakthroughs of the 20th century—born right here in Japan. And I, for one, am grateful.\nThe tech industry adopted it, digitised it, and turned it into the bedrock of modern agile development. A simple, user-friendly system that makes tracking work and tasks phenomenally simple.\nWhich makes what happened next so deeply, agonisingly ironic.\nTo understand why a Kanban board stands zero chance against a Japanese office, you first have to understand the sheer, gravitational pull of Microsoft Excel.\nIn many traditional Japanese workplaces, Excel isn't just a spreadsheet application; it’s the universal operating system. It is a word processor, a database, a project management tool, an invoicing system, and an art canvas (seriously, there's a whole Excel AutoShape art subculture out there. Look it up!).\nWhy?",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "日本发明了流程管理，却拒绝使用它",
+        "summary": "日本开创了看板作为从美国超市供应链改编的可视化工作流系统，但现代日本工作场所主要使用Excel。探讨了他们对自己流程工程创新的讽刺性拒绝，转而倾向于基于电子表格的管理方式。"
+      }
+    }
+  },
+  {
+    "title": "EdTech Triage: Speech-to-Text API Timeout for Large Audio Uploads",
+    "slug": "edtech-speech-to-text-large-audio-workflow",
+    "url": "https://dev.to/ashtonblake6879/edtech-triage-speech-to-text-api-timeout-for-large-audio-uploads-co8",
+    "source": "DEV Community",
+    "date": "2026-08-13T01:16:50.000Z",
+    "summary": "Design pattern for handling transcription of large audio files by treating it as an ingestion workflow rather than a single API call. Uses separate decision points for file acceptance, upload completion, transcription success, and result quality to enable robust retry logic.",
+    "content": "Short answer: treat a long recording as an ingestion workflow, not one giant API call. Gate file size locally, upload with a bounded deadline, preserve one recording ID across retries, and send only confirmed transcripts to the support-ticket classifier.\nFor an edtech support queue, quality versus latency is the real decision. A transcript that arrives quickly but drops the sentence containing a student's account number can route a ticket to the wrong team. A perfect transcript that takes long enough to make the queue stale has its own cost. The design below keeps those two failures visible instead of hiding both behind fetch() and one generic error handler.\nThis is the notebook-to-prod step that matters. Start with a small state machine and an eval harness before adding provider-specific behavior.\nSplit the request into four decisions: can the application accept the file, did the upload finish, did transcription return a result, and is that result good enough for ticket triage? Each decision needs its own state and timestamp. A multipart timeout answers only the second question.\nThat distinction changes the retry rule. A local file-size rejection should make no network request. A 429 may be retriable with a capped delay and Retry-After. A client-side deadline after an upload may be ambiguous: the server could have accepted the body even though the client never received confirmation. Retrying with a new job ID can create two transcripts for one support ticket.\nKeep the original recording until the workflow has a confirmed result or a deliberate human fallback. Short sentence. No mystery state.\nFor Node.js, put an AbortController around the operation whose deadline you are measuring, and record whether the abort happened while constructing the body, sending bytes, waiting for a response, or processing the response. fetch does not turn a network deadline into proof that the remote inference did not run. The application needs an idempotency or deduplication policy of i",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "EdTech分类：大型音频上传的语音转文本API超时",
+        "summary": "通过将大型音频文件转录视为摄取工作流而不是单个API调用来处理的设计模式。使用文件接受、上传完成、转录成功和结果质量的单独决策点来启用强大的重试逻辑。"
+      }
+    }
+  }
+]
