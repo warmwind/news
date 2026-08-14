@@ -1,5 +1,245 @@
 [
   {
+    "title": "جعلنا موقعنا غير قابل للضغط مرتين، ولم يكن الخطأ في الكود",
+    "slug": "website-inert-attribute-unresponsive-dialog",
+    "url": "https://dev.to/kouanahesham/jln-mwqn-gyr-qbl-lldgt-mrtyn-wlm-ykn-lkht-fy-lkwd-2h9g",
+    "source": "DEV Community",
+    "date": "2026-08-14T18:50:55.000Z",
+    "summary": "A website with an auto-opening chat widget became completely unresponsive twice—not due to code errors, but because the `inert` HTML attribute was applied as the default page state, blocking all user interactions. Automated tests passed because `inert` operates at the accessibility tree level, invisible to standard DOM checks.",
+    "content": "مرتين خلال أسابيع صار موقعنا يبدو سليمًا تمامًا ولا يستجيب للضغط. الصفحة تُحمَّل، والتصميم في مكانه، والكونسول نظيف، والزوار لا يستطيعون فتح أي رابط.\nفي المرتين لم يكن السبب خطأً برمجيًا بالمعنى المعتاد. كان سلوكًا موثّقًا في المتصفح يعمل كما صُمّم تمامًا، لكنه انطبق على نطاق أوسع مما توقّعنا. والأخطر أن اختباراتنا الآلية مرّت بنجاح في الحالتين.\nأضفنا ويدجت مساعد ذكي للموقع، وفيه إعداد يفتح نافذة المحادثة تلقائيًا عند دخول الزائر. فعّلناه.\nبعدها صارت الصفحة ميتة. الروابط لا تُفتح، والأزرار لا تستجيب، وحقول البحث لا تستقبل كتابة.\nالسبب أن الويدجت يعتمد نمطًا شائعًا في نوافذ الحوار: عند فتح النافذة، يضع السمة inert على كل ما عداها حتى لا يتشتت التركيز ولا يهرب مؤشر لوحة المفاتيح خارجها. سلوك صحيح ومطلوب في الحوارات.\nالمشكلة أن الفتح التلقائي يجعل هذه الحالة هي حالة الصفحة الافتراضية عند كل زيارة. سبعون عنصرًا في الصفحة ورثوا inert، وبقوا كذلك حتى يغلق الزائر نافذة لم يطلب فتحها أصلًا.\n// ما يفعله الويدجت عند الفتح\ndocument.querySelectorAll('body > *:not(.assistant-root)')\n  .forEach((el) => el.setAttribute('inert', ''));\n\nوinert ليست سمة تجميلية. الفحص السريع يوضح مداها:\nconst el = document.querySelector('a.main-cta');\n\nel.offsetParent !== null;                    // true  — العنصر مرئي\ngetComputedStyle(el).pointerEvents;          // 'auto' — لا شيء يمنع المؤشر\nel.getBoundingClientRect().width;            // 180   — له مساحة حقيقية\nel.matches(':disabled');                     // false — ليس معطّلًا\n\nel.closest('[inert]') !== null;              // true  ← هنا الجواب\n\nكل فحص اعتدنا عليه يقول إن العنصر سليم. inert تعمل في طبقة أخرى: تُخرج العنصر وكل أبنائه من شجرة الوصول، وتلغي استقباله لأحداث المؤشر والتركيز، بلا أي أثر في الأنماط المحسوبة.\nاختباراتنا كانت تسأل الأسئلة المعتادة: هل العنصر موجود في الـDOM؟ هل هو مرئي؟ هل نصّه صحيح؟ الإجابات كلها نعم.\nما كشف العطل كان لقطة شاشة نظر إليها إنسان، ثم محاولة ضغط واحدة. الفحوص البرمجية كانت تصف صفحة سليمة بينما الزائر يرى صفحة جامدة.\nإن كنت تستخدم أي مكوّن يطبّق inert، أضف هذا التأكيد إلى اختباراتك:\ntest('لا شيء خارج الحوار يص",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我们两次让网站无法响应，但这不是代码错误",
+        "summary": "一个带有自动打开聊天小部件的网站两次变得完全无法响应——不是由于代码错误，而是因为`inert` HTML属性被应用为默认页面状态，阻止了所有用户交互。自动化测试通过是因为`inert`在可访问性树级别运行，对标准DOM检查不可见。"
+      }
+    }
+  },
+  {
+    "title": "I built a RAG assistant, then found out my architecture change made it worse",
+    "slug": "rag-assistant-architecture-change-worse",
+    "url": "https://dev.to/saftyy/i-built-a-rag-assistant-then-found-out-my-architecture-change-made-it-worse-1n7i",
+    "source": "DEV Community",
+    "date": "2026-08-14T18:50:02.000Z",
+    "summary": "A hybrid RAG support assistant for customer success achieved strong production metrics (0.939 faithfulness, 0.775 context precision), but the most valuable outcome was discovering a failed architecture hypothesis that led to system improvements. Testing both successes and failures revealed how to build better systems.",
+    "content": "I built a RAG assistant, then found out my architecture change made it worse, and I'm glad it happened\n\n\nI recently built a hybrid RAG (retrieval-augmented generation) support assistant for a fictional B2B SaaS platform, \"Helix,\" designed to answer customer-success questions grounded in a 100-document knowledge base of product docs, runbooks, and resolved support tickets. It cleared production-readiness evaluation thresholds comfortably: 0.939 faithfulness and 0.775 context precision on a 50-query RAGAs test set, against required floors of 0.70 and 0.60.\nBut the most useful thing that came out of the project wasn't the passing score. It was a hypothesis that turned out to be wrong, and what I did after finding that out.\nThe pipeline ingests a mixed-format 100-document corpus (Markdown product docs, PDF runbooks, HTML support tickets) into a Pinecone vector index, retrieves relevant context, and generates a grounded, citation-backed answer with an explicit confidence rating via an LCEL chain. Structured output is enforced with Pydantic (answer, sources, confidence), using gpt-4o-mini at temperature=0, because a support assistant answering the same question against the same context should give the same answer every time. Determinism mattered more than creative variation here.\nChunking wasn't one-size-fits-all. Three formats needed three strategies:\nMarkdown docs were split by header first, so a chunk never crosses a topic boundary, with a recursive splitter as a fallback for long sections.\nPDF runbooks (no header structure to exploit) got a straight recursive character split.\nHTML tickets were kept as one whole chunk per ticket whenever possible, because a resolution often only shows up in the final turn of the conversation, and splitting a ticket risks separating the question from its answer.\n5 scanned PDFs with no extractable text layer were detected and skipped gracefully rather than OCR'd, a conscious call I'll come back to.\nResult: 95 of 100 documents ingested cl",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个RAG助手，然后发现我的架构改变让它变得更糟",
+        "summary": "一个混合RAG客户成功支持助手取得了强大的生产指标（0.939忠实度，0.775上下文精确度），但最有价值的成果是发现了一个失败的架构假设，导致了系统改进。测试成功和失败都揭示了如何构建更好的系统。"
+      }
+    }
+  },
+  {
+    "title": "Modelo de Dados Python - Parte 2: Protocolos e métodos especiais",
+    "slug": "python-data-models-protocols-special-methods",
+    "url": "https://dev.to/brunotlps/modelo-de-dados-python-parte-2-protocolos-e-metodos-especiais-2e7n",
+    "source": "DEV Community",
+    "date": "2026-08-14T18:47:41.000Z",
+    "summary": "Python's special methods (__len__, __iter__, __add__) enable custom classes to participate in language syntax and built-in functions, defining what operations an object supports. This article explains how these dunder methods work beyond basic attributes.",
+    "content": "1. Da primeira parte aos protocolos da linguagem\n\n\nNa Parte 1, construímos a base do modelo de dados do Python: objetos possuem identidade, tipo e valor; nomes guardam referências para esses objetos; mutabilidade determina quais mudanças podem acontecer sem substituir o objeto; e containers armazenam referências para outros objetos.\nAgora vamos avançar uma camada.\nO tipo de um objeto não determina apenas quais valores ele pode representar. Ele também determina quais operações aquele objeto suporta: se possui tamanho, se pode ser percorrido, comparado, indexado, chamado como função, usado em um with e assim por diante (PYTHON SOFTWARE FOUNDATION, 2026a).\nÉ aqui que entram os métodos especiais.\nUma observação importante antes de continuar: na Parte 1 usamos o endereço de memória como modelo mental para identidade. De forma mais rigorosa, Python garante que a identidade de um objeto é estável durante sua existência. No CPython, especificamente, id(obj) corresponde ao endereço de memória do objeto; isso é um detalhe da implementação de referência, não uma garantia da linguagem (PYTHON SOFTWARE FOUNDATION, 2026a).\nA mesma distinção será importante quando falarmos sobre garbage collection e finalização: Python especifica o comportamento da linguagem; CPython é uma implementação desse comportamento.\nVersão de referência\nOs comportamentos e referências deste artigo foram revisados com base na documentação oficial do Python 3.14.7. Detalhes exclusivos do CPython serão identificados explicitamente.\nNa documentação oficial, nomes como __len__, __iter__ e __add__ são chamados de special methods, ou métodos especiais, na comunidade também é comum encontrar os termos métodos mágicos ou dunder methods (dunder vem de double underscore por causa do padrão __nome__).\nEles permitem que classes definidas por nós participem de operações que fazem parte da própria sintaxe e das funções embutidas da linguagem.\nPor exemplo:\n\n\n\nVocê escreve\nComportamento que Python precisa resolver\nMétodos",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Python数据模型 - 第2部分：协议和特殊方法",
+        "summary": "Python的特殊方法（__len__、__iter__、__add__）使自定义类能够参与语言语法和内置函数，定义对象支持什么操作。这篇文章解释了这些双下划线方法如何在基本属性之外工作。"
+      }
+    }
+  },
+  {
+    "title": "Building Kisan Mitra: How I Built an Ultra-Fast Voice AI for Indian Farmers in 10 Days",
+    "slug": "kisan-mitra-voice-ai-indian-farmers",
+    "url": "https://dev.to/nikhilsharma128/building-kisan-mitra-how-i-built-an-ultra-fast-voice-ai-for-indian-farmers-in-10-days-23o3",
+    "source": "DEV Community",
+    "date": "2026-08-14T18:44:36.000Z",
+    "summary": "Kisan Mitra is a multilingual voice assistant built in 10 days to help Indian farmers access real-time agricultural data (market prices, weather forecasts) through natural Hindi/Hinglish speech. The system prioritizes sub-1.5 second response latency for conversational realism and includes market lookups and weather tools.",
+    "content": "From zero to a full-stack, multilingual agricultural voice agent with caller memory, real-time mandi tools, outbound price alert calls, human escalation, and specialist agent handoffs — powered by Murf Falcon & LiveKit.\n🌟 The Problem & The Mission\nIn rural India, millions of farmers make critical livelihood decisions every day: When should I harvest? Will it rain before I spray pesticides? Which nearby mandi (market) is offering the best price for my cotton crop?\nWhile agricultural data exists across various portals, accessing it through complex web interfaces or text-heavy apps is challenging for farmers out in the field.\nVoice is the natural, frictionless interface for Bharat. A farmer standing in an orchard or driving a tractor doesn't want to type queries into a search bar; they want to speak naturally in their native language or conversational Hinglish and get instant, reliable answers.\nFor the 10 Days of Voice Agents (VoiceForBharat Edition), I chose the Farm & Field track and built Kisan Mitra (किसान मित्र) — an empathetic, real-time AI voice assistant tailored specifically for Indian agriculture.\n🏗️ Architecture & Core Components\nA production-grade voice agent is fundamentally different from a text chatbot. Latency is the single biggest factor in conversational realism: if the agent takes more than 1–1.5 seconds to reply, the human conversation breaks down.\nmermaid\nThe 4 Pillars of the Pipeline:\n🚀 Key Features Built Across the 10 Days\nAuthentic Indian Voice & Conversational Guardrails\nUsing Murf Falcon's hi-IN voice with conversational styling and sentence tokenization, Kisan Mitra sounds warm, respectful, and native. The system prompt strictly enforces:\nConversational, concise spoken responses (no markdown syntax or raw JSON read aloud).\nLive Agricultural Tools (Mandi Prices & Open-Meteo Weather)\nKisan Mitra is armed with domain tools that fetch real-world data:\nlookup_mandi_prices(crop, district): Queries market prices across key Indian APMCs (e.g., Yav",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建Kisan Mitra：我如何在10天内为印度农民构建超快速语音AI",
+        "summary": "Kisan Mitra是一个多语言语音助手，在10天内构建，帮助印度农民通过自然的印地语/Hinglish语音访问实时农业数据（市场价格、天气预报）。该系统优先考虑子1.5秒响应延迟以实现对话真实感，并包括市场查询和天气工具。"
+      }
+    }
+  },
+  {
+    "title": "14 Years of Enterprise ASP.NET, Part 4: Azure, Observability & AI in Real Systems",
+    "slug": "enterprise-aspnet-azure-observability-systems",
+    "url": "https://dev.to/kirandeepjassalcrypto/14-years-of-enterprise-aspnet-part-4-azure-observability-ai-in-real-systems-36da",
+    "source": "DEV Community",
+    "date": "2026-08-14T18:40:21.000Z",
+    "summary": "Part 4 of a 14-year enterprise ASP.NET retrospective examines Azure architecture decisions, infrastructure right-sizing (which saved ~$2,000/month), and implementing observability through correlated logs, metrics, and traces. The focus is pragmatic architectural choices for systems running at scale with 110k MAU.",
+    "content": "Originally published at prepstack.co.in\nPart 4 of 4 — 14 Years of Enterprise ASP.NET (finale). Where the system actually runs: choosing Azure architecture by cost and scaling profile, making the system observable, and treating AI as a real architectural component — not a demo.\nRunning example: Mattrx — .NET 9 / ASP.NET Core, 110k MAU, Azure SQL, ~3,200 req/sec peak.\nPick the compute by your scaling and operational profile, then right-size — don't default to the biggest box or the trendiest platform. Most enterprise .NET runs perfectly on Azure App Service; you reach for Container Apps or AKS when you have a specific reason, not because Kubernetes is on your résumé.\nThe decision framework: App Service for standard web/API (default), Container Apps when you want containers + scale-to-zero without running a cluster, AKS only when you genuinely need its control plane and have the ops capacity. A 5-person team has no business running Kubernetes.\nOver-provisioning is the most common and most invisible cloud waste — it never pages anyone, so nobody fixes it.\nRight-sizing the web tier (P2v3×6 always-on → P1v3×2 + autoscale), moving to managed Redis, and tuning the SQL tier saved roughly $2,000/month total — with better peak headroom, because autoscale handles the month-end burst the fixed fleet was over-sized for.\nFor years I \"had logging\" and was still blind in production. The shift from logging to observability — answering new questions about a running system without shipping new code — is the difference between a 4-minute incident and a 4-hour one.\nYou can't fix what you can't see, and you can't see what you didn't instrument.\nThree pillars, tied by a correlation ID: logs (what happened), metrics (how much/how often), traces (where the time went).\n// structured fields + a correlation scope so every line in the request is linkable\nusing (logger.BeginScope(new Dictionary<string, object> { [\"CorrelationId\"] = correlationId }))\n{\n    logger.LogInformation(\"Fetched {Count} ca",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "14年企业ASP.NET，第4部分：Azure、可观测性和实际系统中的AI",
+        "summary": "14年企业ASP.NET回顾的第4部分审视Azure架构决策、基础设施优化调整（节省了约2000美元/月）以及通过关联日志、指标和跟踪实现可观测性。重点是为运行110k MAU规模系统的务实架构选择。"
+      }
+    }
+  },
+  {
+    "title": "One Workflow, Many Lanes: Completing ByteChef's Flow Controls",
+    "slug": "bytechef-flow-controls-parallel-workflows",
+    "url": "https://dev.to/bytechef/one-workflow-many-lanes-completing-bytechefs-flow-controls-4k0f",
+    "source": "DEV Community",
+    "date": "2026-08-14T18:36:57.000Z",
+    "summary": "ByteChef's workflow editor now exposes all flow control elements (Condition, Branch, Loop, Parallel, Fork/Join, Each, Map, Subflow), enabling users to create complex workflows with fan-out operations and concurrent execution visually. This completes a major feature checklist without requiring custom code.",
+    "content": "TL;DR: ByteChef's workflow editor now exposes the full set of flow controls: alongside the familiar Condition, Branch, and Loop, you can drop Parallel, Fork/Join, Each, Map, and Subflow onto the canvas. That means workflows that fan out over lists, run independent steps concurrently, and call other workflows as reusable building blocks - all visually, no custom code. This closes out issue #1057, one of the longest-running feature checklists in the ByteChef repository.\nSome GitHub issues are essays. Issue #1057 is a checklist:\n[x] condition\n[x] loop\n[x] each\n[x] branch\n[x] map\n[x] parallel\n[x] fork-join\n[x] subflow\nEach of those checkboxes is a flow control - what the workflow engine internally calls a task dispatcher. A regular component does work: it sends the email, queries the database, calls the API. A task dispatcher never does work itself. It decides which tasks run, when, how many times, and with what data - it directs traffic.\nWe wrote about the first half of that checklist in our guide to flow controls: Condition routes on true/false, Branch picks one of several paths based on an expression, and Loop repeats steps over a list. Those cover decisions and repetition.\nThis post is about the second half - the controls that cover concurrency and composition. They've been running behind a feature flag while we hardened them one checkbox at a time; with the list complete, the flag is going away and the full set is available to everyone.\nEvery workflow starts as a straight line: trigger, then step one, then step two. That's the right default - it's easy to reason about, and each step can use the output of the one before it.\nBut real processes aren't always lines:\nOnboarding a customer means creating a CRM record, provisioning an account, and notifying the sales channel - three things that don't depend on each other, so why wait?\nEnriching 200 leads one at a time takes 200× as long as enriching them all at once.\nFive different workflows all end with the same \"notify",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "一个工作流，多个通道：完成ByteChef的流控制",
+        "summary": "ByteChef的工作流编辑器现在公开了所有流控制元素（条件、分支、循环、并行、Fork/Join、Each、Map、子流程），使用户能够以可视方式创建具有扇出操作和并发执行的复杂工作流。这完成了主要功能清单，无需自定义代码。"
+      }
+    }
+  },
+  {
+    "title": "59% of Dogs Are Obese and Their Owners Don't Know. So I Built an AI That Tells Them.",
+    "slug": "pawwise-ai-dog-health-obesity-detection",
+    "url": "https://dev.to/sarvar_04/59-of-dogs-are-obese-and-their-owners-dont-know-so-i-built-an-ai-that-tells-them-2a89",
+    "source": "DEV Community",
+    "date": "2026-08-14T18:36:28.000Z",
+    "summary": "PawWise analyzes dog photos to detect obesity (affecting 59% of US dogs), health risks, and behavioral issues—addressing late detection of serious health problems that cost owners $653 on average in emergency vet visits. Features include breed-specific health scoring, emergency triage, and a shareable 'Dog Court' mode.",
+    "content": "This is a submission for Weekend Challenge: Dog Days Edition\nThree months after adopting my rescue, I noticed he was sleeping more and eating slower. I thought he was \"settling in.\" Six months later, the vet told me he had Stage 3 arthritis. Completely treatable if caught early.\nI'm not alone. 60% of serious health issues in dogs are discovered after symptoms become severe. Owners spend $653 on average at emergency vets for things that were either totally normal or should have been caught weeks earlier. And 59% of dogs in the US are overweight without their owners realizing.\nPawWise is an AI vet friend that gives dog owners what they actually need: instant clarity.\nUpload a photo of your dog and get:\nHealth Check: Body condition score, coat health, posture analysis, breed-specific risks\nBehavior Decoder: \"Why is my dog doing this?\" with breed context and training steps\nEmergency Triage: Is this an emergency? Green/Yellow/Orange/Red urgency with first aid\nDog Court (fun mode): Your healthy dog committed a crime? AI generates a voice-acted courtroom drama\nThe serious modes solve real problems. The fun mode gives you something to share when everything is fine.\n  \n  \n\n\n\n\n    \nsimplynadaf.github.io\n          \n\n        \n      \nTry it live: simplynadaf.github.io/dog-court\nUpload any photo of your dog. The AI will analyze it and give you a full health report with actionable next steps, spoken aloud in a calm voice.\nIn Dog Court mode, upload evidence of your dog's \"crime\" (chewed shoes, stolen food, destroyed pillows) and listen to a full multi-voice courtroom drama where your dog gets legal representation.\n / \n        dog-court\n      \n    \n\n\n🐾 PawWise\nAI That Actually Understands Your Dog\n\n\n\n\n\n\n59% of dogs are obese and their owners don't know.\n60% of serious health issues are caught too late.\nLive Site →  •  Watch Demo →  •  Read Article →\n🎬 Demo\n\nClick to watch the full demo on YouTube\n🎯 What It Does\n\n\n\nMode\nWhat Happens\n\n\n\n\n🏥 Health Check\n\nUpload a photo → AI assesse",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "59%的狗肥胖，主人却不知道。所以我开发了一个AI来告诉他们",
+        "summary": "PawWise通过分析狗的照片来检测肥胖症（影响59%的美国狗）、健康风险和行为问题，解决了严重健康问题延迟检测的问题，这类问题平均要花主人653美元的紧急兽医费用。功能包括针对特定品种的健康评分、应急分诊和可共享的\"狗法庭\"模式。"
+      }
+    }
+  },
+  {
+    "title": "Local LLM on a 16GB Mac Mini: Replacing GitHub Copilot with Ollama + Qwen",
+    "slug": "local-llm-16gb-mac-mini-ollama-copilot",
+    "url": "https://dev.to/chennarao_vemula_aa375143/local-llm-on-a-16gb-mac-mini-replacing-github-copilot-with-ollama-qwen-n47",
+    "source": "DEV Community",
+    "date": "2026-08-14T18:35:16.000Z",
+    "summary": "A 16GB Mac mini successfully runs a local LLM via Ollama as a GitHub Copilot replacement, prioritizing privacy and offline capability with no code leaving the machine. The hard constraint is RAM (7–9GB available for the model after macOS and dev tools), determining which models fit.",
+    "content": "I kept paying a monthly subscription for a cloud coding assistant while a 16GB M4 Mac mini sat on my desk idling most of the day. So I ran the obvious experiment: can a 16GB Mac mini run a coding assistant entirely offline — no code leaving the machine, no subscription — and is it actually usable for real work?\nShort answer: yes, with one hard constraint (RAM) and one soft one (context length). This article is the written version of the video above, with every command, config file, and benchmark number so you can reproduce it.\nWhy bother running locally\nThe hardware constraint nobody mentions\nStep 1: Install Ollama\nStep 2: Pick a model that fits in 16GB\nStep 3: Run and verify\nStep 4: Wire it into VS Code\nStep 5: Tune Ollama for a 16GB box\nBenchmarks\nWhat it does well, what it doesn't\nShould you cancel Copilot?\nThree reasons, in the order that actually mattered to me:\nPrivacy. Client code, internal repos, anything under NDA — none of it leaves the machine. This is the one thing a hosted assistant cannot offer you at any price tier.\nCost. A coding assistant subscription is roughly $100–240/yr depending on tier. The Mac mini was already bought.\nOffline. Flights, bad hotel wifi, coffee shop dead zones. The assistant just works.\nThe reason not to: raw capability. The frontier hosted models are better at large multi-file reasoning, and it isn't close. More on that below.\nOn Apple Silicon, the GPU and CPU share one pool of unified memory. A model has to fit in that pool alongside macOS, your browser, VS Code, and whatever containers you're running. On a 16GB machine, macOS + a normal dev environment eats 6–8GB before you've loaded anything.\nThat leaves you roughly 7–9GB of realistic headroom for the model. This single number determines everything else, and it's why \"just run the 30B model\" advice from people on 64GB machines doesn't transfer.\nBy default macOS allows the GPU to use about 75% of total RAM as VRAM. You can check what you're actually working with:\n# total RAM",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在16GB Mac Mini上运行本地LLM：用Ollama + Qwen替代GitHub Copilot",
+        "summary": "一台16GB Mac mini通过Ollama成功运行本地LLM作为GitHub Copilot的替代品，优先考虑隐私和离线功能，代码不会离开机器。硬约束是RAM（macOS和开发工具之后可用7–9GB用于模型），这决定了哪些模型能够运行。"
+      }
+    }
+  },
+  {
+    "title": "Get Every Email to Your Domain in One Gmail Inbox, Free, with Cloudflare",
+    "slug": "cloudflare-free-email-forwarding-gmail-domain",
+    "url": "https://dev.to/sidswirl/get-every-email-to-your-domain-in-one-gmail-inbox-free-with-cloudflare-594o",
+    "source": "DEV Community",
+    "date": "2026-08-14T18:29:26.000Z",
+    "summary": "Using Cloudflare's free plan, you can forward any address at your domain (e.g., netflix@yourdomain.com) to Gmail without Google Workspace or mail servers, enabling free disposable addresses that reveal which services leak your email. Setup takes 30 minutes and is receive-only.",
+    "content": "You own a domain. Your website lives on it. With Cloudflare's free plan you can make anything@yourdomain.com - any address, invented on the spot - land in your regular Gmail inbox. No Google Workspace subscription, no mail server, no changing registrars. About 30 minutes, $0.\nWhat you get:\nA catch-all: every address at your domain forwards to one inbox.\nFree disposable addresses: give netflix@yourdomain.com to Netflix and bank@yourdomain.com to your bank. When spam arrives addressed to one of them, you know who leaked your address.\nYour website, untouched.\nOne limitation: this is receive-only. You can reply as you@yourdomain.com from free Gmail via \"Send mail as\", but the mail goes out through Google's servers without your domain's blessing, so some recipients see \"via gmail.com\" and strict spam filters may object. If sending from the domain matters, that's what Google Workspace is for. For receiving, read on.\nYou need: a domain (registered anywhere; it stays there), a free Cloudflare account, and an inbox to receive the mail.\nLog in at dash.cloudflare.com, click Add a domain, pick the Free plan.\nCloudflare scans your existing DNS and imports what it finds. Review this list carefully - the scan is good but not guaranteed complete, and whatever it misses stops resolving after the switch. Check what your DNS really says from any terminal:\ndig +short A yourdomain.com\ndig +short MX yourdomain.com\ndig +short NS yourdomain.com\n\nIf the MX query returns nothing, you have no existing email service and this migration is pure upside. If it returns something, understand what that mail service is before proceeding.\nThat NS query tells you who currently answers DNS for your domain, and it is not always your registrar.\nIn my case the nameservers pointed at NS1 (*.nsone.net) - Netlify DNS. My registrar just held the registration; the DNS zone lived in Netlify, from clicking \"use Netlify DNS\" when connecting my site years earlier. The A records Cloudflare imported were Netlify load",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用Cloudflare免费获取您域名的所有电子邮件到一个Gmail收件箱",
+        "summary": "使用Cloudflare的免费计划，您可以将域名上的任何地址（例如netflix@yourdomain.com）转发到Gmail，无需Google Workspace或邮件服务器，从而启用免费的一次性地址，可以揭示哪些服务泄露了您的电子邮件。设置需要30分钟，仅支持接收。"
+      }
+    }
+  },
+  {
+    "title": "Building FinSaathi: A Voice-First Financial Assistant for Bharat 🇮🇳 10 Days of Voice Agents — VoiceForBharat Edition",
+    "slug": "finsaathi-voice-financial-assistant-india",
+    "url": "https://dev.to/nipun_goel_720eefc9d5f127/building-finsaathi-a-voice-first-financial-assistant-for-bharat-10-days-of-voice-agents--2f94",
+    "source": "DEV Community",
+    "date": "2026-08-14T18:21:12.000Z",
+    "summary": "FinSaathi is a Hindi/Hinglish voice-first financial assistant with safety guardrails, user memory, government scheme eligibility checks, and outbound calling for the Indian market. Built for the VoiceForBharat challenge, it demonstrates voice-first design patterns for financial literacy.",
+    "content": "Over the last 10 days, I built FinSaathi, a voice-first AI assistant for the Financial Services track of the VoiceForBharat challenge.\nIndian Voice & Natural Conversations\nFinSaathi uses Murf Falcon for text-to-speech and supports natural Hindi/Hinglish conversations.\nThe goal was to make the interaction feel more like talking to an assistant rather than interacting with a traditional chatbot.\nSafety Guardrails\nFinancial conversations require strong safety boundaries.\nFor example, when a user reports an unauthorized transaction, FinSaathi warns them not to share:\nOTP\nPIN\nPassword\nCVV\nCard details\nThe agent also clearly explains when it does not have direct access to a user's bank account or transaction system.\nUser Memory\nFinSaathi stores relevant user information in a SQLite database so it can be reused in future conversations.\nThe database logic is separated into its own layer:\nAgent\n↓\ndatabase.py\n↓\nSQLite\n↓\nusers table\nThis made it easier to extend the project without mixing database operations throughout the agent code.\nGovernment Scheme Eligibility\nFinSaathi can use tools to perform government-scheme eligibility checks.\nUser asks about scheme\n    ↓\nCollect required information\n    ↓\nEligibility tool\n    ↓\nEligible / Not Eligible\n    ↓\nDatabase\n    ↓\nUser receives result\nThe eligibility result can also be used to determine whether the user's intended task was successfully completed.\nOutbound Calling\nFinSaathi can proactively contact eligible users using outbound calling.\nDatabase\n↓\nCheck deadlines / eligible users\n↓\nOutbound calling logic\n↓\nSIP / LiveKit\n↓\nAI Agent\n↓\nUser\nSetting up and debugging the SIP and LiveKit calling flow was one of the most challenging parts of the project.\nHuman Escalation\nFinSaathi can recognize situations where human support is more appropriate.\nFor example, for an unauthorized transaction, the agent can ask:\n\"Agar aap chahein, toh main aapki situation ke liye ek human support request create kar sakti hoon.\"\nAfter the user gives conse",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建FinSaathi：为印度市场推出的首个语音金融助手 🇮🇳 10天语音代理 — VoiceForBharat版",
+        "summary": "FinSaathi是一个使用印地语/印式英语的首个语音金融助手，具备安全防护、用户记忆、政府计划资格检查和针对印度市场的外呼功能。为VoiceForBharat挑战而开发，展示了金融素养教育中的语音优先设计模式。"
+      }
+    }
+  },
+  {
+    "title": "We wrote 25 Matrix bridges in 7 languages, and we did not get to choose",
+    "slug": "matrix-bridges-25-protocols-7-languages",
+    "url": "https://dev.to/nevai/we-wrote-25-matrix-bridges-in-7-languages-and-we-did-not-get-to-choose-43df",
+    "source": "DEV Community",
+    "date": "2026-08-14T18:20:08.000Z",
+    "summary": "Nevai's 25 Matrix bridges across 7 languages (Go, TypeScript, Python, Kotlin, JavaScript, PLpgSQL, Slice) connect Discord, Telegram, WhatsApp, and 22 other services to a single encrypted workspace. The language distribution reflects protocol maturity and available libraries, not team preference.",
+    "content": "What happens when you stop picking a stack and let each protocol pick one for you.\nEvery engineering team has a stack. Ours has seven, and we did not decide on any of them.\nNevai is a self-hosted, end-to-end encrypted workspace built on Matrix. Part of it is a set of bridges — 25 of them — connecting Discord, Telegram, WhatsApp, Signal, iMessage, Messenger, Instagram, Slack, Google Chat, LINE, WeChat, KakaoTalk, Skype, GroupMe, SMS, email, IRC, XMPP, Zulip, Mattermost, Revolt, Mumble, QQ, X and LinkedIn into one place.\nWe started out intending to standardise. We ended up with this:\n\n\n\nLanguage\nBridges\n\n\n\n\nGo\n12\n\n\nTypeScript\n5\n\n\nPython\n4\n\n\nJavaScript\n1\n\n\nKotlin\n1\n\n\nPLpgSQL\n1\n\n\nSlice\n1\n\n\n\nNobody sat in a room and chose that distribution. It is what you get when the protocol decides.\nWhatsApp, Signal, iMessage, Messenger, Instagram, Telegram, X, WeChat, QQ, Skype, LinkedIn, email. Twelve bridges, and the reason is the same every time: the mature libraries for those protocols are written in Go.\nThat is not a claim about Go being a better language. It is a claim about where a decade of reverse-engineering effort happens to live. If you want to speak WhatsApp's protocol without running a browser session, you use what exists, and what exists is Go.\nLook at what leaks in around the edges and the picture gets sharper:\nSignal is 86% Go and 13% C — the C is libsignal, and you do not reimplement libsignal.\niMessage is 96% Go and 3% Objective-C — because iMessage runs on macOS, and at some point you have to talk to the operating system in its own language.\nThose percentages are the honest part. A bridge is mostly your code and a small amount of somebody else's, and the small amount is usually the part that matters most.\nGoogle Chat, Zulip, KakaoTalk, LINE. Documented HTTP APIs, JSON in and JSON out, no protocol archaeology required.\nThere is no performance argument here. These bridges are not throughput-bound; they are waiting on somebody else's rate limit. What matters is how q",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我们用7种语言编写了25个Matrix桥接，我们无法选择",
+        "summary": "Nevai的25个Matrix桥接跨越7种语言（Go、TypeScript、Python、Kotlin、JavaScript、PLpgSQL、Slice），将Discord、Telegram、WhatsApp和其他22个服务连接到单个加密工作区。语言分布反映的是协议成熟度和可用库，而非团队偏好。"
+      }
+    }
+  },
+  {
+    "title": "The Color Math Was Never the Slow Part",
+    "slug": "minecraft-converter-color-math-bottleneck",
+    "url": "https://dev.to/yyj/the-color-math-was-never-the-slow-part-li2",
+    "source": "DEV Community",
+    "date": "2026-08-14T18:17:42.000Z",
+    "summary": "Profiling an image-to-Minecraft converter revealed the bottleneck was inefficient nearest-neighbor search, not expensive OKLab color space conversion as the author assumed. This demonstrates the importance of actual profiling over intuition when optimizing performance.",
+    "content": "The first version of my image-to-Minecraft-blocks converter locked up the browser tab for long enough that I assumed something had crashed. I dropped in a photo straight off my phone, hit convert, and the page stopped responding to clicks — no spinner animation, no scroll, nothing. I sat there for a while wondering whether I'd written an infinite loop.\nI hadn't. It was just doing exactly what I told it to, on the main thread, one pixel at a time.\nThis post is about what I got wrong when I tried to fix it, because my first guess was confidently wrong and the actual bottleneck turned out to be somewhere I wasn't looking.\nThe job is simple to state. You have a photo. You have a fixed list of Minecraft blocks, each with a known average color. For every cell in the output grid you find the block whose color is closest, and you write it down.\nThe obvious implementation is two nested loops: outer over pixels, inner over the palette, keep the minimum. Textbook nearest-neighbor search, and for small inputs it's genuinely fine.\nThen you run the numbers on real inputs. A photo out of a modern phone camera is around 4000×3000 — twelve million pixels before you touch anything. You downscale before matching, sure, since the output grid is maybe 128 or 256 blocks wide. But the decode and resample still happen at full resolution, and then the match loop runs every cell of the output grid against every entry in a palette of several hundred blocks.\nAnd I was running all of it inside a click handler.\nMy first theory was the color space. Matching happens in OKLab rather than raw RGB, because RGB distance produces the classic \"cheap filter\" look — most visibly on skin tones and mid-range greens, where a numerically small gap can read as a very different color to a human eye. OKLab conversion involves a matrix multiply and cube roots, and cube roots felt expensive, so I assumed that was where the time was going.\nIt wasn't. When I actually profiled it instead of guessing, the color conver",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "颜色数学从未是瓶颈所在",
+        "summary": "对图像转Minecraft转换器的性能分析揭示了瓶颈是低效的最近邻搜索，而非作者最初假设的昂贵OKLab色彩空间转换。这表明在性能优化中，实际的性能分析比直觉更为重要。"
+      }
+    }
+  },
+  {
+    "title": "How to bring your software delivery workflow into GitHub with agent apps",
+    "slug": "github-agent-apps-software-delivery-workflow",
+    "url": "https://github.blog/ai-and-ml/github-copilot/how-to-bring-your-software-delivery-workflow-into-github-with-agent-apps/",
+    "source": "GitHub Blog",
+    "date": "2026-08-14T16:00:00.000Z",
+    "summary": "GitHub's new agent apps automate software delivery workflows across scoping, security, rollout, and shipping stages without leaving the GitHub platform. These AI agents streamline the SDLC by integrating directly into GitHub's ecosystem.",
+    "content": "See how four GitHub agent apps can help you scope, secure, roll out, and ship a feature across the SDLC–all without leaving GitHub. \nThe post How to bring your software delivery workflow into GitHub with agent apps appeared first on The GitHub Blog.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何通过Agent应用将软件交付工作流引入GitHub",
+        "summary": "GitHub的新Agent应用可在范围界定、安全、推出和发货阶段自动化软件交付工作流，无需离开GitHub平台。这些AI代理通过直接集成到GitHub生态系统来简化SDLC。"
+      }
+    }
+  },
+  {
+    "title": "Qwen3.8-27B",
+    "slug": "qwen-3-8-27b-model-release",
+    "url": "https://twitter.com/alibaba_qwen/status/2088280182356611304",
+    "source": "Hacker News",
+    "date": "2026-08-14T15:03:54.000Z",
+    "summary": "Alibaba released Qwen 3.8-27B, a new open-source language model in the Qwen series representing advances in the 27-billion parameter class.",
+    "content": "Article URL: https://twitter.com/alibaba_qwen/status/2088280182356611304\nComments URL: https://news.ycombinator.com/item?id=49299684\nPoints: 292\n# Comments: 3",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Qwen3.8-27B",
+        "summary": "阿里巴巴发布了Qwen 3.8-27B，这是Qwen系列中的一个新开源语言模型，代表了270亿参数级别的进步。"
+      }
+    }
+  },
+  {
+    "title": "Qwen 3.8 27B",
+    "slug": "qwen-3-8-27b-huggingface-release",
+    "url": "https://huggingface.co/Qwen/Qwen3.8-27B-FP8",
+    "source": "Hacker News",
+    "date": "2026-08-14T15:00:00.000Z",
+    "summary": "Qwen 3.8-27B was released on Hugging Face and gained significant community traction with 359 upvotes and 262 comments, indicating strong interest in this open-source 27B model variant.",
+    "content": "Article URL: https://huggingface.co/Qwen/Qwen3.8-27B-FP8\nComments URL: https://news.ycombinator.com/item?id=49299605\nPoints: 359\n# Comments: 262",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Qwen 3.8 27B",
+        "summary": "Qwen 3.8-27B在Hugging Face上发布，获得了社区的广泛关注，获得359个赞和262条评论，表明社区对这个开源27B模型变体有很大兴趣。"
+      }
+    }
+  },
+  {
     "title": "Readability in the age of AI-assisted programming",
     "slug": "readability-age-ai-assisted-programming",
     "url": "https://dev.to/alex_netkachov_5306c2df5d/readability-in-the-age-of-ai-assisted-programming-4b35",
