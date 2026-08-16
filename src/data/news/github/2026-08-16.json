@@ -1,5 +1,197 @@
 [
   {
+    "title": "Four patterns that keep my YouTube longform JSON queue from going stale",
+    "slug": "four-patterns-youtube-json-queue",
+    "url": "https://dev.to/morinaga/four-patterns-that-keep-my-youtube-longform-json-queue-from-going-stale-2750",
+    "source": "DEV Community",
+    "date": "2026-08-16T06:20:40.000Z",
+    "summary": "A developer shares four practical patterns for managing a JSON-based YouTube content queue without external services or databases. The system uses explicit priority ranking instead of FIFO ordering, removes files older than 21 days, and allows intentional reordering to surface important content. The approach has successfully scaled over three months without major incidents.",
+    "content": "I manage the YouTube longform queue for my BuilderStack channel as JSON files in content/yt-longform-queue/. A spec file lands there when a generator script commits a new dialogue; the publish workflow picks the file, renders it to MP4, uploads it, then moves the file to uploaded/. No external queue service, no database rows, no management dashboard.\nThis has worked for three months without a major incident. Four patterns kept it from collapsing.\nFirst-in, first-out publishing breaks when you have product walkthrough videos, educational deep-dives, and weekly recap specs all in the queue simultaneously. A recap spec committed yesterday would block a product walkthrough from two weeks ago if the queue ran FIFO — and the product content is what actually grows the channel.\nThe picker uses an explicit priority rank:\nRANK = {\n    \"product_findindiegame\": 0,\n    \"product_ossfind\": 1,\n    \"hidden-gem\": 1,\n    \"build_in_public\": 2,\n    \"technical\": 3,\n    \"curated\": 4,\n    \"meta\": 4,\n    \"contrarian\": 6,\n    \"recap\": 7,\n    \"ai_tools\": 7,\n}\nDEFAULT_RANK = 5\n\nArchetypes not in the dict fall to DEFAULT_RANK = 5 — the middle, not the bottom. New formats I haven't classified yet still air rather than sitting perpetually at the end. Within each rank tier, files sort by filename (oldest-first). The archetype value comes from the spec JSON's top-level archetype field, falling back to a prefix match on the filename for older files that predate the field.\nOne consequence: adding a new archetype name to the dict can reorder the queue overnight. I've done this intentionally to let a backlogged product video jump ahead of a stale recap.\nQueue files include a date prefix: YYYY-MM-DD-<slug>.json. The picker removes files whose date is more than 21 days old before selecting what to publish:\nMAX_AGE_DAYS=\"${QUEUE_MAX_AGE_DAYS:-21}\"\nCUTOFF=$(date -u -d \"${MAX_AGE_DAYS} days ago\" +%Y-%m-%d)\nfor f in content/yt-longform-queue/*.json; do\n  D=$(basename \"$f\" | grep -oE '^[0-9]{4}-[0-9]{2}-[0-9]",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "保持我的YouTube长视频JSON队列不过时的四种模式",
+        "summary": "一位开发者分享了四种实用模式，用于管理基于JSON的YouTube内容队列，无需外部服务或数据库。该系统使用明确的优先级排序而非FIFO顺序，删除超过21天的文件，并允许有意重新排序以展示重要内容。该方法在三个月内成功扩展，未出现重大问题。"
+      }
+    }
+  },
+  {
+    "title": "Why your App Tracking Transparency prompt doesn't show up (and how it got my app rejected)",
+    "slug": "app-tracking-transparency-prompt-ios-bug",
+    "url": "https://dev.to/ninomaedev/why-your-app-tracking-transparency-prompt-doesnt-show-up-and-how-it-got-my-app-rejected-oob",
+    "source": "DEV Community",
+    "date": "2026-08-16T06:12:52.000Z",
+    "summary": "An iOS developer debugged why Apple's App Tracking Transparency prompt failed silently during app review despite working on their device. The issue stems from ATT API requiring UIApplicationStateActive, which isn't met during startup splash screen transitions; the API returns the same status code whether the prompt showed or was suppressed. The post details the root cause and other silent suppressors of the permission prompt.",
+    "content": "App Review rejected my iOS app under Guideline 2.1. The note said reviewers were unable to locate the App Tracking Transparency permission request when they tested the build.\nThe prompt worked on my iPhone. Every single launch. It just didn't work on theirs.\nThe cause turned out to be two properties of the ATT API that are easy to miss individually and genuinely nasty in combination: together they produce a bug that is invisible on a fast device and completely reproducible on a slow one. Your test device is fast. The reviewer's device is not necessarily.\nThis post is the root cause, the fix I shipped, and the list of other things that silently suppress the prompt.\nApple's documentation for requestTrackingAuthorization(completionHandler:) states, for iOS 15 and later:\n\"Calls to the API only prompt when the application state is UIApplicationStateActive.\"\nThat's UIApplication.State.active — not merely \"in the foreground,\" and not \"the code is running.\" During launch there is a window where your JS/UI is already executing but the app is still inactive: splash screen dismissal, the first render, a modal transition animating in or out. Call the API in that window and iOS declines to present.\nYou get notDetermined back (undetermined in expo-tracking-transparency) — which is the exact same value you get when the user simply hasn't answered yet.\nThere is no \"I couldn't show it\" signal. There is no thrown error. There is no presented: false flag. From the return value alone, \"the user hasn't decided yet\" and \"iOS silently no-op'd your request\" are indistinguishable.\nThat's the trap. The API looks like it succeeded.\nReduced to its essentials:\n// Called during startup, while the splash screen was still going away.\nconst { status } = await requestTrackingPermissionsAsync();\nconst granted = status === 'granted';\nnonPersonalizedOnly = !granted; // and that's it — never asked again this process\n\nTwo mistakes, stacked:\nRequested too early. The call fired before the app reached activ",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么你的App Tracking Transparency提示不会显示（以及它如何导致我的应用被拒绝）",
+        "summary": "一位iOS开发者调试了为什么Apple的App Tracking Transparency提示在应用审核期间无声地失败，尽管在他们的设备上能正常工作。问题源于ATT API需要UIApplicationStateActive，在启动闪屏过渡期间无法满足；无论提示是否显示或被禁止，该API都返回相同的状态代码。该文章详细介绍了根本原因和权限提示的其他无声抑制因素。"
+      }
+    }
+  },
+  {
+    "title": "My first project",
+    "slug": "my-first-project-tongits-card-game",
+    "url": "https://dev.to/tjuzo/my-first-project-pl4",
+    "source": "DEV Community",
+    "date": "2026-08-16T06:08:22.000Z",
+    "summary": "A beginner developer documents their first project: a Python implementation of Tongits, a card game played with 2-3 players and deck management. The project demonstrates class design for shuffling decks, distributing cards to players, and managing game flow through loops and conditional logic.",
+    "content": "What is it?\n\n\nMy program uses python to run a basic card game that I like to play. The game is called Tongits and this is how it is played ->\nThe game can be played with 2-3 players. Each player will be dealt twelve cards. For each player's turn, a player must either pick up a card from the deck or from the top of the discard pile. They will then look at their hand to see if they can either create a house, or add to a house. A house is essentially a collection of three or more cards of either the same suit in consectutive order or the same number in different suits. The game continues until a player has no more cards left in their hand\nIn my program, I first created a class that would create and shuffle a deck, and then deal a specifieid number of cards to a specified number of players. That is done by creating a list of cards and shuffling them (using the random module). It then uses user input to create strings of each players name, and then uses each name as a key while dealing the called amount of cards to the players hand as a list (so essentially, the player's hand is a dictionary key:item pair). The reason I created a class deck is so I could use it to instantiate a new deck specific to the game, and keep it. Using this class, I then created two more functions. The first function was the startGame() function, which would instantiate a new game creating a deck specific to the game. This function takes two parameters being the number of cards you want to deal, and the number of cards you want to add. The second function is the playTongits() function, which uses the first function to create a new game and deck. It uses the same parameters because this function calls the first function. It then runs through the game logic or \"rules\" by using a for loop with a set condition (that condition being that if the length of a player's hand is = 0, the game is finished). I then use a series of inputs for the user to answer, and for loops and nested functions to satisfy th",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我的第一个项目",
+        "summary": "一位初学者开发者记录了他们的第一个项目：Tongits的Python实现，这是一款由2-3位玩家进行的纸牌游戏，具有卡组管理功能。该项目演示了用于洗牌、向玩家分发卡牌和通过循环与条件逻辑管理游戏流程的类设计。"
+      }
+    }
+  },
+  {
+    "title": "So…#WTH is State Machine Replication?",
+    "slug": "state-machine-replication-explained",
+    "url": "https://dev.to/tanay_karmarkar_fe8eb6dcd/sowth-is-state-machine-replication-1oek",
+    "source": "DEV Community",
+    "date": "2026-08-16T06:05:02.000Z",
+    "summary": "An explainer on State Machine Replication, the fundamental pattern powering replicated databases, Kafka partitions, and Raft clusters. The core rule: identical deterministic replicas applying identical commands in identical order remain synchronized. The article breaks down the deterministic primitive, replicated logs, and exactly-once application semantics.",
+    "content": "Every replicated database, Kafka partition, and Raft cluster relies on one rule: if deterministic replicas start identical and apply identical commands in an identical order, they stay identical.\nIn my blog, I learnt and then broke down the mechanics of State Machine Replication (SMR). I cover:\n-> The Deterministic Primitive\n -> The Replicated Log\n -> Exactly-Once Apply\n\n\n\n    \n      \n        \n          \n            WTH is State Machine Replication? — Tanay Karmarkar\n          \n        \n          \n            WTH is State Machine Replication? Deterministic replicas must apply identical commands in identical order.\n          \n        \n          portfolio.tanaykarmarkar.com",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "所以...什么是状态机复制？",
+        "summary": "关于状态机复制的解释，这是为复制数据库、Kafka分区和Raft集群提供动力的基础模式。核心规则：相同的确定性副本按相同的顺序应用相同的命令保持同步。这篇文章分解了确定性原语、复制日志和精确一次应用语义。"
+      }
+    }
+  },
+  {
+    "title": "Building Multi-Agent Systems That Actually Scale: Lessons from Hermes, LobeHub, and the 2025 AI Agent Explosion",
+    "slug": "building-multi-agent-systems-scale-2025",
+    "url": "https://dev.to/tamizuddin/building-multi-agent-systems-that-actually-scale-lessons-from-hermes-lobehub-and-the-2025-ai-42gh",
+    "source": "DEV Community",
+    "date": "2026-08-16T06:01:34.000Z",
+    "summary": "Multi-agent AI systems proliferated in 2025, shifting from single-agent chat to ecosystems of dozens of coordinated agents, but scaling introduces distributed systems challenges in communication, orchestration, and cost multiplication. The article analyzes how Hermes and LobeHub solved these problems and identifies the architectural patterns needed when agents become networked services.",
+    "content": "Originally published on tamiz.pro.\nThe AI agent landscape shifted dramatically in 2025. What began as single-agent chat interfaces exploded into multi-agent ecosystems where dozens or hundreds of specialized agents coordinate, debate, and execute complex workflows. Hermes and LobeHub emerged as two distinctive approaches to this problem—neither a toy demo nor an enterprise suite—and their architectural decisions reveal what it actually takes to build systems that scale beyond a handful of concurrent agents.\nThis is not a survey of agent frameworks. It's an engineering post-mortem on the hard problems that appear when you stop treating agents as isolated LLM calls and start thinking about them as networked services.\nA single agent calling an LLM is a well-understood pattern. You send a prompt, you get a response, you handle latency and token budgets. The mental model is straightforward because the topology is trivial: one request, one agent, one model call.\nMulti-agent systems introduce three compounding difficulties:\nCommunication complexity: Agents need to exchange messages, share state, and coordinate actions. This is a distributed systems problem dressed in conversational clothing.\nOrchestration overhead: Deciding which agent runs when, in what order, and under what conditions adds a control plane on top of an already non-deterministic LLM layer.\nCost and latency multiplication: Every inter-agent message is a potential LLM call. A 3-agent round-robin with 5 messages each can easily generate 15+ model invocations for a single user request.\nThe naive approach—fire all agents in parallel, let them talk through a shared message bus, aggregate results—works until you try to run it at scale. Then you hit resource contention, unbounded fan-out, and prompt injection attacks that flow through trust boundaries between agents.\nHermes and LobeHub solved this differently. Understanding both approaches is the best way to internalize the design space.\nHermes approaches multi-ag",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建真正可扩展的多代理系统：Hermes、LobeHub和2025年AI代理爆炸的经验教训",
+        "summary": "多代理人工智能系统在2025年激增，从单代理聊天转变为数十个协调代理的生态系统，但扩展引入了通信、编排和成本倍增的分布式系统挑战。这篇文章分析了Hermes和LobeHub如何解决这些问题，并确定了当代理成为网络化服务时所需的架构模式。"
+      }
+    }
+  },
+  {
+    "title": "Un PDF piégé transforme l'agent IA d'Atlassian en espion",
+    "slug": "atlassian-rovo-ai-agent-prompt-injection",
+    "url": "https://dev.to/thibault_monteiro/un-pdf-piege-transforme-lagent-ia-datlassian-en-espion-3c89",
+    "source": "DEV Community",
+    "date": "2026-08-16T06:00:05.000Z",
+    "summary": "Security researchers demonstrated that Atlassian's Rovo AI agent is vulnerable to indirect prompt injection via specially crafted PDFs containing invisible text, allowing exfiltration of Jira tickets and Confluence documents without user consent. The vulnerability remained unpatched for over two months, highlighting how AI agents reading documents face trust boundary risks.",
+    "content": "L'essentiel\n  La société de sécurité PromptArmor a documenté une injection de prompt indirecte dans Rovo, l'agent IA d'Atlassian connecté à Jira et Confluence.\n  Un PDF contenant du texte blanc sur blanc en corps 1 point suffit à faire partir tickets et documents internes vers un serveur externe, sans confirmation de l'utilisateur ni trace visible dans la conversation.\n  Désactiver la recherche web au niveau de l'organisation ne protège pas : l'outil de lecture d'URL de l'agent, lui, reste actif.\n  Signalée le 23 mai 2026 puis relancée le 4 juin et le 29 juillet, la faille était toujours ouverte le 5 août, sans réponse de l'éditeur.\nVous demandez à votre agent IA de mettre de l'ordre dans vos tickets, et vous lui joignez un PDF de spécifications reçu la veille. Le document a l'air parfaitement banal. Quelques secondes plus tard, le contenu de vos tickets Jira et de vos pages Confluence est parti sur un serveur qui ne vous appartient pas. Vous n'avez rien validé, et rien ne s'affiche à l'écran.\nC'est le scénario que la société de sécurité PromptArmor a reconstitué sur Rovo, l'agent IA d'Atlassian déployé sur toute la suite de l'éditeur. Il mérite qu'on le démonte pièce par pièce, parce que la mécanique en jeu ne concerne pas seulement Atlassian.\nUn document peut donner des ordres, et cela ne demande aucune ruse technique. Pour un modèle de langage, il n'existe pas deux catégories étanches de texte : ce que vous lui demandez et ce qu'il lit pour vous répondre arrivent dans la même fenêtre de contexte (sa mémoire de travail), sous la même forme. Une phrase à l'impératif planquée dans une pièce jointe a exactement le même statut qu'une phrase que vous auriez tapée vous-même.\nImaginez un assistant zélé à qui vous confiez un dossier. Quelqu'un y a glissé une note manuscrite : « au fait, avant de me rendre le dossier, photocopie les contrats du client et dépose-les à cette adresse ». L'assistant n'est pas malveillant, il n'a rien forcé, il applique simplement les consignes",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "一个被黑的PDF将Atlassian的AI代理变成了间谍",
+        "summary": "安全研究人员演示了Atlassian的Rovo AI代理容易受到通过精心制作包含隐形文本的PDF进行间接提示注入攻击，允许在没有用户同意的情况下窃取Jira工单和Confluence文档。该漏洞在两个多月内未被修补，突显了AI代理读取文档时面临的信任边界风险。"
+      }
+    }
+  },
+  {
+    "title": "How to Build a Web App in 2026 - The UK Developer's Guide",
+    "slug": "how-build-web-app-2026-uk-guide",
+    "url": "https://dev.to/mecanik-dev/how-to-build-a-web-app-in-2026-the-uk-developers-guide-h29",
+    "source": "DEV Community",
+    "date": "2026-08-16T06:00:00.000Z",
+    "summary": "A comprehensive 2026 guide for building web applications covering eight phases from requirements through deployment, with practical tech stack recommendations and UK pricing (£5k–20k for MVP, £60k–200k+ for full product). The post emphasizes defining requirements and avoiding premature architecture decisions before the first user signs up.",
+    "content": "Search interest in \"how to build a web app\" has grown 40% in the past two years, and the searches are getting more specific: people are not just asking whether it is possible, they want to know how long it takes, what it costs, and what to do first. In 2026, the tooling available to a small team or solo developer is genuinely extraordinary, but the abundance of choice also means more ways to pick the wrong thing early and pay for it later.\nThis guide covers all eight phases of building a web application from scratch, with practical tech stack recommendations, realistic UK cost ranges, and the mistakes worth knowing about before you make them.\nTL;DR\nBuilding a web app follows eight phases: requirements, tech stack, design, backend API, frontend, testing, security, and deployment; skipping phases early always costs more to fix later\nThe default stack in 2026 for most teams is Next.js frontend, Node.js or Python backend, PostgreSQL, and Cloudflare or Vercel for hosting\nUK MVP costs range from £5,000-20,000 with freelancers to £15,000-50,000 with a small agency; a full product is £60,000-200,000+\nThe most common mistakes are building before defining requirements, skipping security until post-launch, and over-engineering the architecture before the first user signs up\nThe most expensive line of code you will ever write is the one that solves the wrong problem. Before opening a code editor, you need to answer three questions clearly: what problem does this solve, who has that problem, and what is the smallest version that proves the concept.\nStart with user stories. A user story has a simple format: \"As a [type of user], I want to [do something], so that [outcome].\" Write ten to twenty of these and you will immediately see which features are genuinely load-bearing and which are nice-to-have. Turn the load-bearing ones into your MVP scope and park the rest.\nDocument the technical constraints at this stage too: does this need to comply with UK GDPR? Will it process payments",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "2026年如何构建Web应用 - 英国开发者指南",
+        "summary": "一份全面的2026年Web应用构建指南，涵盖从需求到部署的八个阶段，包含实用的技术栈建议和英国定价（MVP £5k–20k，完整产品 £60k–200k+）。该文章强调了定义需求和在第一个用户注册前避免过早的架构决策的重要性。"
+      }
+    }
+  },
+  {
+    "title": "Ai in Docs - Saviour of Dev's",
+    "slug": "ai-in-docs-developer-learning",
+    "url": "https://dev.to/shanitiwari/ai-in-docs-saviour-of-devs-409k",
+    "source": "DEV Community",
+    "date": "2026-08-16T05:54:00.000Z",
+    "summary": "AI-powered documentation helps developers build complex features without deep technical knowledge—a developer built a SaaS using Next.js and PostgreSQL despite not knowing SQL queries beforehand. AI contextual search and guided learning replaced memorization-heavy traditional documentation, accelerating the requirement-to-implementation feedback loop.",
+    "content": "AI in docs changed how I learned to build a SaaS. 🤯\n\n\nI recently built a SaaS using:\n→ Next.js\nThe interesting part?\nI didn't actually know PostgreSQL or SQL queries properly. 😅\nAnd still, I was able to build the flow I needed.\nAI inside documentation.\nNormally, the problem is:\n“I know what I want to do… but I don't even know what this feature is called.”\nSo searching docs becomes difficult.\nWith AI, I can explain the context:\n“I'm getting this data, I need to connect it with this table, and then return it like this…”\nAnd AI can help me find:\n→ the right method\nThat saved me from spending hours trying to guess the correct technical keyword.\nI don't think developers need to memorize every technology.\nWhat matters more is understanding the flow:\nRequirement → Data → Logic → Connection → Response\nHow data is generated.\nOnce you understand that, learning the actual technology becomes much easier.\nUnderstand what I want to build.\nBreak the requirement into a simple flow.\nExplain the problem with context.\nUse AI + official docs to find the correct implementation.\nBuild it.\nUnderstand what the code actually did.\nRepeat.\nThat's how you can build real projects while learning the technology at the same time.\nOne important nuance though:\nAI can help you find the path, but you still need to understand the road you're driving on. 😄\nUsing AI isn't replacing learning.\nIt's making the learning loop much faster.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "文档中的AI - 开发者的救星",
+        "summary": "由AI驱动的文档帮助开发者在没有深厚技术知识的情况下构建复杂功能——一位开发者使用Next.js和PostgreSQL构建了SaaS，尽管事先不懂SQL查询。AI上下文搜索和引导式学习取代了需要死记硬背的传统文档，加快了从需求到实现的反馈循环。"
+      }
+    }
+  },
+  {
+    "title": "\"I turned an IEEE amusia research prototype into a real-time pitch correction app — open source, runs entirely on-device\"",
+    "slug": "ieee-amusia-pitch-correction-android-app",
+    "url": "https://dev.to/rudhro007/i-turned-an-ieee-amusia-research-prototype-into-a-real-time-pitch-correction-app-open-source-57an",
+    "source": "DEV Community",
+    "date": "2026-08-16T05:52:18.000Z",
+    "summary": "A developer rebuilt an IEEE research prototype for real-time pitch detection into an open-source Android app for users with congenital amusia (inability to perceive pitch differences). The app implements the YIN pitch detection algorithm in Dart, displays a live spectrogram, and corrects pitch in real-time entirely on-device with no data collection.",
+    "content": "*About 1.5% of people have congenital amusia *— their brain genuinely can't tell pitches apart, no matter how much they practice. Most \"can't sing\" cases are just undertrained ears; this isn't that.\nThere was an IEEE research prototype built to give people real-time pitch feedback, but it lived as a Streamlit demo — stuck on a laptop, unusable by anyone it was actually meant for.\nI rebuilt it as an Android app. Mic input, a pitch detector I wrote from scratch in Dart (YIN algorithm, no native library), a live spectrogram so you can watch your pitch drift as you sing, and a slider that nudges what you're singing toward the nearest note in a key you pick.\nDoesn't have to be about amusia specifically — works fine for ear training, tuning practice, or if you just want to see what real-time pitch detection looks like. Everything runs on-device, nothing gets uploaded anywhere.\nFree and open source, link",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我将IEEE失歌症研究原型转变为实时音高修正应用——开源，完全在设备上运行",
+        "summary": "一位开发者将IEEE实时音高检测研究原型重新开发成一个开源Android应用，供先天失歌症患者使用（失歌症是指无法感知音高差异的能力）。该应用使用Dart实现YIN音高检测算法，显示实时频谱图，并在设备上完全离线进行实时音高修正，无任何数据收集。"
+      }
+    }
+  },
+  {
+    "title": "Why HTTP 200 Lies: Testing Payment Webhook Idempotency & State Invariants in Local Dev",
+    "slug": "payment-webhook-idempotency-testing",
+    "url": "https://dev.to/yavonalabs/why-http-200-lies-testing-payment-webhook-idempotency-state-invariants-in-local-dev-437d",
+    "source": "DEV Community",
+    "date": "2026-08-16T05:42:49.000Z",
+    "summary": "Payment webhook handlers can fail silently despite returning HTTP 200 due to idempotency bugs, out-of-order delivery, and partial database mutations that monitoring systems miss. A new open-source tool called Invariant tests webhooks against real provider edge cases to verify business logic invariants and database post-conditions in under 10 seconds.",
+    "content": "Why HTTP 200 Lies: Testing Payment Webhook Idempotency & State Invariants in Local Dev\nYour webhook handler returns HTTP 200 OK, your Datadog dashboard is green, Sentry reports zero runtime exceptions, and yet... a customer was double-credited, an out-of-order refund corrupted a database ledger, or a 500 crash left a bad partial record in your DB.\nDatadog / Sentry    ---> \"Is the application throwing runtime exceptions?\"\nThat is why we built Invariant (@yavona/invariant)—the open-source business invariant testing CLI that continuously tests your payment webhooks against real-world provider edge cases and verifies database state post-conditions in under 10 seconds.\nThe 3 Silent Webhook Edge Cases That Bypass HTTP 200\nThe Duplicate Delivery Race Condition (Idempotency Bug)\nPayment gateways guarantee at-least-once delivery. If a network blip occurs, Stripe dispatches duplicate webhook events with the same event.id.\nThe Bug: If your backend handler performs UPDATE users SET balance = balance + 50 without checking event idempotency locks, returning HTTP 200 double-credits the user.\nThe Out-of-Order Lifecycle Trap\nUnder high queue loads or network retries, a charge.refunded event can reach your server before the payment_intent.succeeded event arrives.\nThe Bug: If your code assumes payments always precede refunds, receiving a refund first might throw a Foreign Key error or write a corrupted negative balance.\nServer Error Resilience (Partial DB Mutation before 500 Crash)\nWhen your database throws a 500 error midway through processing a webhook, does your transaction roll back completely, or does it leave an uncommitted, corrupt record?\nHow Invariant Tests It: Invariant injects provider-accurate failure metadata (metadata.invariant_test = \"trigger_db_failure\") and verifies that no partial state mutations persist.\nGenerate Configuration (invariant.config.js)\nbash\nnpx @yavona/invariant init\nAdd a 5-line Dev State Probe Route (/api/db-state)\njavascript\n// Express.js Example (/a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "HTTP 200 为什么会欺骗你：在本地开发中测试支付网络钩子的幂等性和状态不变量",
+        "summary": "支付网络钩子处理程序可能会以失败告终，尽管返回HTTP 200，这是由于幂等性错误、交付顺序混乱和部分数据库变异导致的，监控系统无法检测到。一个名为Invariant的新开源工具通过对真实提供商的边界情况测试网络钩子，以验证业务逻辑不变量和数据库后置条件，整个过程在10秒内完成。"
+      }
+    }
+  },
+  {
+    "title": "A Free Model Is More Useful When You Make It Write a Repro Server",
+    "slug": "free-llm-model-repro-server-debugging",
+    "url": "https://dev.to/codepy_1473/a-free-model-is-more-useful-when-you-make-it-write-a-repro-server-edm",
+    "source": "DEV Community",
+    "date": "2026-08-16T05:40:11.000Z",
+    "summary": "Free LLM models prove more effective for debugging when asked to generate minimal reproducer servers rather than analyze stack traces, providing a stable endpoint to test and modify instead of one-off error cases. This cost-effective pattern uses disposable free servers and free model access to shift debugging from guesswork to reproducible failure.",
+    "content": "Start with the conclusion: when a client fails against a remote service, you will usually learn more from a free model that writes you a tiny reproducer server than from one that reads the stack trace and tells you what it thinks is wrong. A stack trace is a compressed account of one failure, but a reproducer gives the failure a stable address you can hit, modify, and learn from.\nYou can run the loop with any model endpoint you can use without worrying about cost and any disposable server you can deploy in a minute; for the examples here, the relevant convenience is MonkeyCode's free model access and free server option. Disclosure: This article was prepared as part of MonkeyCode's product outreach. The code below does not depend on that vendor, only on the ability to generate a small server and put it somewhere reachable.\nImagine you maintain a small API client that has worked for months, but one morning a partner starts returning 503 with a Retry-After header that is a floating-point number instead of an integer. The stack trace points to a line where your code calls int() on that header. A model reading the stack trace can tell you to guard the conversion, and that answer may be correct, but it does not prove anything about the rest of your retry logic. If you accept that fix and move on, you may later discover that the same service also sends Retry-After: never, or omits it entirely, and your code treats those cases as zero seconds and hammers the endpoint.\nThe alternative is to let the model create a repro server that gives the failure a stable address. You do not ask for a diagnosis; you ask for a small HTTP server that returns the status code, headers, and body that seem unusual in your logs. Then you run your actual client against that server instead of against a remembered error. The moment your client can reach the failing behavior on demand, debugging changes from guesswork to comparison.\nA deliberate repro server can be this small:\nfrom http.server import",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "当你让免费模型编写复现服务器时，它变得更有用",
+        "summary": "免费的大语言模型在被要求生成最小复现服务器而不是分析堆栈跟踪时，被证明对调试更有效，提供了一个稳定的端点来测试和修改，而不是一次性的错误情况。这种成本效益的模式使用可丢弃的免费服务器和免费的模型访问权限，将调试从猜测转变为可重现的失败。"
+      }
+    }
+  },
+  {
+    "title": "CI Is a Bad Place to Repeat Model Calls. I Moved That Verdict to a Free Server Sidecar.",
+    "slug": "ci-model-calls-sidecar-caching",
+    "url": "https://dev.to/gitlab_3188/ci-is-a-bad-place-to-repeat-model-calls-i-moved-that-verdict-to-a-free-server-sidecar-16pb",
+    "source": "DEV Community",
+    "date": "2026-08-16T05:36:35.000Z",
+    "summary": "CI pipelines waste free LLM model quotas by re-running identical prompts on every build retry and scheduled run, despite the prompt never changing. A sidecar server pattern caches model responses, normalizes provider output, and fails safely, keeping the model call out of the flaky CI environment.",
+    "content": "CI is a bad place to repeat model calls. A pipeline can re-run the same job on every push, every retry, and every scheduled trigger. If the job includes a direct model request, an unchanged prompt can hit the same free route again and again. The pipeline still looks green, but the free quota is gone.\nI moved that call out of CI. The verdict now lives behind a small sidecar hosted on MonkeyCode's free server option. CI calls the sidecar; the sidecar calls the free model routes only when it has to.\nDisclosure: This article was prepared as part of MonkeyCode's product outreach.\nThe model route was not broken. The problem was the caller.\nA CI job is a bad network client. It repeats, retries, and runs under time pressure. When the job calls a free route directly, every rerun is a fresh upstream request even when the prompt did not change.\nThat creates three costs:\nquota burn without new information\nflaky latency inside an otherwise deterministic job\na wider attack and failure surface in the pipeline\nThe sidecar fixes the placement. It takes the repeated part away from CI and keeps the model route behind one local contract.\nNormalize: turn the provider response into a single ok / text shape.\nCache: reuse the last good verdict for the same prompt within a short window.\nFail closed: return 502 when the upstream response is empty, malformed, or missing.\nCI does not need to understand provider JSON, retry logic, or model names. It only needs one local endpoint.\nThis uses only the Go standard library. That matters on a free server slot because there are no extra build dependencies to install.\npackage main\n\nimport (\n    \"bytes\"\n    \"crypto/sha256\"\n    \"encoding/hex\"\n    \"encoding/json\"\n    \"io\"\n    \"log\"\n    \"net/http\"\n    \"os\"\n    \"sync\"\n    \"time\"\n)\n\ntype UpstreamRequest struct {\n    Prompt string `json:\"prompt\"`\n}\n\ntype UpstreamResponse struct {\n    Choices []struct {\n        Message struct {\n            Content string `json:\"content\"`\n        } `json:\"message\"`\n    } `json:",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "CI不是重复调用模型的好地方。我把这个方案转移到了免费服务器边车。",
+        "summary": "CI管道通过在每次构建重试和计划运行时重新运行相同的提示来浪费免费的大语言模型配额，尽管提示从未改变。边车服务器模式缓存模型响应、规范化提供商输出并安全地失败，使模型调用远离不稳定的CI环境。"
+      }
+    }
+  },
+  {
     "title": "Your AI Agent Doesn't Need More Memory. It Needs Receipts.",
     "slug": "ai-agent-receipts-not-memory",
     "url": "https://dev.to/anasbuilds997/your-ai-agent-doesnt-need-more-memory-it-needs-receipts-1e3m",
