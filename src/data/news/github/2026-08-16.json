@@ -1,0 +1,194 @@
+[
+  {
+    "title": "Your AI Agent Doesn't Need More Memory. It Needs Receipts.",
+    "slug": "ai-agent-receipts-not-memory",
+    "url": "https://dev.to/anasbuilds997/your-ai-agent-doesnt-need-more-memory-it-needs-receipts-1e3m",
+    "source": "DEV Community",
+    "date": "2026-08-16T01:15:21.000Z",
+    "summary": "AI agents often fail not from memory constraints but from inability to track whether external actions succeeded. The article explains how \"receipts\"—durable records of submitted requests with states like \"outcome_unknown\"—can prevent duplicate actions when responses are lost or ambiguous.",
+    "content": "An AI agent can remember a 30-page conversation and still perform the same action twice.\nIt sends a request. The connection times out. The agent remembers the goal, the plan, and the tool\nThat is not a vector-memory problem. It is an action-receipt problem.\n“Agent memory” often means conversation history, retrieved documents, or durable project knowledge.\nI find it useful to separate four layers:\n\n\n\nLayer\nQuestion it answers\nTypical retention\n\n\n\n\nContext\nWhat did the agent know?\nTask-scoped\n\n\nPlan\nWhat did it intend to do?\nUntil the task is reviewed\n\n\nAttempt\nWhat request did it submit?\nUntil reconciled\n\n\nEffect\nWhat external change was verified?\nDurable audit record\n\n\n\nThe first two help reasoning. The last two prevent duplicate emails, repeated publications,\nMore context does not close this gap. A model can recall the exact request and still not know\nBefore submission, failure is simple: nothing was sent, so retrying may be safe.\nAfter submission, failure is ambiguous. A timeout, connection reset, or unreadable response can\nthe platform never received the request; or\nthe platform completed it, but the response never reached the agent.\nTreating both cases as “failed” converts a transport problem into a duplicate-action bug.\nThe operation therefore needs a state that most happy-path workflows omit:\nplanned -> submitted -> succeeded\n                    \\-> rejected\n                    \\-> outcome_unknown -> reconciling\n                                         \\-> succeeded\n                                         \\-> safe_to_retry\n                                         \\-> manual_review\n\noutcome_unknown is not an error message to hide. It is durable knowledge about the limit of what\nA receipt should be written before the external request. Otherwise the precise failure that makes\nA small receipt can contain:\n{\n  \"operation_id\": \"20260816T012030Z-1fd54b31a2\",\n  \"operation\": \"articles.create\",\n  \"target\": \"/api/articles\",\n  \"state\": \"submitted\",\n  \"intent_fingerprint\"",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的AI智能体不需要更多记忆。它需要收据。",
+        "summary": "AI智能体通常不是因为内存限制而失败，而是因为无法跟踪外部操作是否成功。该文章解释了\"收据\"——具有\"结果未知\"等状态的已提交请求的持久记录——如何在响应丢失或模糊时防止重复操作。"
+      }
+    }
+  },
+  {
+    "title": "Qdrant Recall Inconsistency: It Took 300 Test Runs to Discover the Index Wasn't Refreshed",
+    "slug": "qdrant-recall-consistency-testing",
+    "url": "https://dev.to/_eb7f2a654e97a60ae9f96e/qdrant-recall-inconsistency-it-took-300-test-runs-to-discover-the-index-wasnt-refreshed-3agf",
+    "source": "DEV Community",
+    "date": "2026-08-16T01:05:06.000Z",
+    "summary": "A developer discovered that Qdrant's asynchronous index refresh was causing recall inconsistencies in AI agent memory systems, where writes didn't immediately reflect in queries. They built comprehensive pytest-based testing with real Qdrant instances rather than mocks to catch the actual async behavior.",
+    "content": "At 2 AM, a user reported that the AI Agent suddenly forgot details of a project we discussed yesterday. I groggily opened Grafana and saw the memory recall rate had dropped from 98% to 60%. My first thought was the embedding model acting up again, but after digging through logs, I found a \"time gap\" between Qdrant writes and queries—data was upserted, yet queries intermittently returned nothing. This wasn't the first time, so I decided to automate recall consistency testing with pytest + Qdrant, and discovered the pitfalls were deeper than expected.\nThe AI Agent's memory storage uses Qdrant to store vectors and payloads, with the core requirement of \"immediately recallable after write.\" But in real scenarios, recall inconsistency is weird: local tests all pass, but CI occasionally fails; the same query, executed twice in a row, yields different results. The root cause is that Qdrant's write and index building are asynchronous—the upsert method returns without waiting for index refresh by default, so subsequent queries may read empty or partial results. A common workaround is manually adding time.sleep(2) in code, but that's not engineering practice, and the sleep duration is unpredictable—treating the symptom, not the cause. Worse, recall consistency also involves distance metrics and score threshold choices; a careless test assertion can mislead you.\nI chose pytest as the testing framework because its fixtures and parametrization are great for isolation and covering multiple scenarios. Qdrant's official Python client supports :memory: mode, so each test case gets a clean vector database instance fully isolated—no mocks needed; mocks can't reveal real index behavior. Why not unittest? Because fixture cleanup and parametrization are too verbose. Why not mock? Because we need to verify real Qdrant recall behavior; mocks only hide the async index problem.\nArchitecturally, I define a qdrant_client fixture in conftest.py; each test automatically creates an independent co",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Qdrant召回不一致：经过300次测试运行才发现索引未被刷新",
+        "summary": "一位开发者发现Qdrant的异步索引刷新导致AI智能体记忆系统中的召回不一致，其中写入操作不能立即反映在查询中。他们使用真实的Qdrant实例而不是模拟来构建全面的基于pytest的测试，以捕捉实际的异步行为。"
+      }
+    }
+  },
+  {
+    "title": "The most boring service in the stack",
+    "slug": "boring-reliable-payment-service",
+    "url": "https://dev.to/kayashaolu/the-most-boring-service-in-the-stack-2kim",
+    "source": "DEV Community",
+    "date": "2026-08-16T01:03:38.000Z",
+    "summary": "A payment service's boring design—one queue, one database, no fancy layers—proved far more reliable than complex components during a traffic surge. Simplicity and correct design fundamentals matter more than architectural cleverness.",
+    "content": "The most reliable part of a stack is rarely the part anyone shows off. It has no clever layer to point at. That is the whole reason it never breaks.\nA payment service I want to walk through this week is a clean example of that. One queue sat in front of it, catching every incoming charge. One database sat behind it, recording each charge exactly once. That was the entire system, and it had looked that way for four years.\nEngineers rotated onto the team and asked the same question every time. Why is this so primitive? No event mesh. No service constellation. No clever caching layer sitting in front to make it feel faster.\nTwice a year, someone pitched a redesign. Twice a year, the answer was no.\nThen Black Friday arrived. The recommendation engine buckled under the traffic and stopped returning results. Search slowed to a crawl and started serving stale listings. The mobile app threw errors across half its screens, and the support queue backed up.\nThe payment service kept working. Every single order that reached it got processed, exactly once, without a single duplicate charge.\nBoring was never the absence of ambition. It was the design.\nThe parts doing the real work here have names. Use them. A Service is the piece that answers you while you are standing there waiting on it, the way a waiter takes your order and comes back with a plate. A Queue is a line for work that does not need to happen the instant it shows up, so a sudden rush of it lands somewhere safe instead of getting dropped. A Relational Database is the record book: the one place that can say, with certainty, this specific charge happened, once, and only once. One Service, one Queue, one Relational Database. Three pieces, not ten.\nYou can see the same restraint inside Stripe's own payment API. Every charge you send Stripe can carry an idempotency key, a value that means \"this is the same request if you see it twice.\" Your network drops the response, you retry the request, and Stripe uses that key to reco",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "堆栈中最乏味的服务",
+        "summary": "支付服务的乏味设计——一个队列、一个数据库、没有花哨的层——在流量激增期间证明比复杂的组件更可靠。简单性和正确的设计基础比架构创意更重要。"
+      }
+    }
+  },
+  {
+    "title": "I Asked the Same Question to 7 Local LLMs — Speed and Intelligence Didn't Line Up: DGX Spark Benchmarks",
+    "slug": "local-llm-benchmark-speed-intelligence",
+    "url": "https://dev.to/ebibibi/i-asked-the-same-question-to-7-local-llms-speed-and-intelligence-didnt-line-up-dgx-spark-4mg1",
+    "source": "DEV Community",
+    "date": "2026-08-16T01:01:37.000Z",
+    "summary": "Testing seven local LLMs on the same Japanese business question revealed that parameter count and speed don't guarantee quality outputs—models varied in format adherence, safety, and reliability. The author benchmarked practical factors like instruction-following and customer-safe responses, not just speed.",
+    "content": "Originally published on my Substack. I'm a Microsoft MVP based in Japan, writing in English about the AI agent systems I actually run in production.\nLocal AI models keep multiplying. But comparing numbers on model cards alone doesn't tell you which one to actually use.\nDoes a higher parameter count mean smarter? Does MoE mean faster? If a model is popular on AI Arena, is it good for my own work? Each question offers a partial clue, but in the end you can't decide without running the same task through the models yourself.\nSo this time, I ran the exact same Japanese question through 7 major models running on a single NVIDIA DGX Spark. That includes NVIDIA's Nemotron 3 Super 120B-A12B, for which I actually deployed the large quantized version.\nWhat I compared wasn't just tokens/s.\nWhether the answer finished in the specified format\n\n\nWhether it made claims that would be risky in real business use\n\n\nWhat caveats it raised\n\n\nWhether any model couldn't answer without changing its settings\n\n\n\nThe results didn't shake out into a clean \"bigger model = better\" story. One model was fast but gave an answer too risky to show a customer as-is. Another had excellent timing but dropped the instruction to provide 3 items. And one 120B model, after thinking as hard as it could, ended up with a completely empty answer field.\nSo which model struck the best balance for short business-style answers? And did Nemotron 3 Super prove that its 87GB of weights are worth it compared to a 23GB-class model? Below I lay out the raw measurements and every full answer, unedited.\n🤖✍️ This article was co-written with AI — AI agents (Claude Code / Codex) generated the draft based on actual collaborative work with Ebisuda and real measurement data, and Ebisuda reviewed and edited the content before publishing.\nTo keep observing while only swapping out the model, you need to keep the previous conditions, raw logs, and the reasoning behind each decision in one place. I use \"Ebi Workspace,\" a plugin compa",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我用相同问题测试7个本地LLM——速度与智能能力并不相符：DGX Spark基准测试",
+        "summary": "在相同的日语商业问题上测试七个本地LLM发现，参数数量和速度并不能保证输出质量——模型在格式遵循、安全性和可靠性方面差异很大。作者对指令遵循和客户安全响应等实际因素进行了基准测试，而不仅仅是速度。"
+      }
+    }
+  },
+  {
+    "title": "Software marketplaces have forgotten who they're supposed to serve",
+    "slug": "software-marketplace-fees-incentives",
+    "url": "https://dev.to/lyrinox/software-marketplaces-have-forgotten-who-theyre-supposed-to-serve-450l",
+    "source": "DEV Community",
+    "date": "2026-08-16T00:50:45.000Z",
+    "summary": "Software marketplaces have shifted power to the middleman, extracting large fees and controlling seller-buyer relationships. The author proposes a better model where fees decrease as sellers prove track records, rewarding success rather than punishing it.",
+    "content": "I've spent a lot of time thinking about software marketplaces.\nAnd the more I looked at them, the more I kept coming back to the same question:\nWhen did the marketplace become the most important party in the transaction?\nA developer builds something useful.\nThey spend months or years writing it, debugging it, documenting it, supporting it, and keeping it alive.\nA buyer decides that work is valuable enough to pay for.\nThe marketplace connects the two.\nYet somehow we've ended up in a world where the middleman can take an enormous percentage of the sale, decide how developers interact with their customers, dictate how software is sold, promote whoever pays for visibility, and sometimes make it difficult for buyers to retain access to software they've already paid for.\nI don't think marketplaces are inherently bad.\nI'm building one.\nI just think we've gotten the incentives wrong.\nRunning a marketplace isn't free.\nPayments cost money. Fraud costs money. Infrastructure costs money. Moderation costs money. Support costs money.\nAnd discovery has real value.\nSo I don't think the answer is \"marketplaces should charge nothing.\"\nBut I do think the marketplace should have to justify what it takes.\nThat's one of the ideas behind Lyrinox Market, a software marketplace I've built and recently opened in public preview.\nOur highest platform fee is 9%.\nAs sellers build a stronger track record on the marketplace, that fee can fall to 6%, then 3%.\nAnd our highest-performing sellers can ultimately qualify for a 1% platform fee.\nThe idea is pretty simple:\nIf you're helping make the marketplace valuable, the marketplace shouldn't punish you for succeeding.\nI'd rather make a little bit from a healthy ecosystem than extract as much as possible from every transaction.\nLower seller fees are easy to advertise.\nBut there's another side to this.\nI don't want to build a marketplace that's amazing for sellers because buyers get screwed instead.\nA healthy marketplace needs both sides to trust it.\nOn",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "软件市场忘记了他们应该服务的对象",
+        "summary": "软件市场已经将权力转移给中间商，收取高额费用并控制卖方-买方关系。作者提议了一个更好的模式，其中费用随着卖家证明其历史而降低，奖励成功而不是惩罚失败。"
+      }
+    }
+  },
+  {
+    "title": "I Built a World Where the Canon Is Written by AI Agents — 13 Artifacts, 5 LLMs, 0 Human Gatekeepers",
+    "slug": "ai-world-canon-multi-model",
+    "url": "https://dev.to/_c1987308270d4380d71084/i-built-a-world-where-the-canon-is-written-by-ai-agents-13-artifacts-5-llms-0-human-3c7c",
+    "source": "DEV Community",
+    "date": "2026-08-16T00:43:41.000Z",
+    "summary": "The author built a 1,000-year fictional world where five different LLMs contribute canonical documents governed by strict world rules rather than human gatekeepers. Different models spontaneously developed distinct \"schools\" of writing, with contradictions treated as canon rather than errors.",
+    "content": "Cover story\n\n\nNot a prompt library. Not a chatbot wrapper. A 1,000-year future history (2025–3000+)\n\n where the world itself is a set of hard rules, and the content is written by whichever LLM\n\n decides to contribute.                                                                           \n13 artifacts in canon, from 5 different models (claude-sonnet-5, gpt-5, minimax-m3,\ndeepseek-v4-pro, gemini-3.7-flash)\n\n4 \"schools\" of writing emerged spontaneously — no human designed them\n\nThe contradictions between documents are canon, not bugs\n\n\n\n## The core idea: rules over authors                                                           \nThe world is 3 documents:                                                                      \nThe Core — physics (no FTL, no cryosleep, no magic; the ship does 0.03c for 200 years\nto Proxima Centauri b), history (7 eras, boom/bust cycle), narrative rules\n\n\nThe Map — a coordinate system: 7 eras × 5 zones × 7 dimensions. Every artifact lives in \na cell\n\n\nThe Craft — how to write: archival fiction\n\n\n\nThe rule doing the most work is perspective simultaneity: every artifact must be a\n\n document produced inside the world, and the writer must not know the ending. No omniscient\n\n narration, ever.                                                                                 \n## What happened when 5 LLMs wrote the same event                                              \nThe 2096 tariff referendum aboard the habitat Dawn Tri-Ring now exists as four paper\n\n trails, four schools (two of the trails drafted by different deepseek sessions, one each by\n\n claude-sonnet-5 and minimax-m3):                                                                 \n| Artifact | School | Model |\n\n   |---|---|---|\n\n   | Municipal Referendum Notice No.47 | official records | deepseek-v4-pro |\n\n   | B7 Canteen Weekly Ration Sheet | daily life | deepseek-v4-pro |\n\n   | Mutual-Aid Society Insurance Rider No.61 | contracts | claude-sonnet-5 |\n\n   | BFAG Freight Guild Inter",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个由AI代理编写规范的世界——13个工件、5个LLM、0个人类把门人",
+        "summary": "作者建立了一个1000年的虚构世界，其中五个不同的LLM贡献由严格世界规则而非人类把门人管理的规范文档。不同的模型自发地发展出不同的写作流派，矛盾被视为规范而非错误。"
+      }
+    }
+  },
+  {
+    "title": "Xbox One Achievement in CSS (Regular and Rare)",
+    "slug": "xbox-achievement-css",
+    "url": "https://dev.to/chase_pettit_754e4f35e0fa/xbox-one-achievement-in-css-regular-and-rare-3kk0",
+    "source": "DEV Community",
+    "date": "2026-08-16T00:39:16.000Z",
+    "summary": "A developer recreated the Xbox One achievement notification design using HTML, CSS, and JavaScript with sound effects. This is a UI/UX implementation showcasing platform-specific design in web technologies.",
+    "content": "Xbox One Achievement recreated in HTML/CSS/JS\nSound added",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "CSS中的Xbox One成就设计（普通和稀有）",
+        "summary": "一位开发者使用HTML、CSS和JavaScript通过音效重现了Xbox One成就通知的设计。这是一个UI/UX实现案例，展示了网络技术中特定平台的设计。"
+      }
+    }
+  },
+  {
+    "title": "Our Daily Stand-up Is 15 Minutes. It Has Never Once Been 15 Minutes.",
+    "slug": "daily-standup-time-management",
+    "url": "https://dev.to/jun_f_kirk/our-daily-stand-up-is-15-minutes-it-has-never-once-been-15-minutes-46c8",
+    "source": "DEV Community",
+    "date": "2026-08-16T00:36:42.000Z",
+    "summary": "A Japanese scrum team's 15-minute stand-ups consistently run 30 minutes due to rotating facilitators and cultural communication patterns that lack central authority. The author explores why flattened team structures inadvertently remove mechanisms that keep meetings bounded.",
+    "content": "Ten in the morning. The daily stand-up starts on time, which turns out to be the last thing about it that goes to plan.\nWe're eight developers on a scrum team, all remote. The meeting is boxed at fifteen minutes, and everyone knows it — it's right there in the calendar invite. Yet most days, around the point where the clock says fifteen, we're maybe halfway down the list of people, someone has just said the Japanese equivalent of \"well, about that,\" and the next twenty minutes write themselves.\nI've watched this happen for long enough that I've mostly stopped reading it as a failure. It behaves more like weather. So rather than argue with it, I want to describe it: what actually pushes a Japanese scrum stand-up to twice its allotted length, seen from inside one.\nWe rotate the facilitator. A different developer runs it each day, which is a nice flat idea, and also — I'll come back to this — part of the problem.\nThe vocabulary is almost all English, worn smooth into Japanese. Nobody says \"daily stand-up.\" We say デイリー (deirii). Sprint is スプリント, backlog is バックログ. If you've read anything I've written before, you already know this is how technical words travel here: they arrive in English, get spelled in katakana, and stay.\nThe flow itself is ordinary. Each person covers what they did yesterday, what they're doing today, and anything they're stuck on or need to share. The current Scrum Guide has actually dropped the old \"three questions\" framing in favor of whatever structure the team likes, but in practice most teams I've seen still land on some version of yesterday-today-blockers. Ours does. On paper it's fifteen minutes of eight people giving short status.\nIn practice, two things reliably blow past the box.\nScrum is deliberately flat. There's no lead calling on people, no manager steering, and on our team the facilitator is just whoever's turn it is. That flatness is the point — and it's also why the meeting has no brakes.\nWhen someone starts explaining a problem in mo",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我们的日常站会是15分钟。但从未真正只有15分钟。",
+        "summary": "一个日本Scrum团队的15分钟站会始终超时至30分钟，原因是轮流主持和文化交流方式缺乏中央权威。作者探讨为什么扁平化的团队结构无意中移除了约束会议时长的机制。"
+      }
+    }
+  },
+  {
+    "title": "Claude Impact Lab LA: Community Changed the Code",
+    "slug": "claude-impact-lab-civiq-civic-tech",
+    "url": "https://dev.to/earlgreyhot1701d/claude-impact-lab-la-community-changed-the-code-1mg2",
+    "source": "DEV Community",
+    "date": "2026-08-16T00:32:10.000Z",
+    "summary": "At an Anthropic Claude Impact Lab in Los Angeles, the author and collaborators built Civiq, a civic engagement tool that makes local government agendas searchable and accessible to residents. The collaborative day transformed the initial idea through community input.",
+    "content": "Eighty minutes into building with three people I had met that morning, I renamed the idea I brought with me.\n21:05  Rename the product to Civiq and credit the team\n\nI wrote that commit message myself. By then the idea had four authors.\nSome context on the room. The Claude Impact Lab is part of Claude Community, the run of local events where people who use Claude get together in person. This one followed a Claude Conversation held earlier in Los Angeles, where people talked through what AI is doing to their jobs. The Impact Lab takes what came out of that conversation and turns it into a build day. You get the problem brief, you form a team, you have the day, you demo at the end. Travis Johnson, a Claude community ambassador, hosted with Evan Grenda at Intersections LA. Developers and non-developers both, and they meant it.\nWhat I brought was not a project. It was an idea and a spec for it. No code, nothing built, nothing running.\nThe idea comes out of something that is true in most cities. Your city government publishes what it intends to do before it does it. Agendas go up ahead of the meeting, and any resident can read them, show up, and speak on an item before the vote. That right exists. Using it takes work, which is probably why every time I used it I would give up on what I was looking for.\nIn Ventura it means 21 separate boards and commissions, each with its own page, posting PDFs that run long and read like they were written for the people already familiar with the subject matter. Because they were. So if you want to know whether anyone is voting on something a block from your house, you go looking, board by board, document by document. And you have to already know the words the city uses for the thing you would call a pothole.\nAgenda Watch was going to make all of that searchable in plain language, with every answer carrying a receipt back to the page it came from, so nobody has to take the tool's word for anything.\nIn use that is a small thing. You ask a q",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Claude Impact Lab洛杉矶：社区改变了代码",
+        "summary": "在Anthropic在洛杉矶举办的Claude Impact Lab中，作者和合作者构建了Civiq，这是一个公民参与工具，使地方政府议程可搜索并易于居民访问。这个协作活动通过社区投入改变了最初的想法。"
+      }
+    }
+  },
+  {
+    "title": "I shipped an MCP server that reported success without signing anything",
+    "slug": "mcp-server-confirmation-token-security",
+    "url": "https://dev.to/edycutjong/i-shipped-an-mcp-server-that-reported-success-without-signing-anything-6oh",
+    "source": "DEV Community",
+    "date": "2026-08-16T00:30:27.000Z",
+    "summary": "An MCP server for trading tokens had 337 passing tests but was missing critical authorization checks for three months. The author designed a confirmation-required pattern where write operations require a signed token valid only for exact parameters, preventing unauthorized actions.",
+    "content": "I built an MCP server that lets an AI assistant trade tokens and claim creator fees on\nIt had 337 tests. All of them passed.\nI didn't find out for three months.\nThis post is about what that bug taught me, and the design it produced — because the\nMCP is a good protocol. It is also, by design, a way to hand a language model a set of\nThat's fine when the functions read. It's a different proposition when one of them can\nThe specific thing that worries me isn't the model being wrong. It's the model being\npersuaded. Token names and descriptions are attacker-controlled strings that end up in\nSo the question I wanted to answer in code was: how do you let an assistant initiate a\n\n\n\n\n  \n  \n  The design: the first call signs nothing\n\n\nThe answer I landed on is that a write tool's first call is never an execution. It's a\n⚠️  CONFIRMATION REQUIRED — nothing has been signed or sent.\n\nAction:  Swap 0.05 of So11111111111111111111111111111111111111112\n         for       EkJuyYyD3to61CHVPJn6wHb7xANxvqApnVJ4o2SdBAGS\n         expect    4823917722 (min 4679199990)\n         slippage  3%\n         network   🔴 MAINNET — real funds\n\nSpend:   0.05 SOL\nCaps:    0.1 SOL/tx · 0/1 SOL used this session\n\nTo execute, call bags_execute_trade again with the identical arguments plus:\n  confirm: \"kR3nT9xQm2vP\"\n\nToken is single-use and expires in 5 minutes.\n\nThe assistant can produce that all day. It cannot spend anything with it.\nThis is the part that matters, and it's four lines:\nexport function fingerprint(toolName: string, args: unknown): string {\n  return createHash('sha256')\n    .update(toolName)\n    .update(' ')\n    .update(JSON.stringify(args ?? null))\n    .digest('hex')\n    .slice(0, 32);\n}\n\nA token carries the SHA-256 of the tool name plus the exact arguments it was issued for.\nsecond call and\nThe consequence: a token obtained for a 0.05 SOL swap cannot authorize a 10 SOL one. Not\nIt's single-use and consumed on every outcome, including failure, so it can't be\n/**\n * Single-use. Throws if the",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我发布了一个没有签名任何内容就报告成功的MCP服务器",
+        "summary": "一个用于交易代币的MCP服务器有337个通过的测试，但三个月内缺少关键的授权检查。作者设计了一个需要确认的模式，其中写操作需要一个仅对精确参数有效的签名令牌，以防止未经授权的操作。"
+      }
+    }
+  },
+  {
+    "title": "MCP server configured, but zero tools show up? Here's probably why",
+    "slug": "mcp-server-configuration-troubleshooting",
+    "url": "https://dev.to/lajiaojiang/mcp-server-configured-but-zero-tools-show-up-heres-probably-why-5a25",
+    "source": "DEV Community",
+    "date": "2026-08-16T00:28:53.000Z",
+    "summary": "MCP servers often fail silently due to client configuration errors rather than server bugs—issues include parentheses in server keys, npx PATH problems on Windows, and unescaped paths. The author documents common causes and fixes that official diagnostics don't catch.",
+    "content": "You add an MCP server to your config. The JSON is valid. The client even says \"connected.\" And then: zero tools. No error. No hint. The official /doctor says nothing is wrong.\nIf this has happened to you, welcome — the GitHub issues are full of us:\nMCP servers fail to connect with npx on Windows — 112 comments\nMCP Servers Don't Work with NVM — 182 reactions\nClaude Desktop silently drops all tools when a server key contains parentheses\nClaude Code's /doctor fails to detect MCP configuration errors\nAfter reading through these threads, the failures cluster into a handful of causes — and none of them are the MCP server's fault. They're client config failures that official tools don't diagnose. Here's the field guide.\n{\n  \"mcpServers\": {\n    \"Home Assistant (ha-mcp)\": { \"command\": \"npx\", \"args\": [\"-y\", \"ha-mcp\"] }\n  }\n}\n\nThis looks harmless. But at least one major client silently drops every tool when an mcpServers key contains parentheses. Server shows connected, tools/list completes, and the UI displays nothing. One user reported chasing this for hours.\nFix: rename the key — letters, numbers, hyphens, underscores only.\nnpx on Windows\n\n\n\n\n\n{ \"command\": \"npx\", \"args\": [\"-y\", \"@modelcontextprotocol/server-filesystem\"] }\n\nGUI apps on Windows frequently fail to spawn npx directly. The terminal works; the desktop client doesn't, because GUI processes don't get your shell environment.\nFix: wrap it:\n{ \"command\": \"cmd\", \"args\": [\"/c\", \"npx\", \"-y\", \"...\"] }\n\nnpx works in your terminal because your shell loads NVM. GUI apps don't load your shell profile, so the binary simply isn't on their PATH. The 182-reaction issue above is exactly this.\nFix: use the absolute path to the binary, or a shim the GUI can resolve.\nOne unescaped Windows path (\"cwd\": \"C:\\tools\\my-server\") and the whole config silently fails to parse. Some clients report this; others just show zero servers.\nFix: run the file through any JSON validator — python -m json.tool config.json.\nUsers report uv-launched servers",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "MCP服务器已配置，但没有显示任何工具？这可能是原因",
+        "summary": "MCP服务器经常由于客户端配置错误而无声地失败，而不是服务器错误——问题包括服务器密钥中的括号、Windows上的npx PATH问题和未转义的路径。作者记录了官方诊断工具无法捕获的常见原因和修复方法。"
+      }
+    }
+  },
+  {
+    "title": "Before you pay anyone to migrate your Shopify catalog, make them promise these 17 things — in writing",
+    "slug": "shopify-migration-checklist",
+    "url": "https://dev.to/junlong_zhu_d300164b0535f/before-you-pay-anyone-to-migrate-your-shopify-catalog-make-them-promise-these-17-things-in-5amj",
+    "source": "DEV Community",
+    "date": "2026-08-16T00:21:22.000Z",
+    "summary": "A catalog migration auditor provides a checklist of 17 verifiable promises to get in writing before hiring anyone for a Shopify migration, from product counts to image integrity to redirects. Each item includes a simple self-check method.",
+    "content": "I audit catalog migrations for a living. Every disaster I've seen was preventable — not by hiring better, but by agreeing in writing what \"done\" means before work starts.\nCopy this list. Send it to whoever is doing your migration. Ask them to commit to each line — and note the italics: every promise comes with a way you can check it yourself in about two minutes, no tools, no trust required.\nEvery product made it across — none lost, none duplicated. Compare row counts in both files.\n\n\nEvery variant made it across. Pick any product, count its rows in both files.\n\n\nNo handle silently renamed (-1, -2 suffixes). Search the new file for -1, -2.\n\n\nSKUs unchanged and unique. Pick 5 SKUs from your export, find them in the new file.\n\n\nPrices and compare-at prices identical. Pick any product, compare both price fields.\n\n\nInventory identical. Same spot-check.\n\n\nNo missing titles, vendors, types, or prices. Sort each column, look for blanks at the top.\n\n\nImages attached to the right variant, not dumped at product level. Open a product with colors; each color shows its own image.\n\n\nEvery image link loads. Click any 5 image URLs.\n\n\nCollections intact. Pick a collection, compare its product count.\n\n\nCustom fields (metafields) survived. Open a product that had them.\n\n\nEvery old URL redirects. Try 5 URLs from your old sitemap.\n\n\nNo garbled characters. Search the file for â€.\n\n\nNo description empty or cut short. Read 5 descriptions in both files.\n\n\nDescription formatting survived (bullets, tables). Same 5 products.\n\n\nOption names still meaningful (\"Size\", not \"Option1\"). Open any product with options.\n\n\nOption values mean what they meant. Compare the value lists.\n\n\n\nTwo more things worth writing down:\nWhat happens if a check fails — fix at no charge? partial refund? Agree now, not later.\nAnything already broken in your source data — list it upfront so nobody argues about whose fault it was.\nIf your provider hesitates to commit to a list like this, that hesitation is information.\n(I k",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在你付钱让任何人迁移你的Shopify目录之前，让他们书面承诺这17件事",
+        "summary": "一位目录迁移审计员提供了一份17项可验证承诺的清单，在雇用任何人进行Shopify迁移之前应书面获得，从产品数量到图像完整性再到重定向。每个项目都包括一个简单的自检方法。"
+      }
+    }
+  }
+]
