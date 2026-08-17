@@ -1,5 +1,245 @@
 [
   {
+    "title": "Cómo integrar un LLM (Claude o GPT) en tu aplicación Python",
+    "slug": "integrate-llm-python-application",
+    "url": "https://dev.to/isazajuancarlos/como-integrar-un-llm-claude-o-gpt-en-tu-aplicacion-python-42gm",
+    "source": "DEV Community",
+    "date": "2026-08-17T18:30:04.000Z",
+    "summary": "A guide to integrating LLMs into Python applications using Anthropic, OpenAI, or Google APIs. The article covers installation, basic message patterns, streaming responses, and structured JSON output for predictable formatting, with patterns that work identically across Claude, GPT, and Gemini. Understanding these fundamentals enables developers to add AI capabilities while controlling costs and output format.",
+    "content": "Integrar un modelo de lenguaje (LLM) en una aplicación Python es hoy más sencillo de lo que parece, y abre la puerta a chatbots, asistentes internos, extracción de datos y automatización con lenguaje natural. En esta guía verás el patrón completo, con código real.\nLos tres más usados son Anthropic (Claude), OpenAI (GPT) y Google (Gemini). Todos exponen una API HTTP con un SDK de Python oficial, y la lógica de tu app apenas cambia entre ellos. En los ejemplos usaré Claude, pero el patrón es idéntico en los demás.\nInstala el SDK y guarda tu clave en una variable de entorno, nunca en el código:\npip install anthropic\nexport ANTHROPIC_API_KEY=\"tu-clave\"\n\nEl patrón es siempre el mismo: envías una lista de mensajes y recibes una respuesta.\nfrom anthropic import Anthropic\n\nclient = Anthropic()  # lee ANTHROPIC_API_KEY del entorno\n\nresp = client.messages.create(\n    model=\"claude-opus-4-8\",\n    max_tokens=1024,\n    messages=[\n        {\"role\": \"user\", \"content\": \"Resume en una frase: la fotosíntesis...\"}\n    ],\n)\nprint(resp.content[0].text)\n\nDos detalles importantes: resp.content es una lista de bloques (comprueba .type antes de leer .text), y max_tokens limita la longitud de la respuesta.\nEn una interfaz, esperar a que se genere todo el texto se siente lento. El streaming muestra la respuesta token a token, como en ChatGPT:\nwith client.messages.stream(\n    model=\"claude-opus-4-8\",\n    max_tokens=1024,\n    messages=[{\"role\": \"user\", \"content\": \"Escribe un email de bienvenida.\"}],\n) as stream:\n    for text in stream.text_stream:\n        print(text, end=\"\", flush=True)\n\nPara salidas largas, el streaming además evita que la petición supere el tiempo de espera de la conexión.\nSi necesitas que el modelo devuelva datos en un formato exacto (por ejemplo para guardarlos en una base de datos), pide un esquema JSON en vez de parsear texto libre. Esto elimina la clase de bugs más común al integrar IA: respuestas con formato impredecible.\nControla el coste: fija un max_tokens razonable y",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何在Python应用中集成大型语言模型（Claude或GPT）",
+        "summary": "一份关于使用Anthropic、OpenAI或Google API将大型语言模型集成到Python应用中的指南。文章涵盖安装、基本消息模式、流式响应和结构化JSON输出以实现可预测的格式，这些模式在Claude、GPT和Gemini中的工作方式相同。理解这些基础知识使开发者能够添加AI能力，同时控制成本和输出格式。"
+      }
+    }
+  },
+  {
+    "title": "How Python Takes Out Its Own Garbage",
+    "slug": "python-garbage-collection-memory-management",
+    "url": "https://dev.to/samconibear/how-python-takes-out-its-own-garbage-326a",
+    "source": "DEV Community",
+    "date": "2026-08-17T18:28:45.000Z",
+    "summary": "Python manages memory through reference counting, which deallocates objects immediately when references reach zero, plus a generational garbage collector for circular references. This dual-mechanism approach gives Python predictable memory behavior compared to languages like Java or PyPy. The article explains how each system works and why the combination handles both common and edge-case scenarios.",
+    "content": "Python manages memory automatically, freeing developers from manual allocation and deallocation. It does this through two complementary mechanisms: reference counting and a generational garbage collector for cyclic references.\nThis article covers how garbage collection works in CPython. In other implementations such as PyPy, it works under a different mechanism\nEvery object in Python carries a reference count, a tally of how many references point to it.\nThis count increments when:\nA new reference is assigned (y = x)\nIt's stored in a container (list, dict, etc.)\nThe object is passed into a function\nIt decrements when:\nA reference goes out of scope\nA reference is reassigned\ndel is manually called on a reference\n\n\n\n\nimport sys\nx = []\ny = x\nz = { \"y\": y }\nprint(sys.getrefcount(x))  # 4 (x + y + z + the arg to getrefcount)\n\ny = 1\ndel z\nprint(sys.getrefcount(x))  # 2 (x + the arg to getrefcount)\n\nWhen the count hits zero, CPython deallocates the object immediately. This is a key difference from garbage-collected languages like Java, JS or the PyPy implementation, where collection timing is unpredictable.\nReference counting alone cannot handle cyclic references, where objects reference each other and keep their counts above zero even when unreachable from the program:\nclass MyClass:\n    def __init__(self):\n        self.ref = None\n\na = MyClass()\nb = MyClass()\na.ref = b\nb.ref = a\n\ndel a\ndel b\n# a and b still reference each other -> the refcount never reaches 0\n\nTo catch scenarios like the above, Python includes a separate cyclic garbage collector, implemented in the gc module. It's based on the generational hypothesis: most objects die young, so recently created objects are checked more frequently than long-lived ones.\nObjects are organized into three generations:\n\n\n\nGeneration\nDescription\nCollection Frequency\n\n\n\n\n0\nNewly created objects\nMost frequent\n\n\n1\nSurvived one collection\nLess frequent\n\n\n2\nSurvived multiple collections\nLeast frequent\n\n\n\nAn object starts in generation",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Python如何管理垃圾回收",
+        "summary": "Python通过引用计数管理内存，当引用次数为零时立即释放对象，加上用于处理循环引用的分代垃圾回收器。这种双重机制方法使Python相比Java或PyPy等语言具有可预测的内存行为。本文解释了每个系统的工作原理以及为什么这种组合能处理常见和边界情况。"
+      }
+    }
+  },
+  {
+    "title": "Understanding chmod Without Memorizing Numbers",
+    "slug": "understanding-chmod-linux-permissions",
+    "url": "https://dev.to/asepsayyad007/understanding-chmod-without-memorizing-numbers-553h",
+    "source": "DEV Community",
+    "date": "2026-08-17T18:28:18.000Z",
+    "summary": "Linux file permissions can be mastered without memorizing numeric codes by using symbolic mode syntax, which provides human-readable permission control based on understanding how the system views file ownership and access. Symbolic mode eliminates the need for binary math while making complex permission scenarios like team write-access more intuitive. This conceptual understanding makes chmod far more accessible than cheat-code memorization.",
+    "content": "How Linux file permissions actually work under the hood, why symbolic mode is your best friend, and how to stop blindly typing chmod 777.\nEvery Linux engineer has been there.\nYou write a brand-new bash script, try to run it from your terminal, and hit an immediate roadblock:\n$ ./backup.sh\nbash: ./backup.sh: Permission denied\n\nYou open your search engine or ask a chat assistant for help. Within seconds, you find an answer that tells you to run:\nchmod 777 backup.sh\n\nYou run the command, hit enter, and the script runs. Problem solved, right?\nNot quite. In fact, you just opened the digital front door of that file to every single user and background service on the entire operating system.\nWhen I started managing Linux servers years ago, permissions felt like a strange puzzle of three-digit math problems. People kept throwing numbers around: 755 for scripts, 644 for web pages, 600 for SSH keys, and 777 whenever something broke and nobody knew why.\nI memorized those numbers like cheat codes in a video game. But whenever I had to handle a real permission problem, like giving a development team write access to a shared log folder without letting them delete each other's files, memorized numbers fell apart.\nHere is the secret: you do not need to do binary math or memorize three-digit codes to master Linux permissions.\nLinux has a built-in, human-readable permission syntax called symbolic mode. Once you understand how Linux looks at files, who owns them, and what actions each permission controls, chmod becomes one of the most intuitive tools in your terminal.\nLet's break down how it all works step by step.\nThe name chmod stands for change mode.\nIn Unix and Linux systems, every single file and directory has a \"mode\". That mode determines who is allowed to read it, write to it, or run it.\nWhen you run chmod, you are simply updating those access bits inside the Linux filesystem inode.\nTo see the current mode of your files, open any terminal and run ls -l:\n$ ls -l\ntotal 16\n-rw-r--",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "无需记忆数字理解chmod",
+        "summary": "通过使用符号模式语法可以掌握Linux文件权限，而无需记忆数字代码，它提供基于系统如何查看文件所有权和访问权限的人类可读的权限控制。符号模式消除了二进制数学的需要，同时使团队写入权限等复杂权限场景更加直观。这种概念性的理解使chmod比死记硬背代码更容易理解。"
+      }
+    }
+  },
+  {
+    "title": "Your Database Is Making 4 Promises. Here's What ACID Means.",
+    "slug": "acid-database-transactions-guarantees",
+    "url": "https://dev.to/aditya_d_sharma/your-database-is-making-4-promises-heres-what-acid-means-4p5d",
+    "source": "DEV Community",
+    "date": "2026-08-17T18:23:41.000Z",
+    "summary": "ACID—Atomicity, Consistency, Isolation, Durability—represents four database guarantees that prevent scenarios like money vanishing when a server crashes mid-transaction. Each guarantee requires specific internal database mechanisms to keep promises about data safety and consistency. Understanding these guarantees and what the database must do to honor them is essential for developers writing reliable applications.",
+    "content": "Introduction\n\n\nYour program keeps opening transactions. A signup writes a new user row. A checkout debits one account and credits another. A form submission updates three related tables at once. You wrap it all in BEGIN and COMMIT and move on, trusting that the database will handle whatever happens in between.\nMost of the time it does. But what is it actually promising you when it handles that? And what does it have to do behind the scenes to keep that promise?\nSay a user transfers ₹1,000 from Account A to Account B. The application runs two updates: subtract 1,000 from A, add 1,000 to B. Now say the server crashes right after the first update runs but before the second one does.\nAccount A: -₹1,000\nThat money didn't move. It vanished. No error message fixes that, and no user accepts \"the server restarted\" as an explanation for their missing balance.\nThis is the exact problem a set of guarantees called ACID was built to solve. Most developers can recite the acronym, Atomicity, Consistency, Isolation, Durability, without being able to explain what any of the four words actually promise, or what the database has to do internally to keep those promises. This article tries to fix that.\n--\nBefore ACID makes sense, you need to understand what a transaction actually is.\nA transaction is a group of one or more database operations treated as a single logical unit of work. Either the whole group succeeds, or none of it does. The bank transfer above is a textbook transaction: two updates that only make sense together.\nIn SQL, a transaction usually looks like this:\nBEGIN;\n\nUPDATE accounts SET balance = balance - 1000 WHERE id = 1;\nUPDATE accounts SET balance = balance + 1000 WHERE id = 2;\n\nCOMMIT;\n\nBEGIN tells the database \"everything from here on is one unit.\" COMMIT tells it \"we're done, make it permanent.\" If something goes wrong in between, a constraint violation, a crash, the application deciding to cancel, the database can issue a ROLLBACK instead, undoing any changes the",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的数据库做出4个承诺。这就是ACID的含义。",
+        "summary": "ACID（原子性、一致性、隔离性、持久性）代表四项数据库保证，防止服务器在事务中途崩溃时出现金钱消失的情况。每项保证都需要特定的内部数据库机制来兑现关于数据安全和一致性的承诺。理解这些保证以及数据库必须做什么来兑现这些承诺对于编写可靠应用程序的开发人员至关重要。"
+      }
+    }
+  },
+  {
+    "title": "Seu log tem 40 mil linhas e nenhuma resposta",
+    "slug": "structured-logging-context-debugging",
+    "url": "https://dev.to/denisgusto1/seu-log-tem-40-mil-linhas-e-nenhuma-resposta-2632",
+    "source": "DEV Community",
+    "date": "2026-08-17T18:17:46.000Z",
+    "summary": "Large log files become useless without structured context, as generic error messages cannot distinguish between different failure scenarios even when detailed information was available at log time. The solution separates stable, unchanging error messages from structured context data (IDs, values, exception details) as separate machine-queryable fields. This approach serves both humans debugging at 3am and machines filtering millions of lines.",
+    "content": "\"Deu erro ao salvar, umas duas da tarde\"\n\n\nÉ a única informação que você tem. O cliente não lembra o que clicou, não tirou print e já fechou a aba.\nVocê abre o laravel.log. Quarenta mil linhas no dia.\nFaz um grep por \"erro\". Aparecem 1.200 ocorrências, e a maioria é isso:\n[2026-08-14 14:03:11] production.INFO: entrou\n[2026-08-14 14:03:11] production.INFO: erro aqui\n[2026-08-14 14:03:12] production.INFO: passou\n[2026-08-14 14:03:12] production.ERROR: Erro ao salvar\n\nErro ao salvar o quê? De qual usuário? Qual pedido? Qual valor? Aquele entrou da linha de cima é do mesmo request ou de outro cliente que estava usando o sistema no mesmo segundo?\nVocê tem log. Você não tem informação. São coisas diferentes.\npublic function emitir(Pedido $pedido)\n{\n    Log::info('entrou no emitir');\n\n    try {\n        $nota = $this->sefaz->emitir($pedido);\n\n        Log::info('emitiu');\n    } catch (Throwable $e) {\n        // parabéns, você registrou que algo deu errado em algum lugar 🎉\n        Log::error('Erro ao emitir nota');\n\n        return back()->withErrors('Falha na emissão');\n    }\n}\n\nRepara no que esse catch jogou no lixo: a mensagem da exceção, o stack trace, o ID do pedido, o CNPJ, o retorno da SEFAZ. Tudo estava ali, na mão, e foi substituído por uma frase genérica.\nE os Log::info('entrou') espalhados? Aquilo foi debug que virou permanente. Hoje eles só servem pra empurrar as linhas úteis pra fora da tela.\nUm log serve pra duas plateias: você, com sono, às 3h da manhã — e uma máquina, filtrando milhões de linhas.\nAs duas querem a mesma coisa:\nO que aconteceu, numa mensagem que não muda nunca.\nCom quem aconteceu, em dados separados da mensagem.\nEssa separação é o pulo do gato. Repare na diferença:\n// ❌ mensagem única pra cada pedido. impossível agrupar ou contar.\nLog::error(\"Falha ao emitir nota do pedido {$pedido->id} do cliente {$cliente->nome}\");\n\n// ✅ mensagem estável + contexto estruturado\nLog::error('Falha ao emitir nota fiscal', [\n    'pedido_id'  => $pedido->id,\n    'cl",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的日志有4万行，但找不到答案",
+        "summary": "没有结构化上下文的大日志文件变得无用，因为通用错误消息即使在日志记录时有详细信息可用，也无法区分不同的故障场景。解决方案是将稳定的、不变的错误消息与结构化上下文数据（ID、值、异常详情）分离为单独的机器可查询字段。这种方法既为凌晨3点调试的人类服务，也为过滤数百万行的机器服务。"
+      }
+    }
+  },
+  {
+    "title": "ASP.NET Core 10 Authentication Metrics: Distinguish No Result from Failure",
+    "slug": "aspnet-core-10-authentication-metrics",
+    "url": "https://dev.to/ssukhpinder/aspnet-core-10-authentication-metrics-distinguish-no-result-from-failure-4iga",
+    "source": "DEV Community",
+    "date": "2026-08-17T18:11:49.000Z",
+    "summary": "ASP.NET Core 10 introduces authentication metrics that distinguish missing credentials (none) from rejected credentials (failure) from successful authentication (success). This granular telemetry enables faster diagnosis since a client dropping credentials requires different response than a surge of malformed credentials. The metric distinction transforms vague \"401\" errors into actionable diagnostic categories.",
+    "content": "When every unauthorized request becomes the same dashboard line, diagnosis turns into guessing. ASP.NET Core 10 authentication metrics give me a better split: did the handler have nothing to authenticate, reject supplied credentials, or accept them? That distinction matters because a client deployment that drops credentials needs a different response from a surge of malformed or expired credentials.\nASP.NET Core 10 added built-in authentication and authorization instruments to System.Diagnostics.Metrics. I can collect them without rewriting each handler, and I can lock their behavior into an offline test before wiring up a production exporter.\nA protected endpoint normally challenges an unauthenticated caller. The final status is 401 whether the caller sent nothing or the handler rejected what it received.\nThe authentication duration histogram exposes the missing context through aspnetcore.authentication.result:\n\n\n\nResult\nWhat the handler reported\nA common interpretation\n\n\n\n\nnone\nNo authentication result\nNo applicable credentials were available\n\n\nfailure\nAuthentication failed\nSupplied credentials were rejected or processing failed\n\n\nsuccess\nA principal was created\nAuthentication completed successfully\n\n\n_OTHER\nAnother framework result\nPreserve it as an explicit catch-all\n\n\n\nnone is a handler result, not a universal synonym for “missing Authorization header.” A policy scheme or custom handler can make a different choice. I verify the behavior of the schemes I actually deploy instead of building an alert from the label alone.\nLikewise, success means the handler produced an authentication ticket. Authorization can still deny that principal, so it does not promise a 2xx response.\nThe separate aspnetcore.authentication.challenges counter answers another question: how often was a scheme challenged? Both a none result and a failure result can be followed by a challenge, so challenge count cannot replace the result split. A challenge is an authentication operation, not an H",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "ASP.NET Core 10 身份验证指标：区分无结果与失败",
+        "summary": "ASP.NET Core 10 引入了身份验证指标，可以区分缺失凭证（无）、被拒绝的凭证（失败）和成功的身份验证（成功）。这种细粒度的遥测数据可以实现更快的诊断，因为客户端丢失凭证需要不同的响应处理，而不是应对恶意凭证激增。这个指标区分将模糊的\"401\"错误转变为可操作的诊断类别。"
+      }
+    }
+  },
+  {
+    "title": "Anyone need an installer?",
+    "slug": "open-source-cross-platform-installer-tool",
+    "url": "https://dev.to/unitbuilds/anyone-need-an-installer-5c8b",
+    "source": "DEV Community",
+    "date": "2026-08-17T18:11:42.000Z",
+    "summary": "A developer created an open-source, cross-platform installer alternative to commercial tools like Inno Setup that charge $155–$1,195 with per-version licensing. The tool offers smaller size, faster performance, delta updates, and MSI compliance while remaining free under Apache 2.0. The creator seeks community feedback on demand and welcomes commercial use without licensing restrictions.",
+    "content": "So a bit of context, I've been doing testing for V.E.L.O.C.I.T.Y. Drone and initially, I just copied over a binary, but I wanted it to be a bit easier to setup, so I thought I'd make an installer for it, so it can register as a system tray app. So naturally, I looked up what's the best installer and up popped Inno Setup 7. So I used it and it worked fine I guess, then I saw they apparently charge $155 for individuals, up to $1195 for unlimited users and that locks you to a version, if you want a new version, you need to buy a new license...\nSo per my usual, I built my own. It's smaller (tool), faster and completely cross-platform, using zstd with adjustable compression ratio, dependency checking, bundling, CI/CD updating, Delta-Updating, adding MSI compliance for managed deployments too and a few more nice to have features.\nI'm releasing it under Apache 2.0, so it's actually free and completely open-source, use it commercially, start the next Microsoft and release a billion copies using it, you don't owe me a penny.\nMy reason for creating it, is like so many other times, I found that the industry gatekeeps actually making money out of software, tooling should be free, so the real products can be made, without any hidden fees.\nSo my question to everyone is, do you need an installer? And have you been burnt in the past by hidden costs from 'open-source' releases that charge you once you hit a revenue floor?",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "谁需要安装程序？",
+        "summary": "一位开发者创建了一个开源的跨平台安装程序，作为Inno Setup等收费工具的替代品，这些商业工具收费155至1,195美元且按版本收费。该工具具有更小的体积、更快的性能、增量更新和MSI合规性，同时在Apache 2.0许可证下保持免费。创建者寻求社区对需求的反馈，并欢迎商业使用而无需许可证限制。"
+      }
+    }
+  },
+  {
+    "title": "analogous(-1): how a default hid a heap-exhaustion bug for fifteen years",
+    "slug": "tinycolor-heap-exhaustion-bug-fifteen-years",
+    "url": "https://dev.to/bigachiever/analogous-1-how-a-default-hid-a-heap-exhaustion-bug-for-fifteen-years-380e",
+    "source": "DEV Community",
+    "date": "2026-08-17T18:07:37.000Z",
+    "summary": "TinyColor, a popular 15-year-old JavaScript color library, contains a heap-exhaustion bug in analogous() and monochromatic() functions when passed negative or fractional values—parameters that cause infinite loops. The functions consume memory until the process crashes because loop counters never land exactly on zero (e.g., from -1 they go -2, -3, -4...). A similar validation already exists in the codebase's polyad() function, indicating the hazard was known but inconsistently applied.",
+    "content": "This is a submission for DEV's Summer Bug Smash: Clear the Lineup powered by Sentry.\nTinyColor is a colour library for JavaScript. Parse a colour in basically any format, convert it, lighten it, generate a palette from it. It's fifteen years old, has 5.2k stars, and ships on npm as tinycolor2 underneath a lot of design tooling.\nI found this while porting it to Rust. I'd built a differential fuzzer for the port: run the original on V8 and my version side by side, same inputs, compare the outputs bit for bit. Thirty-one million comparisons, zero disagreements in the colour maths.\nIt found nothing here though. Not because the code is fine, but because for these inputs the original doesn't return a wrong answer. It doesn't return at all, and you can't diff against a process that's died.\nanalogous(results) and monochromatic(results) loop forever on a negative or fractional count, and take the heap with them.\nBoth decrement a counter and test it for truthiness:\n// analogous\nfor (hsl.h = (hsl.h - (part * results >> 1) + 720) % 360; --results; ) { ... }\n\n// monochromatic\nwhile (results--) { ... }\n\nA counter that never lands exactly on 0 never stops. From 1.5 the sequence goes 0.5, -0.5, -1.5, -2.5…. From -1 it goes -2, -3, -4…. Every pass pushes another colour object onto an array nobody will ever read.\n$ node --max-old-space-size=256 -e \"require('tinycolor2')('red').analogous(-1)\"\n\n<--- Last few GCs --->\nFATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory\n\n$ echo $?\n134\n\nSix cases, all exit 134: both functions at -1, 1.5 and 0.5.\nHere's the part that makes it worth guarding rather than shrugging at. polyad() is the third combination function, sitting in the same file, taking the same shape of argument. It already validates:\nif (isNaN(number) || number <= 0) {\n  throw new Error(\"Argument to polyad must be a positive number\");\n}\n\nSo the hazard is recognised in one of the three and not the other two. Any caller passing a user-supplied palette siz",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "analogous(-1)：一个默认值如何隐藏了十五年的堆耗尽漏洞",
+        "summary": "TinyColor是一个受欢迎的15年历史的JavaScript颜色库，其analogous()和monochromatic()函数在传递负数或小数值时包含堆耗尽漏洞——这些参数会导致无限循环。这些函数会持续消耗内存直到进程崩溃，因为循环计数器永远无法精确到达零（例如，从-1开始会变成-2、-3、-4...）。代码库中的polyad()函数已存在类似的验证，表明这个危害是已知的但应用不一致。"
+      }
+    }
+  },
+  {
+    "title": "Grokbot Honest Review: Is xAI and Cursor's Computer-Use Agent Worth $200 a Month?",
+    "slug": "grokbot-xai-cursor-computer-use-review",
+    "url": "https://dev.to/aditi_gupta_8d81622a592aa/grokbot-honest-review-is-xai-and-cursors-computer-use-agent-worth-200-a-month-2924",
+    "source": "DEV Community",
+    "date": "2026-08-17T18:03:19.000Z",
+    "summary": "Grokbot is xAI and Cursor's $200/month computer-use agent that operates in a cloud-based machine with Chrome and filesystem access, persisting after the user logs off. The reviewer tested three workflows over a week to assess whether cloud-based automation justifies the cost compared to alternatives like Claude Code. The review covers use-case fit, reliability, limitations, and settings recommendations.",
+    "content": "Grokbot is xAI and Cursor's attempt at an AI agent that doesn't just chat, it uses a computer. Each bot you create gets its own machine in the cloud, with Chrome, a file manager, and its own operating system, and it keeps working after you close your laptop. I spent a week building three bots to see whether that idea holds up in practice.\nPrefer the quick version? I covered the three bots I built, the shared-login trap, and my full verdict in this video:\n  \n  \n\n\nWhat Grokbot actually is\nWhy I tested it\nWhere it provides value\nThe main catch\nThe settings and habits to change first\nHow it compares to Claude Code and Codex\nWho should and shouldn't try it\nMy verdict\nHave you tried Grokbot or another computer-use agent yet? Tell me in the comments. If you like quick, honest AI-tool reviews, follow my YouTube channel for the next one.\nLinks and sources\nGrokbot (xAI + Cursor): https://x.ai/bot\n\nFull video review: https://youtu.be/rUfvWFPYGMo \n\nMore AI tool breakdowns + weekly news: https://goventure.live \nhttps://youtu.be/rUfvWFPYGMo\n\nMy testing notes: the three bots, the shared-login behavior, and the reliability misses are all shown in the video above.\nTags: #ai #agents #cursor #aitools",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Grokbot诚实评测：xAI和Cursor的计算机操作代理值每月200美元吗？",
+        "summary": "Grokbot是xAI和Cursor的一个每月200美元的计算机使用代理，在云端机器上运行，具有Chrome和文件系统访问权限，用户登出后仍可持续运行。评测者在一周内测试了三个工作流，以评估云端自动化相比Claude Code等替代方案是否能证明成本合理。该评测涵盖了使用案例适配性、可靠性、局限性和设置建议。"
+      }
+    }
+  },
+  {
+    "title": "Idempotência: a palavra difícil que salva seu webhook",
+    "slug": "webhook-idempotency-payment-duplication",
+    "url": "https://dev.to/denisgusto1/idempotencia-a-palavra-dificil-que-salva-seu-webhook-7pj",
+    "source": "DEV Community",
+    "date": "2026-08-17T18:02:56.000Z",
+    "summary": "Payment gateways retry webhook deliveries when they don't receive a 2xx response, but naive handlers treat retried events as new payments, creating duplicate charges. Idempotency—ensuring identical event IDs produce identical results—prevents this by checking if a payment already exists before processing. This pattern is critical because successful processing may sometimes fail to return a response due to timeouts or deployment interruptions.",
+    "content": "O cliente pagou uma vez. Seu sistema registrou duas.\n\n\nSexta-feira, seis da tarde. Chega a mensagem no suporte: \"fui cobrado duas vezes\".\nVocê abre o banco e é pior do que parecia. Não foi o gateway que cobrou duas vezes — foi o seu sistema que criou dois pagamentos, liberou dois créditos e mandou dois e-mails de confirmação. O cliente pagou uma única vez.\nVocê vai no log do webhook. Dois POST /webhooks/pagamento. Mesmo event_id. Intervalo de 40 segundos.\nE aí cai a ficha: o gateway não errou. Ele reenviou. É o comportamento documentado dele. Quem errou foi seu código, que tratou o segundo envio como se fosse um pagamento novo.\nIsso não é bug do provedor, é o desenho do sistema. Stripe, Mercado Pago, Asaas, PagSeguro — todos funcionam igual: eles te enviam o evento e esperam um 2xx. Se não vier 2xx em alguns segundos, eles tentam de novo. E de novo.\nO detalhe cruel: seu processamento pode ter dado certo e a resposta não chegar. Timeout de 30 segundos porque você mandou e-mail dentro do request. Deploy no meio do caminho. Nginx devolvendo 502 depois do commit no banco.\nDo lado do gateway, isso é indistinguível de falha. Então ele reenvia. E seu código roda tudo de novo.\npublic function handle(Request $request)\n{\n    // \"chegou evento, então é pagamento novo\" 🙃\n    $pagamento = Pagamento::create([\n        'pedido_id' => $request->input('data.pedido_id'),\n        'valor'     => $request->input('data.valor'),\n        'status'    => 'pago',\n    ]);\n\n    $pagamento->pedido->liberarAcesso();\n\n    Mail::to($pagamento->pedido->cliente)->send(new PagamentoConfirmado($pagamento));\n\n    return response()->json(['ok' => true]);\n}\n\nFunciona perfeitamente no teste. Funciona no primeiro envio real.\nNo reenvio, cria o segundo pagamento, libera acesso de novo e dispara o segundo e-mail. E como esse método é lento (e-mail dentro do request!), ele aumenta a chance de timeout — ou seja, aumenta a chance de reenvio. O código causa o próprio problema.\nA palavra assusta, o conceito é bobo",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "幂等性：救你webhook的那个难词",
+        "summary": "支付网关在未收到2xx响应时重试webhook交付，但简单的处理程序将重试事件视为新付款，造成重复收费。幂等性——确保相同的事件ID产生相同的结果——通过在处理前检查付款是否已存在来防止这种情况。这种模式至关重要，因为成功处理有时可能因超时或部署中断而无法返回响应。"
+      }
+    }
+  },
+  {
+    "title": "O bug não existe: é o cache te enganando",
+    "slug": "cache-invalidation-stale-data-bugs",
+    "url": "https://dev.to/denisgusto1/o-bug-nao-existe-e-o-cache-te-enganando-4d8c",
+    "source": "DEV Community",
+    "date": "2026-08-17T18:02:53.000Z",
+    "summary": "Long-lived cache entries without explicit invalidation strategies cause confusing bugs where cached stale data contradicts the database, making diagnosis difficult. The solution requires one of three synchronization strategies: invalidating cache keys when data changes, using event-driven invalidation, or time-based expiration. Cache is a second source of truth that creates a synchronization obligation, not a fire-and-forget optimization.",
+    "content": "\"Mas eu já corrigi isso\"\n\n\nO cliente avisa que o preço do produto está errado no site. Você abre o banco: 89,90. Correto.\nAbre a página: 129,90.\nVocê acha que enlouqueceu. Dá um dd() no controller — vem 89,90. Tira o dd(), recarrega: 129,90 de novo. Você começa a duvidar do navegador, do Nginx, da existência.\nAí você lembra daquele Cache::remember() que você mesmo escreveu três meses atrás. Com TTL de 24 horas.\nO bug não existe. O cache está te mostrando um retrato de ontem — e defendendo esse retrato com unhas e dentes.\nremember() que todo mundo escreve\n\n\n\n\n\npublic function destaques()\n{\n    // resolvido! a home ficou 400ms mais rápida 🎉\n    return Cache::remember('produtos.destaques', 3600 * 24, function () {\n        return Produto::destaque()->with('categoria')->get();\n    });\n}\n\nEssa linha é linda. Ela resolve o problema de performance de verdade, na hora, e o gráfico do APM agradece.\nSó que ela responde metade da pergunta. Você definiu como guardar. Não definiu quando esquecer.\nE o Produto::update() que roda no painel do admin não tem a menor ideia de que essa chave existe. Ninguém apresentou os dois.\nAntes da solução, o jeito certo de pensar: cache não é uma otimização mágica, é uma segunda fonte de verdade que você acabou de criar no seu sistema.\nToda vez que você guarda algo em cache, você assume um compromisso: manter duas coisas sincronizadas. O banco e a cópia.\nSó existem três jeitos de honrar esse compromisso. Todo cache decente usa um deles.\nA mais direta. Quando o dado muda, mata a chave. Um Observer resolve isso sem espalhar Cache::forget() pelo projeto inteiro:\nclass ProdutoObserver\n{\n    public function saved(Produto $produto): void\n    {\n        Cache::forget('produtos.destaques');\n        Cache::forget(\"produto:{$produto->id}\");\n    }\n\n    public function deleted(Produto $produto): void\n    {\n        $this->saved($produto);\n    }\n}\n\nFunciona bem e é fácil de ler. O ponto fraco aparece com o tempo: cada chave nova que você criar precisa entrar nes",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "这个bug不存在：是缓存在骗你",
+        "summary": "没有明确失效策略的长期缓存条目会导致令人困惑的bug，缓存的陈旧数据与数据库相矛盾，使诊断变得困难。解决方案需要三种同步策略之一：在数据更改时使缓存键失效，使用事件驱动的失效，或基于时间的过期。缓存是第二个真实来源，它创建了同步义务，而不是一个可以忽略的优化。"
+      }
+    }
+  },
+  {
+    "title": "What a Documentation Homepage Must Help Users Do",
+    "slug": "documentation-homepage-user-routes",
+    "url": "https://dev.to/ninadpathak/what-a-documentation-homepage-must-help-users-do-29d5",
+    "source": "DEV Community",
+    "date": "2026-08-17T18:02:53.000Z",
+    "summary": "A documentation homepage should provide distinct routes for different user situations—quick-starts for new users, API references for returning developers, troubleshooting for blocked users, and product overviews for evaluators. Effective homepages make at least one path obvious rather than presenting equal-weight browsing options, helping readers choose a useful next move before understanding the full product. This routing approach distinguishes usable documentation from equal-weight card layouts.",
+    "content": "Originally published at https://ninadpathak.com/articles/what-a-documentation-homepage-must-help-users-do/.\nA documentation homepage has a narrow job: help someone choose a useful next move before they understand the whole product. I reviewed Stripe, GitLab, GitHub, Chrome, and Google Maps documentation homepages while building the route audit below, and the layouts vary far more than the underlying behavior.\nEach homepage gives a reader a route, not just a collection of things to browse. That distinction is what separates a documentation landing page from an equal-weight card wall.\nA homepage should help a new user start, a returning user resume work, a blocked user recover, and an evaluator understand the product surface. These are jobs, not mandatory visual sections.\n\n\n\nReader situation\nHomepage promise\nA useful destination\n\n\n\n\nNew to the product\nComplete the first supported result\nQuickstart or first request\n\n\nReturning to implementation\nFind an exact object or workflow\nAPI reference or task guide\n\n\nBlocked by a failure\nRecover without searching the whole library\nTroubleshooting or error guide\n\n\nEvaluating the product\nSee which capability route applies\nProduct overview or capability guide\n\n\n\nThe five homepages I inspected make different design choices, but they all make at least one route obvious. Stripe leads toward getting started and a runnable example, while GitLab places frequent answers ahead of broader product areas.\nGitHub groups its library by jobs such as collaborative coding and CI/CD. Google Maps pairs a first action with capability routes, which keeps product discovery from replacing task completion.\nA new reader often arrives with a simple question: can I make this work? Put the shortest supported path near the top, then let broader product exploration follow.\nChrome’s documentation homepage establishes what the library contains, then gives product areas clear entry links. The point is not to copy Chrome’s layout.\nMake the first decision smaller th",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "文档主页必须帮助用户做什么",
+        "summary": "文档主页应该为不同用户情况提供不同的路线——为新用户提供快速入门，为返回的开发人员提供API参考，为被阻止的用户提供故障排除，为评估者提供产品概览。有效的主页至少使一条路线清晰可见，而不是呈现同等权重的浏览选项，帮助读者在完全理解产品之前选择有用的下一步。这种路由方法将可用的文档与同等权重的卡片布局区分开来。"
+      }
+    }
+  },
+  {
+    "title": "How canvases make agentic workflows visible, steerable, and cost-efficient",
+    "slug": "canvases-agentic-workflows-visible-steerable",
+    "url": "https://github.blog/ai-and-ml/github-copilot/how-canvases-make-agentic-workflows-visible-steerable-and-cost-efficient/",
+    "source": "GitHub Blog",
+    "date": "2026-08-17T16:00:00.000Z",
+    "summary": "Canvases improve agentic AI workflows by making progress visible and steerable compared to traditional chat interfaces that lose work in message scroll. Canvases provide better cost tracking and allow course correction throughout multi-step workflows. This approach enhances both usability and control over AI-driven automation tasks.",
+    "content": "Chat is great for intent, but agent work gets lost in the scroll. Here is how I use canvases with my agentic workflows—and why your workflow also deserves a canvas.\nThe post How canvases make agentic workflows visible, steerable, and cost-efficient appeared first on The GitHub Blog.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "画布如何使智能体工作流程可见、可操控且成本高效",
+        "summary": "画布通过使进度可见且可操控，相比于传统聊天界面（会在消息滚动中丢失工作）改进了智能体AI工作流程。画布提供更好的成本跟踪，并允许在整个多步骤工作流程中进行路线修正。这种方法增强了对AI驱动自动化任务的可用性和控制。"
+      }
+    }
+  },
+  {
+    "title": "Universal Health Coverage Could Save $1T and 114k Lives a Year, Yale Study",
+    "slug": "universal-health-coverage-trillion-lives-yale-study",
+    "url": "https://ysph.yale.edu/news-article/universal-health-coverage-could-save-one-trillion-dollars-and-114000-lives-every-year/",
+    "source": "Hacker News",
+    "date": "2026-08-17T15:49:57.000Z",
+    "summary": "A Yale School of Public Health study estimates universal healthcare in the United States could prevent 114,000 deaths annually while saving $1 trillion per year. The research quantifies both human and economic impacts of comprehensive healthcare coverage. The findings generated significant discussion in the developer and technology communities.",
+    "content": "Article URL: https://ysph.yale.edu/news-article/universal-health-coverage-could-save-one-trillion-dollars-and-114000-lives-every-year/\nComments URL: https://news.ycombinator.com/item?id=49332981\nPoints: 301\n# Comments: 404",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "耶鲁研究表明全民医疗保障每年可节省1万亿美元并拯救11.4万条生命",
+        "summary": "耶鲁公共卫生学院的一项研究估计，美国的全民医疗保障每年可防止114,000人死亡，同时节省1万亿美元。该研究量化了全面医疗保障的人类和经济影响。这些研究结果在开发者和技术社区引发了重大讨论。"
+      }
+    }
+  },
+  {
+    "title": "Ask HN: Alternatives to GitHub",
+    "slug": "ask-hn-alternatives-github",
+    "url": "https://news.ycombinator.com/item?id=49331033",
+    "source": "Hacker News",
+    "date": "2026-08-17T13:59:17.000Z",
+    "summary": "A Hacker News discussion questions whether recent GitHub downtime reliability issues justify switching to alternative platforms. The community seeks recommendations for viable GitHub replacements. The post attracted substantial engagement with over 300 points and 191 comments from developers.",
+    "content": "Github has been down consistently over the last few months - does it make sense to switch to alternatives?\nComments URL: https://news.ycombinator.com/item?id=49331033\nPoints: 308\n# Comments: 191",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "征询意见：GitHub的替代方案",
+        "summary": "一个黑客新闻讨论质疑最近GitHub的停机可靠性问题是否足以证明转向替代平台的合理性。社区寻求可行的GitHub替代品的建议。该帖吸引了大量参与，获得超过300分和191条来自开发者的评论。"
+      }
+    }
+  },
+  {
     "title": "Don't Trust a New Model's Benchmarks Until You Run Your Own 30-Minute Smoke Test",
     "slug": "dont-trust-new-model-benchmarks-run-smoke-test",
     "url": "https://dev.to/webx_2736/dont-trust-a-new-models-benchmarks-until-you-run-your-own-30-minute-smoke-test-485i",
