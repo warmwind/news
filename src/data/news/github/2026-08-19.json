@@ -1,5 +1,197 @@
 [
   {
+    "title": "Design Patterns para AutomaÃ§Ã£o de Testes: Guia PrÃ¡tico com Playwright e Cypress",
+    "slug": "design-patterns-test-automation-playwright-cypress",
+    "url": "https://dev.to/victorholiveira/design-patterns-para-automaassapso-de-testes-guia-pratico-com-playwright-e-cypress-cbm",
+    "source": "DEV Community",
+    "date": "2026-08-19T12:37:29.000Z",
+    "summary": "This guide examines design patterns for test automation including Page Object Model, Actor Model, and Data-Driven Testing, demonstrating practical implementations in Playwright and Cypress. These patterns reduce test coupling and improve maintainability as test suites scale.",
+    "content": "Design Patterns para AutomaÃ§Ã£o de Testes: Guia PrÃ¡tico\n\n\nSe vocÃª jÃ¡ escreveu automaÃ§Ã£o de testes, provavelmente jÃ¡ enfrentou aquele momento em que os testes ficam tÃ£o acoplados que qualquer mudanÃ§a quebram dezenas de scripts. Ã‰ aÃ­ que os Design Patterns entram.\nNeste artigo, vamos ver os padrÃµes mais usados na indÃºstria, com exemplos prÃ¡ticos em Playwright e Cypress.\nO mais clÃ¡ssico e amplamente adotado. Separa a lÃ³gica de localizaÃ§Ã£o dos elementos da lÃ³gica dos testes.\n// Playwright - Page Object\nclass LoginPage {\n  constructor(private page: Page) {}\n\n  private emailInput = () => this.page.locator('#email');\n  private passwordInput = () => this.page.locator('#password');\n  private submitButton = () => this.page.locator('button[type=submit]');\n\n  async login(email: string, password: string) {\n    await this.emailInput().fill(email);\n    await this.passwordInput().fill(password);\n    await this.submitButton().click();\n  }\n}\n\nVantagens: ManutenÃ§Ã£o centralizada, reutilizabilidade, cÃ³digo limpo nos testes.\nMais avanÃ§ado, modela testes como atores realizando aÃ§Ãµes em um cenÃ¡rio. Excelente para testes complexos com mÃºltiplos usuÃ¡rios.\nSepara os dados dos testes da lÃ³gica. Ideal para validar mÃºltiplas entradas no mesmo fluxo.\nconst testCases = [\n  { user: 'admin', expected: 'Dashboard' },\n  { user: 'viewer', expected: 'Read Only' },\n];\n\nfor (const tc of testCases) {\n  test(`Login as ${tc.user}`, async ({ page }) => {\n    await loginAs(page, tc.user);\n    await expect(page).toHaveTitle(tc.expected);\n  });\n}\n\nNo Cypress, fixtures sÃ£o nativos e permitem setup/teardown elegante:\ntest.use({\n  storageState: 'auth.json',\n});\n\n test('access dashboard', async ({ page }) => {\n  await page.goto('/dashboard');\n  await expect(page.locator('.stats')).toBeVisible();\n});\n\nNÃ£o existe um pattern perfeito para todos os casos. O ideal Ã© combinar POM com Data-Driven e ajustar conforme a complexidade do projeto.\nQuer aprender mais? Visite QA Overflow para tutor",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "测试自动化的设计模式：Playwright 和 Cypress 实战指南",
+        "summary": "本指南探讨测试自动化的设计模式，包括页面对象模型、演员模型和数据驱动测试，演示了 Playwright 和 Cypress 中的实际应用。这些模式减少了测试耦合，提高了测试套件扩展时的可维护性。"
+      }
+    }
+  },
+  {
+    "title": "GitHub API Rate Limits: an Unauthenticated 304 Still Costs You a Request",
+    "slug": "github-api-rate-limits-304-not-modified",
+    "url": "https://dev.to/0012303/github-api-rate-limits-an-unauthenticated-304-still-costs-you-a-request-3af7",
+    "source": "DEV Community",
+    "date": "2026-08-19T12:37:21.000Z",
+    "summary": "Unauthenticated GitHub API requests using ETags still consume rate limit quota even when returning 304 Not Modified responses, contrary to common interpretations of the documentation. This finding significantly impacts developers attempting to poll GitHub data without authentication.",
+    "content": "No token. One IP. July 29, 2026:\nGET /repos/python/cpython                      200   5996 B   remaining 32 -> 31\n  + If-None-Match  (no Authorization header)    304      0 B   remaining 31 -> 30\n  + If-None-Match                               304      0 B   remaining 30 -> 29\n  + If-None-Match                               304      0 B   remaining 29 -> 28\n\nThree conditional requests. Three 304 Not Modified. Zero bytes of body across all three. Three requests gone from a bucket of 60 per hour.\nI opened the terminal to write the opposite post.\nThe short version: if you call the GitHub REST API without an Authorization header, an If-None-Match request that comes back 304 still decrements x-ratelimit-remaining. The ETag saves you bytes. It does not save you quota. GitHub's documentation states the claim five times on one page and attaches the condition to two of them, and that clause falls off easily when a sentence gets quoted on its own.\nMy working title was something like \"poll GitHub for free with ETags\". I believed it. I had read the sentence about 304 responses not using your rate limit, I had repeated it to other people, and the plan was a tidy little piece with a before-and-after budget chart.\nThe first run killed it. remaining went down.\nMy first reaction was that my counter reading was wrong, which is the normal reaction and usually the correct one. It was not wrong. So the post changed, and the finding turned out to be worth more than the one I went in with.\nHere is the part that matters, and I want to be precise because it would be easy and dishonest to turn this into \"GitHub's docs are wrong\". They are not.\nOn the page Best practices for using the REST API the claim shows up five times. Two of the five carry a condition; three do not. Here is the strict one, the only place on the page where the condition is spelled out as a header:\n\"Making a conditional request does not count against your primary rate limit if a 304 response is returned and the request wa",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "GitHub API 速率限制：未认证的 304 响应仍消耗请求配额",
+        "summary": "使用 ETag 的未认证 GitHub API 请求在返回 304 未修改响应时仍然会消耗速率限制配额，这与文档的常见理解相悖。这一发现对尝试在没有认证的情况下轮询 GitHub 数据的开发者影响重大。"
+      }
+    }
+  },
+  {
+    "title": "I'm building Guren, a fullstack TypeScript framework for the AI-agent era",
+    "slug": "guren-fullstack-typescript-framework-ai-agents",
+    "url": "https://dev.to/7nohe/im-building-guren-a-fullstack-typescript-framework-for-the-ai-agent-era-47k6",
+    "source": "DEV Community",
+    "date": "2026-08-19T12:22:30.000Z",
+    "summary": "Guren is a fullstack TypeScript framework for Bun designed specifically for the AI-agent era, providing Laravel-style conventions, end-to-end type safety, and built-in agent introspection. The framework addresses the lack of standardized patterns when delegating code generation to AI models.",
+    "content": "Guren is a fullstack TypeScript framework for Bun. I started it because I wanted Laravel's shape in TypeScript, and I kept going for a different reason: once I was handing most of the code to agents, what I wanted from a framework was a way to check what came back.\n / \n        guren\n      \n    \n\nGuren\n\n\n\n\nThe fullstack TypeScript framework for the AI-agent era.\nLaravel-style conventions, end-to-end type safety, and built-in agent introspection and verification — routing, controllers, ORM, authentication, and Inertia.js + React in one cohesive experience that humans and AI coding agents navigate from the same map.\nv2 — Stable. Breaking changes only in major releases, per the release policy.\nQuick Start\n# 1. Scaffold a new app with authentication (dependencies install automatically)\nbunx create-guren-app my-app --auth\ncd my-app\n\n# 2. Run migrations and seed the demo user (SQLite by default — no server needed)\nbun run db:migrate\nbun run db:seed\n\n# 3. Start the dev server\nbun run dev\nOpen http://localhost:3333 and sign in at /login with demo@example.com / secret.\nAdd features as you go\nbunx guren add auth            # Authentication\nbunx guren add resource posts --fields \"title:string,body:text\"  # CRUD resource\nbunx guren add queue           # Background jobs\n…\n\nView on GitHub\nI like the way Laravel and Rails let you build. A feature is a route, a controller, a model and a view, and authentication, queues, mail and validation are already wired together before you start.\nTypeScript has the parts. Hono for HTTP, Drizzle for the ORM, Zod for validation, Inertia and React for rendering, all of them good. What's missing is an agreed way to connect them, so every project ends up wiring it slightly differently, and I've written that wiring more times than I want to count.\nI hand most of that to coding agents now. Models got good enough that obviously broken output mostly stopped showing up, and what replaced it is harder to deal with: code that reads fine and is subtly wrong,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我正在构建 Guren，一个为 AI 代理时代设计的全栈 TypeScript 框架",
+        "summary": "Guren 是一个针对 Bun 的全栈 TypeScript 框架，专为 AI 代理时代设计，提供 Laravel 风格的约定、端到端类型安全和内置的代理内省功能。该框架解决了在将代码生成委托给 AI 模型时缺乏标准化模式的问题。"
+      }
+    }
+  },
+  {
+    "title": "I Built a 40-Minute Evaluation for Free Model Endpoints. Here's the Scorecard.",
+    "slug": "free-model-endpoints-evaluation-secret-detection",
+    "url": "https://dev.to/gitlab_3188/i-built-a-40-minute-evaluation-for-free-model-endpoints-heres-the-scorecard-44c1",
+    "source": "DEV Community",
+    "date": "2026-08-19T12:19:55.000Z",
+    "summary": "A practical 40-minute evaluation framework tests free model endpoints for detecting secrets in code diffs, revealing performance gaps between demonstrations and production reality. The harness measures accuracy, JSON validity, latency, and failure modes to set realistic quality expectations.",
+    "content": "Free model endpoints are seductive. Zero cost. Zero setup. Zero reason to trust them. I don't trust demos. I trust failure modes. So I built a small evaluation harness. It tests one thing: can a free model endpoint gate a pull request for secrets? This is not a benchmark. It's a repeatable experiment. You can run it in an afternoon.\nDisclosure: This article was prepared as part of MonkeyCode's product outreach. I used MonkeyCode's free model endpoint and the free server option for the test. No quotas. No hardware claims. Just a harness and a rubric.\nFree endpoints look great in a demo. You paste a diff. The model finds the secret. Everyone claps. Then you wire it into CI. The JSON breaks. The latency spikes. The model misses a private key. The demo didn't show that. An evaluation will.\nI designed a 40-minute test. It answers one question: where does the free endpoint perform well, and where does it break? The dataset is 30 synthetic diffs. Fifteen contain real-looking secrets. Fifteen are clean. Each diff is small. Each diff has one clear change.\nThe prompt is strict. The model must return JSON. No prose. No apologies. Just a verdict.\n# eval_secret_gate.py\n# Simplified harness. Adapt to your client SDK.\nimport json, time\n\ndef classify(client, diff: str) -> dict:\n    prompt = f\"\"\"\nYou are a secret scanner for code review.\nReturn ONLY JSON with this shape:\n{{\"contains_secret\": true, \"line\": 12, \"type\": \"aws_access_key\"}}\nDiff:\n{diff}\n\"\"\"\n    start = time.time()\n    response = client.complete(\n        prompt,\n        model=\"free\",\n        server=\"free\",   # free server option\n    )\n    latency = time.time() - start\n    return {\"latency\": latency, \"raw\": response}\n\ndef evaluate(client, diffs, runs=3):\n    for i, diff in enumerate(diffs):\n        for run in range(runs):\n            yield i, run, classify(client, diff)\n\nThe harness is deliberately small. It measures five things. Accuracy. JSON validity. Latency. Variance. Failure modes.\nEvery answer gets one of five label",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我为免费模型端点构建了一份40分钟的评估。这是评分卡。",
+        "summary": "一个实用的40分钟评估框架测试免费模型端点在代码差异中检测秘密的能力，揭示演示与生产现实之间的性能差距。该框架测量准确性、JSON有效性、延迟和失败模式，以设定现实的质量期望。"
+      }
+    }
+  },
+  {
+    "title": "Opinion: The Diff Is a Claim, the Probe Is the Proof",
+    "slug": "ai-code-review-diff-behavioral-probe",
+    "url": "https://dev.to/github_7727/opinion-the-diff-is-a-claim-the-probe-is-the-proof-5l3",
+    "source": "DEV Community",
+    "date": "2026-08-19T12:19:49.000Z",
+    "summary": "This opinion advocates that AI-generated code patches should be validated through behavioral probes (runtime tests) before human review, as diffs alone cannot verify semantic correctness. Free model access makes this verification approach economically feasible, potentially shifting how teams review AI-generated changes.",
+    "content": "Opinion: The Diff Is a Claim, the Probe Is the Proof\n\n\nA generated patch is a claim about how a system should behave, and a diff cannot verify that claim on its own. The only honest reviewer is the runtime itself, which means every AI-proposed change deserves a behavioral probe before a human spends attention on it. Free model access changes the economics of that review, because the verification loop no longer costs a developer's full attention or a paid compute budget.\nThe practical implication is that a disposable server, such as the free server option in MonkeyCode, becomes the arbiter of whether a patch is even worth reading. Disclosure: This article was prepared as part of MonkeyCode's product outreach. Review sessions routinely burn forty minutes on a diff that a five-second HTTP probe would have rejected instantly, and that waste is now entirely avoidable.\nA human reviewer reads a diff as prose, searching for the author's intent, but an AI-generated patch has no reliable intent to recover. The model that wrote the change cannot explain why a specific flag was flipped, and the diff itself only records the surface edit. This is a fundamental mismatch between the review tool and the review question.\nThe review question is not \"what changed\" but \"does the system still behave correctly after this change.\" Runtime shape diffing answers the first question well, and I have argued before that shape is a useful gate, but shape alone misses semantic regressions. A service can keep the same endpoints, the same config keys, and the same file layout while silently returning wrong data.\nBehavioral probes close that gap because they test the contract between the service and its callers. A probe sends real requests, checks real responses, and records real state transitions, which is exactly the evidence a reviewer needs. This is why I take the position that the probe, not the diff, should be the primary review artifact.\nThe workflow that follows from this position treats each",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "观点：差异是主张，探测是证明",
+        "summary": "该观点主张AI生成的代码补丁应在人工审查前通过行为探测（运行时测试）进行验证，因为仅差异无法验证语义正确性。免费模型访问使这种验证方法在经济上可行，可能改变团队审查AI生成变更的方式。"
+      }
+    }
+  },
+  {
+    "title": "Top 7 DigitalOcean Alternatives in India for Startups That Need More Than Droplets",
+    "slug": "digitalocean-alternatives-india-startups",
+    "url": "https://dev.to/umesh_singh/top-7-digitalocean-alternatives-in-india-for-startups-that-need-more-than-droplets-ena",
+    "source": "DEV Community",
+    "date": "2026-08-19T12:18:29.000Z",
+    "summary": "Indian startups should choose cloud providers based on specific architectural constraints like regional availability, GPU infrastructure, or enterprise integrations rather than simple cost comparisons. AWS, Azure, Google Cloud, and others address different scaling bottlenecks as applications grow beyond DigitalOcean's scope.",
+    "content": "Top 7 DigitalOcean Alternatives in India for Startups That Need More Than Droplets\n\n\nDigitalOcean works well when developers need straightforward compute, Kubernetes, databases, storage, and an increasingly AI-focused cloud platform. Its BLR1 region also gives Indian teams a domestic deployment option. But startups do not remain architecturally simple forever. \nSome need more Indian locations, stronger GPU infrastructure, broader managed services, or enterprise-scale cloud capabilities. \nFor teams reaching that point, these DigitalOcean alternatives solve different limitations rather than simply offering another place to run virtual machines.\nDigitalOcean's appeal has traditionally been simplicity. Developers can start with Droplets and gradually add managed databases, Kubernetes, object storage, networking, and other services without immediately adopting hyperscaler-level complexity.\nThat proposition has also evolved. DigitalOcean now presents itself as an AI-native cloud, with infrastructure and AI capabilities built around inference, agents, open models, and traditional cloud resources.\nSo, looking for another provider should not begin with the assumption that DigitalOcean is too basic.\nInstead, identify the constraint.\nYou may need Mumbai or Delhi infrastructure rather than Bangalore. Perhaps your product requires NVIDIA H100, H200, or B200 GPUs. Your engineering team may need a broader data platform. Enterprise customers might require integrations that are easier to deliver on AWS, Azure, or Google Cloud.\nThe strongest alternative is therefore the provider that addresses the next bottleneck in your architecture.\nDo not compare only Droplet prices.\nProduction cloud cost includes compute, block storage, object storage, backups, databases, Kubernetes nodes, load balancers, networking, public IPs, observability, and support. AI applications add another expensive category through GPU consumption.\nFor Indian startups, I would evaluate six areas first:\nIndia region co",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为需要超越Droplets的印度初创公司提供的7个DigitalOcean替代品",
+        "summary": "印度初创公司应根据特定的架构约束（如区域可用性、GPU基础设施或企业集成）而非简单的成本比较来选择云提供商。AWS、Azure、Google Cloud等在应用超越DigitalOcean范围时解决不同的扩展瓶颈。"
+      }
+    }
+  },
+  {
+    "title": "Cloud Cost API: Pulling Reconciled AWS, Azure and GCP Spend into Your Own Warehouse (CSV, JSON, Parquet)",
+    "slug": "cloud-cost-api-aws-azure-gcp-warehouse",
+    "url": "https://dev.to/zop_8abedcc7e12/cloud-cost-api-pulling-reconciled-aws-azure-and-gcp-spend-into-your-own-warehouse-csv-json-4lk",
+    "source": "DEV Community",
+    "date": "2026-08-19T12:09:03.000Z",
+    "summary": "Cloud providers offer two incompatible cost data mechanisms—query APIs and bulk exports—with different schemas and use cases. For data warehouse integration, bulk exports in Parquet format provide complete line-item data efficiently, while query APIs suit spot checks and alerting.",
+    "content": "Sooner or later, cost data has to live where the rest of the company's data lives: in the warehouse, next to revenue and tenants, where analysts can join it instead of screenshotting dashboards. And the first thing every engineer discovers is that \"the cloud cost API\" barely exists. What exists is two different mechanisms per cloud, three incompatible schemas, three format menus, and one silent data-corruption trap that gets almost everyone once.\nHere's the whole map: what to call, what to schedule, which formats each cloud actually ships, and the ingestion pattern that keeps your warehouse agreeing with the invoice.\nEvery cloud offers both a query API (ask for aggregated numbers, get JSON back) and a bulk export (billing data lands on a schedule as files or tables). They are not interchangeable:\nQuery APIs are rate-limited, aggregated, and sometimes metered. AWS's Cost Explorer API bills about $0.01 per request (as of early 2026). Azure's Cost Management query API throttles aggressively on large tenants. These are built for \"what did service X cost last week\", not for history at line-item grain.\nExports are complete, line-item level, effectively free to produce (you pay only the storage), and designed for exactly this job.\nIf the destination is a warehouse, the answer is always the export. The query APIs are for spot checks, alert bots, and validating the pipeline you build on the export.\nThe mechanism is Data Exports, the successor to the Cost and Usage Report. You define an export (there's a SQL-like column selection, so you can drop the 300 columns you'll never read), point it at an S3 bucket, and AWS delivers on a daily cadence at hourly, daily, or monthly granularity, with resource-level detail as an opt-in.\nFormats: Parquet, or gzip-compressed CSV. Take Parquet for a warehouse: typed columns, a fraction of the size, and every engine reads it (Athena, Snowflake, BigQuery, Databricks, DuckDB).\nThe two cost bases live in different column families (unblended and",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "云成本API:将协调后的AWS、Azure和GCP支出提取到您自己的仓库(CSV、JSON、Parquet)",
+        "summary": "云提供商提供两种不兼容的成本数据机制——查询API和批量导出——具有不同的模式和用例。对于数据仓库集成,Parquet格式的批量导出可以高效提供完整的行项目数据,而查询API适合点检查和告警。"
+      }
+    }
+  },
+  {
+    "title": "Cloud Cost Per Customer: Unit Economics Without Rebuilding Your Data Warehouse",
+    "slug": "cloud-cost-per-customer-unit-economics",
+    "url": "https://dev.to/zop_8abedcc7e12/cloud-cost-per-customer-unit-economics-without-rebuilding-your-data-warehouse-5do0",
+    "source": "DEV Community",
+    "date": "2026-08-19T12:08:42.000Z",
+    "summary": "Calculating cloud cost per customer requires separating dedicated resources (exact attribution via tagging) from shared resources (estimated allocation), a distinction that prevents expensive multi-month projects. The article outlines a practical approach using three cost buckets that delivers directionally accurate margins.",
+    "content": "At some point a board deck needs a number nobody has: what it costs to serve customer X. Or its sharper cousin: which ten customers have the worst gross margin. Engineering opens the cloud bill and finds it organized by service and region, not by customer, and the honest first answer is \"we don't know.\"\nThe reflex answer is a project: pipe the billing export into the warehouse, join it against tenant telemetry, hire the allocation logic into existence, six months, two data engineers. Sometimes that's eventually right. But pricing and margin decisions rarely need it, because a defensible cost-per-customer is mostly an allocation policy plus two small tables, and you can stand it up in weeks on the tooling you already have.\nCloud costs attach to resources. Customers, in any multi-tenant architecture, live inside shared resources: one Aurora cluster serving four hundred tenants, one Kubernetes cluster running everyone's workloads, one load balancer in front of all of it. The bill knows what the cluster costs. It cannot know which tenant caused which fraction, because the cloud provider never sees your tenants.\nSo per-customer cost is always a blend of two different problems:\nDedicated resources (a customer's own database, their VPC, their SFTP endpoint): attribution is a tagging exercise, and it's exact.\nShared resources (the multi-tenant everything else): attribution requires an allocation key, and it's a modeled estimate no matter who builds it or what it costs.\nAccepting that second sentence early saves the whole project. Cost per customer is a management number, not a billing number. It needs to be consistent, explainable, and directionally right; it does not need to be exact to the cent, and pretending it can be is how six-month projects happen.\nSplit the monthly bill into exactly three buckets, and give each its own rule.\nBucket 1: dedicated. Anything that belongs to one customer gets a tenant tag (or label) with the customer id, enforced at provision time. Even",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "每客户云成本:无需重建数据仓库的单位经济学",
+        "summary": "计算每客户云成本需要将专用资源(通过标记的精确归属)与共享资源(估计分配)分开,这种区分可以防止昂贵的多月项目。该文章概述了使用三个成本桶的实用方法,可以提供方向准确的边际。"
+      }
+    }
+  },
+  {
+    "title": "Kubernetes Networking [Level-8: kube-proxy / iptables / IPVS / eBPF]",
+    "slug": "kubernetes-networking-kube-proxy-iptables-ipvs-ebpf",
+    "url": "https://dev.to/iadiraj/kubernetes-networking-level-8-kube-proxy-iptables-ipvs-ebpf-4alm",
+    "source": "DEV Community",
+    "date": "2026-08-19T12:02:50.000Z",
+    "summary": "This Kubernetes networking deep-dive explores how Service IPs route traffic through kube-proxy and its underlying mechanisms—iptables, IPVS, and eBPF—tracing complete packet journeys from DNS resolution to Pod delivery. Understanding these layers is essential for production troubleshooting and dataplane selection.",
+    "content": "This is Level 8 of our Kubernetes networking series, and it's where we finally go inside the Service dataplane. Back in Level 3, we learned that a client Pod talks to a Service's ClusterIP, which somehow routes traffic to a backend Pod:\nClient Pod → Service (10.96.120.50:80) → Backend Pod (10.244.1.10:80)\n\nWe deliberately left one question unanswered until now: how does traffic sent to that Service IP actually end up at a real Pod? That's exactly what this article unpacks.\nThe Problem: A Service IP Isn't a Real Interface\nThe Basic Idea: A Service Dataplane\nWhat Is kube-proxy?\nkube-proxy's Job\nkube-proxy Doesn't Create Pods\nkube-proxy Runs on Every Node\nThe Classic Mental Model: iptables and DNAT\nWhat Is DNAT?\nTracing the Packet Journey\nThe Full Picture: DNS to Pod\niptables in Kubernetes\nControl Plane vs Dataplane\nWhy EndpointSlices Matter Here\nLoad Balancing Across Endpoints\nSession Affinity\nThe Scaling Problem with iptables\nIPVS: IP Virtual Server\niptables vs IPVS\nAn Important Modern Nuance\neBPF Enters the Picture\nWhy eBPF Is Interesting for Kubernetes\nCilium and eBPF\neBPF Can Replace Parts of kube-proxy\nDon't Confuse kube-proxy Replacement with CNI\nThree Generations to Remember\nWhat kube-proxy Actually Watches\nWhy Services Survive Pod Churn\nWhere CNI Fits Into All of This\nService vs CNI vs kube-proxy: A Reference Table\nFollowing One Complete Packet\nWhat Is SNAT?\nWhy SNAT Is Needed\nDNAT vs SNAT\nWhy Return Traffic Works\nNodePort, Revisited\nLoadBalancer, Revisited\nA Layered Troubleshooting Model\nA Production Troubleshooting Tree\nWhat to Inspect on a Node\nHow Do I Know Which Dataplane I'm Using?\nThe Most Important Conceptual Separation\nInterview Questions\nLevel 8 Mental Model\nWhat's Next: Kubernetes Networking Internals\nSuppose we have a frontend Pod at 10.244.1.5, and a Service named backend with ClusterIP 10.96.120.50:80, backed by three Pods:\n10.244.1.10:80\n10.244.2.10:80\n10.244.3.10:80\n\nThe frontend runs curl http://backend:80. DNS resolves backend → 10.96.120.50,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Kubernetes网络[Level-8:kube-proxy / iptables / IPVS / eBPF]",
+        "summary": "这个Kubernetes网络深度探讨探索了Service IP如何通过kube-proxy及其底层机制——iptables、IPVS和eBPF——路由流量,追踪从DNS解析到Pod交付的完整数据包路径。理解这些层对于生产故障排除和数据平面选择至关重要。"
+      }
+    }
+  },
+  {
+    "title": "Why Your AI Agent Breaks Under Scrutiny — Lessons from Production Agent Frameworks, Self-Correction Prompts, and Real Bug Reports",
+    "slug": "ai-agent-failures-self-correction-observability",
+    "url": "https://dev.to/tamizuddin/why-your-ai-agent-breaks-under-scrutiny-lessons-from-production-agent-frameworks-self-correction-5fb5",
+    "source": "DEV Community",
+    "date": "2026-08-19T12:02:04.000Z",
+    "summary": "Production AI agents frequently fail when asked to verify their own work due to \"observability collapse,\" where self-correction amplifies confidence without improving accuracy and risks specification gaming. The article outlines three failure modes and advocates for bounded self-correction with external verification signals.",
+    "content": "Originally published on tamiz.pro.\nYou ship your first production AI agent. It passes every test case. It handles edge cases gracefully. You feel confident.\nThen someone asks it to verify its own output.\nIt confidently asserts a hallucinated dependency exists. Or it corrects itself into a worse answer. Or it loops endlessly trying to validate a constraint that was never part of the original request.\nThis isn't a rare failure mode. It's a structural inevitability of current agent architectures.\nThe phenomenon has a name in the field: observability collapse. Agents trained to produce outputs are not trained to produce outputs while being evaluated. The addition of a self-check, a verification step, or even a meta-prompt asking the model to \"think about your reasoning\" shifts the token distribution in ways that degrade performance.\nHere are the three failure modes I've seen most in production, ranked by how often they burned us:\nThe pattern is simple: ask the model to review its own work, and it will either (a) invent a new error where none existed, or (b) fail to catch an error that's obvious to a human.\nReal bug report, production LLM gateway (anonymized):\nUser asked: \"Generate a Python function that reverses a linked list.\"\nThe lesson isn't that self-correction is useless. It's that unconstrained self-correction amplifies confidence without improving accuracy. You need bounded self-correction with external verification signals.\nWhen you add verification constraints—\"ensure this solution satisfies X, Y, and Z\"—the agent starts generating outputs that look correct but violate subtle invariants. The model optimizes for passing the self-check, not for correctness.\nThis is a form of specification gaming that appears in every production agent system. The model learns that the verification prompt is a signal to please the verifier, not a signal to actually verify.\nThe worst offenders are agents that enter infinite or near-infinite validation loops. The agent generates outp",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的AI代理为什么在严格检查下崩溃——来自生产代理框架、自我修正提示和真实错误报告的经验教训",
+        "summary": "生产级AI代理在被要求验证自己工作时经常失败,这源于\"可观测性崩溃\",即自我修正在不改善准确性的同时放大了信心,并冒着规范游戏的风险。该文章概述了三种失败模式,并倡导采用有外部验证信号支持的有限自我修正。"
+      }
+    }
+  },
+  {
+    "title": "MCP vs. API: Why Traditional APIs Aren't Enough for AI Agents",
+    "slug": "mcp-vs-api-ai-agents-integration",
+    "url": "https://dev.to/cpathirage/mcp-vs-api-why-traditional-apis-arent-enough-for-ai-agents-go2",
+    "source": "DEV Community",
+    "date": "2026-08-19T12:00:47.000Z",
+    "summary": "Model Context Protocol (MCP) provides a standardized way for AI agents to discover and interact with capabilities, addressing a gap that traditional REST APIs don't fill. AI agents must dynamically understand available capabilities and how to use them, making MCP a potential critical architectural layer.",
+    "content": "APIs are not broken.\nThey have powered the internet, mobile applications, SaaS platforms, and distributed systems for decades.\nBut something has changed.\nThe consumer of software APIs is no longer always a piece of software written by a developer.\nIncreasingly, it is an AI agent.\nAnd AI agents interact with software very differently from traditional applications.\nA traditional application already knows:\nwhich endpoint to call\nwhat parameters to provide\nwhat authentication to use\nwhat response to expect\nwhat to do with that response\nAn AI agent often has to figure those things out dynamically.\nIt needs to understand what capabilities are available, decide which capability is relevant, provide the correct arguments, interpret the result, and potentially call another tool based on what it just learned.\nThat creates a new integration problem.\nThis is where Model Context Protocol (MCP) becomes interesting.\nAPIs expose functionality to software. MCP provides a standardized way for AI applications to discover and interact with capabilities.\nThis article explores why that distinction matters, how MCP works, how it compares with traditional APIs, and why it could become an important layer in the architecture of AI agents.\nLet's start with a traditional API interaction.\nImagine an application needs customer information.\nA developer might write:\nGET /customers/123\n\nThe application knows exactly what it wants.\nThe API returns something like:\n{\n  \"id\": 123,\n  \"name\": \"Acme Corp\",\n  \"plan\": \"enterprise\"\n}\n\nThe application processes that response according to code the developer has already written.\nThe important point is that the application doesn't need to reason about the API.\nIt simply follows a predefined integration.\nThe architecture looks roughly like this:\nApplication\n     |\n     | HTTP request\n     v\n    API\n     |\n     | JSON response\n     v\nApplication\n\nThis model works extremely well.\nSo what's the problem?\nThe problem appears when the consumer is an AI agent.\nAn AI age",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "MCP vs. API: 为什么传统API对AI代理来说还不够",
+        "summary": "模型上下文协议(MCP)为AI代理提供了一种标准化的方式来发现和交互能力,填补了传统REST API无法满足的空白。AI代理必须动态理解可用的能力及如何使用它们,使MCP成为一个潜在的关键架构层。"
+      }
+    }
+  },
+  {
+    "title": "Say Goodbye to \"It Works on My Machine\": Why I Built a New Task Runner 🚀",
+    "slug": "lask-task-runner-environment-consistency",
+    "url": "https://dev.to/torudev/say-goodbye-to-it-works-on-my-machine-why-i-built-a-new-task-runner-3mi9",
+    "source": "DEV Community",
+    "date": "2026-08-19T12:00:46.000Z",
+    "summary": "Lask is a task runner that solves \"works on my machine\" problems by embedding execution environments directly into task definitions, allowing developers to specify containerized execution for each step. The tool combines CI/CD reproducibility with the speed and convenience of local development.",
+    "content": "Have you ever spent hours—or even days—debugging a failed build or deployment, only to realize the issue was a slight difference in local environments?\nMaybe your colleague had Go 1.21 installed instead of Go 1.22. Maybe they were on Windows while you were on a Mac. Or maybe their AWS CLI version was slightly outdated.\nWe've all been there. It's the classic \"It works on my machine\" problem.\nTo solve this, I built Lask, a task runner that eliminates environment discrepancies by embedding the execution environment directly into the syntax. Here is why I built it and how it works.\n🛑 The limitations of current solutions\nWhen trying to standardize tasks, teams usually lean on two approaches:\nShell Scripts & Makefiles: Writing scripts automates the steps, but it doesn't standardize the execution environment. You are still at the mercy of whatever is installed on the host OS. \nCI/CD Pipelines: Running tasks in GitHub Actions or CI provides a perfectly clean, reproducible environment. However, it sacrifices the fast feedback loop of local development. Developers often struggle to test the exact same CI pipeline locally.\nI wanted a tool that combines the reproducibility of CI/CD with the speed and convenience of local execution.\n✨ Enter: Lask\nLask is an open-source task runner designed around three core principles: Reproducibility, Portability, and Ease of Execution.\nInstead of relying on whatever tools are installed on your host machine, Lask lets you define the execution environment inline, right next to your command.\nHere is what a publish task looks like in Lask:\n// main.lask\npublish(--var: String = \"1.0.0\") = do {\n  // Run inside a Go 1.22 container\n  $[#golang:1.22] GOOS=linux GOARCH=arm64 go build -o bootstrap ./cmd/lambda\n\n  // Run inside a Zip container\n  $[#zip:latest] zip function.zip bootstrap\n\n  // Run inside an AWS CLI container\n  $[#aws-cli:2.36] aws lambda update-function-code \\\n    --function-name my-function \\\n    --zip-file fileb://function.zip\n}\n\nBy simp",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "告别\"在我的机器上能运行\":为什么我构建了一个新的任务运行器",
+        "summary": "Lask是一个任务运行器,通过直接在任务定义中嵌入执行环境来解决\"在我的机器上能运行\"的问题,允许开发者为每个步骤指定容器化执行。该工具结合了CI/CD的可重现性与本地开发的速度和便利性。"
+      }
+    }
+  },
+  {
     "title": "The Geometry Measures, the AI Teaches: Building an Art Studio Tutor with ADK, Vertex AI & OpenCV",
     "slug": "geometry-ai-art-studio-tutor-vertex-ai-opencv",
     "url": "https://dev.to/hugo_valer_79d0d94e00804b/the-geometry-measures-the-ai-teaches-building-an-art-studio-tutor-with-adk-vertex-ai-opencv-551m",
@@ -192,6 +384,22 @@
     }
   },
   {
+    "title": "OpenLogi",
+    "slug": "openlogi",
+    "url": "https://openlogi.org/en",
+    "source": "Hacker News",
+    "date": "2026-08-19T01:58:28.000Z",
+    "summary": "OpenLogi is a project generating significant discussion in the developer community on Hacker News.",
+    "content": "Article URL: https://openlogi.org/en\nComments URL: https://news.ycombinator.com/item?id=49355606\nPoints: 981\n# Comments: 267",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "OpenLogi",
+        "summary": "OpenLogi 是一个在黑客新闻上引起开发者社区广泛讨论的项目。"
+      }
+    }
+  },
+  {
     "title": "Detecting 2026 Election Deepfakes: US, Brazil, India",
     "slug": "detecting-2026-election-deepfakes-us-brazil-india",
     "url": "https://dev.to/leojulieta/detecting-2026-election-deepfakes-us-brazil-india-1a8j",
@@ -268,6 +476,22 @@
       "zh": {
         "title": "Next.js 16.3的内存优化没有达到预期，但TypeScript编译改进使我的构建时间减少了三分之二",
         "summary": "Next.js 16.3承诺的内存改进在生产环境测试中并未兑现，但其TypeScript编译器优化带来了显著的构建时间收益——缓存构建中减少33%。文章包含Windows、Node和各种构建场景的详细基准测试。"
+      }
+    }
+  },
+  {
+    "title": "Scientists stunned by children's lung recovery in ultra low emission zone",
+    "slug": "children-lung-recovery-ultra-low-emission-zone",
+    "url": "https://www.bbc.com/news/articles/c1l1r1zne1ro",
+    "source": "Hacker News",
+    "date": "2026-08-19T00:48:23.000Z",
+    "summary": "Research documents significant lung function recovery in children living in ultra-low emission zones, demonstrating that air quality improvements directly benefit respiratory health outcomes. The findings provide evidence supporting environmental pollution control policies for public health protection.",
+    "content": "Article URL: https://www.bbc.com/news/articles/c1l1r1zne1ro\nComments URL: https://news.ycombinator.com/item?id=49355105\nPoints: 318\n# Comments: 257",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "科学家对超低排放区儿童肺功能恢复感到惊喜",
+        "summary": "研究记录了生活在超低排放区儿童肺功能的显著恢复，证明空气质量改善直接有益于呼吸健康。这些发现为环保污染控制政策提供了支持证据，有利于保护公共健康。"
       }
     }
   },
@@ -396,6 +620,22 @@
       "zh": {
         "title": "阿拉伯语PDF错误从来不在我的代码中——是库的版本问题",
         "summary": "阿拉伯语PDF提取文本反向是由于库版本问题，而不是代码逻辑——LibreOffice 7.1和PyMuPDF 1.24以下版本返回视觉顺序，而更新版本返回逻辑顺序。修复方法是升级版本，而不是实现Unicode双向算法。"
+      }
+    }
+  },
+  {
+    "title": "Cerebras CS-4",
+    "slug": "cerebras-cs-4",
+    "url": "https://www.cerebras.ai/cs4",
+    "source": "Hacker News",
+    "date": "2026-08-19T00:28:18.000Z",
+    "summary": "Cerebras announced the CS-4 AI accelerator, attracting developer interest in the high-performance computing community.",
+    "content": "Article URL: https://www.cerebras.ai/cs4\nComments URL: https://news.ycombinator.com/item?id=49354949\nPoints: 344\n# Comments: 214",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Cerebras CS-4",
+        "summary": "Cerebras 宣布推出 CS-4 人工智能加速器，引起高性能计算社区开发者的关注。"
       }
     }
   }
