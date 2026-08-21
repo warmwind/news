@@ -1,0 +1,194 @@
+[
+  {
+    "title": "RISC-V 32-bit: What does GCC do? (Part 1)",
+    "slug": "risc-v-32-bit-what-does-gcc-do",
+    "url": "https://dev.to/ddupard/risc-v-32-bit-what-does-gcc-do-part-1-1cg9",
+    "source": "DEV Community",
+    "date": "2026-08-21T01:06:22.000Z",
+    "summary": "This article examines how GCC compiles C code to RISC-V 32-bit binaries using a comprehensive test corpus covering global variables, function parameters, arithmetic operations, and control flow. Understanding compiler behavior at the assembly level is essential for embedded systems development and performance optimization.",
+    "content": "1. Introduction and Problem Statement\n\n\nA good way to learn what a compiler really does when transforming C source code into a binary is to disassemble the binary and compare it with the C source code. While this was traditionally true for 8-bit microcontrollers, it is equally insightful for modern 32-bit RISC architectures like RISC-V (RV32I).\nTo test our 32-bit toolchain (GCC / Clang-LLVM), we will use the exact same Universal Test Corpus C source code:\n\n* ========================================================================== *\n * Universal Test Corpus - Heterogeneous Architecture Analysis          *\n * ========================================================================== */\n\n#include <stdint.h>\n\n// 1. Global variables (testing absolute/relative addressing modes)\nvolatile uint32_t global_var_32 = 0xDEADBEEF;\nvolatile uint8_t  global_var_8  = 0x42;\nconst    char     string_const[] = \"TARGET_STRING\";\n\n// 2. Function with parameter passing and local variables (stack / Frame Pointer test)\nint32_t callee_function(int16_t a, int16_t b) {\n    volatile int32_t local_result = 0;\n\n    // Basic and mixed arithmetic operations (8, 16, 32 bits)\n    local_result += (int32_t)(a * b);\n    local_result -= (int32_t)(a / (b | 1)); // Avoid division by zero\n\n    // Shift tests and logical operations (highly variable depending on ISAs)\n    local_result = (local_result << 2) ^ 0x55AA55AA;\n    local_result = (local_result >> 1) | (int32_t)global_var_8;\n\n    return local_result;\n}\n\n// 3. Main function grouping complex control flows\nint main(void) {\n    volatile int32_t accumulator = 0;\n    int16_t i;\n\n    // Loop test (Conditional jumps, decrement, comparison tests)\n    for (i = 0; i < 10; i++) {\n        if (i == 5) {\n            accumulator += 100;\n        } else {\n            accumulator += i;\n        }\n    }\n\n    // Multiple branching test (Switch / Jump Table or cascaded if-else)\n    switch (global_var_8) {\n        case 0x10:\n            accumulator += 10;\n            break;",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "RISC-V 32位：GCC做什么？（第一部分）",
+        "summary": "本文探讨了GCC如何使用包括全局变量、函数参数、算术运算和控制流的综合测试集合将C代码编译为RISC-V 32位二进制文件。理解汇编级别的编译器行为对嵌入式系统开发和性能优化至关重要。"
+      }
+    }
+  },
+  {
+    "title": "The smallest useful loop for a prompt-to-game tool",
+    "slug": "smallest-useful-loop-prompt-to-game-tool",
+    "url": "https://dev.to/nicedayup/the-smallest-useful-loop-for-a-prompt-to-game-tool-4mga",
+    "source": "DEV Community",
+    "date": "2026-08-21T01:05:36.000Z",
+    "summary": "Aurey AI's game creation tool prioritizes iteration over generation perfection, allowing creators to describe ideas, play the result, and request refinements. This feedback-driven approach—previewing playable builds rather than code diffs—proves more practical for creative game design than traditional development workflows.",
+    "content": "Most AI game demos focus on generation. Aurey AI puts more attention on the loop around generation: describe an idea, get something playable, react to it, and make another version. That loop is a better test of whether a tool can support actual creative work.\nThe live Studio starts with one large prompt field. It asks for a feeling, story, or rule in ordinary language. The examples are short: a cat collecting stars before sunset, a one-button garden game, a spaceship following strange signals.\nThere is no pretense that the first prompt is a full game design document. The page says everything can change after the first version. This is sensible because many design decisions are hard to make before the player can move. Jump height, pacing, and the density of obstacles are easier to judge in motion than in prose.\nThe visible create a game with AI flow contains the idea field, a creation action, prompt examples, and a personal games area. I checked the signed-in page but did not run a fresh production generation during this review. That means I can describe the interface and intended workflow, not claim a measured generation time or a successful end-to-end result.\nThe homepage presents the conversation next to a browser preview. The first response is framed as a playable version with a short explanation of what was added. The creator can then ask for a floatier jump, a new ending, or another world.\nThis is the right shape for a game-making assistant. A code diff is useful to a developer, but it is a poor feedback format for someone deciding whether a character feels slow. A playable build lets the user comment on the game rather than on its implementation.\nAurey's public copy also describes automatic checks before preview, a private workspace per creator, and saved playable milestones. Those details matter. Iteration becomes risky when every prompt can replace work that was already good. A version the creator can return to makes experimentation less fragile.\nThe product",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "提示词转游戏工具的最小有用循环",
+        "summary": "Aurey AI的游戏创作工具优先考虑迭代而非完美生成，允许创作者描述想法、试玩结果并请求改进。这种反馈驱动的方法——预览可玩构建而非代码差异——对创意游戏设计的实用性超过了传统开发工作流程。"
+      }
+    }
+  },
+  {
+    "title": "Loupe: a debug overlay that lives inside your React Native app",
+    "slug": "loupe-debug-overlay-react-native-app",
+    "url": "https://dev.to/aoligama/loupe-a-debug-overlay-that-lives-inside-your-react-native-app-20j8",
+    "source": "DEV Community",
+    "date": "2026-08-21T01:00:51.000Z",
+    "summary": "Loupe is an on-device debug overlay for React Native apps that displays network requests, logs, storage, and deep links without requiring a desktop debugger or cable. The tool automatically strips from production builds and includes GraphQL-aware request inspection, solving the problem of debugging issues that only appear on real devices.",
+    "content": "The last bug I chased in a React Native app only showed up on a real device, on cellular, in a TestFlight build. So I plugged the phone in, opened a desktop debugger, and got nothing. The network tab sat there blank. Whatever I needed to see was happening inside an app I couldn't attach to.\nThat's the gap I kept falling into. The good debugging tools live on my laptop, and the interesting bugs live on someone else's phone. So I built Loupe, an on-device debug overlay for React Native. It shows you network, logs, storage, and deep links right inside the app you're building. No desktop client, no cable.\nYou add Loupe as the first line of index.js:\nimport 'react-native-loupe';\n\nThat's the whole setup for the network, log, and deep link panels. Loupe patches the JS network interceptors and wraps your root component for you, and a draggable bubble shows up to open the overlay. Nothing to configure, nothing to remember to turn off. Release builds ship none of it: everything sits behind __DEV__, and Metro strips it out of production bundles.\nThat last part mattered to me more than any single feature. A debug tool that can leak into a release build isn't a debug tool, it's a liability. So the default entry point is inert in production by construction, not by discipline.\nThis is the part I'm proudest of. It's what made Loupe better than the built-in inspector for the apps I actually work on.\nIf your app speaks GraphQL, every request is a POST to the same URL. Open a normal network inspector and you get thirty identical-looking rows. Finding the one you care about means opening each one. That list is useless.\nLoupe treats GraphQL as a first-class citizen:\nRows are titled by operation name, with a QRY / MUT / SUB label where the verb would go (it's always POST anyway). Filtering matches the operation name.\nA response that carries an errors array reads 200 · 1 err in the error color, and the detail view leads with the errors. This one is easy to underestimate. A GraphQL failure",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Loupe：运行在React Native应用内的调试覆盖层",
+        "summary": "Loupe是React Native应用的设备上调试覆盖层，可显示网络请求、日志、存储和深层链接，无需桌面调试器或数据线。该工具自动从生产构建中移除，包括GraphQL感知的请求检查，解决了仅在真实设备上出现的调试问题。"
+      }
+    }
+  },
+  {
+    "title": "What I Get to Forget About Riverpod Now That I Have BlocSignal",
+    "slug": "forget-about-riverpod-blocsignal",
+    "url": "https://dev.to/gde/what-i-get-to-forget-about-riverpod-now-that-i-have-blocsignal-1be5",
+    "source": "DEV Community",
+    "date": "2026-08-21T01:00:50.000Z",
+    "summary": "A formerly passionate Riverpod advocate describes how BlocSignal offers relief from the accumulated cognitive overhead of Riverpod's complex edge cases and global provider graph. The article argues that the most valuable framework upgrades eliminate mental burden rather than add new features.",
+    "content": "The Best Feature in Software Is What You Get to Forget\n\n\nIn software engineering, we usually measure framework upgrades by what they add: new syntax, new macros, new features, new abstractions.\nBut as any developer who has maintained large Flutter applications over several years knows, the most profound upgrade in developer experience isn't what new concepts you are forced to memorize—it’s the mental gymnastics, framework-specific edge cases, and defensive rituals you finally get to forget and unlearn.\nBefore we dive into technical specifics, let's establish something essential: Rémi Rousselet is a pioneer and a brilliant engineer. When Rémi created provider in Flutter's early days and later built Riverpod in 2020, he solved real, glaring flaws in Flutter's core InheritedWidget mechanics (such as conditional dependency leaks and lack of compile safety). The entire Flutter ecosystem owes Rémi immense gratitude for pushing the boundaries of Dart architecture.\nFor years, I was a vocal, passionate—at times almost zealous—advocate for Riverpod. In discussions, community forums, and client architectures, I routinely recommended Riverpod above classic BLoC, Provider, and almost every other state management alternative. I championed its compile-time safety and global declarative graph vision because it genuinely solved tough problems we faced in earlier Flutter eras.\nHowever, over the course of Riverpod's evolution across v1, v2 (the code-gen era), and v3, solving every edge case within a global declarative provider graph led to a staggering accumulation of cognitive surface area. Building real-world Flutter apps with Riverpod today requires developers to maintain a complex internal rules engine just to avoid subtle runtime footguns.\nAnd yet, recognizing how much mental gymnastics this has gradually demanded, I find myself genuinely thrilled and relieved to be pivoting. When you switch to BlocSignal (which combines the proven discipline of BLoC/Cubit with the synchronous sp",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "现在有了BlocSignal，我可以忘掉Riverpod的事情",
+        "summary": "一位曾经热情的Riverpod倡导者描述了BlocSignal如何缓解Riverpod复杂边界情况和全局提供程序图的累积认知负担。该文章主张最有价值的框架升级是消除心理负担而不是增加新功能。"
+      }
+    }
+  },
+  {
+    "title": "Sistema de assinaturas recorrentes",
+    "slug": "sistema-assinaturas-recorrentes",
+    "url": "https://dev.to/marciopolicarpo/sistema-de-assinaturas-recorrentes-1ikg",
+    "source": "DEV Community",
+    "date": "2026-08-21T00:57:19.000Z",
+    "summary": "Um sistema de gerenciamento de assinaturas recorrentes construído com C#/.NET 10, Entity Framework Core, PostgreSQL, React 19 e Docker, utilizando padrões de máquina de estados. O projeto demonstra como ferramentas de IA podem acelerar a transformação de ideias em produtos tangíveis.",
+    "content": "Introdução\n\n\nDesenvolvedores são seres predominantemente imaginativos, pensantes, incansáveis na busca para resolver este ou aquele problema. Indivíduos constantemene bombardeados com ideias muitas vezes mirabolantes e totalmente sem sentido mas que servem de alicerce para construção de soluções robustas.\nEntretanto, a maior dificuldade para tirar uma ideia do papel é o tempo. A escasses dele nos empurra para escolhas inapropriadas afetando nossas entregas e criando um débito técnico (sim, ele existe) impagável. \nDe certa forma porém, o suposto vilão também nos ajuda a ficar nos trilhos porque reduz nossa capacidade de gerar débito técnico.\nCom o uso cada vez maior de IA generitivas e agentes de IA essa barreira caiu por terra e até aqueles projetos há meses (quiçá anos) guardados no fundo da gaveta, protegidos por teias de aranha, podem virar um produto ou serviço de verdade.\nE poucas coisas dão tanto prazer quanto ver uma ideia se concretizar, não é mesmo?!\nO projeto consiste em um sistema para controle de assinaturas usando o conceito de máquina de estados.\nA stack tecnológica é esta:\nBackend: c# / net10\nORM: Entity Framework Core\nBanco de dados: PostgreSQL\nAutenticação: JWT\nFrontend: ReactJS 19 com Typescript\nInfraestrutura: Docker\nO que me motivou a escolher essa stack foi a experiência com C#, especialmente no backend onde as regras de negócio ficam hospedadas.\nEF Core veio na esteira o que facilitou o desenvolvimento da aplicação.\nPostgreSQL foi a escolha natural para um projeto candidato a MVP. Ele é robusto sem ser pesado, tem boa performance geral e não está preso a nenhum ecossistema.\nAutenticação JWT, nem preciso falar muita coisa porque é largamente adotada além de ser uma tecnologia consolidada.\nJá no frontend fui compelido a usar a ReactJS com Typescript o que fez todo sentido pra mim por conta da proximidade entre C# e Typescript.\nDocker foi a escolha óbvia para agilizar o processo de validação da aplicação, mantendo um ambiente totalmente isolado.\nA",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "循环订阅系统",
+        "summary": "一个使用C#/.NET 10、Entity Framework Core、PostgreSQL、React 19和Docker构建的循环订阅管理系统，采用状态机模式。该项目展示了AI工具如何加速将想法转化为有形产品。"
+      }
+    }
+  },
+  {
+    "title": "The AI said the encryption was \"Applied.\" A grep said otherwise.",
+    "slug": "ai-encryption-applied-grep-said-otherwise",
+    "url": "https://dev.to/grepzero/the-ai-said-the-encryption-was-applied-a-grep-said-otherwise-4jdd",
+    "source": "DEV Community",
+    "date": "2026-08-21T00:54:20.000Z",
+    "summary": "AI-generated code and compliance documentation can silently fail to implement claimed security controls, creating a false sense of compliance. The article demonstrates how independent code reviewers that verify specifications against actual implementation can catch invisible failures that automated tests and compliance checks miss.",
+    "content": "AI-generated code rarely fails loudly. The failure that scares me is the quiet one: a build report that says a security control is \"Applied\" when the code behind it was never written.\nI hit this on a real build. \"PII encryption at rest\" was marked done in three places: a schema comment, an architecture invariant, and a compliance sheet. Three documents, all agreeing with each other.\nThen I grepped for createCipheriv. Zero hits. The encryption key referenced in the docs was in no environment schema. The address columns were plaintext.\nEvery automated signal was green. The invariant that should have verified the control was marked \"manual,\" so the linter skipped it. The tests passed because they only test what exists; nothing asserts the absence of a thing that was never written. The compliance sheet passed because it echoes the spec instead of auditing the code. Greenness was self-referential.\nOnce you look for this pattern you find weirder versions. Another build's invariant linter reported \"0 violations\" while inspecting zero files: the model had re-derived a glob-to-regex translation and applied the wildcard replacements in the wrong order, so the pattern matched nothing. A clean pass over an empty set. Across four builds I watched, the model's first attempt at that same translation was wrong in three, each differently.\nWhat finally caught the missing encryption was not more tests. It was a fresh-context reviewer agent that gets the spec and the working tree, and deliberately not the builder's notes or report. Its job is to disbelieve: grep for every claimed control, file and line. It flagged the encryption on the first cycle. The remediation added real AES-256-GCM plus an integration test that reads the row straight from the database and asserts the stored value is ciphertext, so the control can never silently evaporate again.\nThe question to ask an AI build is not \"did it pass.\" It is \"what proved it passed.\" Would a deleted control actually fail something?\nI wr",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI说加密已\"应用\"。grep显示情况并非如此",
+        "summary": "AI生成的代码和合规文档可能悄然无声地未能实施声称的安全控制，造成虚假的合规感。该文章演示了独立代码审查人员如何通过验证规范与实际实现来捕捉自动化测试和合规检查遗漏的隐形故障。"
+      }
+    }
+  },
+  {
+    "title": "RAG - Hallucination Detection",
+    "slug": "rag-hallucination-detection",
+    "url": "https://dev.to/ramya_perumal/rag-hallucination-detection-2k60",
+    "source": "DEV Community",
+    "date": "2026-08-21T00:54:08.000Z",
+    "summary": "Hallucinations in RAG systems occur when LLMs generate answers from training data rather than provided context, requiring detection techniques like embedding comparison, BERT-based analysis, or evaluation frameworks. Methods include checking faithfulness against context, answer relevance, context precision, and correctness metrics.",
+    "content": "Hallucination\n\n\nHallucination means making an assumption or making up something when the LLM does not know the answer.\nExample:\nSuppose we have a PDF file that contains information about Python, but it does not have any details about Decorators.\nHere, the document is split into chunks, and the chunks are stored in the vector database.\nSuppose we ask the query:\n\"What is a decorator?\"\nThe LLM should not give any response because the information about decorators is not available in the database.\nBut the LLM may give a response from its own knowledge, which may be correct, but it is not from the database.\nThis is called hallucination in RAG.\nThe response given by the LLM should be supported by the information given in the context.\nIf the response is not supported by the context, it is considered hallucinated.\nCompare the embedding of the context with the embedding of the LLM response to check how closely they are related.\nLettuceDetect is a BERT-based model used to find where hallucinations could occur at the character level.\nIt checks the response word by word to identify possible hallucinations.\nGive the response to another LLM and ask it to detect hallucinations.\nThe drawback here is that the LLM may hallucinate again, and it can also be expensive unless we use a local model.\nRAGAS is also called an evaluation framework. It provides different metrics that can be used to evaluate RAG systems and identify potential hallucinations.\nSome of the important metrics are:\nFaithfulness – Checks whether the results are backed by the provided context. This can be used to check hallucination.\n\n\nAnswer Relevancy – Suppose the context and answer are relevant. This metric checks how relevant the answer is to the query.\n\n\nContext Precision – Checks how many of the retrieved documents are useful and relevant.\n\n\nContext Recall – Checks whether the necessary documents have been retrieved for the query.\n\n\nAnswer Correctness – Checks the response against the ground truth.\n\n\nAnswer Similar",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "RAG - 幻觉检测",
+        "summary": "RAG系统中的幻觉是指大语言模型从训练数据而非提供的上下文中生成答案，需要采用嵌入比较、基于BERT的分析或评估框架等检测技术。方法包括检查对上下文的忠实度、答案相关性、上下文精确度和正确性指标。"
+      }
+    }
+  },
+  {
+    "title": "goninja: code-first CRUD generation for Go, no reflection",
+    "slug": "goninja-code-first-crud-generation-go",
+    "url": "https://dev.to/caspel26/goninja-code-first-crud-generation-for-go-no-reflection-41nm",
+    "source": "DEV Community",
+    "date": "2026-08-21T00:40:32.000Z",
+    "summary": "Goninja is a Go framework that generates type-safe CRUD REST APIs from annotated structs, producing readable code without runtime reflection. It provides routing, validation, and OpenAPI documentation generation, offering a Go counterpart to django-ninja-aio-crud.",
+    "content": "Been building goninja, a Go framework that generates CRUD REST APIs from annotated structs — routing, validation, OpenAPI, the rest.\nIt's the Go counterpart to a Python project I already maintain, django-ninja-aio-crud — same idea, define the model once and get the API. Difference here: no runtime reflection, it generates real Go code that lives in your repo, readable like anything you'd write by hand.\nhand.\ntype Book struct {\n    ID       string  `gorm:\"primaryKey\" goninja:\"list,retrieve\"`\n    Title    string  `goninja:\"list,retrieve,create,update\" validate:\"required\"`\n    AuthorID string  `goninja:\"list,retrieve,create,update,filter\"`\n    Price    float64 `goninja:\"list,retrieve,create,update,filter\" validate:\"min=0\"`\n}\n\n$ goninja generate -models-import myapp/models\n\nPre-alpha, API still moving. Feedback welcome: docs github",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "goninja：Go语言的代码优先CRUD生成，无需反射",
+        "summary": "Goninja是一个Go框架，可从带注解的结构体生成类型安全的CRUD REST API，生成可读代码而无需运行时反射。它提供路由、验证和OpenAPI文档生成功能，是django-ninja-aio-crud在Go中的对等物。"
+      }
+    }
+  },
+  {
+    "title": "Keep Every LangSmith Trace Without the 10 Retention Bill",
+    "slug": "keep-langsmith-traces-without-retention-bill",
+    "url": "https://dev.to/aviadr1/keep-every-langsmith-trace-without-the-10x-retention-bill-2gl1",
+    "source": "DEV Community",
+    "date": "2026-08-21T00:38:17.000Z",
+    "summary": "LangSmith's extended-retention tier costs 10× more than base retention, creating substantial expenses at production scale; a new langsmith-cli workflow archives traces to private S3 while keeping recent traces for live debugging. This approach eliminates retention costs while preserving complete trace history.",
+    "content": "LangSmith is excellent for debugging live AI systems. But keeping every trace in its extended-retention tier can turn observability into a surprisingly large line item.\nToday we merged a new archive workflow into langsmith-cli that changes that tradeoff: keep LangSmith for live debugging, continuously archive verified traces to organization-owned private S3, and query the retained Parquet directly with DuckDB.\nIn other words, you can preserve your complete trace history without placing every trace on LangSmith's extended-retention tier.\nLangSmith currently documents two trace-retention tiers:\n\n\n\nTier\nRetention\nPublished trace price\n\n\n\n\nBase\n14 days\n0.05¢\n\n\nExtended\n400 days\n0.50¢ total\n\n\n\nThe 0.45¢ extended-retention upgrade makes an extended trace cost 10× as much as a base trace.\nThat difference becomes material at production volume:\n\n\n\nMonthly traces\nBase, 14 days\nExtended, 400 days\nAdded retention cost\n\n\n\n\n100,000\n$50\n$500\n$450\n\n\n1,000,000\n$500\n$5,000\n$4,500\n\n\n10,000,000\n$5,000\n$50,000\n$45,000\n\n\n\nThese examples use the published per-trace rates before free allowances, plan terms, negotiated pricing, or taxes. Always check the official LangSmith usage and billing documentation before making budget decisions.\nThere is another subtle risk: online evaluators and automation rules can upgrade matching traces when retention extension is enabled. A rule that matches one run upgrades the whole trace, and a thread-level rule can upgrade every trace in that thread. LangSmith currently enables retention extension by default for new online evaluators and automation rules, although you can opt out.\nAt scale, an innocent-looking evaluator or rule can therefore create a much larger bill than expected.\nlangsmith-cli archive workflow\n\n\nThe new workflow separates live observability from long-term retention:\nLangSmith live traces (14 days)\n        │\n        ├── D+2 primary export ───────┐\n        └── D+12 reconciliation ──────┤ deduplicate by run ID",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "保留所有LangSmith跟踪而无需支付10倍保留费用",
+        "summary": "LangSmith的扩展保留层成本比基础保留高10倍，在生产规模下造成巨大开销；新的langsmith-cli工作流将跟踪存档到私有S3，同时保留最近的跟踪用于实时调试。这种方法消除了保留成本，同时保留了完整的跟踪历史。"
+      }
+    }
+  },
+  {
+    "title": "How I built an AI movie tracker as a solo dev",
+    "slug": "built-ai-movie-tracker-solo-dev",
+    "url": "https://dev.to/alex_crciun_c0adaad75972/how-i-built-an-ai-movie-tracker-as-a-solo-dev-564c",
+    "source": "DEV Community",
+    "date": "2026-08-21T00:24:02.000Z",
+    "summary": "A solo developer built \"I Like Movies,\" an Android app using Go, GraphQL, Postgres, and React Native, designed around shared household watchlists rather than individual tracking. The conservative technology stack prioritizes maintainability and solo debuggability over architectural complexity.",
+    "content": "I am a full-stack developer in the Netherlands, a bit over ten years in. For the last year my evenings have gone into one side project: I Like Movies, an Android app for tracking what you watch and deciding what to watch next. It went live on Google Play this summer. This is the honest version of how it got built, what the stack looks like, and the three or four decisions that mattered more than the rest.\nEvery movie app I tried was built for one person keeping one list. My actual problem was two people on one sofa, each with a watchlist, neither remembering which of us had saved the film worth watching. Picking something to watch with someone else is genuinely harder than picking alone, and no amount of better search fixes it, because search is not the bottleneck. Deciding is.\nSo the app is organised around that. A household shares one library: one watchlist, one watched history, visible to everyone who lives with you. Add a film on your phone in the supermarket and it is on your partner's phone before you are home. That one feature is why the app exists, and it shaped almost every backend decision that followed.\nThe backend is Go, GraphQL via gqlgen, and Postgres. The app is React Native with Expo. Film and TV metadata comes from TMDB. That is close to the most conservative stack you could pick in 2026, and that is the point. A solo project dies when the maintenance load exceeds one person's evenings, so every technology had to be something I could debug at 11pm without a second opinion.\nGo earned its place. The whole backend is one binary with no framework magic, and the type system plus gqlgen's generated resolvers mean a schema change breaks loudly at compile time instead of quietly in production. Postgres does everything: data, full-text search support, import staging. No microservices, no queue, no Redis. A single process and a single database will carry a consumer app much further than the architecture content industry admits.\nGraphQL was the decision I seco",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何作为独立开发者构建了一个AI电影追踪器",
+        "summary": "一位独立开发者使用Go、GraphQL、Postgres和React Native构建了\"I Like Movies\"安卓应用，围绕共享家庭观看列表而非个人追踪设计。保守的技术栈优先考虑可维护性和独立调试能力，而非架构复杂性。"
+      }
+    }
+  },
+  {
+    "title": "Stop Guessing Your Calories: Building a Real-Time Multimodal Nutrition Engine with GPT-4o Vision",
+    "slug": "stop-guessing-calories-multimodal-nutrition-gpt4o",
+    "url": "https://dev.to/beck_moulton/stop-guessing-your-calories-building-a-real-time-multimodal-nutrition-engine-with-gpt-4o-vision-39b7",
+    "source": "DEV Community",
+    "date": "2026-08-21T00:20:00.000Z",
+    "summary": "This tutorial demonstrates building a nutrition engine using GPT-4o vision to identify ingredients and estimate macronutrients from food photos, combining few-shot prompting with Pydantic for structured output. The approach automates calorie tracking for complex dishes where manual estimation is tedious.",
+    "content": "How many times have you stared at a plate of Gong Bao Chicken or a complex Mediterranean salad and wondered, \"How many calories are actually in here?\" Traditional calorie tracking apps are tedious, requiring you to manually weigh ingredients and search through messy databases. But with the rise of multimodal AI, specifically the GPT-4o Vision API, we can now transform a simple photo into a detailed nutritional breakdown in seconds.\nIn this tutorial, we are building a Computer Vision Nutrition Engine that leverages GPT-4o to identify ingredients, estimate portions, and calculate macronutrients with surprising accuracy. By using Few-shot Prompting and structured data validation with Pydantic, we’ll solve the age-old problem of identifying \"hidden\" ingredients in complex cuisines. Whether you're interested in AI for health or mastering multimodal LLM pipelines, this guide is for you!\nThe system logic is straightforward but powerful. We take an image input, process it through the GPT-4o vision model using a specialized system prompt, and enforce a strict JSON schema output for our frontend to consume.\ngraph TD\n    A[User Uploads Food Image] --> B[Streamlit Frontend]\n    B --> C{FastAPI/Python Logic}\n    C --> D[GPT-4o Vision API]\n    D --> E[Few-Shot Prompting Strategy]\n    E --> F[Pydantic Structured Output]\n    F --> G[Calorie & Nutrient Dashboard]\n    G --> H[User Review & Log]\n\nTo follow along, you'll need:\n  Python 3.9+\n\n  OpenAI API Key (with GPT-4o access)\n  Libraries: openai, streamlit, pydantic, pillow\n\n\n\n\n\n\n\n  \n  \n  Step 1: Defining the Data Schema with Pydantic\n\n\nTo make our engine reliable, we can't just accept raw text from the AI. We need structured data. We’ll use Pydantic to define exactly what a \"Nutrition Report\" looks like.\nfrom pydantic import BaseModel, Field\nfrom typing import List\n\nclass Ingredient(BaseModel):\n    name: str = Field(description=\"Name of the ingredient identified\")\n    estimated_weight_g: float = Field(description=\"Estimated weight",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "停止猜测卡路里：使用GPT-4o Vision构建实时多模态营养引擎",
+        "summary": "本教程演示了如何使用GPT-4o视觉功能构建营养引擎，从食物照片中识别成分并估计宏量营养素，结合少样本提示和Pydantic实现结构化输出。该方法自动化了复杂菜肴的卡路里追踪，避免了繁琐的手动估计。"
+      }
+    }
+  },
+  {
+    "title": "Debugging a Windows Desktop App That Opens to a Blank Screen",
+    "slug": "debugging-windows-desktop-app-blank-screen",
+    "url": "https://dev.to/wangwang_huang/debugging-a-windows-desktop-app-that-opens-to-a-blank-screen-12ai",
+    "source": "DEV Community",
+    "date": "2026-08-21T00:18:50.000Z",
+    "summary": "Blank application windows require systematic diagnosis rather than reflexive fixes; the article distinguishes between no-process failures, blank-content rendering issues, hangs, and network problems. Using Task Manager, registry inspection, and Event Viewer provides evidence-based troubleshooting without assuming WebView2 failure.",
+    "content": "A blank application window is not a diagnosis. It is only a symptom that tells you the process reached a different stage than an installer that never launched.\nThe most useful first step is to stop applying fixes and record what Windows is actually doing.\nTreat these as separate cases:\nNo window and no lasting process: investigate the installer, security blocking, architecture, and missing runtime dependencies.\nA window frame appears but the content area is blank: investigate the rendering layer and online content initialization.\nThe entire window stops responding: capture hang evidence instead of reinstalling a rendering runtime.\nThe UI appears but sign-in or online panels spin forever: check network and account services separately.\nThis boundary prevents a common mistake: diagnosing every white or empty interface as a WebView2 failure.\nClose the application completely, including any tray process, then start it once. Open Task Manager and note the start time of the main process. Check whether child processes such as msedgewebview2.exe appear at the same time.\nThe presence of a WebView2 process is evidence that the runtime participates in the session. Its absence does not automatically prove that WebView2 is broken; the application may have failed before reaching that stage or may use another rendering stack.\nOn Windows, the Evergreen Runtime version can often be read from registry locations under EdgeUpdate. The exact location can vary by installation scope. Use read-only inspection first, and confirm that a non-empty version value is present.\nDo not install several copies from random download pages. If repair is eventually necessary, use Microsoft's distribution channel and document the version before and after the change.\nReproduce the blank window once, then open Event Viewer and inspect entries from the same minute. Useful evidence includes:\nthe faulting application name;\nthe faulting module;\nexception codes;\napplication hang events;\nWebView2 or EdgeUpdate even",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "调试打开时显示空白屏幕的Windows桌面应用",
+        "summary": "空白应用窗口需要系统诊断而非反射性修复；文章区分了无进程故障、空白内容呈现问题、应用卡顿和网络问题。使用任务管理器、注册表检查和事件查看器提供基于证据的故障排除，而不假设WebView2故障。"
+      }
+    }
+  }
+]
