@@ -1,5 +1,213 @@
 [
   {
+    "title": "Build a Real-Time Polymarket Order Book Monitor with Python",
+    "slug": "build-real-time-polymarket-order-book-monitor-python",
+    "url": "https://dev.to/xniiinx/build-a-real-time-polymarket-order-book-monitor-with-python-10pf",
+    "source": "DEV Community",
+    "date": "2026-08-22T12:35:31.000Z",
+    "summary": "Tutorial for building a Python real-time monitor of Polymarket's order book using their public WebSocket API, covering event processing, spread calculation, and detecting stale market data for trading signals.",
+    "content": "Build a Real-Time Polymarket Order Book Monitor\n\n\nA trading bot should not make decisions from stale snapshots. If you want to understand liquidity, spread, depth, or changes in market structure, you need a continuously updated view of the Polymarket order book.\nThis tutorial builds a lightweight Polymarket order book Python monitor using the public CLOB Market WebSocket. Polymarket documents this channel as a real-time feed for order-book, price, and market lifecycle updates.\nThe implementation intentionally focuses on market data—not order execution—so it can be used as the foundation for research, dashboards, alerts, or an automated trading system.\nHow Polymarket token IDs relate to order-book subscriptions\nHow to connect to the CLOB Market WebSocket\nHow to process book and price_change events\nHow to calculate best bid, best ask, and spread\nHow to handle reconnects and heartbeats\nHow to detect stale market data\nHow to turn raw WebSocket events into trading signals\nflowchart LR\n    A[Polymarket CLOB] --> B[Market WebSocket]\n    B --> C[Python Async Client]\n    C --> D[Order Book State]\n    D --> E[Spread / Depth Metrics]\n    D --> F[Trading Signal Engine]\n    D --> G[Logging / Monitoring]\n\nThe important design decision is separating transport from state. The WebSocket delivers events; your application maintains the current book.\nFor this monitor, authentication is not required because the Market WebSocket is public.\npip install websockets\n\nYou need a Polymarket asset ID/token ID for the outcome you want to monitor. The Market Channel subscribes using assets_ids.\nFor example:\nTOKEN_ID = \"YOUR_TOKEN_ID\"\n\nDo not hard-code credentials into a market-data monitor. In this example, there are no credentials at all.\nThe documented Market Channel endpoint is:\nwss://ws-subscriptions-clob.polymarket.com/ws/market\n\nThe subscription message contains type: \"market\" and one or more asset IDs.\nA minimal monitor looks like this:\nimport asyncio\nimport json\nimport logging\nimport webs",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用Python构建Polymarket实时订单簿监控器",
+        "summary": "使用Polymarket公共WebSocket API构建Python实时订单簿监控的教程,涵盖事件处理、价差计算和检测过期市场数据以获得交易信号。"
+      }
+    }
+  },
+  {
+    "title": "How to Check Closed-Source Firmware for Known CVEs (No Source Code Needed)",
+    "slug": "check-closed-source-firmware-known-cves",
+    "url": "https://dev.to/rockyyy/how-to-check-closed-source-firmware-for-known-cves-no-source-code-needed-a0m",
+    "source": "DEV Community",
+    "date": "2026-08-22T12:34:54.000Z",
+    "summary": "Techniques for identifying known CVEs in closed-source embedded firmware by extracting and analyzing binaries to detect vulnerable components through version strings, focusing on practical tools like binwalk and strings grep.",
+    "content": "A router, an IP camera, an industrial controller: somewhere in that device's firmware there's a Linux kernel with modules, a handful of statically linked binaries, and a userspace built from a dozen open source components. You don't have the vendor's source tree. What you have is a .bin file, or after unpacking it, a pile of .ko, .o and stripped ELF binaries. The question you actually need answered is boring but important: is any of this running something with a known CVE?\nThis comes up constantly in embedded and IoT work, and it's a different problem from auditing your own codebase. You're not hunting for a new bug, you're checking for old ones the vendor never patched. In practice that's the more common finding: not a novel zero-day, but a five-year-old OpenSSL or BusyBox build nobody was tracking.\nUnpack first, guess later\nbinwalk is still the first move. Point it at the firmware image and let it scan for known magic bytes: SquashFS, CramFS, JFFS2, gzip streams, kernel headers. Most consumer and SOHO firmware is a bootloader plus a compressed filesystem, and binwalk's extraction mode gets you the actual filesystem tree instead of one opaque blob. Once you have that, you're auditing files, not guessing at a blob.\nFingerprint by version string, not by hash\nHash-matching binaries against known-vulnerable databases sounds appealing and mostly doesn't work here, because vendors relink, strip and sometimes patch without touching anything else. What works more often: grep the extracted binaries for version banners. strings on busybox, openssl, dropbear, lighttpd, zlib and similar userspace binaries usually still leaks a version string even when the binary is stripped of debug symbols, because those strings are compiled-in constants the program itself prints or logs, not debug metadata. strings <binary> | grep -iE \"openssl|busybox|dropbear|zlib\" is unglamorous and it's the single highest-signal step in this whole process.\nCross-reference what you find\nOnce you have compo",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何检查闭源固件的已知CVE(无需源代码)",
+        "summary": "通过提取和分析二进制文件来识别闭源嵌入式固件中的已知CVE的技术,通过版本字符串检测易受攻击的组件,重点关注binwalk和strings grep等实用工具。"
+      }
+    }
+  },
+  {
+    "title": "완전자동매매 시스템에 사람이 직접 개입해야 했던 사례 3가지",
+    "slug": "fully-automated-trading-system-needed-human",
+    "url": "https://dev.to/finaltype/wanjeonjadongmaemae-siseuteme-sarami-jigjeob-gaeibhaeya-haessdeon-sarye-3gaji-21c6",
+    "source": "DEV Community",
+    "date": "2026-08-22T12:33:47.000Z",
+    "summary": "Case study of three structural failures in a fully automated trading system that required manual intervention: trading budget allocation deadlocks, safety guards measuring wrong metrics, and transaction logging tools missing edge cases.",
+    "content": "자동으로 돌아가게 만든 것과, 자동으로 끝까지 처리되는 것은 다른 문장이었습니다\n이 시스템은 사람 승인 없이 스스로 판단하고 매매하는 걸 목표로 설계했습니다. 실계좌 주문 실행과 안전장치(새 창)도 그 목표에 맞춰 만들었습니다.\n그런데 최근 한 달 사이 실계좌에서 세 번, 사람이 직접 개입해야 하는 상황이 있었습니다. 세 사례 모두 \"왜 자동 로직이 이 상황을 못 넘겼는지\"의 구조가 서로 달랐습니다.\n특정 종목 하나가 여러 날째 매도 계획이 서 있는데도 계속 팔리지 않는 걸 발견했습니다. 시스템은 매일 이 종목을 매도 후보로 올렸지만, 실제 주문까지는 못 갔습니다.\n원인은 하루 매매 한도를 여러 라운드에 나눠 배분하는 규칙이었습니다. 이 종목의 주문 금액이 그날 남은 매도 한도보다 항상 컸습니다. 라운드 순서를 아무리 바꿔도 통과할 수 없는 구조였습니다.\n한도 자체는 정상 작동하고 있었습니다. 문제는 \"이번엔 못 나가도 다음 기회에 나간다\"는 전제가 이 종목엔 애초에 성립하지 않았다는 점입니다. 잔여 한도가 매번 주문 금액보다 작으면, 기회는 계속 오지만 한 번도 충분하지 않습니다.\n당장 못 나간 주문 1건은 사람이 직접 처리했습니다. 실계좌에서 이뤄진 되돌릴 수 없는 매도였습니다. 이후 배분 규칙 자체를 손봐서 같은 구조로 다시 굶는 일이 없도록 정리했습니다.\n다른 날엔 반대 방향의 사고가 있었습니다. 누적 손실을 감지하는 안전장치가 정상적인 매수 2건을 잘못 차단했습니다.\n지수는 그날 거의 보합이었는데, 이 안전장치가 재는 손실률은 훨씬 크게 찍혀 있었습니다. 원인을 보니 이 장치는 \"고점 대비 누적 하락\"을 감지하는 용도였는데, 정작 비교하는 현재값은 장중 순간 스냅샷이었습니다.\n장중 잠깐의 변동이 누적 지표를 밀어 올려서, 실제로는 발동하면 안 될 상황에서 발동한 겁니다. 누적을 재는 장치와 순간을 재는 장치가 뒤섞여 있었던 셈입니다.\n막힌 매수 2건은 사람이 판단해서 직접 집행했습니다. 이후 이 안전장치가 장중 순간값이 아니라 \"그날 마감 대 전날 마감\" 기준으로만 반응하도록 구조를 바꿨습니다. 장중 급락에는 이제 다른 안전장치가 대신 반응하도록 역할을 나눴습니다.\n두 번째 사례를 수습하는 과정에서 사고가 하나 더 있었습니다. 수동으로 낸 주문을 원장에 반영하는 도구를 썼는데, 반영이 안 되고 조용히 빠졌습니다.\n이 도구는 사람이 손으로 낸 거래를 세 가지 경우 중 하나로 분류합니다. 기존 보유 종목을 판 경우, 기존 보유 종목을 더 산 경우, 그리고 시스템과 무관한 거래인 경우입니다.\n그런데 이번 매수는 원장에 없던 새 종목을 사람이 처음 사들인 경우였습니다. 세 분류 중 어디에도 안 맞았고, 도구는 이걸 \"시스템과 무관한 거래\"로 잘못 넘겼습니다. 그 결과 실제로는 산 자산이 잠깐 원장 밖에 있는 것처럼 표시됐습니다.\n이 도구는 애초에 사람 개입을 위해 만든 경로였습니다. 그런데 그 경로를 설계할 때, \"사람이 아예 새로운 자리에 처음 진입하는 경우\"는 상정하지 않았습니다. 개입 경로 자체가 개입의 한 형태를 놓치고 있었던 셈입니다.\n순서(먼저 다른 매도를 부기하고, 그다음 이 매수를 부기)를 지켜서 바로 수습했고, 검증 결과 원장과 실계좌 잔고는 정확히 일치했습니다. 분류 로직에 이 경우를 추가하는 건 아직 남은 과제입니다.\n셋 다 \"자동으로 처리되게 만들었다\"와 \"실제로 끝까지 처리된다\"가 다른 문장이라는 걸 보여줬습니다.\n첫 번째는 규칙이 있었지만 그 규칙이 특정 입력에서 절대 통과할 수 없는 구조였습니다. 두 번째는 장치가 있었지만 재는 대상(순간 대 누적)이 설계 의도와 어긋나 있었습니다. 세 번째는 사람 개입을 위한 경로가 있었지만 그 경로 자체가 특정 개입 형태를 몰랐습니다.\n세 가지 모두 \"자동화가 이 케이스를 놓칠 수 있다\"는 걸 사전에 안 게 아니라, 실제로 놓친 뒤에야 알았습니다.\n완전자동을 목표로 설계할수록, 사람이 마지막에 손을 댈 수 있는 경로를 미리 만들어 둬야 한다는 걸 다시 확인했습니다. 자동화가 완벽해서가 아니라, 자동화가 어디서 뚫릴지 미리 다 알 수 없기 때문입니다.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "完全自动交易系统需要人工干预的3个案例",
+        "summary": "完全自动交易系统三个结构性失败的案例研究,需要人工干预:交易预算分配死锁、安全防护措施测量错误指标和交易日志工具遗漏边界情况。"
+      }
+    }
+  },
+  {
+    "title": "3 Cases Where Fully Automated Trading Still Needed a Human",
+    "slug": "3-cases-fully-automated-trading-needed-human",
+    "url": "https://dev.to/finaltype/3-cases-where-fully-automated-trading-still-needed-a-human-5d0d",
+    "source": "DEV Community",
+    "date": "2026-08-22T12:33:46.000Z",
+    "summary": "Three incidents where a fully automated trading system required direct human intervention due to architectural flaws in budget allocation rules, cumulative loss detection, and manual transaction entry handling.",
+    "content": "Making something run automatically and having it actually get handled to completion turned out to be two different sentences\nThis is the English version of a post originally written in Korean for my algorithmic trading system devlog(new tab).\nI designed this system to judge and trade on its own, without needing human approval for each decision. The order execution and safety-guard layer(new tab) was built around that same goal.\nOver the past month, though, there were three separate moments where I had to step in and act directly on the live account. Each one failed for a structurally different reason.\nI noticed a particular ticker had a sell plan queued for several days running, yet it never actually went out. The system kept nominating it as a sell candidate every day, but the order never reached execution.\nThe cause was the rule that splits the daily trading budget across multiple rounds. This position's order size was consistently larger than whatever sell budget remained that day. No matter how the rounds were reordered, it could never clear.\nThe budget cap itself was working exactly as designed. The problem was that the underlying assumption — \"if it doesn't clear this time, it'll clear next time\" — never held for this position. New opportunities kept arriving, but none of them was ever big enough.\nI executed the one blocked order by hand. It was an irreversible sell on the live account. Afterward, I reworked the allocation rule itself so the same starvation pattern couldn't recur.\nOn a different day, the opposite kind of failure happened. A guard meant to detect cumulative drawdown wrongly blocked two legitimate buy orders.\nThe index was nearly flat that day, but the loss figure this guard was tracking read much larger. Looking closer, the guard was designed to measure \"decline from peak,\" but the current value it compared against was an intraday snapshot.\nA brief intraday swing pushed the cumulative metric up, tripping the guard in a situation where it should",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "完全自动化交易仍需人工干预的3个案例",
+        "summary": "三个案例展示完全自动化交易系统因预算分配规则、累积亏损检测和人工交易录入处理中的架构缺陷而需要直接人工干预的情况。"
+      }
+    }
+  },
+  {
+    "title": "개발일지 자동화가 한 달 가까이 멈춰 있었던 이유",
+    "slug": "automation-pipeline-stopped-workspace-trust",
+    "url": "https://dev.to/finaltype/gaebalilji-jadonghwaga-han-dal-gaggai-meomcweo-isseossdeon-iyu-e57",
+    "source": "DEV Community",
+    "date": "2026-08-22T12:28:40.000Z",
+    "summary": "Post-mortem of an automated development logging system that silently failed for a month due to workspace trust settings configured at the wrong directory level, blocking file writes without logging the failures.",
+    "content": "로그조차 안 쌓이니, 돌고 있는지 죽어 있는지 구분할 방법이 없었습니다\n이 블로그의 개발일지는 매일 밤 자동으로 마무리됩니다. 그날 대화로 초안을 썼으면 변환해서 로그에 남기고, 없으면 스킵했다는 한 줄만 남깁니다. 최근 이 파이프라인을 들여다볼 일이 있었는데, 7월 24일 이후로 로그가 통째로 비어 있었습니다.\n자동화 로그(.automation.log) 마지막 줄이 2026-07-24였습니다. 그 뒤로 8월 22일까지, 거의 한 달 가까이 스킵 기록조차 한 줄도 없었습니다.\n자동화가 아예 안 돌았나 싶어서 실행 로그(cron_output.log)를 열어봤습니다. 그런데 거기엔 매일 밤 실행된 흔적이 빼곡했습니다.\n날짜 확인하고, 초안 있으면 내용 정리하고, 크로스링크까지 챙긴 요약이 매일 밤 남아 있었습니다. 일은 하고 있었는데, 결과물만 하나도 남지 않고 있었던 겁니다.\n실행 로그를 읽어보니 원인은 매일 같았습니다. 파일 쓰기 권한 승인을 기다리다가 그대로 끝난 겁니다.\n\"workspace has not been trusted\"라는 경고가 매 실행마다 찍혀 있었습니다. 초안을 잘 정리해놓고도, 마지막 파일 쓰기 한 줄이 승인 대기에 막혀서 아무것도 저장되지 않은 채 세션이 끝나는 패턴이 한 달 가까이 반복됐습니다.\n문제는 이게 하필 로그를 남기는 단계 자체가 막힌 상황이었다는 겁니다. 스킵한 날엔 스킵했다는 한 줄도 못 남겼습니다. 그러니 로그만 보면 \"자동화가 멈췄다\"와 \"쓸 게 없어서 조용했다\"를 구분할 수가 없었습니다.\n무인 자동화이니 매일 밤 누가 화면을 지켜보는 것도 아닙니다. 결과적으로 이 공백은 사람이 우연히 로그 파일을 열어보기 전까지는 발견될 방법이 없는 구조였습니다.\n원인은 신뢰(trust) 설정이었습니다. 이 헤드리스 자동화 세션은 프로젝트 폴더 단위로 파일 쓰기 권한을 신뢰받아야 동작하는데, 그 신뢰 설정 키가 이 블로그 폴더가 아니라 상위 디렉터리(프로젝트들이 모여 있는 루트) 단위로 걸려 있었습니다.\n즉 이 블로그 폴더만 놓고 보면 \"아직 한 번도 대화형으로 신뢰 승인을 받은 적 없는 새 작업공간\" 취급을 받고 있었던 셈입니다. 설정 파일 안에 이미 허용 규칙 10개가 들어 있었는데도, 그 규칙들이 걸려 있는 범위 자체가 무시되고 있었습니다.\n헤드리스로 도는 야간 자동화는 대화형 승인 프롬프트에 응답할 사람이 없습니다. 범위가 어긋난 신뢰 설정 하나가, 매일 밤 정확히 같은 지점에서 조용히 실행을 무력화하고 있었던 겁니다.\n이 공백을 되짚어보다가 특이한 줄 하나를 발견했습니다. 8월 22일 낮 12시 41분에 \"weekly: 완료\"라는 로그 한 줄이 남아 있었는데, 그 시각에 대응하는 실제 산출물 파일은 없었습니다.\n같은 날 오후 4시에 다시 수동으로 실행된 기록이 있었고, 이번엔 실제 파일까지 정상적으로 만들어졌습니다. 앞선 12시 41분 기록이 왜 실물 없이 \"완료\"라고만 남았는지는 원인을 특정하지 못했습니다.\n권한 문제가 한창이던 구간이라 어떤 형태로든 쓰기 절차 일부만 성공하고 일부는 실패한 걸로 추정만 할 뿐입니다. 다만 이 한 줄은 별도로 눈에 띄는 교훈을 남겼습니다. \"완료\"라고 적힌 로그도 그 자체로 완전히 믿을 수는 없다는 겁니다. 로그와 실제 산출물을 따로 대조하지 않았다면 이 유령 기록을 그냥 지나쳤을 겁니다.\n신뢰 설정을 이 블로그 폴더 기준으로 다시 걸어주니, 그날 밤부터 바로 정상화됐습니다. 별도의 복잡한 조치는 필요 없었습니다.\n문제는 고치는 방법이 아니라, 한 달 가까이 그 문제를 놓치고 있었다는 사실 쪽이었습니다.\n이번 일로 다시 확인한 건, 무인 자동화에서 \"로그가 없다\"는 상태 자체가 하나의 신호라는 겁니다. 그런데 그 신호를 신호로 취급하려면, 애초에 \"침묵\"과 \"성공적인 무동작\"을 구분할 수 있게 설계돼 있어야 합니다.\n이번 파이프라인은 스킵한 날에도 로그 한 줄을 남기게 되어 있었습니다. 그 설계 덕분에, \"로그가 아예 안 쌓이고 있다\"는 것 자체가 정상 범위를 벗어난 상태라는 걸 뒤늦게라도 알아챌 수 있었습니다.\n만약 스킵 로그라는 장치가 없었다",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "自动化开发日志系统近一个月停止运行的原因",
+        "summary": "一个自动化开发日志系统的事后分析，该系统因工作区信任设置配置在错误的目录级别而无声地失败了一个月，导致文件写入被阻止但未记录失败信息。"
+      }
+    }
+  },
+  {
+    "title": "Building a Chatbot Taught Me About LLM APIs",
+    "slug": "building-chatbot-llm-apis-context-management",
+    "url": "https://dev.to/bhaleraoneha/building-a-chatbot-taught-me-about-llm-apis-1k9b",
+    "source": "DEV Community",
+    "date": "2026-08-22T12:23:24.000Z",
+    "summary": "Building a multi-turn chatbot API revealed that LLMs are stateless and require explicit context management—tracking history, deciding what to retain or summarize, managing token costs, and handling API failures gracefully.",
+    "content": "Most people's first experience with an LLM API is deceptively simple: send a prompt, get a reply. It feels like magic, and for a single question-answer exchange, it basically is. But the moment you try to build something that holds an actual conversation one where the model remembers what you said three messages ago you run into a problem that isn't obvious until you hit it: LLM APIs are stateless. Every request is a blank slate unless you explicitly hand the model its own memory.\nThat was the core challenge behind a recent project I built during my internship a chatbot backed by a real LLM API ([OpenAI / Gemini]) with genuine multi-turn conversation support, not just a scripted request-response loop.\n*The problem nobody mentions upfront\n\nYou can't just \"turn on\" memory. Every conversation turn has to be manually tracked and resent with each new API call, which means the developer, not the model, is responsible for deciding what counts as context. And that decision has real consequences: send too little history and the bot forgets things it should remember; send too much, and you run into token limits and rising costs as the conversation grows.\nThis is where most simple chatbot tutorials stop short. They show you how to get a reply from an API, but not what happens once a conversation runs long enough that you can't keep resending everything forever.\n*Where the actual engineering happens\n\nSolving that meant implementing a context management strategy deciding what to keep, what to drop, and eventually exploring smarter approaches like summarising older parts of a conversation instead of just discarding them. It also meant thinking about the bot's identity through a system prompt, handling API failures gracefully instead of letting the UI break, and treating credentials properly by keeping API keys out of source code entirely.\nNone of this is complicated in isolation. What's interesting is how much of it is invisible until you actually build the thing yourself. Using",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建聊天机器人教会我关于大语言模型API的知识",
+        "summary": "构建多轮对话聊天机器人API揭示了大语言模型是无状态的，需要显式的上下文管理——包括追踪历史、决定保留或总结内容、管理令牌成本以及优雅地处理API故障。"
+      }
+    }
+  },
+  {
+    "title": "Why Your Shared Docs Aren't End-to-End Encrypted",
+    "slug": "why-shared-docs-not-end-to-end-encrypted",
+    "url": "https://dev.to/havenmessenger/why-your-shared-docs-arent-end-to-end-encrypted-146f",
+    "source": "DEV Community",
+    "date": "2026-08-22T12:18:17.000Z",
+    "summary": "Cloud document platforms encrypt data at rest and in transit but not end-to-end by design, because real-time collaborative editing requires server-side processing that depends on plaintext access to content.",
+    "content": "Google Docs, Notion, Microsoft 365, and Confluence all encrypt your documents at rest and in transit. None of them are end-to-end encrypted, meaning the provider can read the contents on their servers, and this isn't an oversight. Real-time collaborative editing and end-to-end encryption are pulling in opposite directions, and most of the industry has, so far, picked collaboration.\n\"Encrypted\" on a cloud storage or document platform's marketing page almost always means encrypted at rest, on the provider's disks, and in transit, over TLS while it travels between your browser and their servers. Both are real protections against an attacker who steals a hard drive or intercepts network traffic. Neither stops the provider itself from reading the document, because the provider holds the decryption keys. That's a deliberate architectural choice, not a corner cut, and it exists because of how collaborative editing actually works.\nReal-time collaborative editing, the kind where you can see a coworker's cursor and their keystrokes appear in your document within milliseconds, relies on the server actively participating in resolving what happens when two people type in the same place at the same time. The dominant approaches are operational transformation and CRDTs (conflict-free replicated data types), and both were designed with a server, or at minimum a shared relay, that processes the actual edit operations to merge them correctly.\nIf the server can't read the content, in a naive design it also can't help merge conflicting edits, generate a searchable index, render a preview thumbnail, or run the spell-checker that flags a typo as you type. Every one of those features, the ones that make a cloud document tool feel effortless, depends on server-side access to plaintext in the architectures most of these products were built on.\nContrast with encrypted chat\nEnd-to-end encrypted messaging works because a message, once sent, is a discrete unit: encrypt it once, deliver it, done",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么你的共享文档没有端到端加密",
+        "summary": "云文档平台在静止状态和传输过程中都对数据进行加密，但由于实时协作编辑需要服务器端处理明文内容，所以没有端到端加密。"
+      }
+    }
+  },
+  {
+    "title": "My First GitHub Project: From a Local Folder to GitHub Using Git and SSH",
+    "slug": "first-github-project-git-ssh-setup",
+    "url": "https://dev.to/karianjahi/my-first-github-project-from-a-local-folder-to-github-using-git-and-ssh-hlf",
+    "source": "DEV Community",
+    "date": "2026-08-22T12:14:27.000Z",
+    "summary": "Beginner's guide to initializing a local Git repository, creating a GitHub account, and pushing code using SSH keys, demonstrated through a personal health data project.",
+    "content": "Introduction\n\n\nThis article is a walk through of my first project where I pushed a local folder containing health data to Github using Git and SSH.\nGithub - This is an online service where you can store Git repositories and it makes it possible to share and collaborate on projects.\nGit - This is a version control system that runs on your computer and keeps track of changes made to your project.\nSSH (secure shell) - We use SSH when your computer needs a secure way to prove to Github that it is authorized to access your Github account and its repositories.\nOpen Gitbash and check your current location\npwd \nprint working directory\npwd asks which folder am I currently inside?\nRun\nls\nI created my project on the Desktop by running\ncd Desktop\ncd means Change Directory\nI named my project\nmkdir kenya-health-records\nmkdir means Make Directory or create new folder\nls and you should see kenya-health-records\nRun\ncd kenya-health-records\npwd\nHere I created three project folders by running\nmkdir data\nmkdir notebooks\nmkdir scripts\ntouch README.md\nSince the hospital dataset was already on my computer under Downloads\nls data\nkenya_health_records.csv\nSince the README.md explains the project to anyone who opens the Github repository.\necho \"#kenya hospital records\" >README.md\necho means print text\n\n# is a Markdown syntax for a large heading\n> Redirects the text into a file in this case to README.md\nThen I added the project overview, tools used, and project challenges.\ncat README.md \nRun\ngit init\ngit init means initialize this directory as a Git repository.\nTo check the project status\ngit status\nuntracked\ngit add \ngit status again \nRun\ngit commit -m \"Add kenya hospital project\"\ngit commit - creates a saved Git checkpoint.\n-m - means message.\n\"Add kenya hospital project\" is the commit message that explains what was saved.\nTo get a shorter project history\ngit log --online\nRun\ngit branch\ngit branch -M main\ngit branch and it changed to *main\nOpen Github on browser and create a new repository a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我的第一个GitHub项目：从本地文件夹到GitHub（使用Git和SSH）",
+        "summary": "初学者指南，通过个人健康数据项目演示如何初始化本地Git仓库、创建GitHub账户以及使用SSH密钥推送代码。"
+      }
+    }
+  },
+  {
+    "title": "The Ralph Loop: running coding agents for hours",
+    "slug": "ralph-loop-running-coding-agents-hours",
+    "url": "https://dev.to/ghalex/the-ralph-loop-running-coding-agents-for-hours-3po2",
+    "source": "DEV Community",
+    "date": "2026-08-22T12:05:35.000Z",
+    "summary": "The Ralph Loop technique for long-duration coding agent tasks: resetting agents into fresh context windows for each discrete work unit rather than maintaining one ever-growing session, enabling reliable multi-hour execution.",
+    "content": "Anyone who has run a coding agent on a real task — not a demo, a multi-hour grind through a milestone — has watched the same decay curve. The first hour is sharp. By the third, the agent is re-reading files it already read, contradicting decisions it made earlier, and confidently \"fixing\" things it broke twenty minutes ago. Nothing is wrong with the model. What's wrong is the session: the context window has filled up with stale file dumps, dead ends, and its own chatter, and the signal is drowning in it.\nThe fix that actually works in practice is embarrassingly stupid, and it has a name: the Ralph loop.\nThis isn't theory for me. I run this pattern today on Zenve3D: I hand a master agent a milestone, it works through the issues one by one, and every worker starts with a fresh context while LLMBrain carries the project state between them. The rest of this post is how that works, from the dumb bash loop it started as to the skill it became.\nThe technique comes from Geoffrey Huntley, who named it after Ralph Wiggum from The Simpsons — the kid who is not the sharpest but keeps cheerfully showing up. In its original form it is literally this:\nwhile :; do\n  cat PROMPT.md | claude -p\ndone\n\nThat's it. Run the agent with the same prompt, in a fresh session, forever. Each iteration the agent wakes up blank, reads the plan file, picks the most important unfinished item, does that one thing, writes its progress back to disk, and dies. The loop restarts it. Repeat until the plan is empty.\nThe genius is in what the loop doesn't do. It doesn't try to keep one long-lived, ever-smarter session alive. It accepts that a fresh context window is the most valuable resource an agent has, and spends it deliberately: one full window per unit of work, then throw the session away.\nPeople have used this to build entire codebases overnight. Not because each iteration is brilliant — individual iterations occasionally do something profoundly dumb, which is why it's named after Ralph — but because",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Ralph循环：运行编码代理数小时",
+        "summary": "Ralph循环技术用于长时间编码代理任务：将代理重置到新的上下文窗口中，为每个离散的工作单元处理，而不是维护一个不断增长的会话，从而实现可靠的多小时执行。"
+      }
+    }
+  },
+  {
+    "title": "A 9.8 Critical CVE That Never Existed: How to Filter Fake Vulnerabilities Out of Your Java Pipeline",
+    "slug": "fake-critical-cve-java-pipeline-triage",
+    "url": "https://dev.to/jamilxt/a-98-critical-cve-that-never-existed-how-to-filter-fake-vulnerabilities-out-of-your-java-pipeline-3151",
+    "source": "DEV Community",
+    "date": "2026-08-22T12:03:48.000Z",
+    "summary": "How 54 fabricated SQLite vulnerability advisories flowed through official CVE channels into enterprise security scanners, and how to implement triage workflows to prevent hallucinated CVEs from disrupting CI/CD pipelines.",
+    "content": "On July 30, 2026, JFrog's security team published something that should worry anyone whose build pipeline opens tickets automatically from a vulnerability scanner. A newly created GitHub account had submitted a batch of SQLite vulnerability advisories. NVD quickly flagged them as critical. CISA's ADP enrichment program agreed. Red Hat initially assigned one of them, CVE-2026-51302, a perfect 10.0 CVSS score.\nNone of it was real.\nJFrog's investigation found that the referenced functions did not exist in the SQLite versions the advisories claimed to target. Cited line numbers pointed past the end of the file. The \"patched in 3.51.3\" claims were ghost fixes, a diff between 3.51.2 and 3.51.3 shows zero changes to the file the advisory named. Of 55 advisories published by the same account, 54 were completely fabricated, machine-generated text designed to look like security research. When JFrog combined the advisories into one file, AI-generated content detectors lit up immediately.\nRed Hat quietly downgraded that 10.0 to 7.6 after the pushback. But by then the fake advisories had already flowed through the standard pipeline: MITRE form, NVD, GHSA, and from there into every enterprise scanner that syncs those feeds.\nIf your CI setup auto-fails builds on Critical CVEs, or auto-opens Jira tickets from Dependabot or Snyk alerts, this story is about you. Here is what happened, why the system let it happen, and the triage workflow I now run on my Java pipelines so a hallucinated CVE cannot burn a week of my team's time.\nThe details matter here, because they are the pattern you will see again.\nFunctions that do not exist. CVE-2026-51302 (9.8 Critical) claimed a use-after-free in exprComputeOperands(). That function did not exist in SQLite 3.41.0, the version the advisory pinned. It was added in mid-2025. The advisory also claimed sqlite3ReleaseTempReg() leaves a dangling pointer, but that function just recycles register indices into an array. A use-after-free is impossible by d",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "一个从未存在的9.8严重CVE：如何从Java管道中过滤虚假漏洞",
+        "summary": "54个虚构的SQLite漏洞建议如何通过官方CVE渠道流入企业安全扫描器，以及如何实现分类工作流程以防止幻觉CVE扰乱CI/CD管道。"
+      }
+    }
+  },
+  {
+    "title": "Where the LLM Stops: Deterministic Scoring in an AI-Assisted VAPT Pipeline",
+    "slug": "llm-deterministic-scoring-vapt-pipeline",
+    "url": "https://dev.to/maverickaayush/where-the-llm-stops-deterministic-scoring-in-an-ai-assisted-vapt-pipeline-4jcd",
+    "source": "DEV Community",
+    "date": "2026-08-22T12:01:52.000Z",
+    "summary": "Architectural approach to LLM-assisted vulnerability assessment where language models narrate findings without influencing deterministic scoring, ensuring reproducible vulnerability scores independent of model availability.",
+    "content": "Every VAPT report ends the same way: a handful of numbers. A CVSS score. A severity label. A priority rank. Sometimes an aggregate risk score. Those are the numbers a remediation team actually acts on: what gets patched this sprint, and what waits.\nOnce a large language model enters that pipeline (writing summaries, explaining findings, drafting remediation steps), a quieter architectural question follows it in: is the model narrating scores that already exist, or is it, somewhere along the way, actually shaping them?\nThis is a technical write-up of how ONUS, an open-source, self-hosted DAST (dynamic application security testing) platform, answers that question by construction rather than by policy. It's drawn from ONUS's internal project report, its architecture, its test suite, and scan data collected during development and validation, with the test count independently verified against the live repository (more on that below), not from GitHub stars, scan counts, or its listing in OWASP's Vulnerability Scanning Tools directory. None of those are evidence that an architecture is sound, and this article deliberately sets them aside in favor of what was actually built, tested, and observed. Links to the repository, project site, and that listing are at the end, as references, not as proof of anything.\nONUS's own validation confirms the design held in practice: every scored field traces to a single function, so re-running a scan against an unchanged target reproduces identical numbers. When the local language model is slow or unreachable, only the report's prose degrades. The severity, CVSS, and priority numbers never move.\nI originally built and validated ONUS as a supervised project for the IIT Kanpur Computer Centre, under Navpreet Singh, before open-sourcing it.\nFor readers meeting it for the first time: ONUS is a self-hosted DAST platform. An operator submits an authorized domain; eight scanning modules run against it in parallel; results are deduplicated, passive",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "LLM的界限：AI辅助VAPT管道中的确定性评分",
+        "summary": "一种LLM辅助漏洞评估的架构方法，其中语言模型叙述发现而不影响确定性评分，确保漏洞评分与模型可用性无关的可重复性。"
+      }
+    }
+  },
+  {
+    "title": "Your LLM App Is Wasting Money: What Happens When Users Close the Tab?",
+    "slug": "llm-app-wasting-money-tab-close-cancellation",
+    "url": "https://dev.to/kristinz/your-llm-app-is-wasting-money-what-happens-when-users-close-the-tab-4k01",
+    "source": "DEV Community",
+    "date": "2026-08-22T12:01:50.000Z",
+    "summary": "LLM API requests continue consuming tokens after users close browser tabs without explicit cancellation; demonstrates implementing AbortController and AbortSignal to propagate client disconnects through the server to the LLM API.",
+    "content": "You build an AI chat application.\nA user sends:\n\"Explain how distributed systems work.\"\nYour server calls an LLM API and starts streaming the answer:\nLLM\n │\n ├── \"Distributed\"\n ├── \"systems\"\n ├── \"are\"\n ├── ...\n │\n ▼\nBrowser\n\nEverything looks great.\nThen the user closes the browser tab.\nThe response disappears.\nBut what about the LLM request?\nIs it still running?\nIf your server doesn't explicitly propagate cancellation, the answer may be yes.\nAnd that's not just a correctness problem. For an AI application, it can become a cost problem.\nA user can abandon a generation after 500 tokens, while your backend continues paying for the remaining thousands of tokens.\nIn this article, we'll build the cancellation path for a TypeScript LLM server:\nBrowser\n   │\n   │ client disconnect\n   ▼\nHono / Node.js\n   │\n   │ AbortSignal\n   ▼\nfetch()\n   │\n   │ cancellation\n   ▼\nLLM API\n\nAlong the way, we'll look at:\nWhy a browser closing a tab doesn't automatically cancel your LLM request\nHow AbortController and AbortSignal work\nHow to combine client disconnects with server-side timeouts\nHow cancellation interacts with streaming responses\nWhen you should not cancel a request\nWhy this is fundamentally a server-side TypeScript problem\nConsider the simplest possible server:\napp.post('/api/chat', async (c) => {\n  const response = await fetch(LLM_API_URL, {\n    method: 'POST',\n    headers: {\n      'Content-Type': 'application/json',\n      Authorization: `Bearer ${API_KEY}`,\n    },\n    body: JSON.stringify({\n      model: '...',\n      messages: [\n        {\n          role: 'user',\n          content: 'Explain distributed systems',\n        },\n      ],\n      stream: true,\n    }),\n  });\n\n  return new Response(response.body, {\n    headers: {\n      'Content-Type': 'text/event-stream',\n    },\n  });\n});\n\nThis works.\nThe browser sends a request:\nBrowser\n   │\n   │ POST /api/chat\n   ▼\nServer\n   │\n   │ fetch()\n   ▼\nLLM API\n\nThe LLM starts generating tokens, and the server streams them back to the browser.\nBut",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的LLM应用在浪费金钱：用户关闭标签页时会发生什么？",
+        "summary": "当用户关闭浏览器标签页而未明确取消时，LLM API请求继续消耗令牌；演示实现AbortController和AbortSignal以将客户端断开连接传播到LLM API。"
+      }
+    }
+  },
+  {
+    "title": "Canada suspends trade negotiations with USA and match tariffs dollar for dollar",
+    "slug": "canada-suspends-trade-usa-matching-tariffs",
+    "url": "https://www.pm.gc.ca/en/news/statements/2026/08/21/statement-prime-minister-carney-canada-us-trade-negotiations",
+    "source": "Hacker News",
+    "date": "2026-08-22T10:26:09.000Z",
+    "summary": "Canada has suspended trade negotiations with the United States and implemented matching tariffs on a dollar-for-dollar basis in response to American trade actions.",
+    "content": "Article URL: https://www.pm.gc.ca/en/news/statements/2026/08/21/statement-prime-minister-carney-canada-us-trade-negotiations\nComments URL: https://news.ycombinator.com/item?id=49398304\nPoints: 216\n# Comments: 114",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "加拿大暂停与美国贸易谈判，逐美元匹配关税",
+        "summary": "加拿大已暂停与美国的贸易谈判，并根据美国贸易行动以逐美元的方式实施对等关税。"
+      }
+    }
+  },
+  {
     "title": "Designing a Reasoning Ledger Record",
     "slug": "designing-reasoning-ledger-record",
     "url": "https://dev.to/kenwalger/designing-a-reasoning-ledger-record-22eo",
