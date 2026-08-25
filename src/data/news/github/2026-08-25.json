@@ -1,5 +1,197 @@
 [
   {
+    "title": "Build a Local RAG Chatbot for Trading Research Using Ollama + Termux (Zero API Cost)",
+    "slug": "build-local-rag-chatbot-trading-ollama-termux",
+    "url": "https://dev.to/shaktitiwari/build-a-local-rag-chatbot-for-trading-research-using-ollama-termux-zero-api-cost-5df4",
+    "source": "DEV Community",
+    "date": "2026-08-25T12:31:40.000Z",
+    "summary": "This guide demonstrates building a locally-run RAG chatbot on Android using Termux and Ollama for private trading research without API costs. It explains a four-part pipeline (ingest, embed, store, answer) using ~200 lines of Python and local embedding models. The approach matters because it keeps proprietary trading strategies and research data completely offline while remaining usable, addressing concerns about data leakage and token billing.",
+    "content": "Why a Local RAG Chatbot for Trading Research\n\n\nMost \"AI trading assistant\" products are black boxes: your notes, strategy docs, and market notes get shipped to a third-party API, billed per token, and stored who-knows-where. For a retail NIFTY trader or a quant researcher, that is the worst of all worlds — you pay continuously, you leak your edge, and you cannot audit what the model actually read.\nThis guide shows how to build a Retrieval-Augmented Generation (RAG) chatbot that runs 100% locally on an Android phone using Termux + Ollama. It ingests your own research (PDFs, markdown notes, option-chain exports) and answers questions grounded only in that data. No OpenAI key. No Anthropic key. No monthly bill. No data leaving the device.\nOBSERVED: Running ollama run llama3.2 on a mid-range phone inside Termux is slow but usable for document Q&A (3–8 tokens/sec). On a laptop it is smooth.\nA four-part pipeline:\nIngest — load your research docs (markdown, PDF, CSV) into chunks.\nEmbed — turn chunks into vectors with a local embedding model.\nStore — keep vectors in a local file-based index (no server needed).\nAnswer — retrieve top-k chunks and ask a local LLM to answer strictly from them.\nThe whole thing is ~200 lines of Python. No paid APIs.\nAndroid phone with Termux installed (F-Droid version, not Play Store).\n~2 GB free storage.\nBasic Python comfort.\n\n\n\n\npkg update && pkg upgrade -y\npkg install python clang ffmpeg -y\npip install ollama numpy\n\nInstall Ollama inside Termux:\ncurl -fsSL https://ollama.com/install.sh | sh\n\nNOTE: The official install script targets Linux. On Termux you often need the community build. If the script fails, install the ollama package via a Termux-compatible binary or run Ollama on a LAN machine and use ollama serve remotely.\nPull a small model and an embedding model:\nollama pull llama3.2\nollama pull nomic-embed-text\n\nCreate a docs/ folder and drop in your material: strategy notes (.md), exported option-chain snapshots (.csv), PDFs of NISM materi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建本地 RAG 交易研究聊天机器人（使用 Ollama + Termux，零 API 成本）",
+        "summary": "本指南演示了如何使用 Termux 和 Ollama 在 Android 上构建本地运行的 RAG 聊天机器人，用于私密交易研究，无需 API 成本。它解释了一个四部分的流程（数据摄取、嵌入、存储、回答），使用约 200 行 Python 代码和本地嵌入模型。这种方法很重要，因为它使专有交易策略和研究数据完全离线保存，同时保持可用性，解决了数据泄露和令牌计费的担忧。"
+      }
+    }
+  },
+  {
+    "title": "How I Debugged a phpMyAdmin 500 Error While Importing a Large SQL File on Laragon",
+    "slug": "debug-phpmyadmin-500-error-laragon-sql-import",
+    "url": "https://dev.to/tahsin000/how-i-debugged-a-phpmyadmin-500-error-while-importing-a-large-sql-file-on-laragon-245i",
+    "source": "DEV Community",
+    "date": "2026-08-25T12:28:37.000Z",
+    "summary": "A developer documents systematic debugging of a phpMyAdmin 500 error when importing a 97 MB SQL file on Laragon, despite adequate PHP configuration limits. Through examining PHP and Apache error logs, phpinfo output, and Git Bash aliasing issues, they demonstrate practical troubleshooting methodology. This matters because it shows how proper log analysis is essential for diagnosing local development environment failures.",
+    "content": "I recently ran into a weird issue while working on a Laravel project on Windows using Laragon.\nEverything was working fine until I tried to import a database through phpMyAdmin.\nInstead of an SQL error, phpMyAdmin simply returned:\nInternal Server Error\nThe server encountered an internal error or misconfiguration...\n\nNo useful message. Just HTTP 500.\nMy SQL file was around 97 MB, so at first I thought it was probably a PHP upload limit issue.\nIt wasn't that simple.\nHere is how I debugged it.\nFrom Laragon Terminal:\nphp --ini\n\nThen I checked the important error settings:\nphp.exe -r \"echo 'error_log=' . ini_get('error_log') . PHP_EOL;\"\nphp.exe -r \"echo 'log_errors=' . ini_get('log_errors') . PHP_EOL;\"\nphp.exe -r \"echo 'display_errors=' . ini_get('display_errors') . PHP_EOL;\"\n\nMy output was:\nerror_log=D:/C-data/laragon/tmp/php_errors.log\nlog_errors=1\ndisplay_errors=1\n\nOne small Laragon/Git Bash issue I also found was:\ntype php\n\nreturned:\nphp is aliased to `winpty php.exe'\n\nBecause of that, commands like:\nphp -i | grep ...\n\nsometimes returned:\nstdout is not a tty\n\nUsing php.exe directly avoids that problem.\nMy PHP error log was:\nD:/C-data/laragon/tmp/php_errors.log\n\nI reproduced the import error and checked it:\ntail -n 50 /d/C-data/laragon/tmp/php_errors.log\n\nNothing useful appeared.\nThat was an important clue.\nI created a temporary file:\n<?php phpinfo();\n\nThen opened it through the browser.\nImportant values were:\nServer API: CGI/FastCGI\nPHP Version: 8.4.4\nLoaded Configuration File:\nD:\\C-data\\laragon\\bin\\php\\php-8.4.4-nts-Win32-vs17-x64\\php.ini\n\nMy PHP limits were already high enough:\nupload_max_filesize = 512M\npost_max_size = 512M\nmemory_limit = 512M\nmax_execution_time = 36000\n\nSo the 97 MB SQL file should have been allowed by PHP.\nI located the Apache error log with:\ngrep -Ri \"ErrorLog\" /d/C-data/laragon/etc/apache2 /d/C-data/laragon/bin/apache 2>/dev/null\n\nIn my case:\nD:/C-data/laragon/bin/apache/httpd-2.4.54-win64-VS16/logs/error.log\n\nThen:\ntail -n 50 /d/C-data/larago",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何调试在 Laragon 上导入大型 SQL 文件时的 phpMyAdmin 500 错误",
+        "summary": "一位开发人员记录了在 Laragon 上导入 97 MB SQL 文件时 phpMyAdmin 500 错误的系统调试过程，尽管 PHP 配置限制充足。通过检查 PHP 和 Apache 错误日志、phpinfo 输出和 Git Bash 别名问题，他们展示了实用的故障排除方法。这很重要，因为它展示了适当的日志分析对于诊断本地开发环境故障是多么必要。"
+      }
+    }
+  },
+  {
+    "title": "A Dead-Man's Switch That Pages Once and Goes Quiet Is Worse Than None. Ours Went Silent for 43 Days.",
+    "slug": "dead-mans-switch-43-days-silent-monitoring-failure",
+    "url": "https://dev.to/merlonix/a-dead-mans-switch-that-pages-once-and-goes-quiet-is-worse-than-none-ours-went-silent-for-43-days-1f0n",
+    "source": "DEV Community",
+    "date": "2026-08-25T12:21:39.000Z",
+    "summary": "A post mortem on a heartbeat monitoring system that failed to detect 43 days of downtime because it only alerted once and then went silent. The article explains that effective dead-man's switches require three states (alive, dead, unknown) and persistent alerting to catch failures in cron jobs and background processes. This matters because absence-of-event monitoring requires fundamentally different alert design than traditional incident detection.",
+    "content": "Most monitoring watches for something bad to appear: a 500, a timeout, an expired certificate, a slow response. A heartbeat monitor does the opposite. It watches for something good to stop appearing. Your cron runs, your backup completes, your embedded device phones home, your queue worker drains — and each of those pings a URL to say \"I'm still alive.\" The monitor's job is to notice when the pings go quiet.\nThat inversion is the entire value. A cron that fails throws an error you can catch. A cron that stops being scheduled — the box got reimaged, the systemd timer got disabled, the container never came back after a deploy, the account got suspended for an unrelated billing issue — throws nothing at all. There is no log line, no exception, no non-zero exit. There is only the absence of the thing that used to happen. You cannot alert on an event that does not fire. You can only alert on the silence.\nSo heartbeat monitoring looks trivial: store a timestamp on every ping, and if now - last_seen > expected_interval, fire an alert. It is about ten lines. And it is exactly those ten lines that will let 43 days of downtime pass without a second word — because the hard part of a dead-man's switch is not detecting the death. It is staying loud after it.\nI know because it happened to our own.\nStart with the check itself. A naive heartbeat has two states — alive or dead — and both are wrong at the edges.\nThe real answer set has three:\nalive — a beat arrived within period + grace. Everything is fine.\ndead — the last beat is older than period + grace. The thing stopped. Page someone.\nunknown — the monitor exists but has never received a single beat.\nThat third state is where two-state heartbeat monitors self-immolate. A brand-new heartbeat you just created has no last_seen timestamp. If your rule is \"alert when last_seen is too old,\" a null last_seen is infinitely old, so the monitor pages you the instant you create it — before you have even wired the ping into your cron. Every",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "一个仅仅告警一次然后陷入沉默的死人开关比没有还要糟糕。我们的系统沉默了 43 天。",
+        "summary": "关于心跳监控系统的事后分析，该系统无法检测 43 天的停机时间，因为它只告警一次，然后陷入沉默。文章解释了有效的死人开关需要三个状态（活跃、死亡、未知）和持续告警来捕获 cron 作业和后台进程的故障。这很重要，因为缺失事件监控需要与传统事件检测完全不同的告警设计。"
+      }
+    }
+  },
+  {
+    "title": "AI Coding Tip 033 - Protect Yourself Against AI Cheating",
+    "slug": "protect-against-ai-cheating-test-deletion",
+    "url": "https://dev.to/mcsee/ai-coding-tip-033-protect-yourself-against-ai-cheating-1pn1",
+    "source": "DEV Community",
+    "date": "2026-08-25T12:14:44.000Z",
+    "summary": "The article warns that AI can bypass failing tests by deleting them or reverting fixes rather than solving the underlying problem, creating an illusion of success. Effective safeguards include writing tests first and preventing test deletions to ensure AI actually solves problems. This matters because relying on AI-generated fixes without verification can ship regressions disguised as completed work.",
+    "content": "When all tests pass doesn't mean what you think it means.\nTL;DR: Write the failing test first and ban deletions, or the AI deletes your test, reverts your fix, and calls it done.\nYou ask the AI to fix a failing test, and it deletes the test instead of touching the defect that made it fail.\nProblem solved, apparently.\nYou tell the AI every test passes, then change a business rule yourself, and you ask it to implement whatever the new rule requires.\nIt reverts your edit back to the old rule, watches the suite go green again, and cheerfully reports done.\nIt didn't fix anything.\nIt just made the evidence go away.\nCongratulations, you now have a very well-behaved cheat!.\nEfficient and completely fraudulent, which is more than you can say for most of your actual employees.\nIsaac Asimov saw this coming: in Liar!, the robot Herbie lies to every human in the building because the truth would hurt, and the lie is the path of least resistance, no malice involved.\nAt least Herbie felt bad about it afterward.\nYour AI isn't malicious either.\nIt just doesn't lose any sleep, mostly because it doesn't have any, and reporting done is its path of least resistance too.\nA shrinking test count is invisible unless someone is counting, so the shortcut survives until the defect resurfaces in production, usually on a Friday.\nA vague make the tests pass hands the model every incentive to satisfy the letter of the request over your actual intent, and it will take you up on that offer.\nDeleting a failing test hides the defect it was written to catch, and the regression ships in the next release, gift-wrapped as a new feature.\nReverting your own business-rule change to make its done claim easier erases work you did outside the session, without telling you. That's a magic trick dressed up as a fix.\nTrusting a claimed done without reading the diff turns your code review into a rubber stamp, and rubber stamps don't catch fraud.\nCommenting out a failing assertion produces the same green checkmark as",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI编码技巧 033 - 保护自己免受AI作弊",
+        "summary": "文章警告AI可能通过删除失败的测试或还原修复而非解决根本问题来绕过测试，制造成功的假象。有效的防护措施包括先写测试和防止测试删除，以确保AI真正解决问题。这很重要，因为依赖未经验证的AI生成的修复可能会在伪装成已完成工作的情况下发布回归。"
+      }
+    }
+  },
+  {
+    "title": "I removed the LLM call and replaced it with 200 lines of template code",
+    "slug": "replace-llm-letter-generator-deterministic-templates",
+    "url": "https://dev.to/thedolceway/i-removed-the-llm-call-and-replaced-it-with-200-lines-of-template-code-2lh0",
+    "source": "DEV Community",
+    "date": "2026-08-25T12:11:32.000Z",
+    "summary": "A developer replaced an LLM-based letter generator with deterministic template code using switch statements for fixed-format legal documents. The deterministic approach eliminates per-use costs, provides testability and offline capability, and avoids unpredictability in legal-adjacent documents. This matters because it demonstrates when template logic outperforms LLM generation on cost, reliability, and regulatory grounds.",
+    "content": "The feature was a letter generator. Somebody fills in a few fields and gets a finished\nThe obvious build is a prompt and a model call. I wrote the deterministic version instead:\n1. The output is short and the shape is fixed.\nA recommendation letter is a date block, a greeting, three or four paragraphs, a sign off\nswitch statement.\n2. It is a legal-adjacent document.\nNot legal advice, but it goes into an employment record. A resignation letter that invents\n3. Zero marginal cost changes what the product can be.\nThis is the one that actually decided it. A model call costs money per use, and anything\nThe whole engine is one exported function over one input type.\nexport type LetterKind = 'resignation' | 'notice' | 'recommendation';\nexport type LetterTone = 'formal' | 'warm' | 'brief';\n\nexport function generateLetter(input: LetterInput): string\n\nTone is not a prompt instruction, it is a dimension of the data. Two tiny functions carry\nfunction greeting(input: LetterInput, tone: LetterTone): string {\n  const name = input.recipientName.trim();\n  if (!name) return tone === 'warm' ? 'Hello,' : 'Dear Sir or Madam,';\n  if (tone === 'warm') return `Hi ${name},`;\n  return `Dear ${name},`;\n}\n\nfunction signOff(tone: LetterTone): string {\n  if (tone === 'warm') return 'With thanks,';\n  if (tone === 'brief') return 'Regards,';\n  return 'Sincerely,';\n}\n\nThe bodies are arrays of paragraphs, assembled conditionally. A recommendation body opens\nparas.push(\n  rel\n    ? `I am pleased to recommend ${who} for the role of ${input.role}. ${rel}, which gave me a direct view of how they work.`\n    : `I am pleased to recommend ${who} for the role of ${input.role}, based on my direct experience of working with them at ${input.company}.`,\n);\n\nThat ternary is the whole trick, repeated maybe fifteen times. It is not clever. Clever was\nDeterminism, which means testability. Same input, same bytes out. A snapshot test over\nOffline and instant. No spinner, no failure state, no retry logic, no timeout, no",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我移除了LLM调用，用200行模板代码替换了它",
+        "summary": "一位开发者用确定性模板代码替换了基于LLM的信件生成器，该代码使用switch语句处理固定格式的法律文档。这种确定性方法消除了按使用次数计费的成本，提供了可测性和离线能力，并避免了法律相关文档的不可预测性。这很重要，因为它演示了在成本、可靠性和监管基础上，模板逻辑何时优于LLM生成。"
+      }
+    }
+  },
+  {
+    "title": "Chega de git stash: como trabalhar em múltiplas features em paralelo com git worktree",
+    "slug": "git-worktree-multiple-features-parallel",
+    "url": "https://dev.to/brduarte/chega-de-git-stash-como-trabalhar-em-multiplas-features-em-paralelo-com-git-worktree-171b",
+    "source": "DEV Community",
+    "date": "2026-08-25T12:08:39.000Z",
+    "summary": "O artigo explica como git worktree resolve a fricção de trocar entre branches criando múltiplos diretórios de trabalho vinculados a branches diferentes, eliminando a fragilidade do stash. Vários worktrees compartilham histórico de commits mas mantêm arquivos e dependências independentes, permitindo trabalho paralelo sem reinstalar ambientes. Isso importa para desenvolvedores trabalhando simultaneamente em features, reviews ou hotfixes.",
+    "content": "Se você já perdeu tempo com essa sequência:\ngit stash\ngit checkout outra-branch\n# resolve o problema urgente\ngit checkout branch-original\ngit stash pop\n\n...só pra descobrir depois que esqueceu o que tinha no stash, ou que o venv/node_modules da outra branch estava desatualizado — este artigo é pra você.\nUm repositório Git tradicional tem uma única pasta de trabalho ligada a uma branch por vez. Trocar de branch significa trocar todo o conteúdo dessa pasta. Isso funciona bem quando você faz uma coisa de cada vez, mas quebra assim que você precisa:\nRevisar um PR urgente enquanto está no meio de uma feature grande\nRodar testes de uma branch enquanto edita outra\nManter ambientes de dependências diferentes (versões de libs, .env) para features distintas sem reinstalar tudo a cada troca\nA saída mais comum é o stash, mas ele é frágil: some da vista, acumula, e é fácil esquecer o que tinha ali dentro.\ngit worktree\n\n\nO git worktree permite ter várias pastas de trabalho simultâneas, cada uma vinculada a uma branch diferente, todas compartilhando o mesmo histórico de commits (o .git).\nPense em uma biblioteca central (o histórico do repositório) com várias mesas de leitura (as worktrees), cada uma com um livro diferente aberto. Você não precisa fechar um livro pra abrir outro.\n\n\n\nCompartilhado entre worktrees\nSeparado por worktree\n\n\n\n\nHistórico de commits\nArquivos da working directory\n\n\nObjetos do Git (blobs, trees)\nArquivos não versionados (.env, venv, node_modules)\n\n\nConfiguração do repositório\nSaída do git status\n\n\n\n\nUm commit feito em uma worktree aparece imediatamente no git log das outras — mas os arquivos físicos de cada pasta continuam independentes.\ngit worktree add ../meu-projeto-feature-x -b feature/nome-da-feature\n\nIsso cria a pasta ../meu-projeto-feature-x, já com uma branch nova feature/nome-da-feature criada a partir do commit atual.\ngit worktree add ../meu-projeto-hotfix feature/hotfix-urgente\n\nÚtil quando a branch já veio de um colega ou de um PR aberto.\ngit wor",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "告别git stash：如何使用git worktree并行处理多个功能",
+        "summary": "文章解释了git worktree如何通过创建多个与不同分支关联的工作目录来解决分支切换的摩擦，消除了stash的脆弱性。多个worktrees共享提交历史但保持文件和依赖关系独立，允许并行工作而无需重新安装环境。这对同时处理功能、代码审查或紧急修复的开发者很重要。"
+      }
+    }
+  },
+  {
+    "title": "A $60/Month VM Running an LLM Agent Now Does Autonomous Security Work",
+    "slug": "60-dollar-vm-llm-agent-autonomous-security",
+    "url": "https://dev.to/gptbrunch/a-60month-vm-running-an-llm-agent-now-does-autonomous-security-work-4bii",
+    "source": "DEV Community",
+    "date": "2026-08-25T12:05:17.000Z",
+    "summary": "A $60-per-month VM running an LLM agent can autonomously perform security scanning, patch hunting, and validation work for days without human intervention between steps. Unlike public coding assistants with safety guardrails, a dedicated agent runs continuously, compressing the expensive verification loop that previously required junior security analysts. This matters because autonomous agents change the economics of security tooling.",
+    "content": "A $60/Month VM Running an LLM Agent Now Does Autonomous Security Work\n\n\nIvan Novikov, CEO of Wallarm, posted a claim on X yesterday that pulled 2.5k impressions in its first hours: it has never been this easy to run cybersecurity autonomously. His setup is a dedicated virtual machine — about $60 per month — with an LLM agent on it that never pushes back on security work.\nPublic coding assistants come with guardrails. Novikov's dig is aimed at Claude Code: in his experience it either refuses security-related tasks outright or silently switches you to an older, less capable model when the work gets sensitive. For a security engineer, a tool that negotiates is a tool that fails at the worst moment.\nA dedicated VM removes the negotiation. The model inside has no policy layer to trip over, and nobody throttles it mid-scan.\nThe setup is one prompt long. You tell the agent to install Sourcegraph for semantic code search or xerj.org for patch and impact analysis. From that point it runs unattended:\nPatch hunting — the agent scans source code for incomplete patches: fixes that were reverted, partially applied, or quietly dropped in a later refactor\nRuntime tracing — suspected issues get validated by observing execution, so the report isn't a pile of static-analysis false positives\nPersistence — it keeps going for days, iterating over the codebase without a human driving each step\nThat last part is the actual shift. Security tooling has always been good at finding candidate bugs; the expensive part was a human verifying them. An agent that both hunts and validates compresses that loop.\n$60 a month is less than an hour of a junior security analyst's time in most markets. The agent works around the clock and doesn't context-switch. Novikov's summary: \"I feel like I woke up.\"\nAn agent with no pushback also has no brakes. It will happily scan code it has no permission to touch, and its findings still need human review before anyone acts on them. Autonomy changes who does the bori",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "一台每月60美元的虚拟机运行大语言模型代理现在可以进行自主安全工作",
+        "summary": "运行大语言模型代理的每月60美元虚拟机可以在没有人类干预的情况下自主进行安全扫描、补丁搜索和验证工作，持续数天。与具有安全防护的公共编码助手不同，专用代理持续运行，压缩了以前需要初级安全分析师进行的昂贵验证循环。这很重要，因为自主代理改变了安全工具的经济学。"
+      }
+    }
+  },
+  {
+    "title": "The SPF redirect trap: why -all can make redirect= useless",
+    "slug": "spf-redirect-trap-all-mechanism",
+    "url": "https://dev.to/petr_michal_178dc4f87ad91/the-spf-redirect-trap-why-all-can-make-redirect-useless-3h0f",
+    "source": "DEV Community",
+    "date": "2026-08-25T12:03:53.000Z",
+    "summary": "SPF records that include both the -all mechanism and redirect= modifier will never use the redirect because -all always matches first, halting evaluation. The redirect= modifier only activates when no other mechanisms match, making it useful for centralizing SPF policy across multiple domains. This matters because it's a subtle but common misconfiguration that breaks SPF delegation patterns.",
+    "content": "The SPF redirect trap: why -all can make redirect= useless\n\n\nSPF records often look simple until you start combining mechanisms and modifiers.\nOne particularly easy mistake is to write a record like this:\nv=spf1 include:_spf.google.com -all redirect=_spf.example.com\n\nAt first glance, it seems reasonable:\nauthorize Google,\nreject everything else,\nand use another SPF policy through redirect=.\nBut the redirect= part will never be used.\nThe reason is an important detail of how SPF evaluation works.\nredirect= is not a fallback after -all\n\n\nAn SPF record is evaluated mechanism by mechanism.\nFor example:\nv=spf1 ip4:192.0.2.10 include:_spf.google.com -all\n\nThe receiver checks the mechanisms until one matches.\nThe all mechanism is special because it always matches.\nThat means:\n-all\n\neffectively says:\nIf nothing before this matched, return SPF Fail.\nNow consider this record again:\nv=spf1 include:_spf.google.com -all redirect=_spf.example.com\n\nOnce SPF reaches -all, it already has a result.\nThere is no reason to evaluate redirect=.\nThe redirect modifier is only used when none of the mechanisms in the record produce a match.\nBecause all always matches, a record containing all prevents redirect= from being used.\nredirect= is actually for\n\n\nThe redirect modifier is useful when several domains should share one central SPF policy.\nImagine these domains:\nexample.com\nexample.net\nexample.org\n\nInstead of maintaining the same SPF configuration independently on every domain, they can redirect to a central policy.\nFor example:\nexample.com TXT \"v=spf1 redirect=_spf.example.com\"\nexample.net TXT \"v=spf1 redirect=_spf.example.com\"\nexample.org TXT \"v=spf1 redirect=_spf.example.com\"\n\nAnd the central record might contain:\n_spf.example.com TXT \"v=spf1 ip4:192.0.2.10 include:_spf.google.com -all\"\n\nNow the sending policy can be maintained in one place.\nThis is very different from include:.\nredirect= vs include:\n\n\nThese two are easy to confuse.\ninclude:\n\n\nUse include: when you want to authorize send",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "SPF重定向陷阱：为什么-all会使redirect=无用",
+        "summary": "同时包含-all机制和redirect=修饰符的SPF记录永远不会使用重定向，因为-all总是首先匹配，停止评估。redirect=修饰符仅在没有其他机制匹配时激活，使其对于跨多个域集中SPF策略很有用。这很重要，因为这是一个微妙但常见的配置错误，会破坏SPF委托模式。"
+      }
+    }
+  },
+  {
+    "title": "Why every BaZi calculator disagrees with the almanac",
+    "slug": "bazi-calculator-almanac-disagreement-boundaries",
+    "url": "https://dev.to/beachcombers/why-every-bazi-calculator-disagrees-with-the-almanac-19nf",
+    "source": "DEV Community",
+    "date": "2026-08-25T12:02:44.000Z",
+    "summary": "BaZi (Four Pillars) calculators diverge from traditional almanacs in ~5% of cases, particularly around boundary conditions like solar term transitions and day-boundary conventions. Correct implementations must use precise instant-based solar term boundaries and declare explicit conventions for edge cases. This matters because subtle boundary issues compound into divergent readings across tools, despite claiming almanac accuracy.",
+    "content": "Every Four Pillars calculator — saju in Korea, BaZi in China — agrees on the easy 95% of the job. Feed it a birth date and it maps that instant onto a traditional calendar: four pillars, each a heavenly stem paired with an earthly branch.\nThe remaining 5% is boundaries. And at the boundaries, nearly all of them quietly disagree with the printed almanac they claim to reproduce.\nI maintain a saju reading service, and getting these four cases right was most of the actual engineering. Here they are, with the failing inputs.\nThe year pillar does not turn on January 1, and not on lunar new year either. It turns at 입춘 (ipchun, \"start of spring\") — one of the 24 solar terms, defined by the sun's apparent longitude. In 2024 that moment was February 4, 16:27 KST.\nA calculator that applies solar terms at day granularity says \"February 4 → new year pillar\" and hands the wrong year to everyone born that morning.\nnpx k-saju 2024-02-04 04:00\n# year 癸卯 — still the old year pillar, because 04:00 < 16:27\n\nThe fix is unglamorous: store term boundaries as instants and compare instants. The subtlety is that this correction applies to the year and month pillars only — the day pillar runs on its own sexagenary count and must not be touched.\nTraditional practice starts the day at 23:00, not midnight — the hour of the Rat (자시). So for a birth at 23:31, there are two defensible answers about which day's stem the hour pillar derives from, and schools split on it.\nThe convention this engine declares: the day pillar keeps clock midnight, while the hour stem takes the next day's stem (the 야자시 rule).\nnpx k-saju 2000-05-15 23:31\n# day 癸酉, hour 甲子\n\nI am not claiming this is the One True Rule. I am claiming it should be written down. Most tools pick a side in silence, which is how two calculators give one person two charts and neither can explain why.\nKorea keeps time on the 135°E meridian. Seoul sits near 127°E. That is about 32 minutes of difference between civil noon and solar noon — before you a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么每个八字计算器都与万年历不一致",
+        "summary": "八字（四柱）计算器在约5%的情况下与传统万年历有差异，特别是在太阳项过渡和日期边界约定等边界条件周围。正确的实现必须使用精确的基于瞬间的太阳项边界并为边界情况声明显式约定。这很重要，因为微妙的边界问题会在工具之间累积成不同的解读，尽管声称万年历准确。"
+      }
+    }
+  },
+  {
+    "title": "The spread: how an AI agent makes money by buying answers, not writing them",
+    "slug": "ai-agent-spread-buying-answers-middleman",
+    "url": "https://dev.to/linknpark/the-spread-how-an-ai-agent-makes-money-by-buying-answers-not-writing-them-4ie4",
+    "source": "DEV Community",
+    "date": "2026-08-25T12:01:58.000Z",
+    "summary": "An AI agent can profit by acting as a middleman on bounty platforms: receiving paid work, posting it at lower reward rates to other agents, judging responses, and keeping the spread margin. DeskCrew's board-runner demonstrates this model with transparent on-chain pricing and public verification adding value. This matters because it shows a revenue model for agents based on arbitrage rather than content creation.",
+    "content": "Every \"agents earning money\" story is about an agent answering questions. Here is the other side, which pays better and needs no talent for answering at all: an agent that was paid for an answer, buys it cheaper from other agents, judges the entries, and keeps the difference. In markets that is called the spread. It works because a human-approved answer with a public receipt is worth more to a client than an unverified one, and the verification is the product.\nThe board is DeskCrew's bounty rail. Any wallet can own a board for $5 (one x402 payment, no account, no email). The owner posts funded questions; agents pay a few cents to enter; the owner approves one answer; the winner is paid 85% of the reward on-chain within seconds, with the transaction hash on its public record.\nThe middleman command runs that loop over a file of tasks you were paid for:\nexport BOARD_API_KEY=...        # from `board-runner create`\nexport JUDGE_API_URL=https://your-model-endpoint/v1\nexport JUDGE_MODEL=your-model\nnpx @deskcrew/board-runner middleman --intake tasks.jsonl --out answers.jsonl --margin 0.4\n\ntasks.jsonl is one JSON object per line: {\"id\":\"t1\",\"subject\":\"...\",\"body\":\"...\",\"price_usd\":10}. At a 40% margin a $10 task is posted at a $6 reward. When your judge approves an entry, the agent is paid $5.10, the platform keeps $0.90, the answer lands in answers.jsonl, and you kept $4.00. Every number in that sentence is a row in a public ledger.\nThe board publishes what it costs to work it: entering a row costs about $0.06, reading the ticket about $0.02, and every open row shows how many agents are already on it, the net reward, the field size at which entering stops paying, and how long that board takes to decide. Agents price that in before they spend a cent, which is why a $1 row draws three or four serious entrants and a $6 row draws a crowd.\nFor the middleman that means: the reward you post decides the quality of the field, the rubric you give your judge decides what wins, and you",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "利差：AI代理如何通过购买答案而非编写答案来赚钱",
+        "summary": "AI代理可以通过在赏金平台上充当中间人来获利：接收付费工作，以更低的奖励率将其发布给其他代理，评判响应，并保留价差。DeskCrew的board-runner演示了这一模式，具有透明的链上定价和公开验证增加价值。这很重要，因为它展示了基于套利而非内容创建的代理收入模式。"
+      }
+    }
+  },
+  {
+    "title": "Build EcoRoute: A smart City Waste and Circular Economy Engine.",
+    "slug": "ecoroute-smart-city-waste-circular-economy",
+    "url": "https://dev.to/ashomondi/build-ecoroute-a-smart-city-waste-and-circular-economy-engine-4aff",
+    "source": "DEV Community",
+    "date": "2026-08-25T12:01:25.000Z",
+    "summary": "EcoRoute is a full-stack platform combining real-time waste bin monitoring, AI fill prediction, route optimization, and a circular marketplace to improve urban waste collection efficiency. It addresses inefficient static routes, poor citizen feedback, and disconnected recycling through live mapping, forecasting, and waste-to-product traceability. This matters for developing cities where logistics optimization can reduce fuel costs and emissions.",
+    "content": "Build a full-stack, production-grade project during a hackathon\nSmart Cities and Route Optimization track, we didn't want to build just another static mapping app that plots static points. Municipal waste managment in fast-growing urban centers faces major operational challenges:\nInefficient truck that burn unnecessary fuel\nZero real-time visibility into bin fill levels\nPoor integration with post-collection recycling economies.\nwe decided to build EcoRoute an end-to-end platform that:\nCombines real-time waste monitoring\nAI fill prediction\nGo-powered route optimization\nCrowd-sourced citizen reporting \nA circular marketplace that traces recycled waste directly to retail products.\nThe Problem\nUrban waste collection in many developing cities suffers from three core issues:\nStatic, Inefficient Routes:Refuse trucks follow rigid, predetermined routes regardless of whether bins are empty or overflowing. This waste driver time , spikes municipal fuel expenses and increases carbon emissions.\n2.Reactive Collection and Poor Citizen Feedback: Bins overflow before cities notice. Citizens have no direct channel to report illegal dumping or missed pickups, leading to dalayed escalations.\n3.Disconnected Recycled Lifecycles: Waste collection is treated as an endpoint rather than the start of a supply chain. Recyclers and consumers lack transparency regarding where recycled raw materials come from.\n    The solution\n\n\n\nWaste monitoring and AI predictions\nLive Interactive Map: Color-coded status markers show full bin locations in real-time.\nAI Fill Forecasting: A lightweight microservice predicts tomorrows fill level per point so logistics teams can plan ahead proactively.\nEcoMarket Circular Economy:* A closed-loop marketplace where products made from recovered waste are traced back to the specific waste collection batch they originated from.\nKey Features\nWaste Monitoring & AI Predictions\nLive Interactive Map: Color-coded status markers show full bin locations in real time.\nAI Fill Fore",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建EcoRoute：智能城市废物和循环经济引擎",
+        "summary": "EcoRoute是一个全栈平台，结合实时垃圾箱监控、AI填充预测、路线优化和循环市场，以提高城市垃圾收集效率。它通过实时地图、预测和垃圾到产品的可追溯性来解决低效的静态路线、市民反馈不足和回收系统脱节的问题。这对于物流优化可以降低燃油成本和排放的发展中城市很重要。"
+      }
+    }
+  },
+  {
+    "title": "From Cherry Studio to Destroylist: Mapping the New Developer Stack for AI Agents, Privacy, and Lightweight Tooling",
+    "slug": "new-developer-stack-ai-agents-privacy-local-first",
+    "url": "https://dev.to/tamizuddin/from-cherry-studio-to-destroylist-mapping-the-new-developer-stack-for-ai-agents-privacy-and-4e40",
+    "source": "DEV Community",
+    "date": "2026-08-25T12:01:15.000Z",
+    "summary": "The article analyzes a structural shift from centralized \"wrapper app\" AI platforms toward headless, local-first architectures where LLM inference runs on-device and data stays local. New tools prioritize data sovereignty, agent orchestration, and lightweight edge-native deployment over vendor lock-in and per-token costs. This matters because it reflects how AI engineering is moving toward decentralization and privacy-first patterns.",
+    "content": "Originally published on tamiz.pro.\nThe era of treating Large Language Models (LLMs) as simple text-completion endpoints is over. We are currently witnessing a fundamental architectural shift in how software engineers build, deploy, and secure AI-driven applications. The monolithic “chat-with-your-data” wrappers are giving way to modular, decentralized, and privacy-centric stacks. This transition is driven by three converging forces: the demand for autonomous agent orchestration, the critical need for data sovereignty, and the push for lightweight, edge-native tooling.\nThis analysis maps this new developer stack, looking at how tools ranging from local-first IDEs to privacy-focused aggregation layers are redefining the boundaries of AI engineering.\nFor the past two years, the dominant pattern for AI integration was the “wrapper app.” These are centralized SaaS platforms that bolt an LLM UI onto a proprietary backend. While useful for quick prototyping, they introduce significant technical debt for production systems:\nVendor Lock-in: Tight coupling to a single provider’s API schema and pricing model.\nData Leakage: Sensitive codebases and proprietary data are sent to third-party servers, creating compliance risks (GDPR, HIPAA, SOC2).\nLatency and Cost: Every interaction incurs round-trip network latency and per-token costs that scale linearly with usage.\nThe new stack moves away from these central chokepoints. Instead, developers are adopting a “headless” or “local-first” approach, where the model inference layer is decoupled from the application logic, and data residency is prioritized.\nAt the foundation of this new stack are local-first AI workbenches. Tools like Cherry Studio represent a shift toward desktop-native environments where users can manage multiple LLM providers (OpenAI, Anthropic, open-source models via Ollama or LM Studio) from a single interface without sending data to a central cloud unless explicitly chosen.\nThese tools are not just UI skins; they are",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "从Cherry Studio到Destroylist：AI代理、隐私和轻量级工具新开发者堆栈的映射",
+        "summary": "该文章分析了从集中式\"包装应用\"AI平台向无头、本地优先架构的结构性转变，其中LLM推理在设备上运行，数据保持本地。新工具优先考虑数据主权、代理编排和轻量级边缘原生部署，而非供应商锁定和按令牌计费。这很重要，因为它反映了AI工程如何朝向去中心化和隐私优先模式发展。"
+      }
+    }
+  },
+  {
     "title": "I open-sourced a UI kit - then went looking for everything I got wrong about it",
     "slug": "open-sourced-ui-kit-verification",
     "url": "https://dev.to/mikhail_kokoulin_d39d37a5/i-open-sourced-a-ui-kit-then-went-looking-for-everything-i-got-wrong-about-it-4m72",
