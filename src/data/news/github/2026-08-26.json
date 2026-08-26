@@ -1,5 +1,197 @@
 [
   {
+    "title": "A Vote About Bots Is Really a Vote About Trust",
+    "slug": "debian-ai-contributions-governance",
+    "url": "https://dev.to/maroneta/a-vote-about-bots-is-really-a-vote-about-trust-f3k",
+    "source": "DEV Community",
+    "date": "2026-08-26T12:40:23.000Z",
+    "summary": "Debian is polling developers on AI-assisted contributions, shifting focus from philosophical authorship questions to practical project governance. The core issue isn't whether AI code is acceptable, but how to manage review capacity when patch production costs drop faster than evaluation costs.",
+    "content": "Debian is polling its developers on how to handle AI-assisted contributions, with options that range from broadly permitting them to banning them outright. Whatever the outcome, I think this is one of the more consequential governance conversations in open source right now, and not for the reason the headlines suggest.\nThe framing everyone reaches for is philosophical. Is generated code authored? Is it derivative? Does using a model make you less of a contributor? Those are real questions and I do not have confident answers to them.\nBut if I imagine actually being a Debian maintainer, my problem is not philosophical at all. It is that my queue is full and my reviewing hours are finite.\nVolunteer projects have always been constrained by review capacity, not by supply of patches. The scarce resource is someone knowledgeable enough to say \"this is correct, this fits our conventions, I will own the consequences if it breaks.\"\nAssistants change the ratio between those two things dramatically. The cost of producing a plausible patch has fallen much faster than the cost of evaluating one. That asymmetry is the whole story. A project can absorb a lot of contributors when each contributor's output is roughly proportional to their understanding. It struggles when someone can submit a large, fluent, superficially reasonable change to a subsystem they have never read.\nI want to be careful here: plenty of experienced maintainers use these tools well, and their patches are better for it. The failure mode is not the tool. It is the decoupling of confidence from comprehension.\nA ban sounds like a clean answer, and I understand the appeal. But I am skeptical it can be enforced in a way that means anything.\nYou cannot reliably detect generated code, especially after a human has edited it, and especially for the kind of small idiomatic patch that makes up most of a distribution's traffic. A rule you cannot enforce does not produce compliance. It produces silence: people stop disclosin",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "关于机器人的投票其实是关于信任的投票",
+        "summary": "Debian正在对开发者进行关于AI辅助贡献的调查，将重点从哲学上的作者身份问题转向实际的项目治理。核心问题不是AI代码是否可接受，而是当补丁生产成本下降快于评估成本时，如何管理代码审查能力。"
+      }
+    }
+  },
+  {
+    "title": "What Lowercasing Taught Me About Trusting Strings",
+    "slug": "lowercasing-string-security-vulnerability",
+    "url": "https://dev.to/maroneta/what-lowercasing-taught-me-about-trusting-strings-3mdi",
+    "source": "DEV Community",
+    "date": "2026-08-26T12:39:43.000Z",
+    "summary": "Case conversion operations like .lower() can be security vulnerabilities due to Unicode behavior that creates unexpected character transformations across different locales. The risk lies in validating a string before normalization, then operating on a different normalized result.",
+    "content": "Every so often a post reminds me that the most dangerous line of code in a system is the one that looks like it could not possibly be wrong. This week's version: calling .lower() on a string can be a security vulnerability.\nIf your first reaction is skepticism, mine was too. Lowercasing is the plumbing of programming. We do it to normalize usernames, compare header names, canonicalize domains, and check things against blocklists. It feels like arithmetic.\nThe problem is that case conversion is not a character-by-character mechanical operation. It is a linguistic one, defined by Unicode, and it has behavior that surprises almost everyone who has not been bitten before.\nTwo examples that break the mental model. Turkish has a dotless i, and correct locale-aware conversion maps between letters differently than English does, which means \"the same\" string can lowercase into two different results depending on locale settings. And there are characters outside ASCII whose lowercase form is an ASCII character, meaning a string that contains no k at all can become one that does after normalization.\nSit with that second one for a moment, because it is the security-relevant shape. If you validate a string, then normalize it, you have validated something that no longer exists. Your check ran against one value and your system acts on another.\nThat is the classic time-of-check versus time-of-use bug, except the mutation is not caused by an attacker racing you. It is caused by your own normalization call, quietly doing what the spec says it should do.\nI want to be careful not to overstate the specifics here, since the exact behavior depends on language runtime, Unicode version, and locale configuration. The generalizable lesson is what interests me.\nAnywhere a string travels through this sequence, there is potential for trouble:\nAccept input.\nCheck it against a rule: an allowlist, a blocklist, a comparison with a known value.\nTransform it: lowercase, strip, unescape, decode, or norm",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "小写转换教我如何信任字符串",
+        "summary": "由于Unicode行为导致跨不同地区的意外字符转换，.lower()等大小写转换操作可能成为安全漏洞。风险在于在规范化前验证字符串，然后对不同的规范化结果进行操作。"
+      }
+    }
+  },
+  {
+    "title": "Delay Is a Design Material",
+    "slug": "delay-ui-design-material",
+    "url": "https://dev.to/maroneta/delay-is-a-design-material-1b89",
+    "source": "DEV Community",
+    "date": "2026-08-26T12:39:40.000Z",
+    "summary": "Timing and delay in UI elements should be treated as intentional design decisions rather than arbitrary defaults. Tooltips benefit from initial delays to filter accidental passes, but should drop delays once users demonstrate intent to survey multiple items.",
+    "content": "I read a short argument this week that tooltips need a delay before they appear, and then, once you are obviously working your way along a toolbar, they need to drop that delay entirely. It is a tiny piece of interface behavior. It stayed with me longer than most architecture posts I read this month.\nPartly because it is correct, and partly because it is not really about tooltips. It is about the fact that timing is something you design, the same way you design spacing or color. Most teams treat it as a leftover.\nWe pick 200ms because it felt fine on a fast laptop. Or we pick zero because zero seems honest. Or we inherit whatever number shipped inside the component library we installed on day one and never revisit it. Then the product feels twitchy or sluggish, and the bug report says \"it feels weird,\" which is the hardest class of bug there is.\nWhat makes the tooltip case interesting is that a single person switches modes mid-interaction.\nWhen my cursor is crossing the screen on its way somewhere else, a tooltip that fires instantly is noise. It flashes, it covers content, it makes the interface feel jumpy for no reason. The delay exists to filter accidental passes.\nBut the moment I stop and read one tooltip, I have declared intent. I am now surveying. If the next four icons each make me wait 500ms, the interface is punishing me for exactly the behavior it was trying to encourage. The delay was a filter for accidents, and I stopped having accidents.\nSo the right behavior is stateful: wait at first, then trust me until I leave the neighborhood. That is the whole insight, and it generalizes further than hover states.\nOnce you see it, this shape is everywhere:\nAutocomplete that should debounce while you are typing a word, then feel instant once you have paused and are clearly evaluating results.\nConfirmation dialogs that make sense the first time you delete something and become a wall when you are cleaning up thirty items.\nRetry backoff that protects a struggling serv",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "延迟是一种设计材料",
+        "summary": "UI元素中的时间和延迟应被视为有意的设计决策，而不是任意的默认值。工具提示从初始延迟中受益，可以过滤意外的鼠标悬停，但一旦用户表示出浏览多个项目的意图，应该取消延迟。"
+      }
+    }
+  },
+  {
+    "title": "DigitalOcean App Platform vs Peon: Managed PaaS or Your Own Droplet?",
+    "slug": "digitalocean-app-platform-vs-peon",
+    "url": "https://dev.to/peon_sh/digitalocean-app-platform-vs-peon-managed-paas-or-your-own-droplet-3c29",
+    "source": "DEV Community",
+    "date": "2026-08-26T12:37:41.000Z",
+    "summary": "DigitalOcean App Platform offers managed deployment but at higher per-app costs, while Peon lets you run multiple containerized services on a single Droplet for lower total costs. The choice depends on whether you value managed infrastructure or cost efficiency for small-scale deployments.",
+    "content": "DigitalOcean App Platform is a metered system charged by app; Peon provisions limitless services to your existing Droplet. A practical pricing and feature comparison.\nThe same cloud, but two very distinct approaches.\nThe alternative way is just a regular Droplet: either a $6 VPS (1 CPU, 1 GB) or a $12 VPS (1 CPU, 2 GB) with ability to run as many containerized apps as it has available resources. Traditionally, the droplet approach required self-managing your infrastructure, exactly what a platform like Peon fixes.\nCost at small scale, with real numbers\nOn one $12 Droplet using Peon, $12 for the Droplet, $6 for three projects running, all with access to 2 GB of memory plus. About $18 per month total, and the ability to use as much memory as the application needs (without being limited to 512 MB slices).\nAnd this ratio grows with every additional service, as the costs for the additional Droplet resources are already included. The fourth app on App Platform will add somewhere between $5 and $12 of the bill; on your own Droplet, $2.\nComparison of features\nWhat App Platform does for you that a Droplet doesn’t\nIt’s true that in practice Peon automates the layer that produces the work: Docker installation, proxy and certificate configuration, deployment workflows, database backups and disk management. The part of “managing a server” that’s left over is really quite small, but it’s not zero, and you should know that going in.\nVerdict\nAnd since both of them are DigitalOcean products, you can do a gradual transition by setting up a Droplet and moving your apps one by one.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "DigitalOcean App Platform vs Peon：托管 PaaS 还是自己的 Droplet？",
+        "summary": "DigitalOcean App Platform 提供托管部署，但每个应用的成本较高，而 Peon 允许您在单个 Droplet 上运行多个容器化服务，总成本更低。选择取决于您是否重视托管基础设施或小规模部署的成本效率。"
+      }
+    }
+  },
+  {
+    "title": "How to Measure Time to Revoke for Exposed Credentials",
+    "slug": "time-to-revoke-exposed-credentials",
+    "url": "https://dev.to/gitguardian/how-to-measure-time-to-revoke-for-exposed-credentials-27n5",
+    "source": "DEV Community",
+    "date": "2026-08-26T12:36:12.000Z",
+    "summary": "Time to revoke is a critical security metric measuring how long exposed credentials remain usable after discovery. Organizations should track the duration from credential validation to confirmed invalidation to understand their exposure window and incident response effectiveness.",
+    "content": "This is a follow-up to an article we published in The Hacker News introducing time to revoke as a critical CISO metric. This version provides a practical guide for measuring it across exposed secrets and non-human identities.\n👉 TL;DR: Time to revoke is a security metric that measures how long an exposed credential remains usable after it has been confirmed valid. Measuring it requires teams to record when a credential is validated and when its invalidation is confirmed. From that baseline, CISOs can track median and P90 time to revoke, the percentage of exposed secrets revoked within SLA, owner coverage, the percentage that remain valid after detection, and the incidents that require manual escalation.\nDetection tells you when a credential was found. A remediation ticket tells you when work was assigned or closed. Neither tells you whether the exposed access was fully neutralized.\nFor leaked credentials, \"Did we find it?\" is the first question. \"How long did it remain valid?\" is just as important, if not more so.\nIf a leaked API key, cloud credential, service account token, OAuth secret, private key, or database connection string is still valid, it is a point of ingress. Until it is revoked, rotated, or otherwise invalidated, it remains a path an attacker can use. Credential rotation only counts when the exposed credential is disabled, expired, or otherwise rendered unusable. That makes time to revoke a critical CISO metric. It connects detection to business risk by measuring the exposure window security teams need to close.\nTime to revoke measures how long an exposed credential remains usable after it has been confirmed valid.\nTime to revoke = confirmed invalidation timestamp − validation timestamp\n\nThe clock starts when the organization verifies that the credential works and stops when it confirms that the credential can no longer be used. Closing a ticket, deleting a file, or removing the secret from a repository does not stop the clock. Only revocation, rotatio",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何衡量已暴露凭证的撤销时间",
+        "summary": "撤销时间是一个关键的安全指标，用于衡量已暴露的凭证在发现后保持可用的时间。组织应跟踪从凭证验证到确认失效的时间，以了解其暴露窗口和事件响应的有效性。"
+      }
+    }
+  },
+  {
+    "title": "Intent Alignment Reviews: Justify Every Line of Code",
+    "slug": "intent-alignment-reviews-code",
+    "url": "https://dev.to/turtleand/intent-alignment-reviews-justify-every-line-of-code-4346",
+    "source": "DEV Community",
+    "date": "2026-08-26T12:28:42.000Z",
+    "summary": "Intent alignment reviews examine whether every line of code serves the stated requirement or goal, addressing how AI-generated implementations often contain unnecessary variables and operations. This approach complements traditional correctness checks by identifying accidental complexity.",
+    "content": "A program can produce the right answer and still contain work that does not help it reach that answer. Tests pass, the output looks correct, and unnecessary computations survive because they appear harmless.\nThis becomes easier to miss in AI-generated code. A model can produce a plausible implementation in seconds, but plausible code often includes variables, conversions, or branches that the requirement never asked for.\nAn intent alignment review adds one question to the usual correctness check:\nDoes every instruction help achieve or explain the stated goal?\nThis does not require a formal proof or an exhaustive line-by-line exercise. The useful result can be concise.\nCorrectness asks whether the observable behavior matches the specification. Intent alignment looks for code that contributes neither behavior nor useful clarity.\nThe goal is not to produce the fewest possible lines. A named constant or helper function can be worthwhile even when the program could run without it. The concern is accidental complexity: code that suggests requirements or design decisions that do not actually exist.\nAI can help by reading the requirement and implementation together. It can confirm the working behavior, identify unnecessary instructions, and explain whether those instructions are harmful or simply unhelpful.\nConsider this specification:\nThe function should print to stdout the first hundred elements of the Fibonacci sequence.\nThe phrase \"first hundred\" does not specify whether the sequence begins with 0, 1 or 1, 1. For this review, we assume the intended convention begins with 0, 1 and prints one value per line.\ndef print_fibonacci_100():\n    a, b = 0, 1\n\n    sequence_limit = 100\n    display_width = len(str(sequence_limit))\n\n    for index in range(sequence_limit):\n        current_value = int(a)\n        print(current_value)\n\n        a, b = b, a + b\n\n        checkpoint = (index + 1) % 10 == 0\n\n    final_pair = (a, b)\n\n\nprint_fibonacci_100()\n\nThe implementation can be reviewed i",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "意图对齐审查：为每一行代码辩护",
+        "summary": "意图对齐审查检查每一行代码是否服务于既定的需求或目标，解决 AI 生成的实现中经常包含不必要的变量和操作的问题。这种方法通过识别意外复杂性来补充传统的正确性检查。"
+      }
+    }
+  },
+  {
+    "title": "The Audit's Blind Spot: I Weighed the Build, Not the Page",
+    "slug": "audit-blind-spot-build-vs-page",
+    "url": "https://dev.to/gabbs279/the-audits-blind-spot-i-weighed-the-build-not-the-page-37p4",
+    "source": "DEV Community",
+    "date": "2026-08-26T12:27:09.000Z",
+    "summary": "Build-time asset audits miss runtime-fetched resources like CMS images that only load in the browser. The author discovered that auditing directory sizes captured only 1.3 MB of issues while actual page loads revealed 9.88 MB in unchecked CMS images.",
+    "content": "I published a post called \"I Audited My Own Portfolio and Found 20 Problems\". It\nI went through the build output chunk by chunk in build/assets/.\nI called that the step that hurts and the one most people skip. I still think\nWeighing the build output worked exactly as advertised. Finding 1 of that audit\n/gabriel-abreu, my contact page, 993 KB, sent\nThose two are bundled assets. A component imports one:\nimport p from \"../assets/developer-illustration.webp\";\n\nVite follows that import, hashes the file, and emits it into build/assets/.\nSo the method was sound within its domain: both of those images are bundled assets, and the step found both.\nOn August 23 I opened the blog index in a browser and watched what it actually\nNone of that could have appeared in the audit. Not because I was sloppy that day\nA bundled asset exists at build time. An import makes it a build input, the\nA CMS image is never a build input. Nothing imports it. It arrives as a string in\n*[_type == \"post\"] | order(publishedAt desc){\n  title,\n  slug,\n  mainImage{ asset->{ _id, url } },\n  publishedAt\n}\n\nThat runs in a useEffect after mount. The url that comes back points at\ncdn.sanity.io, React puts it in an img src, and the browser fetches it from a\nbuild/assets/.\nTwo different lifecycles, and my audit's most rigorous step could only observe\nOnce I measured with a browser's real Accept header instead of a directory\n/allpost, 16 post covers ........ 9.88 MB\none post page, 4 images ......... 4.54 MB\nworst single image .............. 3.13 MB  (2160x2700 PNG, rendered ~250px wide)\nanother cover ................... 2.27 MB  (rendered at 433x227)\n\nThe two images the audit caught came to 1,351 KB between them. One route was\nEvery one of my dev.to cross-posts closes with a link to /allpost. The heaviest route I measured was the page I send people to.\nurlFor was called once\n\n\nSanity ships an image-URL builder, urlFor, that applies CDN transformations —\nurlFor was called exactly once in the application. Not once pe",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "审计的盲点：我称重的是构建过程，而不是页面",
+        "summary": "构建时资产审计会遗漏运行时获取的资源，例如仅在浏览器中加载的CMS图像。作者发现，审计目录大小仅捕获了1.3 MB的问题，而实际页面加载则显示了9.88 MB未经检查的CMS图像。"
+      }
+    }
+  },
+  {
+    "title": "Writing QUIC in Pure Java",
+    "slug": "writing-quic-pure-java",
+    "url": "https://dev.to/cpkb/writing-quic-in-pure-java-2536",
+    "source": "DEV Community",
+    "date": "2026-08-26T12:26:08.000Z",
+    "summary": "The gumdrop Java framework now includes a pure-Java QUIC implementation enabling HTTP/3 support without native dependencies. The custom implementation handles packet protection, congestion control, and async I/O, enabling the framework to maintain its single-threaded event loop architecture.",
+    "content": "I maintain gumdrop, an async, non-blocking Java server framework. Last year I wanted to add HTTP/3 support, and ran into a wall: the Java ecosystem essentially doesn't have QUIC. The JDK's own experimental support (JEP 517) is client-only. Netty gets HTTP/3 by shelling out to quiche + BoringSSL over JNI — which works, but you're back to native builds, platform-specific binaries, and a C library sitting underneath your \"pure Java\" framework. I used that approach first. It was clumsy enough that I went looking for a pure-Java alternative.\nThere's exactly one: Kwik. But Kwik is blocking per connection — one thread per QUIC connection.\nThat's a non-starter for a framework built around single-threaded selector loops handling tens of thousands of concurrent connections. So I wrote a QUIC implementation from scratch: packet protection, loss detection and NewReno congestion control, connection migration, 0-RTT, QPACK, an HTTP/3 client and server — all driven by the same non-blocking event loop as everything else in gumdrop.\nCollaboration note: TLS 1.3 comes from Agent15 — also from Kwik's author, Peter Doornbosch, but just the handshake layer, not the connection model. We're currently working together on making PQC — hybrid key exchange and signatures — the default there.\nThe reason this mattered beyond HTTP/3: gumdrop isn't a web framework with QUIC bolted on, it's a general async I/O framework, and QUIC is just a transport. One thread per connection is exactly the model gumdrop exists to avoid — it caps concurrency at your thread pool, not your file descriptors, and it's the reason a \"just use Kwik\" fix was never really on the table.\nThe same QUIC stack backs DNS-over-QUIC (DoQ) as a first-class DNS transport alongside DoT, DoH, UDP, and TCP — and the DNS resolver itself is fully async, with no blocking InetAddress.getByName() anywhere in the I/O path, which is its own small miracle in Java. HTTP, SMTP, IMAP, POP3, FTP, MQTT, SOCKS — it's the same story throughout: single",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "用纯Java编写QUIC",
+        "summary": "gumdrop Java框架现在包含了一个纯Java的QUIC实现，可以在没有本地依赖的情况下支持HTTP/3。自定义实现处理数据包保护、拥塞控制和异步I/O，使框架能够维持其单线程事件循环架构。"
+      }
+    }
+  },
+  {
+    "title": "Docker in Production: What Changes When Containers Meet Reality?",
+    "slug": "docker-production-containers-reality",
+    "url": "https://dev.to/sreekanth_kuruba_91721e5d/docker-in-production-what-changes-when-containers-meet-reality-1bmm",
+    "source": "DEV Community",
+    "date": "2026-08-26T12:25:33.000Z",
+    "summary": "Production Docker deployments require fundamentally different considerations than development environments, including resource limits, health checks, and observability. The article outlines how to make containers reliable and recoverable when failures occur.",
+    "content": "post 8:\nYou run a container.\nIt starts successfully.\nThe application works.\nSo… is it production-ready?\nNot necessarily.\nThe real test of a production container isn't what happens when everything works.\nIt's what happens when something goes wrong.\nWhat happens when the application consumes all available memory?\nWhat happens when the process crashes?\nWhat happens when the application is running, but isn't actually healthy?\nWhere do the logs go?\nHow do you know something is wrong before users tell you?\nAnd when the container fails, how do you find the actual cause?\nRunning Docker in production isn't just about starting containers.\nIt's about making them reliable, observable, manageable, and recoverable.\n1. Production Starts With Boundaries\nA container that works perfectly on a developer's laptop can behave very differently under production load.\nDevelopment often prioritizes:\nSpeed\nConvenience\nEasy debugging\nFrequent changes\nProduction prioritizes:\nReliability\nPredictability\nSecurity\nObservability\nRecovery\nOne of the first production questions is:\nWhat happens if this container consumes more resources than expected?\nThat's where resource limits come in.\n2. Resource Limits – Don't Let One Container Consume Everything\nWithout appropriate resource limits, a container can consume more host resources than intended.\nFor example:\ndocker run \\\n  --memory=512m \\\n  --cpus=1.0 \\\n  nginx\n\nThis limits the container to:\n512 MB memory\n1 CPU\nWhy does this matter?\nImagine one application suddenly starts consuming several gigabytes of memory.\nWithout appropriate limits, it could affect other workloads running on the same host.\nResource limits create boundaries between workloads.\nBut remember:\nA resource limit doesn't fix a memory leak.\nIt only limits how much damage that container can cause to the host.\nSo now we have another question:\nWhat if the container is running, but the application inside it is broken?\n3. Health Checks – Running Doesn't Mean Healthy\nOne of the most important pro",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "生产环境中的Docker：当容器遇见现实时会发生什么？",
+        "summary": "生产Docker部署需要与开发环境根本不同的考量，包括资源限制、健康检查和可观测性。该文章概述了如何在故障发生时使容器具有可靠性和可恢复性。"
+      }
+    }
+  },
+  {
+    "title": "AWS Serverless Weather Data Pipeline",
+    "slug": "aws-serverless-weather-pipeline",
+    "url": "https://dev.to/aws-builders/aws-serverless-weather-data-pipeline-2nh3",
+    "source": "DEV Community",
+    "date": "2026-08-26T12:20:15.000Z",
+    "summary": "A serverless weather pipeline on AWS uses EventBridge Scheduler to trigger Step Functions workflows that fetch weather data in parallel, transform it, and store it queryable in S3 and Athena. The pipeline is deployed via GitHub Actions with no stored AWS credentials.",
+    "content": "Building a Serverless Weather Pipeline on AWS: A Step-by-Step Walkthrough\n\n\nThis is a build log for someone who's used AWS a bit — deployed a Lambda from the console, poked around S3 — but hasn't touched CDK, Step Functions, EventBridge Scheduler, or GitHub's OIDC setup before. I'll explain each concept the first time it comes up, and show the actual code behind every piece, roughly in the order I built it.\nHere's what it ends up doing: every 10 minutes, EventBridge Scheduler kicks off a Step Functions workflow that pulls current weather for five cities in parallel from a free public API, reshapes the results into JSON Lines, drops them into S3 in a partitioned layout, and makes them queryable in Athena with plain SQL. No crawler, and no AWS credentials sitting anywhere in the GitHub repo that deploys it.\n / \n        serverless-weather-pipeline\n      \n    \n\nServerless Weather Data Pipeline\nA small but complete serverless data pipeline on AWS\nwalkthrough: EventBridge Scheduler → Step Functions → Lambda → S3 →\nGlue/Athena, deployed by GitHub Actions with no AWS access keys\nstored anywhere (authentication is via GitHub's OIDC provider).\nflowchart TD\n    A[\"EventBridge Scheduler (every 10 min)\"] --> B[\"Step Functions state machine\"]\n    B --> C[\"PrepareCities (Pass)\"]\n    C --> D[\"ForEachCity (Map, concurrency 4)\"]\n    D --> E[\"FetchWeather (Lambda -> Open-Meteo public API)\"]\n    E -.-> F[\"retries transient errors (up to 2 attempts)\"]\n    E -.-> G[\"FetchFailed (Pass): per-city failure absorbed here, other cities continue\"]\n    E --> H[\"TransformWeatherData (Lambda, pure function, no AWS calls)\"]\n    H -.-> I[\"splits successes vs failures\"]\n    H -.-> J[\"builds JSON-Lines body + partitioned S3 key\"]\n    H --> K[\"LoadToS3 (Lambda, writes to S3 via boto3)\"]\n    K --> L[\"S3 (processed/dt=YYYY-MM-DD/hour=HH/*.jsonl)\"]\n    L --> M[\"Glue Data Catalog table (partition projection -- no crawler)\"]\n    M --> N[\"Athena (query with plain SQL)\"]\n    D -.->\n…\n\nView on GitHub\nWhat we'r",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AWS 无服务器天气数据管道",
+        "summary": "AWS 上的无服务器天气管道使用 EventBridge 调度程序触发 Step Functions 工作流，这些工作流并行获取天气数据、转换数据并将其存储在 S3 和 Athena 中以便查询。该管道通过 GitHub Actions 部署，不存储 AWS 凭证。"
+      }
+    }
+  },
+  {
+    "title": "Linus Trovalds ~ Founder of Linus and GIT",
+    "slug": "linus-torvalds-open-source-founder",
+    "url": "https://dev.to/heyabdullahbruh/linus-trovalds-founder-of-linus-and-git-3e4",
+    "source": "DEV Community",
+    "date": "2026-08-26T12:20:14.000Z",
+    "summary": "Linus Torvalds chose to build open-source software and enable community collaboration through Linux and Git rather than pursue commercial success. His legacy demonstrates how greater impact can come from giving others the freedom to build than from controlling what you create.",
+    "content": "A brilliant engineer who could have become a billionaire, built a trillion-dollar company, and chased every measure of commercial success.\nBut instead, Linus Torvalds chose something different: independence, flexibility, reliability, and the empowerment of people to build.\nHe didn’t just create technology. He helped shape a culture where software could remain open, collaborative, and adaptable by engineering rather than ownership.\nHis brilliance results Linux and Git are more than extraordinary pieces of software, these are reminders that some of the greatest impact comes not from controlling what you build, but from giving others the freedom to build on it.\n_And honestly, I don’t even know how he makes his money. 😄",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Linus Torvalds ~ Linux 和 GIT 的创始人",
+        "summary": "Linus Torvalds 选择构建开源软件并通过 Linux 和 Git 实现社区协作，而不是追求商业成功。他的遗产表明，给予他人自由去创造能带来比控制自己的作品更大的影响力。"
+      }
+    }
+  },
+  {
+    "title": "Projeto Front-End",
+    "slug": "projeto-front-end-snoopy",
+    "url": "https://dev.to/samuel_bm/projeto-front-end-223h",
+    "source": "DEV Community",
+    "date": "2026-08-26T12:20:14.000Z",
+    "summary": "A student learning HTML, CSS, and Git through a front-end project for a university course built a Snoopy-themed website with basic web components. The project demonstrates foundational skills including tables, multiple pages, external links, and CSS classes.",
+    "content": "Comecei a realizar um projeto da faculdade sobre desenvolvimento Front-End. Estou aprendendo a utilizar github (branches,commits); além disso, o trabalho está sendo feito em HTML e CSS, e isso está me possibilitando aprender mais sobre essas duas linguagens e expandir minhas habilidades para diferentes ramos da tecnologia! Meu github está aqui se quiserem me dar algumas dicas sobre como melhorar! https://github.com/SamuelMacielB/SamuelMacielB-SamuelMacielB-projeto-integrador-frontend--SamuelMaciel\nMeu projeto é sobre um site focado no personagem Snoopy. O site possui conteúdos básicos de HTML e CSS como tables, múltiplos index, links externos e classes.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "前端项目",
+        "summary": "一名学生在大学课程的前端项目中学习 HTML、CSS 和 Git，构建了一个以 Snoopy 为主题的网站，包含基本的网络组件。该项目展示了基础技能，包括表格、多个页面、外部链接和 CSS 类。"
+      }
+    }
+  },
+  {
     "title": "Building an Automated QA KPI Dashboard for Playwright & BDD Pipelines",
     "slug": "building-automated-qa-kpi-dashboard-playwright-bdd",
     "url": "https://dev.to/she11_qa/building-an-automated-qa-kpi-dashboard-for-playwright-bdd-pipelines-31p7",
