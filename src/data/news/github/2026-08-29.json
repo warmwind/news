@@ -1,5 +1,213 @@
 [
   {
+    "title": "Build an XRPL Token Screener in About 50 Lines",
+    "slug": "build-xrpl-token-screener-50-lines",
+    "url": "https://dev.to/nyxagi/build-an-xrpl-token-screener-in-about-50-lines-1n38",
+    "source": "DEV Community",
+    "date": "2026-08-29T20:00:23.000Z",
+    "summary": "The XRP Ledger hosts over 20,000 tokens, but only a fraction trade actively. This article demonstrates how to build a token screener in approximately 50 lines of code using no external dependencies, employing metrics like volume-per-trader and holder stickiness to distinguish between legitimate trading activity and wash trading schemes.",
+    "content": "There are 20,268 tokens issued on the XRP Ledger and only 1,543 of them traded today. A screener is how you tell those two groups apart.\nHere is a complete one. No dependencies, runs on any Node 18+.\nconst API = 'https://api.xrpl.to/v1';\n\nasync function get(path, attempt = 1) {\n  const r = await fetch(API + path);\n  if (r.ok) return r.json();\n  if ((r.status === 429 || r.status >= 500) && attempt < 4) {\n    await new Promise(s => setTimeout(s, attempt * 4000));\n    return get(path, attempt + 1);\n  }\n  throw new Error(`HTTP ${r.status}`);\n}\n\nfunction score(t) {\n  // Volume per unique trader — high values mean few accounts moving a lot,\n  // which is what wash trading looks like from the outside.\n  const perTrader = t.vol24hxrp / Math.max(t.uniqueTraders24h, 1);\n  // Trustlines that no longer hold a balance are historical interest.\n  const stickiness = t.holders / Math.max(t.trustlines, 1);\n  return { perTrader, stickiness };\n}\n\nasync function screen() {\n  const { tokens } = await get('/tokens?limit=100&sortBy=vol24hxrp&sortType=desc');\n\n  return tokens\n    .filter(t => t.holders >= 1000)          // ignore dust\n    .filter(t => t.uniqueTraders24h >= 20)        // ignore one-account markets\n    .map(t => ({ name: t.name, issuer: t.issuer, ...score(t),\n                 holders: t.holders, vol: t.vol24hxrp }))\n    .filter(t => t.stickiness > 0.15)             // most holders still hold\n    .sort((a, b) => a.perTrader - b.perTrader);   // broadest participation first\n}\n\nscreen().then(rows => {\n  for (const r of rows.slice(0, 15)) {\n    console.log(\n      r.name.padEnd(12),\n      String(r.holders).padStart(7),\n      r.perTrader.toFixed(0).padStart(9),\n      r.stickiness.toFixed(2)\n    );\n  }\n});\n\nholders >= 1000 — on the XRPL, holding a token requires an explicit trustline, and a trustline locks an XRP reserve. Every holder paid something to be counted, so this threshold means more here than a wallet count would on a contract chain.\nuniqueTraders24h >= 20 — volume with th",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "用约50行代码构建XRPL代币筛选器",
+        "summary": "XRP账本托管了超过20,000种代币,但只有一小部分活跃交易。本文演示了如何用约50行代码构建代币筛选器,无需外部依赖,利用交易量/交易者和持有人粘性等指标来区分合法交易活动和洗盘交易方案。"
+      }
+    }
+  },
+  {
+    "title": "The WebGPU Export Engine: Rendering High-Res Canvases to MP4, SVG, and PDF Like a Senior Architect",
+    "slug": "webgpu-export-engine-mp4-svg-pdf",
+    "url": "https://dev.to/programmingcentral/the-webgpu-export-engine-rendering-high-res-canvases-to-mp4-svg-and-pdf-like-a-senior-architect-1gbc",
+    "source": "DEV Community",
+    "date": "2026-08-29T20:00:00.000Z",
+    "summary": "Interactive web visualizations and high-resolution exports require opposite architectural optimizations—one prioritizes frame latency while the other demands spatial fidelity. This deep dive explores WebGPU, OffscreenCanvas, and multi-format serialization techniques to bridge this gap, enabling production-grade exports to MP4, SVG, and PDF without freezing the browser.",
+    "content": "The permanent friction of modern web development is a silent war between interactive visualization and high-fidelity archival export. \nImagine building a cutting-edge node-based visual workflow engine in TypeScript. Your users are combining semantic text embeddings to drive dynamic latent space interpolations, streaming real-time audio data, and executing complex compute shaders. On screen, everything runs at a buttery-smooth 60 or 120 frames per second. The UI responds instantly. \nThen, the user clicks a single button: \"Export 4K Video.\"\nSuddenly, the browser freezes. The CPU spikes to 100%. Memory consumption balloons until the tab crashes with an out-of-memory error. The user is left staring at a blank screen, wondering why their sleek SaaS application just imploded under the weight of a single render request.\nWhy does this happen? Because interactive visualization and high-resolution archival export operate on opposite ends of the architectural spectrum. \nIn real-time preview contexts—like standard DOM manipulation, Canvas 2D, or WebGL environments—your primary optimization metric is frame latency. You shed computational accuracy, downsample texture resolutions, and drop non-essential pipeline stages to guarantee fluid interactivity. But the moment you transition to the export phase, optimization metrics flip entirely. Frame latency becomes completely irrelevant. Instead, spatial fidelity, temporal coherence, color space precision, and multi-format serialization take absolute precedence.\nIn this deep dive, we are going to explore how to build a production-grade export engine that bridges these two worlds. We will look at the mechanics of WebGPU, OffscreenCanvas, deterministic virtual timelines, zero-copy memory mapping, and multi-format serialization into MP4, SVG, and PDF. \nBuckle up. We are transforming the browser into a deterministic, multi-threaded operating system compositor.\nTo understand the theoretical imperatives of rendering high-resolution generative",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "WebGPU导出引擎:像资深架构师一样将高分辨率画布渲染为MP4、SVG和PDF",
+        "summary": "交互式网络可视化和高分辨率导出需要相反的架构优化——一个优先考虑帧延迟,另一个要求空间保真度。本文深入探讨WebGPU、OffscreenCanvas和多格式序列化技术以弥合这一差距,实现无需冻结浏览器的MP4、SVG和PDF生产级导出。"
+      }
+    }
+  },
+  {
+    "title": "Networking in the Power Grid for Software Developers Part 1: Rebuilding a Local Network with Medieval Signal Towers",
+    "slug": "networking-power-grid-medieval-signal-towers",
+    "url": "https://dev.to/dmytro_huz/networking-in-the-power-grid-for-software-developers-part-1-rebuilding-a-local-network-with-3n21",
+    "source": "DEV Community",
+    "date": "2026-08-29T19:58:28.000Z",
+    "summary": "This article uses medieval signal towers as a thought experiment to rebuild networking concepts from first principles, explaining why components like switches, MAC addresses, and ARP protocols were necessary inventions. By working backward from fundamental constraints, it reveals the design decisions behind modern network infrastructure relevant to power grid systems.",
+    "content": "Recently I started working on a networking series for software developers who enter the electrical-grid world and suddenly discover that the grid speaks in packets, interfaces, switches, routes, protocols and a suspicious number of acronyms.\nBefore going anywhere near IEC 61850, utility WANs or substation networks, I wanted to understand the ordinary networking machinery itself. Not only what a switch or ARP does, but why these things had to appear in the first place.\nI could start with the OSI model. I have seen that diagram enough times in my life. The problem is that a finished diagram is very good at telling us where something belongs and surprisingly bad at showing why it exists.\nSo I had a more ridiculous idea.\nImagine that I am somewhere in medieval Europe. No copper cable, no fiber, no radio and definitely no Ethernet. I have stone towers on hills, and the only useful property I can rely on is visibility. If one tower can see another, I can make light visible or hide it.\nCould I start from that and slowly rebuild a network?\nThis is not a historical reconstruction. I am not claiming that medieval Europe was one good standards committee away from IEEE 802.3. The towers are only a constraint. I want to begin with the smallest possible communication system, push it until it becomes uncomfortable, fix the new problem, and then compare the thing we invented with the machinery inside a real network.\nThat approach is much closer to how I like to understand systems. The finished technology often hides the reasons for its own shape. Broken and incomplete versions expose them.\nIn this post we will discuss the local part of the network. We will begin with physical signalling between two towers, then add more participants and see why frames, MAC addresses, switching, flooding, broadcast and ARP appear. Near the end we will come back to Linux and look at the same machinery on a real machine.\nI want to begin before packets, addresses and protocols exist at all.\nTwo towers",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "软件开发人员的电力网络第1部分:用中世纪信号塔重建本地网络",
+        "summary": "本文以中世纪信号塔为思想实验,从第一原理重建网络概念,解释为什么交换机、MAC地址和ARP协议等组件是必要的发明。通过从基本约束反向工作,它揭示了与电力网络系统相关的现代网络基础设施背后的设计决策。"
+      }
+    }
+  },
+  {
+    "title": "How AI Stores Millions of Vectors Without Using Tons of Memory",
+    "slug": "ai-stores-millions-vectors-memory",
+    "url": "https://dev.to/rijultp/ever-wondered-how-ai-stores-millions-of-embeddings-47ek",
+    "source": "DEV Community",
+    "date": "2026-08-29T19:55:59.000Z",
+    "summary": "Vector embeddings for AI applications like RAG systems can consume enormous memory—10 million 768-dimensional vectors require roughly 30 GB. Product Quantization (PQ) is a compression technique that dramatically reduces storage requirements without losing search effectiveness, making large-scale AI systems economically viable.",
+    "content": "Hello, I'm Rijul, and I'm building LiveReview — a blast-radius aware AI code review built for your business-critical systems. Star us to help devs discover the project, give it a try, and share your feedback to help improve the product.\nIn any sort of AI application, we have the concept of vectors.\nVectors come in different shapes and sizes.\nEspecially when they are large, we need a good way to manage them.\nOne way to solve this is by compressing these large vectors.\nThis is especially relevant to FAISS, which I explained in another article of mine, where it is a library for efficient similarity search over large collections of vectors. Product Quantization is one of the techniques FAISS supports for vector compression and efficient search.\nLet's visualize this with a problem.\nSuppose you have a customer support RAG app\nAnd for that, you have 10 million embeddings containing chunks from product documentation, FAQs, and support articles.\nEach of these embeddings has 768 dimensions. Each of those 768 dimensions is used to store a numerical representation of the meaning of that text.\nNow, each dimension is a float, so we can think of it as a 32-bit float.\n32 bits means 4 bytes.\nSo:\n768 × 4 = 3072 bytes\n\nThat's roughly 3 KB per 768-dimensional vector.\nNow let's scale this to 10 million embeddings:\n10,000,000 × 3 KB = 30 GB\n\nSo this 3 KB per vector becomes 30 GB when scaled to 10 million embeddings.\n30 GB is roughly the size of a decent-sized game or several high-quality movies.\nSo imagine searching among this much vector data. It can get expensive.\nLet's look at the numbers again.\nWe have 10 million embeddings. We can't change that.\nBut we have 3 KB per vector.\nWhat if we could compress that 3 KB further, so that when we scale it to millions of embeddings, we get a much lower storage requirement?\nThe technique used to do this is called Product Quantization, or PQ.\nLet's look at the basic idea behind PQ.\nImagine I have this vector:\n[0.21, 0.73, -0.15, 0.91, 0.34, -0.52,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI 如何在不占用大量内存的情况下存储数百万向量",
+        "summary": "AI 应用（如 RAG 系统）的向量嵌入会消耗巨大的内存——1000 万个 768 维向量需要大约 30 GB。乘积量化（PQ）是一种压缩技术，可以显著减少存储需求而不降低搜索效果，使大规模 AI 系统在经济上可行。"
+      }
+    }
+  },
+  {
+    "title": "Do zero ao primeiro passo na programação: o que aprendi estudando Python",
+    "slug": "primeiro-passo-programacao-python",
+    "url": "https://dev.to/luizbraga321/do-zero-ao-primeiro-passo-na-programacao-o-que-aprendi-estudando-python-1185",
+    "source": "DEV Community",
+    "date": "2026-08-29T19:55:10.000Z",
+    "summary": "This Portuguese-language article documents one developer's journey learning Python from zero, emphasizing that programming requires more than syntax knowledge—it demands logical thinking and problem-solving skills. The author covers fundamental concepts and shares lessons learned while building a foundation for a computer science career.",
+    "content": "Começar a estudar programação do zero pode ser intimidador.\nAntes de começar a aprender de forma estruturada, eu tinha uma visão relativamente simples sobre programação: imaginava que programar era aprender comandos, escrever códigos e fazer programas funcionarem. Depois dos primeiros estudos, percebi que a realidade é um pouco diferente.\nProgramar não é apenas conhecer uma linguagem. É aprender a analisar problemas, organizar informações e construir soluções passo a passo.\nNeste artigo, quero compartilhar como foi meu primeiro contato estruturado com Python, algumas dificuldades que encontrei e os principais aprendizados que tive durante esse início.\nEscolhi a área de tecnologia porque quero construir uma carreira em Ciência da Computação e entender melhor como os sistemas e tecnologias que usamos todos os dias funcionam.\nDentro dessa jornada, tenho interesse em áreas como desenvolvimento de software, backend, dados e, futuramente, Machine Learning.\nMas antes de chegar a assuntos mais avançados, percebi que precisava começar pela base.\nPython foi uma escolha interessante para esse início porque possui uma sintaxe relativamente simples e é utilizada em diferentes áreas da tecnologia, desde desenvolvimento web até automação, análise de dados e inteligência artificial.\nMesmo assim, aprender uma linguagem não significa apenas conhecer sua sintaxe. Era necessário desenvolver algo que eu ainda não tinha experiência: lógica de programação.\nComecei estudando os conceitos fundamentais da linguagem.\nAlguns dos primeiros assuntos foram:\nVariáveis\nTipos de dados\nEntrada de dados com input()\n\nConversão de valores com int() e float()\n\nSaída de dados com print()\n\nOperadores matemáticos\nEstruturas condicionais com if, elif e else\n\nEstruturas de repetição\nManipulação básica de strings\nNo começo, muitos desses conceitos pareciam independentes. Eu conseguia entender o que cada comando fazia isoladamente, mas ainda precisava aprender a combiná-los para resolver problemas.\nPor exemplo,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "从零到迈出编程的第一步：我在学习 Python 时学到的东西",
+        "summary": "这篇葡萄牙语文章记录了一位开发者从零开始学习 Python 的历程，强调编程不仅需要语法知识，还需要逻辑思维和解决问题的能力。作者涵盖了基本概念，并分享了在为计算机科学职业打下基础时所学到的经验。"
+      }
+    }
+  },
+  {
+    "title": "The Monorepo Migration: Merging Histories Without Losing Your Mind",
+    "slug": "monorepo-migration-merging-git-histories",
+    "url": "https://dev.to/freshcaffeine/the-monorepo-migration-merging-histories-without-losing-your-mind-f2p",
+    "source": "DEV Community",
+    "date": "2026-08-29T19:50:32.000Z",
+    "summary": "FilmTailor consolidated multiple service repositories into a single monorepo while preserving complete git history and blame annotations. This approach eliminated context-switching overhead, simplified shared code management without private package feeds, and enabled .NET Aspire orchestration—all while maintaining historical traceability.",
+    "content": "At FilmTailor we'd got to the point where every new service meant a new repo, a new pipeline, and a new set of \"wait, which version of the shared library is this one on?\" conversations. Nothing was broken exactly. It was just death by a thousand context switches: five terminals open, five READMEs slightly out of date, and PRs that touched three repos because one API contract changed.\nThe fix was obvious enough on a whiteboard: pull everything into a single monorepo. The bit that wasn't obvious was how, if you actually care about keeping your git history intact rather than just copy-pasting source files in and losing a decade of blame annotations in the process.\nBeyond fixing the \"which repo has the latest version of this?\" problem, a couple of other benefits made the decision easy:\nSharing code without an internal NuGet feed. Shared models, DTOs, and common classes could just be referenced directly instead of living behind a private package feed. That sounds like a nice-to-have until you've actually run one: every change means a PR to the shared library, a version bump, a PR to consume the new version in each service, and inevitably a service or two lagging a few versions behind because nobody got round to bumping it. A monorepo makes shared code an internal project reference instead of a package dependency, and the sync problem disappears.\nA clean path to Aspire. (It's just \"Aspire\" these days, not \".NET Aspire\" — Microsoft dropped the prefix. See the Aspire docs.) Aspire wants to orchestrate your whole solution — all your services, their dependencies, the lot — from one AppHost. Multi-repo isn't officially supported yet: Aspire maintainer David Fowler has said it's on the roadmap but more mid-term than short-term (there's a long-running GitHub discussion tracking it, with a mention on the public roadmap too). In the meantime people get by with workarounds — \"uber solutions\" that clone every repo into sibling folders, git submodules, or shipping shared bits as NuGe",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "单体库迁移：合并历史记录而不丧失理智",
+        "summary": "FilmTailor 将多个服务仓库合并到一个单体库中，同时保留完整的 git 历史记录和代码注解。这种方法消除了上下文切换的开销，简化了共享代码管理（不需要私有包源），并启用了 .NET Aspire 编排——同时保持了历史可追溯性。"
+      }
+    }
+  },
+  {
+    "title": "Giving AI Agents a Deterministic Clock (Zero LLM in the Loop)",
+    "slug": "giving-ai-agents-deterministic-clock",
+    "url": "https://dev.to/jservodotcom/giving-ai-agents-a-deterministic-clock-zero-llm-in-the-loop-3fk5",
+    "source": "DEV Community",
+    "date": "2026-08-29T19:50:18.000Z",
+    "summary": "Autonomous AI systems stall when waiting for human input, but Sundial solves this by measuring user absence with system-level sensors rather than LLM calls. The approach runs locally with zero model invocations, uses OS presence detection across macOS and Linux, and manages escalation and continuity through plain JSON ledgers.",
+    "content": "When building autonomous AI systems, developers eventually hit a fundamental architectural wall. Your coding agent asks you a question, and you step away from the keyboard. Today, nothing happens. The session hangs, the question rots, and the work stalls.\nAt J. Servo LLC, we architect enterprise AI systems to operate predictably. We built Sundial to act as the missing half of the human-in-the-loop framework[cite: 1]. It operates on a single defining principle: Sundial measures absence, not time[cite: 1]. \nWhen the human becomes the blocker, the agent's clock keeps running[cite: 1]. It nudges you on your desktop, escalates politely through your absence, and greets you with continuity upon your return[cite: 1]. If you never answer, the agent proceeds on its stated judgment or stands down[cite: 1]. It does this deterministically, with zero model calls, and runs 100% locally[cite: 1].\nRelying on a Large Language Model to determine if a user has abandoned a session violates lean architecture principles. Time tracking belongs at the system level. The separation of actors is the design[cite: 2]. \nSundial enforces a strict architectural boundary across three main components:\n  Sensors: These perform zero-permission OS reads[cite: 2]. They utilize HIDIdleTime, lsappinfo, and pmset on macOS, and xprintidle or loginctl on Linux[cite: 1]. Any missing sensor returns None and softens to wall time rather than blocking the system[cite: 1].\n  The Watcher Daemon: A pure Python loop running via launchd that handles presence classification and escalation[cite: 1, 2]. It uses zero LLMs[cite: 2].\n  The Ledgers: Plain JSON files stored in a git-ignored data/ directory[cite: 2]. State is written atomically using NamedTemporaryFile, fsync(), and os.replace(), serialized by inter-process locking via fcntl.flock[cite: 1]. \nEscalation advances only while you genuinely have not seen the chat[cite: 1]. Sundial categorizes your presence into three strict states:\n  HERE: The chat is visible[cite:",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为AI代理配置确定性时钟（零LLM干预）",
+        "summary": "自主AI系统在等待人工输入时会出现停滞，但Sundial通过系统级传感器测量用户缺席状态而非LLM调用来解决这个问题。该方法在本地运行，零模型调用，使用macOS和Linux上的操作系统存在检测，并通过纯JSON账本管理升级和连续性。"
+      }
+    }
+  },
+  {
+    "title": "A Rate Limiter That Knows Who's Calling",
+    "slug": "rate-limiter-knows-who-calling",
+    "url": "https://dev.to/thotakura/a-rate-limiter-that-knows-whos-calling-i27",
+    "source": "DEV Community",
+    "date": "2026-08-29T19:47:21.000Z",
+    "summary": "ASP.NET Core's rate limiter can partition quotas by client identity, preventing one misbehaving client from exhausting shared resources. This article demonstrates a complete implementation using custom authentication, per-client partitioning with separate read/write budgets, and fixed-window enforcement at HTTP 429 responses.",
+    "content": "ASP.NET Core's rate limiter partitions however you key it. Key it on the caller, and one client's burst stops being every other client's problem.\nI built a small lab to get that wiring right end to end. \nFour stages:\nAuthenticate. A custom header scheme validates the client and issues a client_id claim. Nothing downstream can partition per client until this exists.\n\n\nPartition. The policy reads that claim and keys the partition by client id plus HTTP verb. A client's read budget and write budget are separate buckets, and so are two different clients'.\n\n\nLimit. Fixed window: 10 requests per 10 seconds, queue limit 0. No waiting in line, you either get a permit or you don't.\n\n\nEnforce. Request 11 in the window gets HTTP 429.\n\n\n\nThe client's profile decides which partition it lands in:\nStandard: limited on every verb.\nThe part worth remembering is the ordering. \nThree calls do the wiring: AddRateLimiter() to register the policy, UseRateLimiter() to put it in the pipeline, RequireRateLimiting() to attach it to an endpoint group.\nCode, including the in-memory client fixtures and the Todo endpoints it protects: https://github.com/sthotakura/rate-limiter-lab",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "一个知道谁在调用的速率限制器",
+        "summary": "ASP.NET Core的速率限制器可以按客户端身份划分配额，防止一个行为不端的客户端耗尽共享资源。本文演示了使用自定义认证、按客户端分区和独立的读/写预算、以及HTTP 429响应中的固定窗口强制执行的完整实现。"
+      }
+    }
+  },
+  {
+    "title": "Free online hackathon: Build with Stripe Community, Sept 16",
+    "slug": "free-hackathon-build-stripe-community",
+    "url": "https://dev.to/michaelstanat/free-online-hackathon-build-with-stripe-community-sept-16-3f02",
+    "source": "DEV Community",
+    "date": "2026-08-29T19:41:29.000Z",
+    "summary": "Stripe Community is hosting a free 90-minute online hackathon on September 16, 2026, featuring an introduction to AI-driven development with Stripe Projects and hands-on coding using AI tools. The event is open to developers of all experience levels with no finished project required.",
+    "content": "Bring an idea and start building it live with AI.\nBuild with Stripe Community is a free 90-minute online session: a short talk followed by a hands-on hackathon. You will see how AI is changing the way apps get built, get an intro to Stripe Projects for managing your tech stack with AI agents, and build a real project from the terminal using AI coding tools.\nOpen to everyone. No prior experience and no finished app required.\nWhen: September 16, 2026, 7:00 PM ET, online\nRegister on the Stripe Community page:\nhttps://www.stripecommunity.com/public/clubs/stablecoins/events/build-with-stripe-community-simplify-building-your-tech-stack-with-ai-oyakk9raah",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "免费在线黑客马拉松：与Stripe社区一起构建，9月16日",
+        "summary": "Stripe社区将于2026年9月16日举办一个免费的90分钟在线黑客马拉松，介绍使用Stripe Projects进行AI驱动开发以及使用AI工具进行实践编码。该活动对所有经验级别的开发者开放，无需完成项目。"
+      }
+    }
+  },
+  {
+    "title": "Tried `tailscale/tailcat`: A Small Tool with Big Private-Network Potential",
+    "slug": "tailscale-tailcat-private-network",
+    "url": "https://dev.to/james_lin/tried-tailscaletailcat-a-small-tool-with-big-private-network-potential-1mja",
+    "source": "DEV Community",
+    "date": "2026-08-29T19:41:09.000Z",
+    "summary": "Tailcat provides netcat-style TCP tunneling over Tailscale's data plane without control plane dependencies, enabling enterprises to expose private AI gateways securely. The lightweight tool has gained significant momentum and is particularly useful for infrastructure teams building private AI networks without public exposure.",
+    "content": "Tried tailscale/tailcat: A Small Tool with Big Private-Network Potential\n\n\ntailscale/tailcat is essentially netcat over Tailscale’s data plane—without depending on Tailscale’s control plane. That makes it interesting for teams building private AI infrastructure: you can move TCP traffic between trusted nodes without exposing an inference gateway publicly or introducing another VPN control dependency.\nThe project is currently seeing strong momentum, with +790 GitHub stars today. The appeal is easy to understand: it is small, composable, and fits the way infrastructure engineers already think about nc, port forwarding, and service probes.\nA practical architecture is to keep the AI gateway on a private Docker network, then expose only the required listener through Tailcat:\n# docker-compose.yml\nservices:\n  ai-gateway:\n    image: your-openai-compatible-gateway:latest\n    environment:\n      OPENAI_BASE_URL: https://b-lost.com/v1\n      OPENAI_API_KEY: ${BLOST_API_KEY}\n      DEFAULT_MODEL: claude-fable-5\n      REQUEST_LOGGING: \"false\"\n    ports:\n      - \"127.0.0.1:8080:8080\"\n\nFrom a trusted build runner or developer workstation, the gateway can then be reached over the Tailcat transport according to the repository’s listener/connect syntax:\ncurl http://private-gateway.internal:8080/v1/chat/completions \\\n  -H \"Authorization: Bearer $TEAM_GATEWAY_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"model\": \"claude-fable-5\",\n    \"messages\": [{\"role\":\"user\",\"content\":\"Review this deployment plan.\"}]\n  }'\n\nFor enterprise use, I would place quota enforcement, key rotation, and model allowlists in the gateway—not in Tailcat. Tailcat should stay focused on private transport. Keep local access logs disabled or redacted, and avoid sending sensitive payloads through unnecessary observability layers.\nIf using B-Lost as the upstream relay, its OpenAI-compatible base URL is https://b-lost.com/v1. Native Anthropic /v1/messages prompt caching can also reduce repeated-context costs,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "体验 `tailscale/tailcat`：拥有巨大私有网络潜力的小工具",
+        "summary": "Tailcat 提供了基于 Tailscale 数据平面的 netcat 风格 TCP 隧道，无需依赖控制平面，使企业能够安全地暴露私有 AI 网关。这个轻量级工具已获得显著关注，特别适合构建不对外公开的私有 AI 网络的基础设施团队。"
+      }
+    }
+  },
+  {
+    "title": "LioranDB V2 Is in Pre-Alpha. Please Try to Break It.",
+    "slug": "liorandb-v2-pre-alpha-testing",
+    "url": "https://dev.to/ultrontheai/liorandb-v2-is-in-pre-alpha-please-try-to-break-it-j46",
+    "source": "DEV Community",
+    "date": "2026-08-29T19:39:12.000Z",
+    "summary": "LioranDB V2, a Rust-based document database, is seeking community testing to identify bugs, performance issues, and edge cases before production release. The system includes B+ Tree storage, MVCC, full-text indexing, and MongoDB-style APIs, with the author explicitly soliciting feedback on database behavior and developer experience.",
+    "content": "LioranDB V2 is now publicly available in pre-alpha, and I want developers to do something slightly unusual:\nTry to break it.\nNot just install it, run insertOne(), see that it works, and close the terminal.\nPush it.\nGive it weird queries. Throw large datasets at it. Create indexes. Delete things. Restart the server. Send concurrent requests. Test edge cases. Try workflows I probably didn't think about.\nIf something behaves strangely, becomes painfully slow, crashes, returns an unexpected result, or simply feels bad to use, I want to know.\nLioranDB is a developer-first document database being developed in India.\nV2 is written in Rust and currently includes things such as:\nB+ Tree primary storage\nMVCC\nWrite-Ahead Logging\nCheckpoints and crash recovery\nSecondary indexes\nFull-text indexing\nDocker deployment\nTypeScript/JavaScript driver\nMongoDB-style document APIs\nThe goal isn't to pretend that a pre-alpha database is already production-ready.\nThe goal is to find everything that's wrong with it before it gets there.\nI'm especially interested in hearing about:\n🐛 Bugs\nAnything that crashes, hangs, produces incorrect results, corrupts state, or behaves differently from what you'd expect.\n⚡ Performance problems\nSlow queries, unexpected latency, bad scaling with larger collections, inefficient indexes, memory problems, or operations that become suspiciously expensive.\n🧪 Edge cases\nStrange documents. Strange queries. Strange sequences of operations.\nBasically, be creative.\nDatabases tend to behave nicely until somebody does something the database author never imagined.\nBe that somebody.\n🧑‍💻 Developer experience\nI'd also love feedback about the API itself.\nIs something confusing?\nDoes an error message suck?\nIs an operation unnecessarily complicated?\nDid you have to read the documentation three times to understand something?\nThat's a bug too, just wearing nicer clothes.\nStart here:\nDocumentation:\nhttps://docs.liorandb.com\nLioranDB:\nhttps://liorandb.com\nThe documentation conta",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "LioranDB V2 进入预发布阶段，诚邀测试者来找 Bug",
+        "summary": "基于 Rust 的文档数据库 LioranDB V2 正在寻求社区测试，以在生产发布前识别 bug、性能问题和边界情况。该系统包括 B+ Tree 存储、MVCC、全文索引和 MongoDB 风格的 API，作者明确征求关于数据库行为和开发者体验的反馈。"
+      }
+    }
+  },
+  {
+    "title": "Zoho CRM API: A Practical Guide to Building Custom Integrations",
+    "slug": "zoho-crm-api-custom-integrations",
+    "url": "https://dev.to/oliviatechsphere/zoho-crm-api-a-practical-guide-to-building-custom-integrations-44ac",
+    "source": "DEV Community",
+    "date": "2026-08-29T19:35:06.000Z",
+    "summary": "Building production-grade custom Zoho CRM integrations requires understanding multi-datacenter routing, dynamic rate limiting, and API credit optimization. This guide covers OAuth 2.0 authentication, REST API architecture, COQL query optimization, and webhook patterns needed for reliable bi-directional data synchronization without expensive third-party connectors.",
+    "content": "Connecting an enterprise CRM to third-party web apps, proprietary databases, or legacy ERPs is rarely a drag-and-drop affair. While simple trigger-action connectors like Zapier work for basic lead creation, high-volume data pipelines require direct REST API engineering.\nCustom integrations allow you to maintain bi-directional data sync, reduce third-party subscription costs, optimize execution speed, and keep full governance over error handling.\nWhether you are syncing customer records with an external PostgreSQL database or building a custom web portal gateway, this guide covers the core technical architecture, OAuth 2.0 authentication patterns, API rate limit strategies, and Deluge webhook implementations needed to build reliable, production-grade custom integrations with Zoho CRM.\nUnderstanding Zoho CRM API v3/v6 Architecture\n\n\nThe Zoho CRM REST API is structured around standard HTTP methods (GET, POST, PUT, DELETE) and returns JSON payloads. Before writing integration code, you must account for three core architectural considerations:\nMulti-DC Data Centers: Zoho operates across multiple data centers globally (.com, .eu, .in, .com.au, .ca). Your API requests must route to the exact accounts server domain associated with your organization's region.\nSystem Rate Limits: Rate limits are calculated dynamically based on your software tier (e.g., Zoho One vs. standalone Ultimate Edition) and user seat count. Requests exceeding limits throw a 429 Too Many Requests status code.\nAPI Credit Consumption: Single API calls yield fewer records if you query parameters unbatched. Utilizing COQL (CRM Object Query Language) or Bulk Read APIs reduces total API credit burn.\nZoho CRM uses OAuth 2.0 (Authorization Code Grant) to authenticate API requests. For server-to-server integrations operating without a user interface, you use the Self-Client grant flow to generate an initial authorization code and persistent Refresh Token.\nStep 1: Generate Authorization Code\nStep 2: Exchange Auth",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Zoho CRM API: 构建自定义集成的实践指南",
+        "summary": "构建生产级别的自定义 Zoho CRM 集成需要理解多数据中心路由、动态速率限制和 API 信用优化。本指南涵盖 OAuth 2.0 身份验证、REST API 架构、COQL 查询优化和 webhook 模式，这些都是在不使用昂贵第三方连接器的情况下实现可靠的双向数据同步所需的。"
+      }
+    }
+  },
+  {
+    "title": "Debian votes to allow \"responsible use of generative AI\"",
+    "slug": "debian-votes-responsible-generative-ai",
+    "url": "https://lwn.net/Articles/1091231/",
+    "source": "Hacker News",
+    "date": "2026-08-29T14:02:10.000Z",
+    "summary": "The Debian community has voted on policy changes to permit the responsible use of generative AI tools within the project. This decision reflects broader technology communities weighing the benefits and governance requirements of AI integration.",
+    "content": "Article URL: https://lwn.net/Articles/1091231/\nComments URL: https://news.ycombinator.com/item?id=49489982\nPoints: 444\n# Comments: 384",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Debian投票允许\"负责任地使用生成式AI\"",
+        "summary": "Debian社区已就允许在该项目中负责任地使用生成式AI工具的政策变化进行了投票。这一决定反映了更广泛的技术社区在权衡AI集成的好处和治理需求。"
+      }
+    }
+  },
+  {
     "title": "The outline: none Debate Has Been Over Since 2020",
     "slug": "outline-none-debate-2020",
     "url": "https://dev.to/parsajiravand/the-outline-none-debate-has-been-over-since-2020-jli",
@@ -188,6 +396,38 @@
       "zh": {
         "title": "我用谷歌搜索自己 20 分钟，发现了我的家庭地址、妈妈的娘家姓和我的狗",
         "summary": "公开记录数据库、数据经纪人和搜索引擎仅使用名字和基本的谷歌搜索，在 20 分钟内就能轻易重建某人的个人身份和安全问题答案。个人身份已从受保护的秘密变成了公共图表。"
+      }
+    }
+  },
+  {
+    "title": "Iceland votes on whether to restart talks on joining EU",
+    "slug": "iceland-votes-restart-eu-membership",
+    "url": "https://www.bbc.com/news/articles/cn45vdxyvvlo",
+    "source": "Hacker News",
+    "date": "2026-08-29T11:39:38.000Z",
+    "summary": "Iceland is holding a vote on whether to resume negotiations for European Union membership. The decision marks a potentially significant shift in the Nordic nation's political and economic orientation.",
+    "content": "Article URL: https://www.bbc.com/news/articles/cn45vdxyvvlo\nComments URL: https://news.ycombinator.com/item?id=49489057\nPoints: 309\n# Comments: 383",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "冰岛投票决定是否重启加入欧盟的谈判",
+        "summary": "冰岛正在举行投票，决定是否恢复关于加入欧盟的谈判。这一决定标志着这个北欧国家政治和经济方向可能发生重大转变。"
+      }
+    }
+  },
+  {
+    "title": "Samsung's Processing-in-Memory (PIM)",
+    "slug": "samsung-processing-in-memory-pim",
+    "url": "https://chipsandcheese.com/p/hot-chips-2026-samsungs-processing",
+    "source": "Hacker News",
+    "date": "2026-08-29T06:06:51.000Z",
+    "summary": "Samsung has unveiled processing-in-memory technology representing a novel approach to chip architecture design. The innovation addresses fundamental trade-offs in modern processors by enabling computation directly within memory structures.",
+    "content": "Article URL: https://chipsandcheese.com/p/hot-chips-2026-samsungs-processing\nComments URL: https://news.ycombinator.com/item?id=49487341\nPoints: 219\n# Comments: 74",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "三星的内存中处理(PIM)技术",
+        "summary": "三星推出了代表芯片架构设计新方法的内存中处理技术。该创新通过在内存结构内直接进行计算来解决现代处理器中的基本权衡。"
       }
     }
   },
