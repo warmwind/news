@@ -1,5 +1,197 @@
 [
   {
+    "title": "Pull Requests and code review: how to make your code easy to review",
+    "slug": "pull-requests-code-review-best-practices",
+    "url": "https://dev.to/fj_palacios/pull-requests-and-code-review-how-to-make-your-code-easy-to-review-4mch",
+    "source": "DEV Community",
+    "date": "2026-09-01T11:05:18.000Z",
+    "summary": "Pull request best practices focus on writing clear titles, detailed descriptions, and manageable diffs that facilitate thorough code review. Treating PRs as conversations rather than bureaucratic gates improves both review speed and code quality.",
+    "content": "I once approved a PR without reading it. Not because I was lazy — because the description was blank, the title was \"fix\", and the diff had six hundred lines across eleven files with no explanation of what any of it did. I ran out of patience somewhere around file four and clicked Approve. Three days later, it took down the checkout flow in production.\nThat PR had a reviewer. It had an approval. It had zero useful review.\nThe Pull Request as a concept is sound: before code reaches main, another human looks at it. The breakdown happens when the PR is written as if review is a bureaucratic gate to get past, instead of a conversation worth having. Getting that distinction right changes everything — how fast your PRs get reviewed, how much friction the process creates, and whether code review makes your team better or just slower.\nA Pull Request (PR) — or Merge Request if you're on GitLab — is a formal request to integrate the changes from one branch into another. That's the technical side. The human side is where a team looks at code together before it goes anywhere near production.\nThe difference from a local git merge is the social layer: a review process, a comment thread, a record of decisions. Not just what changed, but why, who questioned it, what alternatives were considered. That context has a value that's invisible until six months later, when you're in git blame staring at a line you don't understand and there's a PR two clicks away with the entire discussion that led to it.\nGitHub, GitLab, Bitbucket, Azure DevOps — different implementations, same concept. I'll use GitHub terminology throughout since it's the most common, but everything translates.\nThe difference between a PR that gets reviewed the same day and one that sits open for three weeks is usually in how it's written, not what it changes.\nThe title is the first thing a reviewer sees. If it says fix or stuff or update things, you've already made their job harder — they don't know if this is five minute",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "拉取请求和代码审查：如何使您的代码易于审查",
+        "summary": "拉取请求的最佳实践侧重于编写清晰的标题、详细的描述和易于管理的差异，以促进彻底的代码审查。将PR视为对话而不是官僚关卡可以提高审查速度和代码质量。"
+      }
+    }
+  },
+  {
+    "title": "What 'Revocable' Actually Means at the Contract Level",
+    "slug": "revocable-contract-level-token-approvals",
+    "url": "https://dev.to/tradevodata/what-revocable-actually-means-at-the-contract-level-5201",
+    "source": "DEV Community",
+    "date": "2026-09-01T11:05:03.000Z",
+    "summary": "Token approval revocation in smart contracts requires blockchain transactions that can be delayed or stale relative to off-chain records. Services executing on user approvals must account for asynchronous revocation to prevent authorization bypass bugs.",
+    "content": "If you've ever called approve() on an ERC-20 token and then moved on with your life, you've already brushed up against the thing this post is about: an approval is not a setting inside some app, it's a row in a smart contract's storage, and every system built on top of it is only as honest as its last read of that row.\nMost token approvals work the same way. A user signs a transaction granting a spender contract permission to move up to some amount of a token from their wallet. The ERC-20 standard stores this as allowance[owner][spender]. Any contract that wants to move the user's tokens checks that number before doing so, and the check happens inside the same transaction that tries to move funds — so the contract-level enforcement is real. The token contract itself will not let a transfer through if the allowance is insufficient.\nRevocation is just another write to that same slot, usually setting it to zero. It's a normal transaction. It has to be signed, broadcast, and mined like any other. That's the part people gloss over: revoking is not a UI toggle, it's a transaction with all the same properties as the transaction that created the approval in the first place — it sits in a mempool, it can be delayed by network congestion, and it isn't final until it's in a confirmed block.\nSay you're building a service that executes on a user's behalf using a stored approval — a trading bot, a subscription payment puller, anything with an off-chain component that decides when to spend and an on-chain component that actually moves the funds. The natural design is to keep a local record: \"user X has approved up to Y, active.\" That record is convenient. It's also just an opinion your own server holds about the world, and it can be wrong in both directions.\nIt can be wrong stale-permissive: the user revokes, your service hasn't seen it yet, and if the on-chain check before spending is missing or weak, you build and sign a transaction anyway. Depending on how you structured the ch",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "\"撤销\"在合约级别的实际含义",
+        "summary": "智能合约中的代币批准撤销需要可能相对于链外记录延迟或过时的区块链交易。执行用户批准的服务必须考虑异步撤销以防止授权绕过漏洞。"
+      }
+    }
+  },
+  {
+    "title": "First Action After Compromise: Blind the Audit",
+    "slug": "first-action-compromise-disable-cloudtrail",
+    "url": "https://dev.to/bala_paranj_059d338e44e7e/first-action-after-compromise-blind-the-audit-2fmm",
+    "source": "DEV Community",
+    "date": "2026-09-01T11:05:00.000Z",
+    "summary": "Attackers routinely disable AWS CloudTrail logging as their first action post-compromise (MITRE ATT&CK T1562.008), creating unobserved windows for further intrusion. Detection requires monitoring trail status separately from infrastructure configuration.",
+    "content": "✓ Human-authored analysis; AI used for formatting and proofreading.\nIf you're an attacker who's just landed in an AWS account, the most expensive thing about your future is detection. Every API call you make leaves a trail in CloudTrail, gets forwarded to a SIEM, becomes evidence the team uses to boot you out and reconstruct what you touched. The cost of your campaign rises linearly with the number of events on record.\nSo you make one call first:\naws cloudtrail stop-logging --name org-audit-trail\n\nThe trail still exists. The console still shows it. aws cloudtrail describe-trails still returns it. The S3 bucket is still configured as the destination. To anyone glancing at the configuration, the audit infrastructure looks healthy.\nOnly aws cloudtrail get-trail-status reveals that IsLogging is false. New events stop landing in the bucket. The audit clock pauses. Whatever the attacker does next happens unobserved, and remains unobserved until somebody notices.\nThis pattern is established enough to have its own MITRE ATT&CK identifier: T1562.008 (Disable or Modify Cloud Logs). It appears in cloud incident write-ups across Mandiant's catalogue, AWS Security Bulletin guidance, and pen-test reports against organisations whose detection budget went into SIEM and not into CloudTrail-config monitoring.\nA stopped trail is structurally healthy. Every other configuration field is normal:\n{\n  \"Name\": \"org-audit-trail\",\n  \"S3BucketName\": \"acme-cloudtrail-archive\",\n  \"IsMultiRegionTrail\": true,\n  \"IsOrganizationTrail\": true,\n  \"EventSelectors\": [...],\n  \"InsightSelectors\": [],\n  \"KmsKeyId\": \"arn:aws:kms:us-east-1:...\",\n  \"LogFileValidationEnabled\": true\n}\n\nThe only field that flips is the one get-trail-status returns separately:\n{\n  \"IsLogging\": false,\n  \"LatestDeliveryTime\": \"2026-01-01T00:00:00Z\",\n  \"StartLoggingTime\": \"2025-09-15T00:00:00Z\",\n  \"StopLoggingTime\": \"2026-01-01T00:00:00Z\"\n}\n\nTwo timestamps and a boolean. That's the entire signal. Detection requires reading the right",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "泄露后的第一步操作：屏蔽审计",
+        "summary": "攻击者通常在泄露后首先禁用AWS CloudTrail日志记录（MITRE ATT&CK T1562.008），为进一步入侵创建未被观察的窗口。检测需要单独监控踪迹状态，而不是基础设施配置。"
+      }
+    }
+  },
+  {
+    "title": "A calendar library returned the same answer for every year — and my tests agreed with it",
+    "slug": "calendar-library-same-answer-every-year",
+    "url": "https://dev.to/beachcombers/a-calendar-library-returned-the-same-answer-for-every-year-and-my-tests-agreed-with-it-1j93",
+    "source": "DEV Community",
+    "date": "2026-09-01T11:04:49.000Z",
+    "summary": "A Korean lunar calendar library hardcoded solar term calculations for a single year, returning identical values regardless of input year, while tests confirmed the incorrect results. Demonstrates how passing test suites can validate systematic computation errors.",
+    "content": "I build a Korean saju (BaZi) service. The whole pitch is that the numbers are computed deterministically and only the prose is written by a model, so the calculation layer is the one part that is not allowed to be vaguely right.\nTwo days ago I found out it had been wrong for five years of birthdays, and that my test suite had been cheerfully confirming it the entire time.\nA saju chart's year and month pillars do not change on January 1st. They change at solar terms — the 24 points where the sun reaches a fixed ecliptic longitude. The year pillar turns at 입춘 (315°), which lands somewhere around February 4th, at a specific minute that differs every year, because the Earth's orbit does not care about our calendar.\nSo if you are born on February 4th, whether your chart says 癸卯 or 甲辰 depends on what time of day you were born, compared against an astronomical instant.\nI was getting those instants from a calendar library:\nconst terms = getSolarTermsByYear(year)\n\nAn agent working on unrelated copy flagged a contradiction: a FAQ page claimed minute-level solar term precision, while a comment in the engine said the data only covered 2020–2030. I went to check which one was lying.\nI dumped 입춘 for eleven consecutive years and diffed it against an independent astronomical computation:\n        library          computed (KST)\n2024    Feb 4, 05:02     Feb 4, 17:26\n2025    Feb 4, 05:02     Feb 3, 23:10\n2026    Feb 4, 05:02     Feb 4, 05:01\n2027    Feb 4, 05:02     Feb 4, 10:46\n\nEleven years, one value. The function took a year argument and ignored it. It happened to be right for 2026 — presumably whenever the table was generated — and wrong for everything else, sometimes by twelve hours, sometimes landing on the wrong day.\nTwelve hours is not a rounding error here. It is the difference between two different charts:\n2024-02-04 06:00  →  癸卯 乙丑   (before 17:26)\n2024-02-04 18:00  →  甲辰 丙寅   (after)\n\nSame date. Opposite answer. Anyone born on a solar term day between 2020 and 2030 — exce",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "日历库每年返回相同答案——我的测试也认同了它",
+        "summary": "一个韩国农历库对单一年份的节气计算进行了硬编码，无论输入什么年份都返回相同的值，而测试验证了这些错误的结果。演示了通过的测试套件如何能够验证系统性计算错误。"
+      }
+    }
+  },
+  {
+    "title": "The Same 11 Prompts, Three Copies, 48 Hours: A Free Model Regression Battery",
+    "slug": "llm-regression-battery-prompt-testing",
+    "url": "https://dev.to/codepy_1473/the-same-11-prompts-three-copies-48-hours-a-free-model-regression-battery-kio",
+    "source": "DEV Community",
+    "date": "2026-09-01T11:04:34.000Z",
+    "summary": "Testing a free LLM with identical prompts produced substantially different outputs each time, revealing non-deterministic behavior. A regression battery approach—recording outputs, hashes, and statistics—treats LLM responses as probabilistic signals requiring statistical validation.",
+    "content": "The same model read the same prompt three times in one hour and proposed three different action plans, each one delivered with the same tone of confidence. That was the moment I stopped treating the free model like a pure function and started reading it like a sensor: the signal exists, but only the statistics are worth trusting.\nI wanted to know whether my extraction code could survive a 48-hour regression run when the upstream model could not hold a single version of the truth. The answer was not more assertions; it was freezing an 11-prompt battery, recording every raw output, and refusing to tune anything mid-flight.\nI froze a battery of 11 prompts, ranging from single-key JSON requests to multi-paragraph summaries. The code below shows five of them because the other six are embarrassingly specific to my own failure log, but the shape of the loop is what matters.\nimport hashlib\nimport json\nimport time\nfrom collections import defaultdict\nfrom pathlib import Path\n\nPROMPTS = [\n    \"Return JSON with keys: status, reason.\",\n    \"Summarize this function in one line.\",\n    \"Pick the safest option and explain why.\",\n    \"Rewrite this error message for a new developer.\",\n    \"Write a commit message for this diff.\",\n    # ...plus six more from my own failure log\n]\n\ndef run_battery(call_model, out_path: Path, copies: int = 3):\n    rows = []\n    for prompt in PROMPTS:\n        for copy in range(copies):\n            text = call_model(prompt)\n            rows.append({\n                \"prompt_sha\": hashlib.sha256(prompt.encode()).hexdigest()[:8],\n                \"copy\": copy,\n                \"length\": len(text),\n                \"text_sha\": hashlib.sha256(text.encode()).hexdigest()[:16],\n                \"head\": text[:120].replace(\"\\n\", \" \"),\n                \"ts\": time.time(),\n            })\n            time.sleep(1)\n    out_path.write_text(json.dumps(rows, indent=2))\n\ndef diversity_ratio(rows):\n    by_prompt = defaultdict(list)\n    for row in rows:\n        by_prompt[row[\"prompt_",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "相同的11个提示词，三份副本，48小时：免费模型回归测试套件",
+        "summary": "用相同提示词测试免费LLM产生了完全不同的输出，揭示了非确定性行为。回归测试套件方法——记录输出、哈希和统计数据——将LLM响应视为需要统计验证的概率信号。"
+      }
+    }
+  },
+  {
+    "title": "Godot sprite blurry when moving? Diagnose the right layer first",
+    "slug": "godot-sprite-blurry-pixel-art-diagnosis",
+    "url": "https://dev.to/framesprite/godot-sprite-blurry-when-moving-diagnose-the-right-layer-first-36e",
+    "source": "DEV Community",
+    "date": "2026-09-01T11:03:37.000Z",
+    "summary": "Pixel art rendering problems in Godot stem from distinct causes—texture filtering, fractional transforms, sprite sheet bleeding—each requiring different fixes. Systematic diagnosis prevents wasted troubleshooting by identifying the specific rendering layer affected.",
+    "content": "A sprite that is blurry while standing still and a sprite that only shimmers while moving are usually suffering from different bugs. Treating both as “bad filtering” leads to hours of random import changes.\nHere is the shortest diagnostic path I use for Godot 4 pixel art.\nPause the character on a single frame and stop the camera.\nSoft edges while everything is still usually indicate texture filtering.\nSharp while still, unstable while moving usually indicate fractional movement, fractional scale, or camera interpolation.\nA thin strip from the neighboring pose indicates sprite-sheet grid or atlas bleeding.\nThe whole body jumps between frames indicates inconsistent canvases, pivots, or foot baselines.\nThose are four different layers. Change one at a time.\nFor pixel art, select the Sprite2D or AnimatedSprite2D node and set:\nCanvasItem → Texture → Filter → Nearest\nNearest sampling chooses the closest source pixel rather than blending surrounding pixels. If every pixel-art asset in the project needs the same policy, set the project default instead of editing every node.\nDo not assume mipmaps are always wrong. A sprite displayed at native size or an integer enlargement usually does not need them. If the camera shrinks sprites below one source pixel per screen pixel, mipmaps can reduce distant shimmer. Test the real camera scale.\nGodot reference: CanvasItem texture filtering\nNearest filtering cannot repair fractional transforms.\nLog the final rendered position of both the character and Camera2D. Then test four cases:\nCharacter still, camera still\nCharacter moving, camera still\nCharacter still, camera moving\nCharacter and camera moving together\nIf only cases 3 and 4 fail, the camera path is the likely source. If case 2 fails as well, inspect the character transform and the relationship between physics updates and rendering.\nFor deliberately crisp pixel art, verify:\nthe final screen position lands on whole pixels;\nscale is an integer at the intended resolution;\ncharacter and",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Godot精灵移动时模糊？先诊断正确的图层",
+        "summary": "Godot中像素艺术渲染问题源于不同原因——纹理过滤、分数变换、精灵表出血——每种都需要不同的修复。系统诊断通过识别受影响的特定渲染图层来防止浪费故障排除。"
+      }
+    }
+  },
+  {
+    "title": "The Smallest Safe Change: A Branch-Level Refactor Workflow for Messy Repos",
+    "slug": "branch-level-refactor-workflow-messy-repos",
+    "url": "https://dev.to/hackrs_6393/the-smallest-safe-change-a-branch-level-refactor-workflow-for-messy-repos-70j",
+    "source": "DEV Community",
+    "date": "2026-09-01T11:03:28.000Z",
+    "summary": "Safe refactoring of legacy code targets one control-flow branch per change, using characterization tests to lock existing behavior before modifications. This branch-level approach minimizes logical scope and prevents subtle bugs in complex systems.",
+    "content": "Most refactors die quietly while the test suite stays green. The bug ships because the change was too wide. A safe refactor touches one branch at a time.\nCharacterization tests lock that branch down before you move. This workflow works even on messy legacy repos. I used MonkeyCode's free model for one discovery step.\nDisclosure: This article was prepared as part of MonkeyCode's product outreach. The free server option gives a disposable runtime for the harness. Neither tool is required, but both help.\nA line is not a decision point in a diff. One line can still alter three separate branches. The reverse is also true: twenty lines can change no branch.\nThe safe unit is a branch, not a line. Count every direct if condition in the function. Each refactor should change at most one branch.\nI will walk through a messy Python module. The function carries a hidden global side effect. It is a perfect target for this technique.\nA useful sealed unit returns a plain value. It may mutate a known global list. It must not read time, randomness, or the environment.\n# legacy.py\nmessages = []\n\ndef apply_surcharges(base: float, zone: str, weight_class: str) -> float:\n    if zone == \"remote\":\n        messages.append(\"remote\")\n        base *= 1.2\n    if weight_class == \"heavy\" and zone != \"local\":\n        messages.append(\"heavy\")\n        base += 15.0\n    if base > 500:\n        messages.append(\"big\")\n        base -= 10.0\n    return round(base, 2)\n\nThis function contains three independent conditional branches. The third depends on the mutated base. The side effect list must be locked too.\nThe branch base > 500 demands a boundary test. Include 500 and 501 in your price grid. Use local, remote, and other as zones.\nUse two weight classes for better coverage. The Cartesian product gives you a complete grid. The script then records the current behavior.\n# record.py\nimport itertools\nimport json\nimport legacy\n\nprices = [100, 500, 501]\nzones = [\"local\", \"remote\", \"other\"]\nweights = [\"light\", \"hea",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "最小安全变更：混乱代码库的分支级重构工作流",
+        "summary": "遗留代码的安全重构针对每次变更的一个控制流分支，使用特征化测试在修改前锁定现有行为。这种分支级方法将逻辑范围最小化，防止复杂系统中出现细微的bug。"
+      }
+    }
+  },
+  {
+    "title": "How Does useEffect Actually Work?",
+    "slug": "how-does-useeffect-actually-work",
+    "url": "https://dev.to/tanu_priya/how-does-useeffect-actually-work-3c53",
+    "source": "DEV Community",
+    "date": "2026-09-01T11:02:00.000Z",
+    "summary": "React's useEffect hook synchronizes components with external systems—APIs, event listeners, timers, subscriptions—based on dependency arrays. Understanding when synchronization is needed versus when state management suffices prevents infinite loops and race conditions.",
+    "content": "If you've worked with React for a while, you've probably written something like this:\nuseEffect(() => {\n  fetchUser();\n}, []);\n\nIt looks simple.\nBut then the questions start:\nWhy does useEffect run twice in development?\nWhy does it sometimes run again when I didn't expect it?\nWhat exactly does the dependency array do?\nWhy does adding a dependency suddenly create an infinite loop?\nWhy do we need a cleanup function?\nAnd perhaps the biggest question: when should I use useEffect at all?\n\n\n\nUnderstanding useEffect isn't really about memorizing its syntax.\nIt's about understanding when React synchronizes your component with something outside of React.\nuseEffect actually for?\n\n\nThe simplest mental model is:\nuseEffect lets your component synchronize with an external system.\nAn external system could be:\nA network connection\nA WebSocket\nA browser API\nA timer\nA third-party library\nAn event listener\nA subscription\nFor example, connecting to a chat server:\nuseEffect(() => {\n  const connection = createConnection(roomId);\n\n  connection.connect();\n\n  return () => {\n    connection.disconnect();\n  };\n}, [roomId]);\n\nThe component isn't just calculating what should appear on the screen.\nIt's synchronizing something outside React with the current roomId.\nThat's the important idea.\nReact's own documentation describes Effects as an \"escape hatch\" for synchronizing with external systems. If you're not interacting with something external, you may not need an Effect at all. ([React][1])\nThis is where useEffect starts making sense.\nImagine:\nfunction Profile({ userId }) {\n  const [user, setUser] = useState(null);\n\n  useEffect(() => {\n    fetch(`/api/users/${userId}`)\n      .then(res => res.json())\n      .then(setUser);\n  }, [userId]);\n\n  return <div>{user?.name}</div>;\n}\n\nWhen userId changes, React roughly goes through:\nProps / State change\n       ↓\n     Render\n       ↓\n   React commits\n       ↓\n   Effect runs\n       ↓\n External system\n\nThe important distinction is:\nRendering calculates the UI",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "useEffect 实际上是如何工作的？",
+        "summary": "React 的 useEffect 钩子基于依赖数组将组件与外部系统（API、事件监听器、计时器、订阅）同步。理解何时需要同步与何时仅需状态管理可以防止无限循环和竞态条件。"
+      }
+    }
+  },
+  {
+    "title": "I Built a Windows 95-Style Developer Portfolio with Next.js 15",
+    "slug": "windows-95-developer-portfolio-nextjs",
+    "url": "https://dev.to/adil_raxiq_d6b4d8714f9fe0/i-built-a-windows-95-style-developer-portfolio-with-nextjs-15-2bf2",
+    "source": "DEV Community",
+    "date": "2026-09-01T11:00:43.000Z",
+    "summary": "A Windows 95-themed portfolio site built with Next.js 15 and Tailwind CSS features a boot animation, draggable windows, and interactive desktop interface. Creative constraints of the retro aesthetic drove design decisions while maintaining Lighthouse performance.",
+    "content": "Why a Windows 95 Portfolio?\n\n\nMost developer portfolios look the same:\nHero section\nAbout me\nProjects grid\nContact form\nI wanted something different. Something people actually remember.\nSo I built a portfolio that looks and feels like a classic Windows 95 desktop.\nWhen you visit the site, you see:\nA teal desktop background (just like Windows 95)\nClickable icons for Projects, Writing, Contact\nA boot animation that says \"System booting...\"\nDraggable, resizable windows\nNext.js 15 — App Router, Server Components\nTailwind CSS — All styling\nFramer Motion — Animations and transitions\nTypeScript — Type safety\nWhen the page loads, it shows a retro boot screen before revealing the desktop. This sets the mood immediately.\nEach icon (Projects, Writing, Contact) opens a window when clicked — just like real Windows 95.\nWindows can be dragged around the screen using Framer Motion's drag constraints.\nI added a writing section where I publish articles about Flutter, Django, and AI.\nA working contact form so people can reach out directly.\nAnimations matter — The boot screen alone makes the site memorable\nConstraints are creative — Sticking to a Windows 95 theme forced me to be creative with limited elements\nPerformance — Even with animations, the site scores 100 on Lighthouse SEO\n👉 https://adilportfolio-tawny.vercel.app\nThe project is built with Next.js 15 and is deployed on Vercel.\nThanks for reading! If you have any questions about the implementation, feel free to ask in the comments.\n\n\n  \n  \n  portfolio #nextjs #tailwindcss #webdev",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我用 Next.js 15 构建了一个 Windows 95 风格的开发者作品集",
+        "summary": "一个使用 Next.js 15 和 Tailwind CSS 构建的 Windows 95 主题作品集网站，具有启动动画、可拖拽窗口和交互式桌面界面。复古美学的创意限制推动了设计决策，同时保持了 Lighthouse 性能。"
+      }
+    }
+  },
+  {
+    "title": "Stop Building AI Wrappers: The Hidden Cost of 'Thin' Applications",
+    "slug": "stop-building-ai-wrappers-thin-applications",
+    "url": "https://dev.to/ntty/stop-building-ai-wrappers-the-hidden-cost-of-thin-applications-4hb6",
+    "source": "DEV Community",
+    "date": "2026-09-01T11:00:04.000Z",
+    "summary": "Thin AI wrapper applications fail in production because LLM outputs are non-deterministic, violating traditional API assumptions. Production systems require validation layers and deterministic post-processing to handle hallucinations and schema violations.",
+    "content": "Last month, I spent three days building a feature for a client. The request was simple: analyze user support tickets and categorize them by urgency. I connected an LLM API, wrote a prompt that asked the model to return JSON, and the demo worked perfectly. I showed the client the results. They nodded, smiled, and said it looked great.\nThen I tried to deploy it.\nThe first production error happened within an hour. A user submitted a ticket that contained a nested JSON string inside the text. The model got confused. It tried to parse the string as code and returned a malformed response. My backend crashed because it expected a strict schema.\nI fixed the parser. Then the next issue appeared. The model started hallucinating categories that did not exist in our database. It invented a new priority level called \"critical plus.\" I had to add logic to map unknown values to a default \"low\" category, but that was too aggressive. Some high-priority bugs got buried because the model was being creative.\nThis is the gap between a demo and a product. Most developers treat AI integration like they treat database integration. You query the database, you get data. You query the LLM, you get... vibes. The non-deterministic nature of large language models breaks standard software engineering assumptions. Here are three specific lessons I learned the hard way.\nWhen you use a traditional API, you trust the schema. If I expect an integer, I get an integer. If I expect a string, I get a string. With LLMs, the output is probabilistic. It is natural language that looks like structured data.\nI stopped trying to force the model to output specific JSON. Instead, I moved the validation logic to the application layer. I now use a two-step process. First, I ask the model for a simple, unstructured summary. Second, I use a deterministic script to extract keywords and map them to my internal categories. The model provides context; the code provides structure.\nIf you are building anything in production",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "停止构建AI包装器：'薄'应用的隐藏代价",
+        "summary": "薄AI包装器应用在生产环境中失败，因为LLM输出是非确定性的，违反了传统API的假设。生产系统需要验证层和确定性的后处理来处理幻觉和模式违规。"
+      }
+    }
+  },
+  {
+    "title": "The follow-up question is the interview",
+    "slug": "follow-up-question-technical-interview",
+    "url": "https://dev.to/moputa/the-follow-up-question-is-the-interview-2na9",
+    "source": "DEV Community",
+    "date": "2026-09-01T11:00:00.000Z",
+    "summary": "Technical interview follow-ups probe actual experience by asking about mechanisms, boundaries, costs, and alternatives to initial answers. Recognizing follow-up patterns—definition probes, scale probes, boundary probes—helps distinguish memorized knowledge from practical expertise.",
+    "content": "You can prepare an answer. You cannot prepare the question that comes after it, because it is assembled from the exact words you just used. That is the whole design, and it is why memorising answers stops working above a certain level.\nWatch a good technical interviewer and the pattern is always the same. They ask something broad. You answer. Then they pick one phrase out of your answer and ask about that. Then they do it again.\nThree questions in, you are somewhere no preparation could have anticipated, discussing a specific thing you personally raised. That is not a hostile technique. It is the only reliable way to tell the difference between someone who has read about a thing and someone who has used it.\nBecause first answers are cheap. Anyone can learn what a database index is, what a closure is, what eventual consistency means. Definitions are freely available and memorising them takes an evening.\nWhat is not freely available is the second layer: why it works that way, what it costs, when it stops being true. That knowledge mostly comes from having been burned, and it is exactly what the follow-up is fishing for. An interviewer who only asked first questions would learn almost nothing about you.\nThe first question tests what you have read. The second tests what you have done.\nFollow-ups come in a small number of recognisable shapes. Once you can name them, they stop being a surprise.\nThe definition probe. You used a term. Now define it precisely. Triggered by any word you said without unpacking.\nThe mechanism probe. You said what happens. Now say why it happens, one level down.\nThe boundary probe. When does this stop being true? What would break it?\nThe cost probe. What did that choice lose you? Everything trades something.\nThe alternative probe. Why not the other approach? Testing whether you chose or defaulted.\nThe scale probe. What changes at a hundred times the volume?\nYou can rehearse against all six without knowing the topic. Take any answer you would giv",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "追问就是面试",
+        "summary": "技术面试追问通过询问机制、边界、成本和初始答案的替代方案来探测实际经验。认识追问模式——定义探测、规模探测、边界探测——有助于区分死记硬背的知识和实际专业知识。"
+      }
+    }
+  },
+  {
+    "title": "Convicted by Prediction",
+    "slug": "convicted-by-prediction-policing-algorithm",
+    "url": "https://dev.to/rawveg/convicted-by-prediction-55id",
+    "source": "DEV Community",
+    "date": "2026-09-01T11:00:00.000Z",
+    "summary": "The UK's proposed V1000 predictive policing scheme uses algorithms to identify 1,000 men deemed most likely to commit sexual offences, subjecting them to surveillance without arrest, charges, or due process. Raises concerns about algorithmic bias and lack of transparency.",
+    "content": "Picture, for a moment, the file. It does not exist on paper. It exists as a row in a database held on a server somewhere in the National Police Chiefs' Council estate, on a Home Office machine in Marsham Street, or in the back end of a contractor's analytics platform racked in a data centre on the edge of a Reading business park. The row contains a name, an address, a list of associations and a risk score. The man whose name sits in the first column does not know the row is there. He has not been arrested, charged, cautioned or interviewed. He has not been told that an algorithm has assessed his propensity for predatory violence against women and girls and returned a number high enough to place him in the top one thousand most dangerous men in England and Wales. He cannot ask to see the file. He cannot appeal its conclusions. He may, however, find that the police know his car, his routine and his ex-partner's address before he has met the constable on his doorstep. The file precedes him.\nThis is V1000, the proposal that broke into the British public sphere in January 2026 when the Telegraph reported that Sir Andy Marsh, head of the College of Policing, was advocating the use of predictive analytics to identify the one thousand men deemed most likely to commit predatory offences against women and girls before any such crime had been committed. The scheme modelled itself on the Met's V100 programme, launched in summer 2023, which uses a points-based scoring system to rank the hundred London men assessed each month as posing the greatest risk to women. By autumn 2025 V100 had produced over 200 convictions with sentences totalling more than 676 years. V1000 is the same logic scaled tenfold and pushed nationwide, embedded in a Home Office white paper that Home Secretary Shabana Mahmood unveiled in late January 2026 as the most significant reorganisation of British policing in two centuries. In the same round Mahmood reached for the line about “the eyes of the state” bein",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "被预测定罪",
+        "summary": "英国提议的V1000预测性警务计划使用算法来识别1000名被认为最可能犯性犯罪的男性，对他们进行监视，而不进行逮捕、指控或正当程序。引发了对算法偏见和缺乏透明度的担忧。"
+      }
+    }
+  },
+  {
     "title": "Validate the manifest, reject on failure, and your plugin client is non-conformant",
     "slug": "validate-manifest-plugin-non-conformant",
     "url": "https://dev.to/booyaka101/validate-the-manifest-reject-on-failure-and-your-plugin-client-is-non-conformant-19d7",
@@ -188,6 +380,38 @@
       "zh": {
         "title": "AWS Lambda与传统服务器：无服务器何时真正有意义",
         "summary": "AWS Lambda在偶发性、低容量或隔离工作负载中表现出色，具有最小的运营开销，但对于持续高流量应用，传统服务器或容器更具成本效益。正确的选择取决于实际流量模式以及工作负载是否适合Lambda的执行时间限制和无状态模型。"
+      }
+    }
+  },
+  {
+    "title": "GPU World",
+    "slug": "gpu-world",
+    "url": "https://www.gpuworld.org/",
+    "source": "Hacker News",
+    "date": "2026-09-01T03:16:36.000Z",
+    "summary": "GPU World provides information, resources, and tools for GPU selection and comparison across different computing scenarios.",
+    "content": "Article URL: https://www.gpuworld.org/\nComments URL: https://news.ycombinator.com/item?id=49517584\nPoints: 252\n# Comments: 132",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "GPU 世界",
+        "summary": "GPU World 提供有关 GPU 选择和比较的信息、资源和工具，涵盖不同的计算场景。"
+      }
+    }
+  },
+  {
+    "title": "Fastpotify",
+    "slug": "fastpotify",
+    "url": "https://fastpotify.rocks/",
+    "source": "Hacker News",
+    "date": "2026-09-01T02:52:14.000Z",
+    "summary": "Fastpotify is a music streaming application or service platform.",
+    "content": "Article URL: https://fastpotify.rocks/\nComments URL: https://news.ycombinator.com/item?id=49517448\nPoints: 419\n# Comments: 226",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Fastpotify",
+        "summary": "Fastpotify 是一款音乐流媒体应用或服务平台。"
       }
     }
   }
