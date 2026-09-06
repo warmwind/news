@@ -1,5 +1,197 @@
 [
   {
+    "title": "btoa('café') gives you the wrong bytes, and nothing tells you",
+    "slug": "btoa-cafe-wrong-bytes",
+    "url": "https://dev.to/vish045/btoacafe-gives-you-the-wrong-bytes-and-nothing-tells-you-4i20",
+    "source": "DEV Community",
+    "date": "2026-09-06T10:16:43.000Z",
+    "summary": "JavaScript's btoa encodes strings using latin-1 rather than UTF-8, causing encoding mismatches. Characters above U+00FF throw errors, while improperly encoded non-ASCII characters silently produce wrong results when decoded, creating subtle bugs that are hard to detect.",
+    "content": "Run this in your browser console:\nbtoa('café');\n// 'Y2Fm6Q=='\n\nNow encode the same word as UTF-8 first:\nbtoa(String.fromCharCode(...new TextEncoder().encode('café')));\n// 'Y2Fmw6k='\n\nSame word, two different answers. Both are valid base64. Neither one throws. Only the second is what everyone else means by \"café in base64\".\nbtoa and atob are old. They work on \"binary strings\", where every character has to fit into one byte.\nAnything above U+00FF has no byte to go into, so btoa throws. Anything at or below U+00FF gets used as its own byte value. That is latin-1, not UTF-8.\nTake é. It is U+00E9. In latin-1 that is one byte, 0xE9. In UTF-8 it is two bytes, 0xC3 0xA9. btoa picks the latin-1 one. Everything else expects the UTF-8 one.\nPaste this in once and you get all four cases:\nconst show = (text) => {\n  let naive;\n  try {\n    naive = btoa(text);\n  } catch (e) {\n    naive = 'THROWS ' + e.name;\n  }\n  const correct = btoa(String.fromCharCode(...new TextEncoder().encode(text)));\n  console.log({ text, naive, correct, back: atob(correct) });\n};\n\n['José 🎉', '日本語テキスト', 'Grüße aus München', 'café'].forEach(show);\n\nHere is what comes back. The console prints the broken text with the control characters escaped, like \\x9f, which is a hint at the real problem. More on that below.\n\n\n\nInput\nbtoa(text)\natob(correct base64)\n\n\n\n\nJosé 🎉\nthrows InvalidCharacterError\n\nJosÃ© ð\\x9f\\x8e\\x89\n\n\n日本語テキスト\nthrows InvalidCharacterError\n\næ\\x97¥æ\\x9c¬èª\\x9eã\\x83\\x86...\n\n\nGrüße aus München\nR3L832UgYXVzIE38bmNoZW4=\nGrÃ¼Ã\\x9fe aus MÃ¼nchen\n\n\ncafé\nY2Fm6Q==\ncafÃ©\n\n\n\nEncoding is loud. Anything above U+00FF throws. Emoji and CJK break straight away. That is the good case. You find out.\nDecoding is quiet. Run atob on proper UTF-8 base64 and you get mojibake back, with no error at all. This is the one that hurts, and it is the common one, because the base64 usually came from somewhere else. A backend, a JWT, another tool.\nPlain accented text survives. btoa('café') then atob gives you back café, exactly. é f",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "btoa('café') 会给你错误的字节，而且没人会提醒你",
+        "summary": "JavaScript 的 btoa 使用 latin-1 而非 UTF-8 编码字符串，导致编码不匹配。U+00FF 以上的字符会抛出错误，而编码不当的非 ASCII 字符在解码时会无声地产生错误结果，造成难以检测的微妙 bug。"
+      }
+    }
+  },
+  {
+    "title": "Build with Gemini Event Review: Developing AI Agents with ADK and Agents CLI",
+    "slug": "build-gemini-ai-agents-adk",
+    "url": "https://dev.to/heysho/build-with-gemini-event-review-developing-ai-agents-with-adk-and-agents-cli-2a59",
+    "source": "DEV Community",
+    "date": "2026-09-06T10:14:11.000Z",
+    "summary": "The author attended Build with Gemini Tokyo to learn AI agent development with Google's ADK and Agents CLI, seeking to break their repetitive spec-driven workflow. The hands-on workshop provided a full development cycle from local development to Google Cloud deployment, demonstrating new approaches to AI-assisted programming.",
+    "content": "I recently attended Build with Gemini Tokyo, a two-day event hosted by Google.\nhttps://cloudonair.withgoogle.com/events/build-with-gemini26q3\nThe event was a hands-on workshop focused on building AI agents using tools such as Antigravity, ADK (Agent Development Kit), and Agents CLI.\nRather than simply learning about these tools through lectures, we went through the full development workflow ourselves—from creating an agent locally to deploying it on Google Cloud.\nOne of the main reasons I decided to attend was that I wanted to change the way I approach AI-assisted development.\nOver the past six months to a year, I’ve increasingly relied on AI to build web applications and conduct data analysis. The tools I use most often are Antigravity and Codex.\nAt the same time, however, my development process had become somewhat repetitive.\nI would typically start by defining the requirements, break them down into a detailed implementation plan, and then have AI write the code based on that plan. This is fairly close to what is often referred to as spec-driven development.\nMore specifically, I would create an implementation plan in Antigravity, have a more capable model review and refine it, and then pass the finalized plan to another model for implementation.\nI had become very comfortable with this workflow, and before I knew it, I had been developing in essentially the same way for the better part of a year.\nThere is nothing inherently wrong with this approach—it works well for building software. But recently, I had started to feel that my process was becoming a little too predictable, and I wanted to experiment with a different way of working with AI.\nThat was when I came across Build with Gemini, an event focused on building applications by combining Google Cloud with AI agents.\nIn this article, I’ll share what we actually did at the event, my impressions of working with ADK and Agents CLI, and what the experience made me realize about my own development style.\nIn this works",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Build with Gemini 活动评测：使用 ADK 和 Agents CLI 开发 AI 代理",
+        "summary": "作者参加了 Build with Gemini Tokyo，学习使用 Google 的 ADK 和 Agents CLI 开发 AI 代理，试图打破重复的规范驱动工作流。实践工作坊提供了从本地开发到 Google Cloud 部署的完整开发周期，展示了 AI 辅助编程的新方法。"
+      }
+    }
+  },
+  {
+    "title": "StyleX won CSS-in-JS because AI agents can read it",
+    "slug": "stylex-ai-agents-css",
+    "url": "https://dev.to/adioof/stylex-won-css-in-js-because-ai-agents-can-read-it-473a",
+    "source": "DEV Community",
+    "date": "2026-09-06T10:12:53.000Z",
+    "summary": "Linear and Cursor switched to Meta's StyleX in 2026 because its compiler-enforced constraints enable AI agents to generate valid code reliably. StyleX's typed tokens and build-time compilation allow agents to self-correct errors without human intervention, representing a shift from prioritizing developer experience to enabling agent readability.",
+    "content": "We began choosing CSS tools depending on what a robot could read. In late August 2026, both Linear and Cursor said they were moving to Meta's StyleX, with Cursor ripping out Tailwind and Linear migrating from styled-components. ## Wait, why would anyone leave Tailwind? Tailwind became popular because it was effortless to type, simple to read, and your fingers remembered it. Yes, a style might look like the work of a human, but it's becoming more likely that it was created by a machine, fine-tuned by another machine, and only used by a person to save time. StyleX eliminates the loose strings of class-name that an LLM can invent and misapply because it compiles JavaScript style objects into atomic CSS at build time. We've all been there. Your teammate is certain they created a class called flex-center-2xl but it's nowhere to be found. The struggle is real. 😄\nI have a change in perspective that I keep thinking about. In the past, we evaluated tools based on developer experience. But nowadays, it seems like there is an additional aspect being introduced: how easily can an agent produce this without being untruthful? As stated by Bytes.dev on August 28, 2026, StyleX provides agents with 'structured properties, typed tokens, and compiler errors' to self-adjust. The final part is the essence of the whole game. If the agent makes a mistake, the compiler shouts, and the agent corrects itself. There's no human involvement. Frontend architect Lauren Tan simplified it to three words: \"Agents need constraints.\" StyleX limits the ways styles can be created, composed, and overridden. → Typed tokens mean the agent can't guess a color\nAlso, stylexjs.com can currently deliver raw Markdown documents specifically created for direct input as prompt context into LLM agents. The machines are being written the docs. ## The honest part: humans might still prefer the loser\nAccording to Jared Palmer's post on daily.dev today, He argued that by following StyleX constraints it results in more",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "StyleX 赢得了 CSS-in-JS，因为 AI 代理能读懂它",
+        "summary": "Linear 和 Cursor 在 2026 年转向了 Meta 的 StyleX，因为其编译器强制约束使 AI 代理能够可靠地生成有效代码。StyleX 的类型化令牌和构建时编译允许代理在没有人工干预的情况下自我纠正错误，代表了从优先考虑开发者体验到启用代理可读性的转变。"
+      }
+    }
+  },
+  {
+    "title": "Three Playwright/Apify bugs that took me way too long to find (and the fixes)",
+    "slug": "playwright-apify-debugging-bugs",
+    "url": "https://dev.to/donerightlabs/three-playwrightapify-bugs-that-took-me-way-too-long-to-find-and-the-fixes-15ko",
+    "source": "DEV Community",
+    "date": "2026-09-06T10:04:46.000Z",
+    "summary": "The author debugged three Playwright/Apify issues in production: a version mismatch between Playwright 1.61.0 and Camoufox in the official base image, Locator.click() hanging on text inputs (fixed by using .fill()), and residential proxy latency issues. The debugging experience revealed the importance of verifying version compatibility against actual matrices rather than relying on tag labels.",
+    "content": "I recently shipped a small Apify Actor — a keyword-based monitor for a government data portal, built with Playwright + Camoufox (a hardened Firefox build for stealth automation). It works, and it's live: it turned out to be a much better debugging exercise than I expected. Three bugs in particular cost me way more time than they should have, so I'm writing them down for whoever hits the same wall next.\nA silent version mismatch between Playwright and Camoufox\nRight after wiring up the browser launch, every run failed with:\nFound property \".viewport.isMobile\" - false which is not described in this scheme\nThe counter-intuitive part: the official Apify base image is tagged apify-python-playwright-camoufox:3.14-1.61.0 — so the natural instinct is to match your playwright pin to 1.61.0. Don't. That's the broken version for this combo. Pinning playwright==1.60.0 fixed it immediately.\nLesson: when a base image tag looks like a version recommendation, verify it against the actual compatibility matrix of the libraries involved — it can just be a taxonomy label, not a peer-dependency promise.\nThe .click() on a text input can hang forever; .fill() doesn't\nThis one took the longest to nail down because it was intermittent. Some runs would sail through in 40 seconds; others would sit at Locator.click() until a timeout fired, with no error, no popup, nothing actionable in the trace.\nAfter enough repeated runs, I noticed the timeouts always stalled at the exact same call: clicking a text input immediately before typing into it — a completely standard \"click to focus, then type\" pattern. Switching to locator.fill(value) — which focuses the element as part of its own actionability checks, without dispatching a raw mouse click — made the hang disappear across dozens of subsequent runs.\nI never found a fully satisfying root cause (my best guess: something in the click-dispatch path occasionally not resolving cleanly under a residential-proxy connection with irregular latency, which fi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我花了太长时间才找到的三个Playwright/Apify错误（以及修复方案）",
+        "summary": "作者在生产环境中调试了三个Playwright/Apify问题：官方基础镜像中Playwright 1.61.0与Camoufox的版本不匹配、Locator.click()在文本输入上挂起（通过使用.fill()修复）以及住宅代理延迟问题。调试经验表明验证版本兼容性时应针对实际矩阵而非仅依赖标签标签。"
+      }
+    }
+  },
+  {
+    "title": "SOLID in the WordPress Ecosystem: What 4wp.dev's Plugins Actually Prove",
+    "slug": "solid-wordpress-plugins",
+    "url": "https://dev.to/adovgun/solid-in-the-wordpress-ecosystem-what-4wpdevs-plugins-actually-prove-3h5",
+    "source": "DEV Community",
+    "date": "2026-09-06T10:03:17.000Z",
+    "summary": "SOLID principles apply naturally to WordPress development, as demonstrated by 4wp.dev's plugin ecosystem. Single Responsibility is achieved by splitting features across separate plugins, while Open/Closed principles are implemented through provider contracts that allow extensions without core rewrites, improving overall maintainability.",
+    "content": "WordPress makes it easy to write code that works and easy to write code that lasts, and those are not the same skill. Hooks, filters, custom post types, widgets — the platform hands you enough rope to build something maintainable or something that collapses the moment a second developer touches it. SOLID is the discipline that decides which one you get. Not as academic dogma imported from enterprise Java, but as five habits that map cleanly onto things WordPress developers already do every day.\nWe’ve written up all five principles in depth on 4wp.dev/architectures/solid. This isn’t a repeat of that material — it’s the harder question: does our own plugin catalog actually hold up against it? Where does it, and where are we still watching ourselves?\nSingle Responsibility — the one we had to learn from our own mistake\nWe named this risk directly on our own SRP page, using 4wp-bundle as the cautionary example: if it ever grew to carry responsive controls, FAQ management, Gutenberg extensions, and settings all in one codebase, that’s exactly the violation. The actual answer wasn’t a paragraph of theory — it’s the catalog itself. 4WP-Booking, 4WP-FAQ, 4WP Smart Link, 4WP Weather, 4WP Drive, 4WP Notifications — each is a separate plugin with a separate reason to change, sharing only infrastructure through 4wp-bundle, not features. That split isn’t a marketing decision. It’s SRP applied at the product level, not just the class level, and it’s the reason a bug in the booking flow can never be a reason to redeploy the FAQ registry.\nOpen/Closed — the principle WordPress ships for free\nOur own clearest example is 4WP-Booking. The plugin was built around a provider contract from day one — Clinic Cards today, Google Calendar and Calendly on the roadmap — specifically so that adding a new booking provider is an extension, not a rewrite. Nothing in the booking domain has to change for a new provider to plug in behind the same contract. That’s the same shape as a hook, just at the a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "WordPress生态系统中的SOLID原则：4wp.dev插件的实际证明",
+        "summary": "SOLID原则自然适用于WordPress开发，如4wp.dev的插件生态系统所示。单一责任原则通过将功能分散到独立插件来实现，而开闭原则通过供应商合约实现，允许在不重写核心代码的情况下进行扩展，从而提高整体可维护性。"
+      }
+    }
+  },
+  {
+    "title": "I Rebuilt My RAG Pipeline Without LangChain — What Got Better and What Got Worse",
+    "slug": "rag-pipeline-langchain-rebuild",
+    "url": "https://dev.to/hosseinhezami/i-rebuilt-my-rag-pipeline-without-langchain-what-got-better-and-what-got-worse-4d1a",
+    "source": "DEV Community",
+    "date": "2026-09-06T09:59:19.000Z",
+    "summary": "Rebuilding a production RAG pipeline without LangChain improved debugging, retrieval control, and observability by making the system explicit, but added complexity to document loading and integration maintenance. The main tradeoff: clearer control and easier debugging came at the cost of managing more glue code that frameworks typically abstract away.",
+    "content": "The first time I seriously doubted the framework was not because the model hallucinated. It was because the answer looked plausible, contained a citation, and was still wrong.\nThe assistant had retrieved a chunk from a deprecated help page because one part of the pipeline applied a metadata filter, another part did not, and the final prompt assembly made the whole thing look coherent. Debugging it meant stepping through wrappers, runnable compositions, and framework-specific assumptions instead of asking the real question: why did retrieval favor the wrong document?\nThat was the point where I stopped treating LangChain as the core of the RAG system and started treating it as an optional integration layer.\nThis is not an anti-framework article. LangChain solved a real problem: it gave developers a fast way to compose LLM applications when the ecosystem was young and everyone was still figuring out the basics. But once RAG moved from demo to production, the problems changed. The hard parts stopped being “call the model” and became:\npermission-aware retrieval\nstable chunking\nhybrid search\nreranking\nevaluation\ndocument ingestion failures\nembedding migrations\ntraceability when an answer goes wrong\nRebuilding the pipeline without LangChain made some things dramatically better. It also made some things more annoying, more expensive, and more time-consuming than I expected.\nThis article is about both.\nIf you are deciding whether to keep, adopt, or remove LangChain from a production RAG system:\nRemoving LangChain improved debugging, retrieval control, evaluation, observability, and cost discipline.\nRemoving LangChain made harder document loading, integration maintenance, and the long tail of “small” pipeline decisions.\nThe biggest win was not performance. It was that the pipeline became explicit.\nThe biggest downside was that I became responsible for a lot of boring glue code that frameworks usually hide.\nMy current rule: prototype with high-level tools, but own the retrieva",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我在没有LangChain的情况下重建了我的RAG管道——哪些改进了，哪些恶化了",
+        "summary": "在没有LangChain的情况下重建生产级RAG管道通过使系统显式化改进了调试、检索控制和可观测性，但增加了文档加载和集成维护的复杂性。主要权衡是：更清晰的控制和更容易的调试换来了管理更多框架通常抽象化的胶合代码。"
+      }
+    }
+  },
+  {
+    "title": "Everyone agrees on the risk. They disagree on the price.",
+    "slug": "post-quantum-cryptography-policy",
+    "url": "https://dev.to/lvlrsajjad/everyone-agrees-on-the-risk-they-disagree-on-the-price-44fl",
+    "source": "DEV Community",
+    "date": "2026-09-06T09:56:50.000Z",
+    "summary": "Regulatory agencies globally agree post-quantum cryptography is necessary but disagree on implementation, specifically whether to use hybrid classical-plus-quantum schemes. The disagreement centers on risk tolerance: weighing security benefits against increased implementation complexity. This fragmentation creates compliance challenges for organizations operating across multiple jurisdictions.",
+    "content": "Published 2026-09-06\nEvery regulatory claim here was read from the primary document on that\nthe policy sources. Guidance moves — the ASD ISM\nGermany's BSI recommends that post-quantum key establishment be deployed\nThe obvious story is that the authorities disagree about whether hybrid\nHere is ANSSI, explaining why it wants a classical algorithm kept alongside the\n\"even if the post-quantum algorithms have gained a lot of attention, they are\nThe citation attached to that sentence is Beullens, Breaking Rainbow takes a\n. Rainbow and SIKE both fell to classical cryptanalysis\nBSI reaches the same place, and states the design requirement precisely:\nNow here is ASD, the agency that recommends against hybrids:\n\"Generally, such schemes have the advantage of the security offered by the\nThat is ANSSI's argument, in Australia's own words, in the paragraph where it\n\"This advantage comes at the cost of increased complexity, making maintenance,\nAnd the NSA, in its CNSA 2.0 FAQ, makes the cost side explicit as an empirical\n\"Because more security products fail due to implementation or configuration\nSo the disagreement is not about cryptography. It is a bet on which failure mode\nReasonable people land differently on that, and they have.\nNone of this would matter if you shipped into one jurisdiction. The trouble is\nASSET           PURPOSE        bsi-de      anssi-fr    eu-roadmap  asd-au      cnsa-2.0\n───────────────────────────────────────────────────────────────────────────────────────────\nECDH            key-agreement  WARN        WARN        WARN        WARN        FAIL          ⚠ c1,c2\n                └ bsi-de · disallowed 2031-12-31\n                └ anssi-fr · complete 2030-12-31\n                └ eu-roadmap · transition_start 2026-12-31 · complete 2035-12-31\n                └ asd-au · disallowed 2030-12-31 · complete 2030-12-31\n                └ cnsa-2.0 · disallowed 2030-12-31 · exclusive_use 2031-12-31\n                └ critical · exposure 19.0y · harvest-now-decrypt-later",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "大家都认可风险。但对代价意见不一。",
+        "summary": "全球监管机构一致同意后量子密码学是必要的,但在实施方式上存在分歧,特别是是否使用混合型经典-量子方案。分歧的焦点在于风险承受度:权衡安全收益与实施复杂性的增加。这种碎片化为在多个司法管辖区运营的组织造成了合规挑战。"
+      }
+    }
+  },
+  {
+    "title": "Why I Built a Lightweight Utility Styling Library for React Native (And How It Solves StyleSheet Fatigue)",
+    "slug": "rncstyles-react-native-utility",
+    "url": "https://dev.to/basitayaz/why-i-built-a-lightweight-utility-styling-library-for-react-native-and-how-it-solves-stylesheet-559d",
+    "source": "DEV Community",
+    "date": "2026-09-06T09:54:40.000Z",
+    "summary": "RNC Styles is a lightweight utility-first styling library for React Native that eliminates bundler configuration, runtime overhead, and peer-dependency issues. It combines developer productivity with zero-complexity setup and compatibility through React Native upgrades, addressing the boilerplate fatigue of native StyleSheet development.",
+    "content": "If you’ve built production apps in React Native, you’ve likely felt the friction of styling.\nOn one hand, you have the built-in StyleSheet.create(). It’s performant, but it requires writing boilerplate object literals for every single component, leading to massive files and endless style-name inventions (container, innerContainer, wrapperView, boxWrapperAlt).\nOn the other hand, you have massive third-party styling compilers and utility frameworks. While feature-rich, they often introduce complex Babel plugins, Metro bundler configurations, runtime overhead, or tricky peer-dependency mismatches during major React Native upgrades.\nI wanted something different: zero complex bundler hacks, zero heavy runtime execution, and maximum developer speed. That’s why I created RNC Styles (rncstyles), an open-source utility styling library designed specifically for React Native.\nThe Core Philosophy: Utility-First Without the Bloat\nBefore: The StyleSheet.create Boilerplate\nimport React from 'react';\nimport { StyleSheet, Text, View } from 'react-native';\n\nexport default function UserCard() {\n  return (\n    <View style={styles.card}>\n      <Text style={styles.title}>Basit Ahmed</Text>\n      <Text style={styles.subtitle}>Full-Stack Engineer</Text>\n    </View>\n  );\n}\n\nconst styles = StyleSheet.create({\n  card: {\n    backgroundColor: '#ffffff',\n    padding: 16,\n    borderRadius: 12,\n    shadowColor: '#000',\n    shadowOpacity: 0.1,\n    shadowRadius: 4,\n    elevation: 3,\n  },\n  title: {\n    fontSize: 18,\n    fontWeight: 'bold',\n    color: '#111827',\n  },\n  subtitle: {\n    fontSize: 14,\n    color: '#6b7280',\n    marginTop: 4,\n  },\n});\n\nAfter: Clean and Concise with rncstyles\nimport React from 'react';\nimport { Text, View } from 'react-native';\n// Import your utility package\nimport { s } from 'rncstyles';\n\nexport default function UserCard() {\n  return (\n    <View style={[s('bg-white p-4 rounded-xl shadow-sm')]}>\n      <Text style={[s('text-lg font-bold text-gray-900')]}>Basit Ahmed</Text>",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我为什么为React Native构建了一个轻量级实用样式库(以及它如何解决样式表疲劳)",
+        "summary": "RNC Styles是一个React Native的轻量级实用优先级样式库,消除了打包器配置、运行时开销和对等依赖问题。它将开发人员生产力与零复杂性设置和React Native升级兼容性相结合,解决了原生StyleSheet开发中的样板疲劳问题。"
+      }
+    }
+  },
+  {
+    "title": "المنصة اللي جاية بعد الموبايل مش خيال علمي",
+    "slug": "ar-glasses-next-platform",
+    "url": "https://dev.to/saqrelfirgany/lmns-lly-jy-bd-lmwbyl-msh-khyl-lmy-26lc",
+    "source": "DEV Community",
+    "date": "2026-09-06T09:54:12.000Z",
+    "summary": "Smart AR glasses are emerging as the next major computing platform beyond mobile, with Samsung already shipping Galaxy AI Glasses and Google planning 2026 launches. Three major companies racing simultaneously signals a real platform shift rather than early experimentation, forcing developers to decide whether to prepare for this transition.",
+    "content": "المنصة اللي جاية بعد الموبايل مش خيال علمي — بتتبنى قدام عينينا دلوقتي.\nجوجل هتطلق أول نظارة AI ليها في ٢٠٢٦، سامسونج طلعت Galaxy AI Glasses بالفعل، وRayNeo عرضت جيل جديد بالتعاون مع Dolby وBang & Olufsen. تلات شركات عالمية بتتسابق في نفس السنة بالظبط — ده مش تجربة، ده بداية سباق منصة حقيقية.\nقضيت ٥ سنين أبني للموبايل. ولسه معتبرش نفسي خلصت، بس المنصة اللي بنيت عليها شغلي عمره كله بقى ليها منافس واقف في الصف جنبها.\nالسؤال مش هل النظارات هتاخد مكان الموبايل. السؤال: مين من المطورين هيبقى جاهز لما اللحظة دي تيجي؟\nإنت متابع المنصة الجاية دي، ولا لسه مركّز بس في اللي إنت فيه؟\nالاصطناعي #نظاراتذكية #هندسة_الموبايل #Flutter",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "手机之后的平台不是科幻小说",
+        "summary": "智能AR眼镜正在成为超越手机的下一个主要计算平台,三星已经推出Galaxy AI眼镜,谷歌计划在2026年推出。三家主要公司同时竞争表明这是真正的平台转变而非早期实验,迫使开发者决定是否为这一转变做好准备。"
+      }
+    }
+  },
+  {
+    "title": "Build a Booking.com hotel shortlist in Google Sheets with n8n and Apify",
+    "slug": "booking-hotel-shortlist-n8n",
+    "url": "https://dev.to/luminar1/build-a-bookingcom-hotel-shortlist-in-google-sheets-with-n8n-and-apify-1pn0",
+    "source": "DEV Community",
+    "date": "2026-09-06T09:53:35.000Z",
+    "summary": "This guide automates hotel searches from Booking.com into Google Sheets using n8n workflow automation and Apify web scraping. It provides downloadable templates and step-by-step setup instructions to consolidate destination, dates, pricing, and ratings into a sortable spreadsheet for easy hotel comparison.",
+    "content": "A hotel shortlist is easier to compare when the destination, stay dates, currency and collection time travel with the prices. This guide connects a Booking.com search to Google Sheets using an Apify Actor and n8n.\nI'm Luka, the builder behind Luminar. I maintain the Actor and the published workflow used here.\nHere are five real results collected on 26 August 2026, for a 15–17 September 2026 stay in Tivat. They are historical search results, not current offers or checkout-confirmed prices.\n\n\n\nProperty\nReported stay total\nGuest score\n\n\n\n\nApartments Family\nEUR 100.00\n8.5\n\n\nEden apartments\nEUR 208.70\n9.0\n\n\nSea and Sunshine 100m to beach,free parking,centar,View\nEUR 139.13\n9.6\n\n\nAdriatic Dream\nEUR 107.39\n9.0\n\n\nApartment Nada\nEUR 86.09\n8.8\n\n\n\nThe sample is capped at five properties. It is not an exhaustive comparison of accommodation in Tivat.\nOpen the published n8n template, or download booking-workflow.json from the GitHub demo folder.\nThe folder also contains:\nsheet-header.csv: the column names for your new Sheet.\nsample-hotels.csv: the five saved results.\nindex.html: an offline walkthrough. Download the repository and open this file locally; GitHub itself displays the source.\nThe offline walkthrough makes no paid API calls. Running the actual workflow does.\nYou need an Apify account, an n8n instance and a Google account with access to the destination spreadsheet. The template is free to download. Apify usage and n8n hosting or plan charges may apply.\nImport the JSON into a new, empty n8n workflow.\nIf n8n reports an unavailable Apify node, install the verified Apify community node using the community-node controls supported by your instance. Then select your Apify credential on every Apify node, and your Google Sheets credential on the Sheets node.\nKeep credentials in n8n. Do not paste tokens into the workflow JSON or a public repository.\nCreate a blank tab named Booking Shortlist and import sheet-header.csv into its first row.\nKeep the headers exactly as supplied. The",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用 n8n 和 Apify 在 Google Sheets 中创建 Booking.com 酒店短名单",
+        "summary": "本指南使用 n8n 工作流自动化和 Apify 网页抓取功能，自动化将 Booking.com 的酒店搜索结果导入 Google Sheets。它提供可下载的模板和分步设置说明，以便将目的地、日期、价格和评分整合到可排序的电子表格中，方便酒店比较。"
+      }
+    }
+  },
+  {
+    "title": "I Rewrote My Electron App in Tauri — and Claude Did 100% of the Work in Under 24 Hours 🚀",
+    "slug": "electron-tauri-claude-rewrite",
+    "url": "https://dev.to/ankurk91/i-rewrote-my-electron-app-in-tauri-and-claude-did-100-of-the-work-in-under-24-hours-3j5p",
+    "source": "DEV Community",
+    "date": "2026-09-06T09:48:46.000Z",
+    "summary": "The author rewrote an Electron desktop application as a Tauri app entirely through AI-assisted development with Claude, producing ~3,600 lines of Rust in under 24 hours without writing any code personally. The result reduced file size to ~3 MB while maintaining full functionality, demonstrating practical viability of developer-guided AI code generation.",
+    "content": "🕰️ Then: I built google-chat-electron by hand, over months, reading tutorial after tutorial.\n⚡ Now: I rebuilt the whole thing as google-chat-tauri in less than 24 hours — and I did not write the code. Claude did.\n\n🦀 Plot twist: I don't know Rust. Not a little — at all. The AI wrote every line of it.\n📦 Result: a ~3 MB Linux installer instead of a bundled Chromium.\n🧪 Status: pre-release. Fun project. Stable version coming after real-world testing.\nLet's dive in. 👇\nA few years ago I wanted Google Chat in a real window — with a tray icon, an unread badge and native notifications — instead of a browser tab that disappears among thirty other browser tabs.\nSo I built it. In Electron. By hand.\nAnd it took months. Not because Electron is bad, but because every single thing was a tutorial:\nHow do I make a tray icon that actually behaves?\nHow do I keep the app alive when the window closes?\nHow do I intercept a link and open it in the real browser?\nHow do I package a .deb? A .dmg? An installer for Windows?\nWhy does this work on my machine and nowhere else? 🙃\nEvery answer was a blog post, a GitHub issue thread, or a Stack Overflow reply from 2017 that almost applied. It shipped, people used it, and I was genuinely proud of it.\nLast week I opened Claude Code and asked it to port the app to Tauri v2.\nI did not open the Rust book. I did not read the Tauri docs. I described what the app should do, reviewed what came back, ran it on my actual laptop, and reported what broke.\nTimeline:\n\n\n\nTime\nWhat happened\n\n\n\n\n15:42\ngit init\n\n\n17:01\nFull Electron → Tauri v2 port committed\n\n\n17:25\nDesktop notifications working\n\n\n< 24h later\n\nv0.0.1 tagged and released 🎉\n\n\n\n38 commits. ~3,600 lines of Rust and JavaScript. Zero lines typed by me.\nThis is what people mean by vibe coding — and honestly, it felt less like programming and more like directing. My job became: describe the behaviour, test it on real hardware, and say \"the tray icon doesn't come back on Wayland.\" The AI handled the rest.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我用 Tauri 重写了我的 Electron 应用 — Claude 在 24 小时内完成了 100% 的工作 🚀",
+        "summary": "作者通过与 Claude 进行 AI 辅助开发，将一个 Electron 桌面应用完全重写为 Tauri 应用，在 24 小时内生成了约 3,600 行 Rust 代码，而本人没有亲自编写任何代码。最终结果将文件大小减少到约 3 MB，同时保持完整功能，展示了开发者引导的 AI 代码生成的实际可行性。"
+      }
+    }
+  },
+  {
+    "title": "RSA-2048 and RSA-3072 have different futures",
+    "slug": "rsa-nist-deprecation-timeline",
+    "url": "https://dev.to/lvlrsajjad/rsa-2048-and-rsa-3072-have-different-futures-2ipc",
+    "source": "DEV Community",
+    "date": "2026-09-06T09:44:51.000Z",
+    "summary": "NIST IR 8547 specifies different deprecation timelines for RSA keys by security strength: 112-bit keys are deprecated after 2030 and disallowed after 2035, while 128-bit and stronger keys only face restrictions after 2035. Common compliance errors conflate deprecation with disallowance, causing organizations to incorrectly assume RSA-3072 faces 2030 deadlines.",
+    "content": "Published 2026-09-06\nThis describes NIST IR 8547 ipd — the initial public draft of November\nIf you have read anything about post-quantum migration in the last year, you\nIt is half true, and the half that is false is the half people plan around.\nHere is the actual table, from NIST IR 8547, Transition to Post-Quantum\n:\n\n\nalgorithm\nparameters\ntransition\n\n\n\n\nRSA, ECDSA\n112 bits of security strength\nDeprecated after 2030\nDisallowed after 2035\n\n\nRSA, ECDSA, EdDSA\n≥ 128 bits of security strength\nDisallowed after 2035\n\n\n\nRead the second row again. At 128 bits and above there is no 2030 row at\n. RSA-3072 is not deprecated in 2030. Neither is P-256. The 2030 date\nThe key-establishment table (Table 4, covering finite-field DH/MQV, elliptic\nSo an inventory that reports \"47 uses of RSA, all deprecated in 2030\" is\nThe second thing worth getting right is what the two words mean, because they\ndeprecated — \"The algorithm and key length may be used, but the user must\ndisallowed — \"The algorithm or key length is no longer allowed for\nDeprecated is a risk acceptance. You may continue, with your eyes open and\nDisallowed is a stop.\nCollapsing them into \"banned by 2030\" produces two failures at once. It makes\nIf you are budgeting, the practical shape is: 2030 is when your 112-bit\nNIST IR 8547 is an initial public draft. Not a final publication. The cover\nEvery date in it is proposed. The 2030s and 2035s that have propagated across\nThat is not a reason to ignore them — they are the best available signal about\nThe distinction between the rows is security strength, which is not a field\nMost compliance tooling models a regulation as a list of banned algorithm names\nErring strict is not safe. A team that believes RSA-3072 dies in 2030 builds a\nThe same flattening recurs across this whole space, always in the same\nrecommends it, in a technical guideline. \"The US mandates PQC by 2030\":\n2031.\ncbomctl is a CLI that reads a CycloneDX CBOM and evaluates it against\npip install cbomctl\ncbomctl verdict",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "RSA-2048 和 RSA-3072 有不同的前景",
+        "summary": "NIST IR 8547 根据安全强度为 RSA 密钥指定了不同的弃用时间表：112 位密钥在 2030 年后弃用，2035 年后禁用，而 128 位及更强的密钥仅在 2035 年后面临限制。常见的合规错误混淆了弃用和禁用，导致组织错误地假设 RSA-3072 面临 2030 年的最后期限。"
+      }
+    }
+  },
+  {
     "title": "The Fixpoint No Test Suite Can Check",
     "slug": "the-fixpoint-no-test-suite-can-check",
     "url": "https://dev.to/megapixel99/the-fixpoint-no-test-suite-can-check-31o4",
@@ -188,6 +380,22 @@
       "zh": {
         "title": "如何将Confluence表格导入Excel",
         "summary": "从Confluence复制表格到Excel适用于简单情况，但需要仔细处理合并单元格、日期语言环境和数字格式；先通过Word导出可以减轻格式问题。"
+      }
+    }
+  },
+  {
+    "title": "Cloud in a Bottle: making self-hosting accessible to everyone",
+    "slug": "cloud-bottle-self-hosting",
+    "url": "https://cloudinabottle.org/blog/launch-post",
+    "source": "Hacker News",
+    "date": "2026-09-06T00:03:29.000Z",
+    "summary": "Cloud in a Bottle aims to lower barriers to self-hosting by simplifying deployment and management, making it more accessible to users who want to host applications independently rather than rely on commercial cloud providers.",
+    "content": "Article URL: https://cloudinabottle.org/blog/launch-post\nComments URL: https://news.ycombinator.com/item?id=49582000\nPoints: 409\n# Comments: 193",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "瓶中云：让自托管对每个人都可访问",
+        "summary": "瓶中云旨在通过简化部署和管理来降低自托管的障碍，使想要独立托管应用程序而不依赖商业云提供商的用户更容易使用。"
       }
     }
   }
