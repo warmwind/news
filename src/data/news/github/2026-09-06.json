@@ -1,0 +1,194 @@
+[
+  {
+    "title": "The Fixpoint No Test Suite Can Check",
+    "slug": "the-fixpoint-no-test-suite-can-check",
+    "url": "https://dev.to/megapixel99/the-fixpoint-no-test-suite-can-check-31o4",
+    "source": "DEV Community",
+    "date": "2026-09-06T03:00:00.000Z",
+    "summary": "A language's test suite can verify correctness through bootstrapping: ensuring the compiler produces identical output whether built with JavaScript or itself, catching bugs that standard tests miss by never requiring self-compilation.",
+    "content": "Code: Megapixel99/lambda-language\nlm is a small low-level language with four independent backends: C, WebAssembly, ARM64, and bytecode for a VM. Its test suite is built around the fact that there are four of them. Every program runs through all four and the outputs are compared byte for byte against each other and against a recorded expectation, so a backend that gets something subtly wrong disagrees with three that do not.\nThat suite is at 94 tests: 22 lm programs and 10 examples across four backends each, 59 compile-error cases, and 3 legacy programs. It is a good suite; there is one property it cannot check at all.\nEvery one of those 94 tests runs a program that the JavaScript compiler built. A compiler written in lm that quietly disagreed with its own output would pass all 94, because nothing in the suite ever asks it to compile itself.\nstage2   emit-c.lm, compiled by the JavaScript compiler\nstage3   emit-c.lm, compiled by stage2\nstage4   emit-c.lm, compiled by stage3\n\nstage3 and stage4 have to be identical. If they are, the compiler written in lm produces the same output whether it was built by the JavaScript compiler or by itself, which is what a bootstrap is supposed to establish.\n$ ./selfhost/bootstrap.sh\nfixpoint reached: stage3 and stage4 are byte-identical (7023 lines)\n\nGetting there took four stages, each checked against the JavaScript it replaces rather than against a hand-written expectation. The lexer produces identical token streams on all 36 programs under all four backends; the parser produces identical syntax trees on the same 36; the emitter produces identical C, byte for byte. The checker returns the same accept-or-reject verdict on all 95 programs, 36 valid and 59 that must be rejected. Its messages match on 40 of 95, mostly in column numbers but in a handful of cases in wording, so the verdicts are exact and the diagnostics are not yet.\nThe corpus includes the lm files themselves, which is the part that makes the comparison worth anything: the",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "测试套件无法检查的固定点",
+        "summary": "一种语言的测试套件可以通过自举来验证正确性：确保编译器在用JavaScript或自身构建时产生相同的输出，通过从不需要自编译来捕捉标准测试遗漏的错误。"
+      }
+    }
+  },
+  {
+    "title": "What's actually inside an image's DPI tag (and why changing it is lossless)",
+    "slug": "whats-inside-an-images-dpi-tag",
+    "url": "https://dev.to/caseymarlin/whats-actually-inside-an-images-dpi-tag-and-why-changing-it-is-lossless-57pb",
+    "source": "DEV Community",
+    "date": "2026-09-06T02:56:22.000Z",
+    "summary": "DPI is metadata stored in image file headers that specifies print size but does not affect pixel data; changing DPI without altering actual pixels is lossless and requires no re-encoding.",
+    "content": "A print shop rejected a 4000 × 2667 px photo last week because the file \"was only 72 DPI\". The photo had more than enough pixels for the 8 × 10 in print they were making — at 300 DPI that size only needs 2400 × 3000. Nothing about the image was wrong. One integer in the file header was.\nThis post is about where that integer lives, byte by byte, and why rewriting it doesn't touch a single pixel.\nDPI is metadata, not resolution\nPixel dimensions — how many samples the image has. 4000 × 2667. This is the actual information content.\nPrint size is always pixels ÷ DPI. A 3000 px wide image tagged 72 DPI \"wants\" to be 41.7 inches wide. The same file tagged 300 DPI \"wants\" to be 10 inches. Same pixels. Same sharpness at the same physical size. Different suggestion.\nWhere the tag lives: three formats, three places\nFF E0            APP0 marker\nJPEG — EXIF XResolution / YResolution\nSo a JPEG can carry the density twice, and they can disagree. Photoshop reads EXIF first. Windows Explorer reads... it depends on the version. A proper tool rewrites both so every reader agrees.\nPNG — the pHYs chunk\n00 00 00 09      length (9)\nIf the chunk is absent (most screenshots, most web-exported PNGs), there is no DPI. Any number a viewer shows you is that viewer's default, not a property of the file.\nWhy rewriting it is lossless\ndoesn't decode the pixels\nContrast with what \"Image → Resize → 300 DPI\" does in most editors: it decodes, optionally resamples, and re-encodes. For JPEG that's a generation of quality loss you never needed to take.\nReading pHYs in ~15 lines of JavaScript\nThe trap on the other side\nThe honest workflow: check pixel dimensions ÷ target DPI ≥ print size. If yes, rewrite the tag and stop. If no, you need more pixels — a larger original, a rescan, or an actual upscaler (which is a different, lossy operation).\nI put this in a browser tool\nSetDPI — it does the JFIF / EXIF / pHYs rewrite described above entirely in the browser with a FileReader and a Blob. Nothing is uploaded;",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "图像DPI标签内部的实际内容（以及为什么更改它是无损的）",
+        "summary": "DPI是存储在图像文件头中的元数据，指定打印尺寸但不影响像素数据；更改DPI而不改变实际像素是无损的，不需要重新编码。"
+      }
+    }
+  },
+  {
+    "title": "HypeBESTIE: My Free Sincere Compliment Engine",
+    "slug": "hypebestie-free-compliment-engine",
+    "url": "https://dev.to/mike_cramblett_7050830f0c/hypebestie-my-free-sincere-compliment-engine-b8n",
+    "source": "DEV Community",
+    "date": "2026-09-06T02:53:24.000Z",
+    "summary": "HypeBESTIE is a free AI-powered compliment generator using Google Gemini's vision to analyze photos and create personalized, sincere validation without paywalls, signups, or data collection.",
+    "content": "This is a submission for Weekend Challenge: Generosity Edition\nSup Dev.to! I built HypeBESTIE, a free image compliment generator powered by Google Gemini 3.8, and love itself. I did this to spread goodwill in the world. Social platforms run on an artificial scarcity of validation. Algorithms encourage stinginess with praise and casual toxicity, which totally bums me out. \nSo I made something that is literally the opposite of all: Unconditional, zero-cost, high-fidelity praise. Generosity isn't only about donating money; it’s about the generosity of spirit. Seeing someone, celebrating their existence, and validating them without asking for anything in return. So I built HypeBESTIE: a 100% free, paywall-free image compliment generator powered by Google Gemini and unconditional love. \nUpload a photo of yourself or a friend, and HypeBESTIE uses Gemini's multimodal vision to analyze the exact visual specifics, from the micro-smile in yawn to the casual jacket layering with a cool shirt. It prints out a certified, thermal-grade \"Hype Receipt\" with custom aesthetic archetypes, sci-fi diagnostic specs, and deep, sincere validation.\nHere is an example, of me:\n\nWhile hyping yourself is great, I made this to spread love and joy in the world. \nSo HB includes a dedicated \"Compliment a Friend\" mode:\nUpload a photo of a friend or coworker.\nEnter their name.\nGemini crafts a bespoke tribute dedicated specifically to them.\nYou get an instant \"Share Modal\" with 1-click export to Instagram Stories, Gmail, or direct mobile sharing so you can brighten their day in seconds.\nHere is an example generated for Jimothy:\n\nExperience the dopamine boost yourself (test it with your own photo or click the instant 0-credit demo button):\n👉 Live App: https://hypebestie-with-love.ai.studio \nSo I vibe-coded the HypeBESTIE code itself, with Google Gemini 3.8, in Google AI Studio. \nHypeBESTIE was coded up with a clean TypeScript + React frontend and an Express + @google/genai backend. To make the retro t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "HypeBESTIE：我的免费诚挚赞美引擎",
+        "summary": "HypeBESTIE是一个免费的AI驱动的赞美生成器，使用Google Gemini的视觉功能来分析照片并创建个性化的诚挚验证，无需付费、注册或数据收集。"
+      }
+    }
+  },
+  {
+    "title": "Rust for Rust, JS for JS: introducing Ahoi",
+    "slug": "rust-for-rust-js-for-js-introducing-ahoi",
+    "url": "https://dev.to/acheul_cb82668412b68f7670/rust-for-rust-js-for-js-introducing-ahoi-3k82",
+    "source": "DEV Community",
+    "date": "2026-09-06T02:53:22.000Z",
+    "summary": "Ahoi bridges Rust/WebAssembly and JavaScript frameworks by providing a reactive state engine in Rust with thin framework-specific adapters, enabling native Rust reactivity without adopting a full Rust frontend framework.",
+    "content": "Why I built Ahoi\n\n\nWhen you want to manage data state in Rust/Wasm inside a web app, there have\nOption 1: hand-roll the bridge between Rust and JS. The reactivity does not\nOption 2: use a Rust frontend framework such as Dioxus, Sycamore, or Leptos.\nI kept zigzagging between these two paths. Then the idea for Ahoi came up: go\nAhoi has two parts:\nA Rust crate: the core reactivity engine.\nnpm packages: thin bridges, one per supported JS framework (SolidJS,\nReact, Vue, Svelte).\nI built the reactivity engine myself, but I owe a lot to pioneers like Dioxus,\nA counter is small, but it shows the whole round trip: a value pushed from\nOn the Rust side, state lives in a reactive Stock, and a key enum declares\n#[ret(..)] is the type JS gets back.\n#[derive(Stock, Serialize, Deserialize)]\npub struct State {\n    count: i32,\n}\n\n#[derive(Rets, Serialize, Deserialize)]\npub enum Hail {\n    #[ret(i32)]\n    Count,\n    #[ret(i32)]\n    Doubled,\n}\n\nfn run_hail(key: Hail) -> JsValue {\n    let state = use_context::<Stock<State>>().unwrap();\n    match key {\n        // read-write: JS can write straight back into the stock\n        Hail::Count => state.count().set_hail::<Converter>(),\n        // read-only, recomputed only when `count` actually changes\n        Hail::Doubled => state.count().memo(|c| *c * 2).set_read_hail::<Converter>(),\n    }\n}\n\nA Tell is a command: JS asks Rust to do something, and Rust owns the logic.\n#[derive(Rets, Serialize, Deserialize)]\npub enum Tell {\n    #[ret(i32)]\n    Increase,\n}\n\nfn run_tell(tell: Tell) -> JsValue {\n    let state = use_context::<Stock<State>>().unwrap();\n    match tell {\n        Tell::Increase => {\n            let mut count = state.count().write();\n            *count += 1;\n            serde_wasm_bindgen::to_value(&*count).unwrap()\n        }\n    }\n}\n\nOn the JS side those keys resolve to fully typed signals of the host framework.\nimport { usePier } from \"./bridge\";\n\nexport default function Counter() {\n  const pier = usePier();\n  const [count, setCount] =",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为Rust用Rust，为JS用JS：介绍Ahoi",
+        "summary": "Ahoi通过在Rust中提供反应式状态引擎和精简的框架特定适配器，连接Rust/WebAssembly和JavaScript框架，使开发者能够使用本地Rust反应性，而无需采用完整的Rust前端框架。"
+      }
+    }
+  },
+  {
+    "title": "How a University Student Built a 64+ Client-Side Utility Suite in 30 Days (React, WASM & AI)",
+    "slug": "university-student-built-64-client-side-utility-suite",
+    "url": "https://dev.to/muhammad_abdullahsattar_/how-a-university-student-built-a-64-client-side-utility-suite-in-30-days-react-wasm-ai-1pi",
+    "source": "DEV Community",
+    "date": "2026-09-06T02:53:21.000Z",
+    "summary": "ToolVerve is a privacy-first suite of 64+ browser utilities built in 30 days using React, WebAssembly, and Web Workers, processing all tasks locally without server uploads or data collection.",
+    "content": "Building ToolVerve: A 100% Client-Side Web Utility Suite\n\n\nHi DEV Community! 👋\nI'm a university student, and over the past 30 days, I dedicated my personal effort and focus to build ToolVerve—a privacy-first suite of 64+ free browser utilities that run 100% locally on your device.\nBuilding a project of this scale in just one month was an incredible journey. As a university student, I leveraged modern AI tools alongside my own system design vision and hands-on effort to architect, code, and optimize the platform. \nAI acted as my co-developer—helping write clean code, handle edge cases, and integrate WebAssembly at record speed—while I focused on UX, tool selection, state management, and performance tuning.\nAs developers and students, we perform quick utility tasks every single day—compressing images to target file sizes, merging PDFs, inspecting JWTs, or checking WCAG color contrast. \nHowever, most online tools force account signups, hide behind paywalls, or upload sensitive user documents to third-party cloud servers. ToolVerve solves this by processing everything directly inside your browser.\nInstead of relying on backend servers, ToolVerve leverages local client-side performance:\nWebAssembly (WASM): Heavy operations like PDF merging run locally in browser memory using WebAssembly compiled modules.\nWeb Workers: Multi-threaded tasks (like batch compressing images to exact target KB limits) run on background Web Worker threads to keep the main UI smooth at 60 FPS.\nPWA & Offline Support: Once loaded, ToolVerve functions as an offline Progressive Web App.\nStack: React, Vite, Tailwind CSS, WebAssembly, and Web Workers.\nOptimization: Dynamic imports and manual Rollup chunking ensure heavy libraries load only when needed, maintaining a 94%+ PageSpeed performance score.\nPrivacy First: 100% local RAM execution—zero cloud uploads, zero telemetry, and zero signups.\nToolVerve is officially launching on Product Hunt tomorrow (Monday, Sept 7 at 12:01 PM PKT)!\nAs a student build",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "一名大学生如何在30天内构建64+个客户端实用工具套件（React、WASM和AI）",
+        "summary": "ToolVerve是一个以隐私为先的64+个浏览器实用工具套件，在30天内使用React、WebAssembly和Web Workers构建，所有任务在本地处理，不上传到服务器或收集数据。"
+      }
+    }
+  },
+  {
+    "title": "Building a game server tracker: what I learned exposing a public JSON API",
+    "slug": "building-game-server-tracker-public-json-api",
+    "url": "https://dev.to/dreiev/building-a-game-server-tracker-what-i-learned-exposing-a-public-json-api-o1p",
+    "source": "DEV Community",
+    "date": "2026-09-06T02:53:04.000Z",
+    "summary": "L2 Calendar exposes game server openings via public JSON API, revealing critical lessons about date type coercion between MySQL DATE and DATETIME columns that can cause runtime errors in production.",
+    "content": "A few months ago I shipped L2 Calendar, a tracker for Lineage 2 private server openings. Players kept asking the same thing: \"when's the next Interlude server?\" and server owners had no good place to announce openings. The site solves that. Last week I opened up the data as a public JSON API, and I want to walk through the decisions that mattered — because two of them bit me harder than I expected.\nA server opening looks like this: name, website, chronicle (Interlude, High Five, Classic...), rate (x5, x1200, whatever the owner decided), opening date, and labels like \"PvP\" or \"RP\". That's it. Four tables in MySQL: servers, chronicles, labels, and a many-to-many server_labels_map.\nThe trap wasn't the schema. It was the dates.\nI had this in my connection config:\ndateStrings: ['DATE']\n\nSounds like \"give me all dates as strings, please.\" It doesn't. It means: convert columns typed as DATE to strings. DATETIME columns still come back as JavaScript Date objects.\nWhy does that matter? My display code treated every date as a string:\nconst isUtc = value.endsWith('Z');\n\nOne day a TypeError: value.endsWith is not a function started showing up in production for rows where opening_datetime_utc was populated. A DATETIME column came back as a Date object, .endsWith doesn't exist on it, crash.\nThe fix was boring but worth writing down:\nconst rawUtc = row.opening_datetime_utc;\nconst utc = rawUtc instanceof Date ? rawUtc.toISOString() : rawUtc;\n\nmysql2's type coercion is per-column-type, not per-config-intent. If you have mixed DATE and DATETIME columns feeding the same code path, normalize at the boundary or you'll debug this at 2am eventually.\nI didn't build a separate service. The API is a route handler in the same Next.js app:\nexport async function GET(request: NextRequest) {\n  const chronicle = searchParams.get('chronicle');\n  // one query with a LEFT JOIN to chronicles, one for labels\n  return NextResponse.json(servers, { headers: corsHeaders });\n}\n\nFilter by chronicle slug, joi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建游戏服务器追踪器：我从公开JSON API中学到的经验",
+        "summary": "L2 Calendar通过公开JSON API公开游戏服务器开放情况，揭示了关于MySQL DATE和DATETIME列之间日期类型强制转换的关键经验教训，这可能导致生产环境中的运行时错误。"
+      }
+    }
+  },
+  {
+    "title": "Machines Can Only Build What Someone Already Imagined",
+    "slug": "machines-can-only-build-what-already-imagined",
+    "url": "https://dev.to/edmundsparrow/machines-can-only-build-what-someone-already-imagined-4mgg",
+    "source": "DEV Community",
+    "date": "2026-09-06T02:50:49.000Z",
+    "summary": "While AI excels at generating working code, the harder task remains conceptual: identifying what to build, recognizing failure modes, and understanding trade-offs—skills that separate senior engineers from junior ones.",
+    "content": "When a prompt describing what you need is submitted, an AI fills in forty lines of clean, working code. You run it. It works. You ship it.\nAt that point, reality is obvious: writing correct code is no longer the hard part.\nWhile preparing this article, my assistant wrote \"syntax is dead\" 😂 But let's be clear — syntax isn't dead. You still need to understand what the code does, debug it when it breaks, and know when the AI is confidently wrong to a reasonable extent.\nSo what's changed that separates a junior developer from a senior one?\nJunior developers most often learn syntax, patterns, and rules.\nThey focus on how to make the code work.\nEssential work — and the part AI keeps getting better at.\nMid-level developers learn system boundaries and best practices.\nThey think about scaling, not just \"okay, it works.\"\nThey focus on clean, modular, maintainable code.\nAI is already decent at this too.\nSenior developers learn failure modes, trade-offs, and the edges of what we currently understand.\nThey focus on what shouldn't be built.\nWhere the system will break.\nHow to use proven patterns instead of general abstraction.\nWhat nobody has thought of yet — not just scaling.\nA senior is a problem solver, not just a builder.\nThat last part is still human territory.\nAI models are sophisticated pattern matchers. They've read essentially all the public code ever written, and they recombine those patterns in ways that look like magic.\nBut they can only work with what has already been imagined, written, and modeled. They're also subject to steering, depending heavily on the captain's cognitive exposure. 🤔\nWhat you cannot conceive, you cannot touch.\nSometimes we call the unknown \"supernatural\" — not because it's magic, but because it sits outside our current model of reality. Once we understand something well enough to explain it, build it, and predict how it behaves, we stop calling it magic and start calling it engineering.\nImagination comes before all of that.\nA machine operates",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "机器只能构建已被想象过的东西",
+        "summary": "虽然人工智能擅长生成可工作的代码,但更难的任务仍然是概念层面的:确定要构建什么、识别潜在失败、理解权衡——这些技能将资深工程师与初级工程师区分开来。"
+      }
+    }
+  },
+  {
+    "title": "Most of Your Support Tickets Are One Question You Never Answered",
+    "slug": "most-support-tickets-one-question-never-answered",
+    "url": "https://dev.to/automate-archit/most-of-your-support-tickets-are-one-question-you-never-answered-1joj",
+    "source": "DEV Community",
+    "date": "2026-09-06T02:45:06.000Z",
+    "summary": "Most support tickets stem from upstream communication gaps rather than customer confusion; fixing information at the source—such as delivery dates in shipping confirmations—eliminates the need for support automation.",
+    "content": "Before you buy a support bot, sort last month's tickets by what the customer actually wanted. Almost every business I have done this exercise with finds the same shape: a small number of questions account for most of the volume, and the top one is usually a single failure somewhere upstream. A product page that does not state the pack size. An invoice that shows a number the customer cannot reconcile. A delivery message that arrives without a date on it.\nThe industry answer to that pile is an agent, human or AI, who answers it faster. That is the wrong end of the pipe. You are paying, permanently, to explain something you could have said once, correctly, in the place the customer was already looking.\nSupport tickets are not requests for help. They are receipts. Each one records a moment where your own communication failed and the customer had to escalate to a human to get information you already had.\nI have watched this play out most clearly with delivery. A D2C brand I worked with had WhatsApp enquiries stacking up all day, and the owner was convinced he needed a bot to handle them. We tagged four weeks of messages by intent. The top bucket was not returns, not sizing, not payment. It was \"where is my order\" — customers who had received a shipping confirmation with a tracking link, clicked it, seen a courier page that said \"in transit\" with no date, and come back to WhatsApp to ask a human.\nThe bot he wanted would have answered that question by looking up the same courier status and repeating \"in transit\". Same non-answer, delivered faster, at a monthly cost. What actually killed the queue was changing one line in the dispatch message to include the expected delivery window and the delivery partner's name, and sending a second message on the day of delivery. The question stopped being asked. Nothing was automated. Something was fixed.\nThat is the pattern. When a question repeats across hundreds of unrelated customers, it is not a customer problem. Individuals are u",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "大多数支持工单都是你从未回答过的一个问题",
+        "summary": "大多数支持工单源于上游沟通缺口而非客户疑惑;在信息源头修复问题——例如在运单中明确交货日期——消除了对支持自动化的需求。"
+      }
+    }
+  },
+  {
+    "title": "I Rejected My Reference Tools' Assumptions, Then Inherited One",
+    "slug": "rejected-reference-tools-assumptions-inherited-one",
+    "url": "https://dev.to/c00012/i-rejected-my-reference-tools-assumptions-then-inherited-one-g3p",
+    "source": "DEV Community",
+    "date": "2026-09-06T02:41:21.000Z",
+    "summary": "Building a loan calculator to challenge flawed assumptions about borrowing, the author discovered they had inherited a different implicit assumption: loan comparison requires revisiting decisions, not one-time calculations.",
+    "content": "I built a loan calculator because the ones I was using assumed something wrong about how a borrowing decision happens. I caught that assumption early and designed against it.\nThen I built extra-payment handling, tested it, and considered it done. It took running the same input through a second market's convention to see that I'd inherited a different assumption from the same tools — and encoded it as arithmetic.\nWeb calculators don't keep anything. Close the tab and the numbers are gone. Every time I wanted to check the same loan again, I typed it in from scratch. Most of them also asked for more than I needed — three fields filled in, a dozen skipped past.\nBoth follow from one assumption: that you calculate once, read the number, and leave.\nThat isn't how a loan decision works. You don't borrow from the first place you walk into. You check a few, narrow it down, and often go back to negotiate. You look again when the rate changes. The decision takes days and covers more than one lender. The tool assumed it took a minute and covered one.\nSo what I needed wasn't a more accurate calculator. It was one that expected to be opened again — that could save the conditions I entered, recalculate them when something changed, and hold more than one scenario side by side.\nThe existing tools weren't wrong. They were built for a different question than the one I was asking.\nHere's the case. $25,000 at 4.26% APR over 36 months. The monthly payment is $740.9946, which the app displays as $740.99 and carries at full precision. Left alone the loan costs $1,675.81 in interest. At month 24 the balance is $8,690.11, and the borrower pays down $5,000.\nThe schedule has to be rebuilt from there. I rebuilt it the way every calculator I'd used as a reference does: hold the payment, let the term contract. The loan clears in month 30 instead of 36, total interest drops to $1,513.63, and the result screen says saved $162.18, six months early.\nThen I ran it under a different convention, where th",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我拒绝了参考工具的假设,却继承了另一个",
+        "summary": "在构建贷款计算器以挑战关于借贷的错误假设时,作者发现自己继承了一个不同的隐性假设:贷款比较需要重新审视决策,而非一次性计算。"
+      }
+    }
+  },
+  {
+    "title": "Why JavaScript Text-to-Binary Snippets Break on Emoji",
+    "slug": "why-javascript-text-binary-breaks-on-emoji",
+    "url": "https://dev.to/joseph_laurence-best-lucky2026/why-javascript-text-to-binary-snippets-break-on-emoji-3a5e",
+    "source": "DEV Community",
+    "date": "2026-09-06T02:41:00.000Z",
+    "summary": "JavaScript text-to-binary functions fail on emoji because strings use UTF-16 encoding where emoji become surrogate pairs; proper UTF-8 conversion requires TextEncoder, not charCodeAt operations.",
+    "content": "A text-to-binary function can pass every test with Hello and still produce the wrong bytes for 🙂.\nThe catch is deciding what “binary” means. For this article, the target is UTF-8 bytes, displayed as eight-bit groups. JavaScript string operations don't automatically give you those bytes.\nConsider this implementation:\nfunction naiveBinary(text) {\n  return text.split(\"\")\n    .map(char => char.charCodeAt(0).toString(2).padStart(8, \"0\"))\n    .join(\" \");\n}\n\nconsole.log(naiveBinary(\"A\"));\n// 01000001\n\nconsole.log(naiveBinary(\"🙂\"));\n// 1101100000111101 1101111001000010\n\nThe second result contains two 16-bit groups. Neither is a UTF-8 byte. Adding padStart(8) doesn't fix it: padding sets a minimum width; it doesn't convert an encoding.\nJavaScript strings are sequences of UTF-16 code units. charCodeAt() reads one of those units. The emoji 🙂, whose Unicode code point is U+1F642, uses a surrogate pair: 0xD83D and 0xDE42. Splitting with split(\"\") separates that pair. See the MDN charCodeAt documentation.\nYou can inspect the difference directly:\nconsole.log(\"🙂\".length);                    // 2 UTF-16 code units\nconsole.log([...\"🙂\"].length);               // 1 Unicode code point\nconsole.log(\"🙂\".codePointAt(0).toString(16)); // \"1f642\"\nconsole.log([...new TextEncoder().encode(\"🙂\")]);\n// [240, 159, 153, 130]\n\nSwitching to codePointAt() retrieves the full code point, but converting that number to base two still doesn't produce UTF-8. A code point identifies a Unicode character; an encoding determines how it becomes bytes. MDN explains codePointAt and string iteration here.\nThis also affects text without emoji. Here are four concrete examples:\n\n\n\nText\nUTF-16 code units\nUnicode code points\nUTF-8 bytes, in hexadecimal\n\n\n\n\nA\n1\n1\n41\n\n\né\n1\n1\nC3 A9\n\n\n中\n1\n1\nE4 B8 AD\n\n\n🙂\n2\n1\nF0 9F 99 82\n\n\n\nFor é, the naive function returns 11101001. That's the numeric value U+00E9 written in binary. Its UTF-8 representation requires two bytes: 11000011 10101001.\nTextEncoder.encode() produces a Uint8Ar",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么JavaScript文本转二进制代码片段在emoji上会出错",
+        "summary": "JavaScript文本转二进制函数在emoji上会失败，因为字符串使用UTF-16编码，其中emoji变成代理对；正确的UTF-8转换需要使用TextEncoder，而不是charCodeAt操作。"
+      }
+    }
+  },
+  {
+    "title": "Architecting a Low-Power Geofencing Engine: Lessons from Muffle's Location Services",
+    "slug": "architecting-low-power-geofencing-engine-muffle",
+    "url": "https://dev.to/haseebthedev0/architecting-a-low-power-geofencing-engine-lessons-from-muffles-location-services-p1f",
+    "source": "DEV Community",
+    "date": "2026-09-06T02:33:19.000Z",
+    "summary": "Muffle solves context-aware phone silencing by implementing battery-efficient geofencing through Google Play Services Location API, which aggregates cellular, Wi-Fi, and GPS data instead of constant polling.",
+    "content": "It was the middle of a Friday afternoon, and I was sitting in the back of the community center for Jummah prayers. The room was deathly quiet, filled only by the low hum of a ventilation fan. Suddenly, from three rows ahead of me, a loud, tinny ringtone erupted—a pop song at maximum volume. The owner scrambled, fumbling with his device, turning bright red as a hundred people turned to stare. He had simply forgotten to silence his phone before entering the building. I’ve been there, and frankly, we all have.\nThat moment of public humiliation is a universal experience, but it’s especially acute in places where silence is expected, like mosques, medical clinics, or classrooms. The problem is cognitive load. We are conditioned to think about our schedules, our work, and our social interactions, but rarely do we remember to flip a physical toggle on our phones until the exact moment it’s too late. I looked at the market and saw a sea of automation apps that were either bloated with unneeded features or battery-hungry nightmares that tracked your location every single second, killing your phone by noon.\nI built Muffle to solve this by creating a silent, background-focused automation engine. The core challenge wasn't just toggling a sound profile—it was the geofencing engine. I needed to know when a user enters a specific radius without turning their device into a portable heater. I initially experimented with a custom service that polled the GPS chip at fixed intervals, but that approach is a battery killer. Instead, I shifted to the GeofencingClient within the Google Play Services Location API. This API offloads the heavy lifting to the hardware-abstracted location services, which aggregate data from cellular towers, Wi-Fi access points, and GPS to minimize power consumption.\nHere is how I set up the trigger for a specific location boundary:\nkotlin\ngeofencingClient.addGeofences(geofencingRequest, geofencePendingIntent)\nThe architectural tradeoff here was between precisio",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "架构低功耗地理围栏引擎：从Muffle定位服务获得的经验",
+        "summary": "Muffle通过Google Play服务位置API实现电池高效的地理围栏来解决上下文感知的手机静音问题，该API聚合蜂窝、Wi-Fi和GPS数据，而不是不断轮询。"
+      }
+    }
+  },
+  {
+    "title": "How to get a Confluence table into Excel",
+    "slug": "how-to-get-confluence-table-into-excel",
+    "url": "https://dev.to/mikhailklimenko/how-to-get-a-confluence-table-into-excel-34",
+    "source": "DEV Community",
+    "date": "2026-09-06T02:30:21.000Z",
+    "summary": "Copying tables from Confluence to Excel works for simple cases but requires careful handling of merged cells, date locales, and number formatting; exporting via Word first can mitigate formatting issues.",
+    "content": "Short answer. Confluence exports whole pages to PDF and Word, but it has no built-in export for a single table. Select the table on the page, copy it, and paste into Excel: for a simple rectangular table that is the end of the story. Merged cells, long tables and multi-table pages are where it stops being that easy.\nClick just above the top-left cell and drag to the bottom-right, or click into the table and select all of it, then copy. In Excel use Paste Special → Text rather than a plain paste: a normal paste brings Confluence's styling with it, and you spend the next ten minutes stripping background colours out of cells.\nThis is the right answer more often than app vendors like to admit. If you need one table today, do this and stop reading.\n\n\n\nSituation\nWhat you get\n\n\n\n\nMerged cells\nColumns shift left in every row below the merge, and the file looks fine until somebody sums the wrong column.\n\n\nNumbers with separators\nExcel may read 1,250 as text, or as 1250 depending on locale. Check one cell before trusting the totals.\n\n\nDates\nConverted according to the spreadsheet's locale, not yours. This is where day and month swap places silently.\n\n\nLinks inside cells\nUsually arrive as display text, and the address is lost.\n\n\nVery long tables\nFine technically, painful in practice: selecting three hundred rows in a browser is its own small ordeal.\n\n\n\nThe merged-cell problem is the one that costs money. A shifted column does not look like an error, it looks like data, and it goes into a report that somebody signs.\nFrom the page menu choose Export → Word, open the file, and copy the table from there. It sounds like a detour, and it is, but Word handles merged cells more predictably than the browser clipboard, and for a single complicated table it sometimes saves the day.\nNot worth it for more than one or two tables: you are still copying by hand, only with an extra step.\nIf somebody on the team is comfortable with scripting, page content can be pulled through the Confluence RES",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何将Confluence表格导入Excel",
+        "summary": "从Confluence复制表格到Excel适用于简单情况，但需要仔细处理合并单元格、日期语言环境和数字格式；先通过Word导出可以减轻格式问题。"
+      }
+    }
+  }
+]
