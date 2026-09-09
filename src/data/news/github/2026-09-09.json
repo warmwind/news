@@ -1,5 +1,229 @@
 [
   {
+    "title": "The AWS EBS Snapshot Cleanup Pitfalls Nobody Warns You About",
+    "slug": "aws-ebs-snapshot-cleanup-pitfalls",
+    "url": "https://dev.to/sharmavarun/the-aws-ebs-snapshot-cleanup-pitfalls-nobody-warns-you-about-3m7l",
+    "source": "DEV Community",
+    "date": "2026-09-09T20:30:53.000Z",
+    "summary": "Describes a three-stage safety pattern for EBS snapshot cleanup using Cloud Custodian: mark snapshots older than N days, create copies as safety backups, then age off copies after a retention window. This staged approach prevents accidental data loss while maintaining the ability to recover from mistakes.",
+    "content": "If you run AWS at any real scale, you eventually accumulate thousands of\nCloud Custodian\nc7n) is a popular way to find and delete them on a schedule. This post\nThe pattern is simple and common:\nMark snapshots older than N days for deletion (tag them, don't touch them yet).\nSome days later, copy each marked snapshot as a safety net, then delete the original.\nAfter a retention window, age off the safety copies too.\nCustodian supports all of this natively with a mark-for-op / marked-for-op\ncopy / delete actions. Stripped to its essentials, the\n# Stage 1 -- mark eligible snapshots, touch nothing else\npolicies:\n  - name: snapshot-mark-eligible\n    resource: aws.ebs-snapshot\n    filters:\n      - type: age\n        days: 90\n        op: greater-than\n      - \"tag:cleanup-exclude\": absent\n    actions:\n      - type: mark-for-op\n        tag: cleanup_marked\n        op: delete\n        days: 0\n\n# Stage 2 -- copy-then-delete, gated by the marked-for-op tag\npolicies:\n  - name: snapshot-copy-then-delete\n    resource: aws.ebs-snapshot\n    filters:\n      - type: marked-for-op\n        tag: cleanup_marked\n        op: delete\n      - \"tag:cleanup-exclude\": absent\n    actions:\n      - type: copy\n        target_region: us-east-1\n        target_key: alias/aws/ebs\n        encrypted: true\n        tags:\n          safety-copy: \"true\"\n      - type: delete\n\n# Stage 3 -- age off the safety copies after a retention window\npolicies:\n  - name: snapshot-copy-age-off\n    resource: aws.ebs-snapshot\n    filters:\n      - \"tag:safety-copy\": present\n      - type: age\n        days: 14\n        op: greater-than\n    actions:\n      - type: delete\n\nRun each stage with c7n-org, scoped to every account in your fleet:\n# Always dry-run first -- writes matched resources to output/ without acting\nc7n-org run -c accounts.yml -u policies/snapshot-copy-then-delete.yml \\\n  -r us-east-1 -s output --dryrun --cache-period 0\n\n# Scope to a single account while validating a change\nc7n-org run -c accounts.yml -u policies/snapshot-co",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "没人告诉你的AWS EBS快照清理陷阱",
+        "summary": "描述了使用Cloud Custodian进行EBS快照清理的三阶段安全模式：标记超过N天的快照、创建副本作为安全备份、然后在保留期后删除副本。这种分阶段方法可防止意外数据丢失，同时保持错误恢复能力。"
+      }
+    }
+  },
+  {
+    "title": "Designing a Delivery Model That Scales With You: Governance, Traceability, Security, Automation, Testing, and Promotions",
+    "slug": "designing-delivery-model-governance-scalability",
+    "url": "https://dev.to/shahbazalishahid/designing-a-delivery-model-that-scales-with-you-governance-traceability-security-automation-mhc",
+    "source": "DEV Community",
+    "date": "2026-09-09T20:23:31.000Z",
+    "summary": "Outlines a scalable CI/CD delivery model using environment-based long-lived branches (dev, sit, uat, prod) with controlled promotion of immutable artifacts between environments. This approach reduces merge conflicts, ensures consistency across deployments, and maintains deployment traceability.",
+    "content": "CI/CD Pipeline Flow — Branching, Release & Deployment Process\n\n\n\n\n\n\n  \n  \n  The Core Idea: Build once, promote the same immutable artifact.\n\n\nThe simplest mental model: every environment in your SDLC has a corresponding long-lived branch, and code only reaches an environment by merging into that branch.\nfeature/fix branch → dev → test/sit → staging/uat → prod\n\nEvery long-lived branch refer to it's own environment\nIt's better to start your change/feature/fix/development from any short-lived branch like dev-* named branches created from dev {env} branch, but some times if you want to skip some features not to go to prod like creating a prod-fix/hotfix branch then better to create them from prod branch, and rebase them with dev branch to avoid conflicts as your dev branch might be ahead from prod\nUse promotion method like create new short-lived release branches from target branch and cherry-pick or checkout only changed files directly from source/lower env branch to release branch and then merge this release branch with target and once merged delete release branch\nThe release branches should be created by pipeline better to avoid env conflicts and have a straight forward mechanism, and putting environment specific artifacts out side these repo e.g. vault, platform secrets/configmaps etc same as trunk-based development\n\n\nNow looking as a full picture of this process will be like:\n          SHORT-LIVED\n      feature / fix branches\n               │\n               ▼\n        ┌─────────────┐\n        │     DEV     │\n        └──────┬──────┘\n               │\n        controlled promotion\n               │\n               ▼\n        ┌─────────────┐\n        │     SIT     │\n        └──────┬──────┘\n               │\n        controlled promotion\n               │\n               ▼\n        ┌─────────────┐\n        │     UAT     │\n        └──────┬──────┘\n               │\n        controlled promotion\n               │\n               ▼\n        ┌─────────────┐\n        │    PROD     │\n        └───",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "设计能随您增长的交付模型：治理、可追溯性、安全性、自动化、测试和晋升",
+        "summary": "概述了一个可扩展的CI/CD交付模型，采用基于环境的长期分支（开发、系统集成测试、用户验收测试、生产），使用受控晋升在环境间移动不可变工件。这种方法减少合并冲突、确保部署一致性，并维护部署可追溯性。"
+      }
+    }
+  },
+  {
+    "title": "We built a Splitwise alternative where the link is the account. Here is what that forced us to design",
+    "slug": "splitwise-alternative-link-account-design",
+    "url": "https://dev.to/hm/we-built-a-splitwise-alternative-where-the-link-is-the-account-here-is-what-that-forced-us-to-1pho",
+    "source": "DEV Community",
+    "date": "2026-09-09T20:23:23.000Z",
+    "summary": "Details how designing a Splitwise alternative with the invitation link as the sole authentication credential forced architectural decisions around FX rate locking, offline-first functionality, and deterministic split calculations. The constraint-driven design prioritizes friction-free onboarding over traditional account management.",
+    "content": "Draft skeleton. Rewrite in your own voice before publishing.\nIf your friends have to make an account, they won't. So the room URL had to be the whole product: the invite, the login and the data key in one string.\nThe link is a bearer credential. 16 random bytes, base64url, appended to a readable stem. No recovery, no owner override. Treat it like a key.\nMoney as strings + BigInt. A Number never touches an amount except for display. Equal splits hand out remainders deterministically. A property test runs 300 random rooms through the client derivation and the server fold and expects equality.\nFX locked at entry. Editing an expense never re-prices history. Rates are fetched through a same-origin route so the browser never talks to a second host.\nOffline without conflicts. New expenses queue and replay; edits and settlements need a connection. We chose fewer features over a CRDT.\nRealtime that leaks nothing. SSE sends \"something changed\", the client refetches. The stream itself carries no room data.\nNo egress in prod. Containers can't reach the internet; push, FX and the receipt model go through an allowlisted proxy.\nSplit is free with no paid tier and is top-of-funnel for Peanut, a payments app. We wrote the limits into STEWARDSHIP.md: no nags, no modals, no preselected payment option, no feature gates. AGPL so a hosted fork stays open.\nRepo: https://github.com/peanutprotocol/peanutsplit · Try it: https://peanutsplit.com",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我们构建了一个邀请链接即账户的Splitwise替代品。以下是它如何推动我们的设计决策",
+        "summary": "详述了邀请链接作为唯一认证凭证的Splitwise替代品如何推动了围绕汇率锁定、离线优先功能和确定性分割计算的架构决策。这种约束驱动的设计优先无摩擦入职体验而非传统账户管理。"
+      }
+    }
+  },
+  {
+    "title": "Experimentando \"Spec-Driven-Development\"",
+    "slug": "spec-driven-development-curupira-idp",
+    "url": "https://dev.to/rodolpho_alves/experimentando-spec-driven-development-20ba",
+    "source": "DEV Community",
+    "date": "2026-09-09T20:22:27.000Z",
+    "summary": "Introduces Curupira Core, an open-source internal developer portal designed as a lightweight, self-hosted alternative to Backstage.io using PocketBase for data and auth. The project kicks off a series on spec-driven development while questioning AI's role in replacing software professionals.",
+    "content": "Contexto\n\n\nAntes de se aprofundar nos pareceres de \"beber da água\" da IA alguns pontos úteis.\nEssa será uma série de posts acompanhando o desenvolvimento de um IDP Open  Source com objetivo de ser o mais play n' play possível.\nO código fonte, exemplos e specs para essa série ficarão disponíveis no repositório do Curupira Core:\n / \n        curupira-core\n      \n    \n\nCurupira Core\nCurupira aims to be the \"poor man's Backstage.io\" – an IDP (internal developer portal) for your organization that's\nstraightforward to start and maintain.\nIf Backstage.io feels like too much for your organization, Curupira might be a good alternative! Especially compared to\nrolling your own \"IDP with Excel / Google Sheets\" (been there, done that).\nWhy \"Curupira\"?\nCurupira comes from Brazilian folklore.\nWhile the original Curupira is the guardian to the forest, this Curupira is the guardin to your tech stack!\nHonestly? I just wanted to find a cool folklore-based name for a project to honor my home country's culture!\nMain Features\nSingle box setup\nGetting Curupira up and running is as simple as doing docker start and following the instructions on the Webpage.\nMaintenance overhead is kept minimal by using PocketBase as Database, Auth Provider and File Storage.\nAfter booting your instance for the first time, you…\n\n  \nView on GitHub\nQuem convive comigo sabe que sou cético quanto ao \"great replacement\" de desenvolvedores / QAs / DevOps pelos \"agentes de IA\". \nAlém disso chamar o que temos, hoje, de \"Inteligência\" é forçar a barra, por mais que os milhões de dólares investidos coletivamente em marketing das big techs tentem fazer colar.\nMas concordo com um fato pois o acompanho desde o início da minha carreira: o LLM é uma ferramenta útil para apoiar a esteira de desenvolvimento. Isso é verdade desde o começo com o advento dos AutoCompletes em IDEs mais fortes, passando pelo Intellisense, sua versão \"IA\" pré-pandemia e agora com os CoPilot / Cursor e Claude Code da vida.\nO \"X\" da questão é: como us",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "尝试规范驱动开发",
+        "summary": "介绍了 Curupira Core，一个开源的内部开发者门户，设计为 Backstage.io 的轻量级自托管替代方案，使用 PocketBase 进行数据和身份验证。该项目启动了关于规范驱动开发的系列讨论，同时质疑人工智能在替代软件专业人士中的角色。"
+      }
+    }
+  },
+  {
+    "title": "What Does It Take to Build an AI Model? Let's Look at OLMo",
+    "slug": "building-ai-model-olmo",
+    "url": "https://dev.to/rijultp/what-does-it-take-to-build-an-ai-model-lets-look-at-olmo-1k4m",
+    "source": "DEV Community",
+    "date": "2026-09-09T20:21:38.000Z",
+    "summary": "Examines what goes into building AI models by tracing OLMo's publicly released code, datasets, configurations, and evaluation artifacts. The article reveals infrastructure and decisions invisible to end users, from dataset provenance and tokenization to training logistics that separate conceptual models from production systems.",
+    "content": "Hello, I'm Rijul, and I'm building LiveReview — a blast-radius aware AI code review built for your business-critical systems. Star us to help devs discover the project, give it a try, and share your feedback to help improve the product.\nWhen we talk about training AI models, it can sound like you just put some training data in, and some chatbot comes out.\nOr for open models, we just download one, run it via Ollama, and boom, magic happens. We get some output from all the hard work done by our own GPU.\nWe only see the product, but we never see what is behind it.\nTo see what actually goes into building a model, it helps to look at projects that publicly release not just the model, but also their code, data, configurations, evaluations, and other artifacts.\nSo, to gain an understanding of how such AI models are being made, we will explore one such model.\nIt's called OLMo.\nYou can clone it from here:\nhttps://github.com/allenai/olmo\nWhen you open this repository, you can see many folders and files. Let's explore each part one by one from the POV of building an AI model.\n\nBefore any of the training happens, you need to have sufficient data.\nLoads of data.\nMatter of fact, AI models don't continuously learn from new data once they are trained. When new data needs to be incorporated, the model needs to be updated or retrained.\nSo, how do you know what data was used to train a model?\nOpen the README, and you can see the dataset mixes used by OLMo-2.\n\nOLMo-mix-1124: the big, mostly web-based dataset used for the bulk of training.\nDolmino-mix-1124: a smaller, high-quality, targeted dataset used later in training.\nNow, the next file you want to look at is inside configs/official-1124/provenance.csv.\nhttps://github.com/allenai/OLMo/blob/main/configs/official-1124/provenance.csv\n\nThis gives more detailed information about the provenance of the datasets and data directories used by the project.\nNow that the data is sorted out, let's check the next thing.\n\nGo over to olmo/tokenizer.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建 AI 模型需要什么？以 OLMo 为例",
+        "summary": "通过追踪 OLMo 的公开发布代码、数据集、配置和评估工件，探讨了构建 AI 模型的要素。文章揭示了对最终用户不可见的基础设施和决策，从数据集来源和分词到训练物流，这些区分了概念模型和生产系统。"
+      }
+    }
+  },
+  {
+    "title": "The Modern Pitch for BlocSignal: Why Engineering Leads Are Moving to Reactive Primitives",
+    "slug": "blocsignal-reactive-primitives-flutter",
+    "url": "https://dev.to/gde/the-modern-pitch-for-blocsignal-why-engineering-leads-are-moving-to-reactive-primitives-5d5h",
+    "source": "DEV Community",
+    "date": "2026-09-09T20:19:53.000Z",
+    "summary": "Analyzes the convergence of Flutter state management toward reactive signals paired with BLoC pattern boundaries, abandoning heavyweight Stream-based approaches for fine-grained reactivity. BlocSignal establishes this architectural baseline to balance performance, maintainability, and operational complexity.",
+    "content": "The New Reality of Enterprise Flutter\n\n\n\nExecutive Summary: Over the past seven years, Flutter state management has swung between two extremes: heavyweight ceremonial architectures that drowned teams in streams, microtasks, and code generation, and unstructured reactive primitives that lacked architectural discipline. In 2026, leading engineering organizations are moving beyond the framework wars. By pairing the boundary discipline of the BLoC pattern with the high-performance, push-pull reactivity of modern Signals, BlocSignal establishes a new architectural baseline. This article provides tech leads, staff architects, and engineering managers with the strategic, economic, and technical arguments needed to lead the transition.\nEvery seasoned Flutter architect has lived through the state management pendulum:\nThe Anarchy Era (2018–2019): Raw setState, untyped InheritedWidgets, and custom callback trees that made large codebases impossible to maintain.\nThe CISC Ceremony Era (2019–2023): Monolithic \"Clean Architecture\" paired with classic Stream BLoC. Every single state change—even toggling a checkbox—required editing seven files across three layers of indirection, running build_runner watchers, and fighting asynchronous microtask queue latency.\nThe Global Scope Era (2022–2025): Riverpod attempted to tame stream boilerplate by introducing global provider namespaces. But teams soon encountered new operational friction: the treacherous autoDispose lifecycle minefield, eager-push computation thrashing in complex dependency graphs, and heavy reliance on code generators.\nNow, the frontend ecosystem has arrived at a clear global consensus. From Preact Signals and SolidJS to Angular Signals, Vue 3, and Svelte 5 Runes, the entire software industry has converged on a single foundational primitive: fine-grained, push-pull reactive signals.\nIn Flutter, BlocSignal unites this battle-tested reactive engine with the proven boundary discipline of the BLoC pattern. But bringing any ar",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "BlocSignal 的现代前景：工程领导为什么转向响应式基元",
+        "summary": "分析了 Flutter 状态管理向响应式信号与 BLoC 模式边界配对的发展趋势，放弃了繁重的基于流的方法，转向细粒度响应性。BlocSignal 建立了这个架构基线，以平衡性能、可维护性和运维复杂性。"
+      }
+    }
+  },
+  {
+    "title": "Google Revamps AI Subscription Plans With New Ultra Tiers and Gmail Productivity Tools",
+    "slug": "google-gemini-ultra-subscription-pricing",
+    "url": "https://dev.to/alifar/google-revamps-ai-subscription-plans-with-new-ultra-tiers-and-gmail-productivity-tools-1ck9",
+    "source": "DEV Community",
+    "date": "2026-09-09T20:15:30.000Z",
+    "summary": "Google launched new Gemini AI Ultra subscription tiers at $100 and $200 per month with 5x and 20x higher usage limits, plus integrated productivity features connecting Gemini with Gmail, Calendar, and other tools. Pricing shifted from daily prompt caps to compute-based usage models.",
+    "content": "Google has expanded its AI subscription lineup with new Ultra options, broader access to its latest models and productivity features that connect Gemini app more closely with Gmail, Calendar and other Google tools. The update, announced as part of Google I/O 2026, also changes how plan limits work by moving toward a compute-based usage model instead of daily prompt caps.\nThe most consequential change is a new two-level AI Ultra pricing ladder. Google lists a $100-per-month option and a $200-per-month top tier, aimed at people with heavier usage in the Gemini app and Google Antigravity. Both plans include 20TB of storage and YouTube Premium, while the higher tier has wider access to certain experimental capabilities. Google says many updates began rolling out immediately, with other features becoming generally available over the following days and weeks.\nGoogle's official overview of its AI subscription updates provides the clearest view of what is included, but availability is not uniform. Several features are limited to the United States initially, while access to particular tools and models varies by plan.\nThe two Ultra options raise the included usage limits in the Gemini app and Google Antigravity. Google describes the $100 option as providing 5x higher limits and the $200 option as providing 20x higher limits. Both also offer priority access to Antigravity, which Google positions for developer and advanced creator use cases.\n\n  \n    \nPlan option\n      Monthly price\n      Google-described usage level\n      Included and highlighted access\n    \nAI Ultra\n      $100\n      5x higher limits in Gemini and Antigravity\n      20TB storage, YouTube Premium, priority Antigravity access, Gemini Spark rollout in the US\n    \nTop-tier AI Ultra\n      $200\n      20x higher limits in Gemini and Antigravity\n      20TB storage, YouTube Premium, priority Antigravity access, Gemini Spark rollout in the US and Project Genie globally\n    \n\n\nThe plans also broaden model availability. Gem",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "谷歌推出新AI订阅计划 Ultra高端套餐和Gmail生产力工具升级",
+        "summary": "谷歌推出新的Gemini AI Ultra订阅套餐，月费分别为100美元和200美元，使用限额提高5倍和20倍，并新增功能将Gemini与Gmail、日历等工具相连。定价模式从日常提示词上限转变为基于计算的使用模式。"
+      }
+    }
+  },
+  {
+    "title": "Por qué el texto invisible funciona en el nombre de TikTok y falla en el usuario de Instagram",
+    "slug": "invisible-text-unicode-platforms",
+    "url": "https://dev.to/support_confileo_ce7442eb/por-que-el-texto-invisible-funciona-en-el-nombre-de-tiktok-y-falla-en-el-usuario-de-instagram-47l6",
+    "source": "DEV Community",
+    "date": "2026-09-09T20:11:19.000Z",
+    "summary": "Explains why invisible Unicode characters work differently across platforms using specific characters (Hangul Filler in TikTok, Braille Pattern Blank in Instagram) that render empty but behave distinctly in validation logic. Platform differences stem from how trim, validation, and sanitization functions classify these characters.",
+    "content": "Cada tanto vuelve la misma pregunta con otro disfraz: cómo poner el nombre invisible en TikTok, cómo mandar un mensaje vacío en WhatsApp. En 2026 la de moda es la de TikTok, y casi ningún video explica el mecanismo. Va aquí, desde el código.\nCuando escribes un nombre o un mensaje, la app lo recorta antes de guardarlo: trim() quita los espacios de los extremos, las secuencias se colapsan y un campo con solo espacios queda vacío. Después corre la validación: nombre vacío, rechazado.\nPor eso el texto invisible no puede estar hecho de espacios, sino de caracteres que se dibujan como nada, pero que para el código de recorte no son espacio en blanco. Unicode tiene varios, ninguno diseñado para esto, y cada app los trata distinto.\n\n\n\nCarácter\nCode point\nPara qué existe\nQuién lo conserva\n\n\n\n\nHangul Filler\nU+3164\nRelleno de sílabas coreanas: una \"letra\" que no dibuja nada\nNombre y bio de TikTok e Instagram; nick de Free Fire y PUBG Mobile\n\n\nBraille Pattern Blank\nU+2800\nLa celda braille sin puntos: un glifo imprimible y vacío\nMensajes de WhatsApp, Telegram y Discord; comentarios de Instagram\n\n\nZero-Width Space\nU+200B\nPunto de corte de línea sin ancho\nX, Notas de iPhone, HTML; la mayoría de los chats lo elimina\n\n\nInvisible Separator\nU+2063\nLímite invisible entre elementos\nFacebook y Messenger\n\n\nHair Space\nU+200A\nEl espacio tipográfico más delgado\nWord, Google Docs, correo\n\n\n\nHangul Filler es una letra (categoría Lo): un validador que pregunta \"¿tiene al menos una letra?\" responde que sí. Braille Blank es un símbolo (So), imprimible, así que \"el mensaje no puede estar vacío\" pasa. Zero-Width Space es un carácter de formato (Cf), y los caracteres de formato son lo primero que borra un sanitizador; por eso falla en WhatsApp y funciona en un editor de texto.\nEl \"nombre invisible en TikTok 2026\" funciona así: el nombre para mostrar de TikTok es un campo de texto libre que valida \"no vacío\", no \"solo letras y números\". Pegas un U+3164, el campo recibe una letra, trim() no la toca po",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "隐形文本在TikTok用户名中有效但在Instagram用户名中失效的原因",
+        "summary": "解释了隐形Unicode字符在不同平台上表现差异的原因，使用特定字符（TikTok中的韩文填充符、Instagram中的布莱叶模式空白），这些字符呈现为空但在验证逻辑中表现不同。平台差异源于trim、验证和清理函数对这些字符的分类方式不同。"
+      }
+    }
+  },
+  {
+    "title": "Google’s August Gemini Updates Expand Faster Models, Transcription and Task Workflows",
+    "slug": "google-gemini-3-7-flash-updates",
+    "url": "https://dev.to/alifar/googles-august-gemini-updates-expand-faster-models-transcription-and-task-workflows-2bnp",
+    "source": "DEV Community",
+    "date": "2026-09-09T20:01:01.000Z",
+    "summary": "Google released Gemini 3.7 Flash, a faster, cheaper model for coding and agent workflows, alongside Gemini 3.5 Transcribe for enhanced speech-to-text and new Gemini Live capabilities. These August updates extend Gemini beyond chat into workflows involving voice, data retrieval, and business applications.",
+    "content": "Google’s August 2026 Gemini updates were not a single product release. They were a coordinated expansion across models, the Gemini app, Gemini Live and Google’s wider software ecosystem. The most consequential changes include Gemini 3.7 Flash, a lower introductory-priced model for coding and agent workflows, the new Gemini 3.5 Transcribe speech-to-text model, and new Gemini Live capabilities designed to make the assistant more proactive and useful in day-to-day tasks.\nGoogle documented the releases in its official August 2026 AI updates roundup. Taken together, the announcements show Google pushing Gemini beyond a standalone chat experience and into workflows involving information retrieval, voice, inbox management, browsers and business applications.\nGemini 3.7 Flash is positioned as a more capable Flash model for coding and agent workflows. Google also announced an introductory price set at half the price of Gemini 3.6 Flash through December 31, 2026. That matters because model cost can determine whether an AI-assisted process remains practical when it is used repeatedly, such as classifying incoming requests, drafting routine responses, extracting information or supporting internal development work.\nGoogle is also rolling Gemini 3.7 Flash into Gemini Spark for Google AI Pro and Ultra users. The rollout gives subscribers access to the newer model in that product context, though the supplied announcements do not establish broader pricing or availability terms beyond the introductory model pricing and Spark access.\nLate in August, Google released Gemini 3.5 Transcribe, an enhanced speech-to-text model. For teams that work with calls, interviews, meetings or recorded customer feedback, better transcription is a foundational capability. It can turn spoken material into searchable text that can then be reviewed, summarized or routed into existing processes. The announcement confirms the model release, but businesses should assess output quality and fit against their ow",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "谷歌8月Gemini更新 推出更快模型、转录和任务工作流功能",
+        "summary": "谷歌发布Gemini 3.7 Flash，这是一个用于编码和代理工作流的更快、更便宜的模型，同时推出Gemini 3.5转录功能以增强语音转文字，以及新的Gemini Live功能。这些8月更新将Gemini从聊天扩展到涉及语音、数据检索和业务应用的工作流中。"
+      }
+    }
+  },
+  {
+    "title": "I made an agent play Slay the Spire 2 on its own — and what unlocked it was the game saying 'no'",
+    "slug": "ai-agent-slay-spire-2-rejection-feedback",
+    "url": "https://dev.to/brmarcosbr/i-made-an-agent-play-slay-the-spire-2-on-its-own-and-what-unlocked-it-was-the-game-saying-no-2hc2",
+    "source": "DEV Community",
+    "date": "2026-09-09T19:59:10.000Z",
+    "summary": "An AI agent completed a full Slay the Spire 2 combat session autonomously without human intervention, but the breakthrough was not smarter AI—it was learning from the game's rejection feedback. The project demonstrates that rejection-feedback loops and correct abstraction placement outperform brute-force LLM approaches.",
+    "content": "I made an agent play Slay the Spire 2 on its own — and what unlocked it was the game saying 'no'\n\n\nOn 08/09/2026, an agent played an entire solo combat of Slay the Spire 2 with no human intervention: 7 turns, 35 actions, 0 rejections. Before any enthusiasm, the honest scope: this is a session record, not an audited benchmark — I don't have the raw log of that fight archived, and reproduction goes through a synthetic harness + versioned artifacts with md5 (details in the QA section).\nAnd the detail that drives this piece: none of the 35 actions was decided by an LLM. Each play's decision was a local, score-based greedy policy running inside the Python bridge. The LLM (Hermes, which operates the system) was outside the critical path. And the two hardest problems in this project weren't solved with \"smarter AI\" — they were solved when the game said \"no\" and the agent learned from it.\nThe rejection-feedback pattern (the framework): how an environment error becomes persistent state that filters the agent's next actions — no retraining, no LLM, no re-prompt. Copyable to any agent ↔ synchronous system integration (game, engine, hardware).\nThe \"where to put the decision\" rule: deterministic, local step-by-step for what's repeatable; LLM for what needs open context. Knowing where the LLM shouldn't be is an engineering decision, not a lack of boldness.\nThe two instructive failures: a main-thread deadlock (task.Wait() in Godot → Task.WhenAny with timeout) and patches that break on every Early Access update (way out: defensive reflection).\nIt all started with reverse engineering. StS2 runs on a Godot fork with the logic in C#/.NET — the main DLL is sts2.dll (9.3 MB). Decompiling with ilspycmd on my PC, I found an internal AutoSlay system (MegaCrit.Sts2.Core.AutoSlay): an AutoSlayer that orchestrates the whole run (map, combat, reward, shop) just for smoke testing, with a random card selector — and it's not exposed in the player UI.\nNo claim of novelty: a public autoslay mod alr",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我让AI智能体独立玩Slay the Spire 2——解锁它的关键是游戏说\"不\"",
+        "summary": "AI智能体完全自主地完成了一整场Slay the Spire 2战斗，无需人类干预，但突破口不是更聪明的AI——而是从游戏的拒绝反馈中学习。该项目表明，拒绝反馈循环和正确的抽象放置优于蛮力LLM方法。"
+      }
+    }
+  },
+  {
+    "title": "Reconstructing Bosun PKM with evidence",
+    "slug": "bosun-pkm-evidence-reconstruction",
+    "url": "https://dev.to/woodyardae/reconstructing-bosun-pkm-with-evidence-1jl9",
+    "source": "DEV Community",
+    "date": "2026-09-09T19:58:35.000Z",
+    "summary": "Bosun PKM reconstructs durable personal knowledge management by tracing implementation history and verifying claims against actual code, tests, and deployments rather than marketing descriptions. The project emphasizes evidence-based validation: working code matters more than merged branches.",
+    "content": "Bosun PKM began with a practical question: how can people keep useful notes, tables, and recipes accessible when the applications around them change?\nThat question has led us toward a small set of portability tools. FreENEXt is focused on note exports, FreeMyData on difficult tabular information, and FreeMyRecipes on recipe collections. Bosun PKM connects that work to a broader goal: durable personal archives built from files people can inspect and carry forward.\nDuring this reconstruction, we found promising code alongside ambitious descriptions of what it could do. Rather than repeat those descriptions, we started tracing each claim back to source code, fixtures, tests, deployment layouts, and public evidence.\nThat work is less dramatic than a launch announcement, but it matters. A parser is not proven merely because a function exists. A public tool is not ready merely because a branch was merged. File formats have edge cases, browser behavior differs from test harnesses, and deployment details can separate working code from a working service.\nWhat reconstruction means here\npreserve useful implementation history before reorganizing it;\nWhere we are going\nIf you have an awkward export, an old archive, or a workflow that became difficult to move, your experience can help us choose better tests and notice assumptions we missed.\nJoin the Bosun PKM testing community. We will share test invitations there once the relevant builds and public surfaces have been verified.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "用证据重建Bosun PKM",
+        "summary": "Bosun PKM通过追踪实现历史和验证实际代码、测试和部署的声明来重建持久的个人知识管理，而不是营销描述。该项目强调基于证据的验证：工作代码比合并的分支更重要。"
+      }
+    }
+  },
+  {
+    "title": "Bridging RxJS BehaviorSubject and React with useSyncExternalStore",
+    "slug": "rxjs-behaviorsubject-usesyncexternalstore",
+    "url": "https://dev.to/pretaporter/bridging-rxjs-behaviorsubject-and-react-with-usesyncexternalstore-25f4",
+    "source": "DEV Community",
+    "date": "2026-09-09T19:56:04.000Z",
+    "summary": "React 18's useSyncExternalStore hook provides a built-in way to bridge RxJS BehaviorSubjects with React components, eliminating custom subscriptions and utility libraries. The hook maps directly onto BehaviorSubject's subscribe and getValue methods while handling snapshot memoization to prevent unnecessary re-renders.",
+    "content": "If you keep shared, mutable state in an RxJS BehaviorSubject — a WebSocket connection status, a design-system theme, a cache shared between routed pages — you eventually need to read that state from a React component and re-render when it changes. For years the answer was a hand-rolled useEffect + useState subscription, react-rxjs, or useObservable from some utility library.\nSince React 18 there's a built-in, purpose-built hook for exactly this: useSyncExternalStore. It's the same primitive Redux, Zustand, and Jotai use under the hood, and it plugs into a BehaviorSubject almost for free — because a BehaviorSubject already is an external store: it holds a current value (getValue()) and lets you subscribe to changes.\nThis post walks through wiring the two together, the two gotchas that will bite you if you skip them, and how to select a slice of a larger observable state without over-rendering.\nuseSyncExternalStore takes two functions and returns the current value:\nconst value = useSyncExternalStore(subscribe, getSnapshot);\n\nsubscribe(onStoreChange) — subscribe to the store, call onStoreChange whenever it changes, return an unsubscribe function.\ngetSnapshot() — return the current value. It must return the exact same reference if nothing changed; React compares snapshots with Object.is to decide whether to re-render.\nA BehaviorSubject maps onto this directly: subject.subscribe(fn) is your subscribe, and subject.getValue() is your getSnapshot.\nimport { BehaviorSubject } from \"rxjs\";\nimport { useSyncExternalStore, useCallback } from \"react\";\n\nexport function useBehaviorSubject<T>(subject: BehaviorSubject<T>): T {\n  const subscribe = useCallback(\n    (onStoreChange: () => void) => {\n      const subscription = subject.subscribe(onStoreChange);\n      return () => subscription.unsubscribe();\n    },\n    [subject]\n  );\n\n  const getSnapshot = useCallback(() => subject.getValue(), [subject]);\n\n  return useSyncExternalStore(subscribe, getSnapshot);\n}\n\nUsage:\n// store.ts\nexport co",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "用useSyncExternalStore连接RxJS BehaviorSubject和React",
+        "summary": "React 18的useSyncExternalStore钩子提供了一种内置方式来连接RxJS BehaviorSubject和React组件，消除了自定义订阅和工具库的需要。该钩子直接映射到BehaviorSubject的subscribe和getValue方法，同时处理快照记忆化以防止不必要的重新渲染。"
+      }
+    }
+  },
+  {
+    "title": "iPhone Duo",
+    "slug": "iphone-duo-announcement",
+    "url": "https://www.apple.com/newsroom/2026/09/apple-unveils-iphone-duo/",
+    "source": "Hacker News",
+    "date": "2026-09-09T18:17:06.000Z",
+    "summary": "Apple unveiled the iPhone Duo, a new dual-display iPhone model announced through Apple's official newsroom. The product announcement generated significant discussion in the technology community.",
+    "content": "Article URL: https://www.apple.com/newsroom/2026/09/apple-unveils-iphone-duo/\nComments URL: https://news.ycombinator.com/item?id=49630964\nPoints: 319\n# Comments: 6",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "iPhone Duo",
+        "summary": "Apple通过官方新闻室推出了iPhone Duo，这是一款新的双屏iPhone型号。该产品发布在科技社区引发了广泛讨论。"
+      }
+    }
+  },
+  {
+    "title": "iPhone Duo",
+    "slug": "iphone-duo-community-response",
+    "url": "https://www.apple.com/iphone-duo/",
+    "source": "Hacker News",
+    "date": "2026-09-09T18:15:43.000Z",
+    "summary": "Apple's iPhone Duo announcement sparked extensive online discussion with over 1000 community comments, indicating strong market interest in the new dual-display device offering.",
+    "content": "Article URL: https://www.apple.com/iphone-duo/\nComments URL: https://news.ycombinator.com/item?id=49630931\nPoints: 452\n# Comments: 1041",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "iPhone Duo",
+        "summary": "Apple的iPhone Duo发布引发了广泛的在线讨论，获得了超过1000条社区评论，表明市场对这款新型双屏设备的强烈兴趣。"
+      }
+    }
+  },
+  {
     "title": "A signed PDF/A-1b file from Python in 40 lines, no compiled extension",
     "slug": "signed-pdfa-1b-file-python",
     "url": "https://dev.to/lumaspdf/a-signed-pdfa-1b-file-from-python-in-40-lines-no-compiled-extension-1fe4",
@@ -204,6 +428,22 @@
       "zh": {
         "title": "Tailwind Labs 加入 Shopify",
         "summary": "Tailwind Labs 是流行的 Tailwind CSS 工具优先框架的创建者，已宣布加入 Shopify。此次收购将广泛采用的 CSS 框架与 Shopify 的电子商务平台功能整合在一起。此举旨在将 Tailwind 更紧密地整合到 Shopify 的开发者生态和产品提供中。"
+      }
+    }
+  },
+  {
+    "title": "How I advertise malicious software on Google Ads",
+    "slug": "malicious-software-google-ads",
+    "url": "https://xlii.space/eng/malicious-software-on-google-ads/",
+    "source": "Hacker News",
+    "date": "2026-09-09T11:43:21.000Z",
+    "summary": "Details how malicious software vendors exploit Google Ads to distribute malware, revealing security gaps in the platform's vetting mechanisms despite safeguards. The article documents exploitation methods and practices that enable widespread malware distribution.",
+    "content": "Article URL: https://xlii.space/eng/malicious-software-on-google-ads/\nComments URL: https://news.ycombinator.com/item?id=49624856\nPoints: 309\n# Comments: 189",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何在Google广告上推广恶意软件",
+        "summary": "详细说明恶意软件供应商如何利用Google广告分发恶意软件，揭露了该平台审查机制中的安全漏洞。该文章记录了使恶意软件广泛传播的漏洞利用方法和做法。"
       }
     }
   },
