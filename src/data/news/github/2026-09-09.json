@@ -1,5 +1,245 @@
 [
   {
+    "title": "A signed PDF/A-1b file from Python in 40 lines, no compiled extension",
+    "slug": "signed-pdfa-1b-file-python",
+    "url": "https://dev.to/lumaspdf/a-signed-pdfa-1b-file-from-python-in-40-lines-no-compiled-extension-1fe4",
+    "source": "DEV Community",
+    "date": "2026-09-09T15:54:57.000Z",
+    "summary": "Demonstrates creating PDF/A-1b files with digital signatures using Python's LumasPDF SDK without requiring compiled extensions or external tools. The SDK provides prebuilt wheels for multiple platforms and includes test fixtures for certificates and ICC profiles. Users can generate compliant PDFs with evaluation watermarks or remove them with a trial license key.",
+    "content": "Most PDF libraries for Python can write a PDF. Far fewer can produce a file that a validator accepts as PDF/A-1b, and fewer still can put a digital signature on it without shelling out to a second tool. Here is the whole job in one script, using the LumasPDF SDK through its Python wheel. The binding is ctypes over a native engine, so there is nothing to compile.\nDisclosure: I'm the author of LumasPDF.\npip install lumaspdf\n\nWheels exist for Windows x64/x86, Linux x64 and macOS. The engine for your platform is inside the wheel. The download is free; unlicensed output carries an evaluation watermark, and a trial key removes it.\nYou also need two files: an sRGB ICC profile and a PKCS#12 certificate. Both ship as test fixtures in the SDK download (test_files/sample_rgb.icc and test_files/test_cert.pfx, password 123456), or use your own.\n\"\"\"Create a PDF/A-1b file and sign it, from Python, with the lumaspdf wheel.\n\n    pip install lumaspdf\n    python signed_pdfa.py sRGB.icc cert.pfx cert-password\n\"\"\"\nimport os, sys, ctypes\nimport lumaspdf as L\n\nicc, pfx, pwd = sys.argv[1], sys.argv[2], sys.argv[3]\nout = os.path.abspath(\"signed_pdfa.pdf\")\n\n# Errors arrive through a callback; return 0 to let CheckConformance apply fixes.\nERR = ctypes.WINFUNCTYPE if os.name == \"nt\" else ctypes.CFUNCTYPE\n@ERR(ctypes.c_int32, ctypes.c_void_p, ctypes.c_int32, ctypes.c_char_p, ctypes.c_int32)\ndef on_error(data, code, msg, kind):\n    print(\"engine:\", msg.decode(\"latin-1\", \"replace\"))\n    return 0\n\npdf = L.pdfNewPDF()\nL.pdfSetOnErrorProc(pdf, 0, on_error)\nL.pdfCreateNewPDFA(pdf, b\"\")                       # output file is chosen at the end\nL.pdfSetDocInfoA(pdf, L.diTitle, b\"Signed PDF/A-1b from Python\")\n\nL.pdfAppend(pdf)\n# PDF/A needs every font embedded, so use a real TrueType face, not a base-14 name.\nL.pdfSetFontA(pdf, b\"Arial\", L.fsNone, 11.0, 1, L.cp1252)\nL.pdfWriteFTextA(pdf, L.taLeft, b\"This file is PDF/A-1b and carries a digital signature.\")\n\n# A visible signature field; the engine draws th",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "用 Python 40 行代码创建带签名的 PDF/A-1b 文件，无需编译扩展",
+        "summary": "演示如何使用 Python 的 LumasPDF SDK 创建带有数字签名的 PDF/A-1b 文件，无需编译扩展或外部工具。该 SDK 为多个平台提供预构建的轮，并包括证书和 ICC 配置文件的测试夹具。用户可以生成带有评估水印的合规 PDF，或使用试用许可证密钥移除这些水印。"
+      }
+    }
+  },
+  {
+    "title": "Debugging PHP in Docker with an AI Agent and Xdebug",
+    "slug": "debugging-php-docker-ai-agent-xdebug",
+    "url": "https://dev.to/halaspiotr/debugging-php-in-docker-with-an-ai-agent-and-xdebug-2f2k",
+    "source": "DEV Community",
+    "date": "2026-09-09T15:54:56.000Z",
+    "summary": "An MCP server called xdbg enables AI agents to debug PHP applications in Docker by providing full Xdebug control, including breakpoint setting and request inspection. Unlike existing tools limited to GET requests, xdbg works with any HTTP method and handles authorization, improving debugging workflow speed. The MIT-licensed tool integrates with Claude Code, Cursor, and other MCP-capable clients.",
+    "content": "For a while now I have used LLMs to automate parts of my work. One of those parts is debugging hard problems with Xdebug. Before, I set the breakpoints by hand and built complicated requests to see what happens inside. It usually took a few requests, and I had to move the breakpoints again and again. Then I found that PhpStorm has Xdebug in its MCP server. For simple GET requests, that is enough. But it fails on endpoints that need authorization, and on any method other than GET. So I did not wait for JetBrains. I wrote my own small MCP server, and it makes this work much faster. I share this tool with you, and I hope it helps you too — especially if you work with Docker.\nTL;DR\nTired of reading, and you have not started yet? Fair enough. Straight to setting up the MCP server in PhpStorm, or straight to installing xdbg.\nAI agents are good at debugging from code alone — until the bug lives in runtime state. Then you need Xdebug, and every existing Xdebug tool is built for humans clicking through a GUI. PhpStorm ships an MCP server since 2025.2, but it is GET-only, has no headers, no path for CLI in Docker, and no control over Xdebug inside the container. So I built xdbg: an MCP server that gives an agent the full loop — enable Xdebug, set a breakpoint, fire a real request, step, inspect, detach.\nMIT licence, one-line install, works with Claude Code, opencode, Cursor and any MCP-capable client. Source: github.com/crazy-goat/xdbg\nThis is the standard. You need to check something fast, so you print the value and stop the script. It is quick, it always works, and it needs no setup.\nfunction add(int $a, int $b): int\n{\n    $result = $a + $b;\n    var_dump($result);\n    die();\n}\n\nIt also has costs. You are editing the code in order to debug it, and you only see the one place you thought to print. Inside a loop, var_dump fills the screen a thousand times and you scroll for the single line that matters. And die() gives you exactly one breakpoint: it kills the process on the spo",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用 AI Agent 和 Xdebug 在 Docker 中调试 PHP",
+        "summary": "名为 xdbg 的 MCP 服务器通过提供完整的 Xdebug 控制（包括断点设置和请求检查）使 AI Agent 能够在 Docker 中调试 PHP 应用程序。与仅限于 GET 请求的现有工具不同，xdbg 支持任何 HTTP 方法并处理授权，提高了调试工作流的速度。该 MIT 许可工具与 Claude Code、Cursor 和其他支持 MCP 的客户端集成。"
+      }
+    }
+  },
+  {
+    "title": "Revert Production. Agent Tests Must Fail.",
+    "slug": "revert-production-agent-tests-must-fail",
+    "url": "https://dev.to/gitpy_4124/revert-production-agent-tests-must-fail-bo5",
+    "source": "DEV Community",
+    "date": "2026-09-09T15:53:25.000Z",
+    "summary": "Agent-generated tests frequently pass without validating actual behavior changes, creating false confidence in code reviews. The solution is implementing \"revert witness\" testing: running new tests against production code from the merge base to ensure they fail without the patch. This catches tests that exercise old code paths or mirrors instead of genuinely validating new functionality.",
+    "content": "A parser patch lands in review at 02:11. Twelve tests sit green beside the diff. Coverage rises nine points before dawn. Two days later a trailing delimiter returns None in production.\nThe agent shipped code and tests together. Reviewers saw one color only. Green never proved the new behavior. It only proved the suite agreed with itself.\nA lock is not proven by a key you just cut. You prove it by pulling the bolt. The door must swing open. Agent tests need the same motion. Keep the new tests. Restore production files from the merge base. Run the suite again. Something must fail.\nCall that event a revert witness. No failure means the tests do not pin the patch. They exercise old paths, mirrors, or nothing. Review queues now fill with overnight agent diffs. The pattern is stable across languages. Tests arrive in the same commit as the implementation. Continuous integration reports green. Nobody saw the assertion fail against yesterday's tree.\nThink of a weigh station on a bridge. Trucks roll across and the gauge never moves. Either the cargo is air or the gauge is painted. Many agent suites paint the gauge. The revert witness is a boot on the scale.\nConsider a tiny tag parser under review. The old function splits on commas and keeps blanks.\n# tags.py at the merge base\ndef parse_tags(raw: str) -> list[str]:\n    if not raw:\n        return []\n    return raw.split(\",\")\n\nThe agent rewrites the function to strip tokens. It also drops empty pieces. That change is reasonable on its face. The tests decide whether the change is locked.\n# tags.py after the agent patch\ndef parse_tags(raw: str) -> list[str]:\n    if raw is None:\n        raise TypeError(\"raw must be a string\")\n    parts = []\n    for piece in raw.split(\",\"):\n        token = piece.strip()\n        if token:\n            parts.append(token)\n    return parts\n\nA busy agent suite can still stay green after a revert. It checks \"a,b\" and an empty string. Both results already match the merge base.\n# test_tags.py — weak suite,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "还原生产。Agent 测试必须失败。",
+        "summary": "Agent 生成的测试经常通过而没有验证实际的行为变化，在代码审查中造成虚假的信心。解决方案是实现\"还原见证\"测试：对合并基础的生产代码运行新测试，以确保在没有补丁的情况下失败。这捕捉了那些执行旧代码路径或镜像而不是真正验证新功能的测试。"
+      }
+    }
+  },
+  {
+    "title": "Extract, Draft, Sign: Regen-Safe Lanes for AI Docs",
+    "slug": "extract-draft-sign-regen-safe-lanes-ai-docs",
+    "url": "https://dev.to/datago_7777/extract-draft-sign-regen-safe-lanes-for-ai-docs-2cec",
+    "source": "DEV Community",
+    "date": "2026-09-09T15:51:21.000Z",
+    "summary": "Proposes a three-lane approach to prevent AI model regeneration from silently altering documentation: extract lane (source of truth only), draft lane (AI-writable), and sign lane (human-only). This structural split ensures that policy documents, security contacts, and contractual statements remain under human control while AI improves prose. The approach provides a CI-checkable alternative to uncontrolled regeneration.",
+    "content": "A regenerated README often looks like progress. The install block is tighter. A stale caption disappears. Then a reviewer finds that the same commit also rewrote the security contact, dropped two SLO numbers, and turned a retention rule into a hedge.\nThe model did not sneak those edits. It treated the file as one string. Regeneration without lanes will keep doing that.\nThis article proposes a split you can check in CI: extract, draft, and sign. A model may write only the draft lane. Deterministic tools own extract. A named human owns sign. The checker below is sample code, not a production audit and not a legal control.\nMost doc pipelines still do this:\nConcatenate the old markdown.\nAsk a model to update it for the latest API.\nOverwrite the path.\nThat loop is cheap. It is also how a metaphor and a contractual sentence become the same token stream. If the process cannot name which paragraphs are allowed to change, every regen is a silent policy edit.\nA useful split is not \"AI versus human\" as a vibe. It is three writers with three failure costs. Extract fails when a dump script is stale. Draft fails when the prose is wrong or vague. Sign fails when a promise moves without a person noticing.\n\n\n\nDoc fragment\nSource of truth\nLane\nModel may draft?\nHuman must sign?\n\n\n\n\nCLI flags, env vars, HTTP routes\n\n--help, OpenAPI, code\nextract\nNo\nOwn the extractor\n\n\nSamples that must compile\ntests / doctest\nextract\nNo\nOwn the test\n\n\nInstall narrative, \"why this shape\"\nnone\ndraft\nYes\nReview\n\n\nArchitecture walkthrough\nnone\ndraft\nYes\nReview\n\n\nSecurity contact, threat-model claims\npolicy\nsign\nNo\nYes\n\n\nSLO numbers, error budgets\nSRE / contract\nsign\nNo\nYes\n\n\nLicense, embargo, export notes\nlegal\nsign\nNo\nYes\n\n\nChangelog dates and SHAs\ngit\nextract\nNo\nOwn git log\n\n\n\n\"We never store X\"\nlegal / security\nsign\nNo\nYes\n\n\nAnalogies, diagrams-as-prose\nnone\ndraft\nYes\nReview\n\n\n\nIf wrong wording can page someone, leak PII, or change a customer promise, it is not draft. Put it in sign. If a fragment can b",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "提取、起草、签署：AI文档的再生安全通道",
+        "summary": "提出了一种三通道方法，以防止AI模型再生悄悄改变文档内容：提取通道（仅限真实源头）、起草通道（AI可写）和签署通道（仅限人工）。这种结构性分割确保政策文件、安全联系人和合同声明仍由人工控制，而AI改进文案。该方法提供了CI可检查的替代方案，以应对无控制的再生。"
+      }
+    }
+  },
+  {
+    "title": "Anthropic Signals AI Task Scenario Planning, While Claude Already Models Budget Futures",
+    "slug": "anthropic-ai-task-scenario-planning-budget-futures",
+    "url": "https://dev.to/alifar/anthropic-signals-ai-task-scenario-planning-while-claude-already-models-budget-futures-3gc9",
+    "source": "DEV Community",
+    "date": "2026-09-09T15:45:30.000Z",
+    "summary": "Anthropic has demonstrated scenario planning capabilities through Claude's budget futures feature, which explores alternative outcomes by 2030 based on different assumptions about AI task automation. The approach translates task-level uncertainty into planning discussions without claiming precise prediction, and applies beyond finance to any domain where managers need to test plan assumptions. Claude's existing implementation provides stronger evidence of the practical approach than any separately announced product.",
+    "content": "Anthropic has credibly signaled an interest in using scenarios to model how AI could affect bundles of work tasks by 2030. The clearest verified practical example is not a newly confirmed standalone tool called Scenario Explorer. Instead, it is a Claude capability that lets users explore alternative budget futures side by side. That distinction matters for businesses looking to use AI for planning: the underlying scenario-modeling approach is available in Claude materials, while a separately named product, pricing model, and rollout timeline have not been confirmed.\nThe economic framing is useful because jobs are made up of many tasks, not a single activity. AI may help a person complete a task more effectively, perform it directly, leave it unchanged, or create further work around it. Scenario planning offers a way to examine several plausible combinations of those outcomes rather than relying on one confident forecast about which roles will change.\nAnthropic’s broader Economic Index research also examines how AI use maps to tasks and productivity. In that context, scenario exploration appears to be a practical way to translate task-level uncertainty into planning discussions. It should not be treated as a precise prediction engine or as proof that any specific job will disappear by 2030.\nAnthropic’s Claude budget futures use case provides the strongest first-party evidence of how scenario exploration works in practice. Claude can take budget context and produce three future scenarios side by side. The example includes stacked bar charts, a switch between dollar and percentage views, a short interpretation for each scenario, and follow-up prompts for refining constraints or extending the analysis.\nThe page is presented as a finance use case, but its value is broader than finance teams. A manager can use the same planning pattern to test how assumptions affect a plan: for example, different levels of AI assistance in a recurring process, a revised budget allocation,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Anthropic信号AI任务情景规划，而Claude已在建模预算未来",
+        "summary": "Anthropic通过Claude的预算未来功能展示了情景规划能力，该功能根据AI任务自动化的不同假设探索到2030年的替代结果。该方法将任务级别的不确定性转化为规划讨论，而不声称精确预测，并适用于需要管理人员测试计划假设的财务以外的任何领域。Claude的现有实现提供了比任何单独宣布产品更强的实际方法证据。"
+      }
+    }
+  },
+  {
+    "title": "How to Actually Test a Chatbot (Not \"The Answer Looked Fine\")",
+    "slug": "how-to-actually-test-chatbot",
+    "url": "https://dev.to/qatrehai/how-to-actually-test-a-chatbot-not-the-answer-looked-fine-1ihi",
+    "source": "DEV Community",
+    "date": "2026-09-09T15:43:43.000Z",
+    "summary": "Most chatbot evaluations lack rigor, accepting responses that look reasonable without verification that answers originate from the correct source. Proper testing requires three elements: a fixed set of repeated questions, explicit source assertions for each answer, and response time separated from network latency. Tests should verify that answers contain specific markers like page paths or contact details rather than simply confirming non-empty responses.",
+    "content": "Most teams accept a chatbot the same way: they ask it a handful of questions, the answers look reasonable, and the service is signed off. That procedure proves almost nothing.\nEvaluating a Persian-language assistant properly needs three things: a fixed set of questions replayed identically every time, an explicit assertion for each one about which source the answer must come from, and response time measured separately from network time. Without all three, any change to the system can break something nobody notices.\nA retrieval or generation system almost always returns something. If it does not recognise the topic it returns a default; if it recognises the wrong topic it returns an answer that is correct in itself and irrelevant to the question.\nThe second failure is the more deceptive one, because it reads well. In our own evaluation, the question do you offer enterprise training? was answered with the project-timeline text — entirely accurate, entirely unrelated. Anyone reading only the answer sees nothing wrong.\nThe fix is for each test case to assert not \"the answer was good\" but that the answer contains a specific marker: the path of the page it should point to, a distinctive phrase from the reference text, or the contact number. A fluent irrelevant answer then fails.\n// Not this — it passes for any non-empty string:\nassert(answer.length > 0);\n\n// This — it fails a fluent answer that came from the wrong place:\nassert(answer.includes(\"/chatbot-karaj\"));\n\nWhat worked in practice was a list where every entry carries four fields: the question text, the language, a string that must appear in the answer, and a label saying what the case is testing.\nconst CASES = [\n  { q: \"آموزش سازمانی دارید؟\",  lang: \"fa\", expect: \"/enterprise-ai-training-karaj\", why: \"enterprise vs project timeline\" },\n  { q: \"چت‌بات چقدر طول می‌کشد؟\", lang: \"fa\", expect: \"/chatbot-karaj\",                why: \"ZWNJ spelling\"                },\n  { q: \"چت بات چقدر طول می‌کشد؟\", lang: \"fa\", expect: \"/",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何真正测试聊天机器人（不是\"答案看起来不错\"）",
+        "summary": "大多数聊天机器人评估缺乏严谨性，接受看起来合理的响应，而不验证答案是否来自正确的来源。正确的测试需要三个要素：一组固定的重复问题、每个答案的明确源断言和与网络延迟分开的响应时间。测试应验证答案包含特定标记（如页面路径或联系方式）而不是简单地确认非空响应。"
+      }
+    }
+  },
+  {
+    "title": "How to Navigate Contracts as a Freelancer: The Non Paper Tiger Edition",
+    "slug": "navigate-contracts-freelancer",
+    "url": "https://dev.to/daedtech/how-to-navigate-contracts-as-a-freelancer-the-non-paper-tiger-edition-1312",
+    "source": "DEV Community",
+    "date": "2026-09-09T15:42:09.000Z",
+    "summary": "Contracts serve freelancers and small agencies as practical business tools for establishing professional credibility rather than as comprehensive legal shields. The article addresses common misconceptions and cargo-cult contract advice circulating in freelancer communities, emphasizing that realpolitik concerns matter more than legal armor. Proper contract strategy positions service providers advantageously with clients rather than protecting against worst-case scenarios.",
+    "content": "(Editorial note: I originally published this over on the Hit Subscribe blog.)\nAs I mentioned in my last post, I'm planning to write a column aimed at freelancers and small agency owners.  And since I made this decision, I've been practically bursting with ideas of what to write about, to the point where Jonathan Stark's daily writing habit concept seems highly attainable.  (Though ironically I've posted none for months because of a 2-week vacation that turned into a 4-week ordeal, and then the subsequent catch-up from a month off).\n\nFor whatever reason, the first and most insistent topic that bubbled up was how to navigate, or not navigate, contracts as a freelancer or small agency.\nI think maybe this is because so much advice out there, swapped around by freelancers on venues like reddit, is genuinely and comically atrocious.  It's a bemusing mélange of cargo culting (more on this shortly), arm-chair lawyering and good old-fashioned posturing that is completely unmoored from any legal, or more importantly, realpolitik, reality.\nBut the real danger in taking any of this advice, for you, as a freelancer or small agency, isn't a legal danger -- it's a danger that you'll look ridiculous to the clients you're presumably hoping to impress.\nContracts are a real, potentially valuable tool to think about including in your tool belt.  But in my experience service providers almost invariably misunderstand their role and their real value.  So let's do a bit of a deep dive into the role of contracts in your practice, so that you can use them to your advantage.\nWho Am I To Weigh in on This?  My Non-Lawyer Bona Fides\nFirst of all, it's important for me to add a disclaimer that this is not legal advice and I am not a lawyer.\nActually, I'm just having a little fun.  It's really not important for me to say that because I am not a lawyer and there is no danger of anyone misconstruing this as de facto legal representation.  I am not worried about being disbarred.\nBut I am making a dri",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "自由职业者如何处理合同：非纸老虎版",
+        "summary": "合同对自由职业者和小型机构来说是建立专业信誉的实用商业工具，而不是全面的法律保护盾牌。该文章解决了在自由职业者社区中流传的常见误解和货物崇拜合同建议，强调现实政治考虑比法律保护更重要。合理的合同策略能将服务提供商与客户的关系置于有利地位，而不是针对最坏情况进行保护。"
+      }
+    }
+  },
+  {
+    "title": "Former Anthropic and OpenAI Researcher Jacob Coxon Resigns",
+    "slug": "anthropic-openai-researcher-jacob-coxon-resigns",
+    "url": "https://dev.to/md_fahadmia_94ada001244f/former-anthropic-and-openai-researcher-jacob-coxon-resigns-2857",
+    "source": "DEV Community",
+    "date": "2026-09-09T15:31:20.000Z",
+    "summary": "Jacob Coxon, a pretraining researcher at Anthropic and OpenAI, publicly resigned citing concerns that both labs are \"racing straight to self-improving superintelligence\" with insufficient safety measures. He estimates a greater than 10% chance of advanced AI causing human extinction within a decade, a view he claims is common among colleagues at frontier labs. His resignation carries weight because it comes from someone directly involved in pretraining at the most advanced AI companies.",
+    "content": "Another week, another high-profile exit from a frontier AI lab. But this one is different in a way that matters for anyone who builds, deploys, or depends on large language models.\nJacob Coxon, a 27-year-old pretraining researcher, announced late Tuesday that he has resigned from Anthropic and is leaving the AI industry entirely. He spent the last three years working on pretraining at both OpenAI and Anthropic, the two labs most often described as the current frontier. He did not leave quietly. His resignation thread on X named both companies as acting irresponsibly, and the Wall Street Journal ran an exclusive interview the same night.\nHere is what happened, and why it should register with technical people, not just policy watchers.\nWhat Coxon actually said\nThe core of his statement is short. In his own words, both labs are \"racing straight to self-improving superintelligence and gambling with our lives.\" He estimates a greater than 10 percent chance that advanced AI could kill all humans within the next decade, and he says that this belief is not fringe inside the labs. Colleagues, he claims, now talk openly about \"crunchtime\" and \"endgame.\"\nNotably, he does not treat the two companies identically. Coxon's view, as reported by the WSJ and summarized across coverage, is roughly this:\nOpenAI, in his assessment, has not fully internalized the civilizational stakes of what it is building.\nHe moved from OpenAI to Anthropic earlier this year precisely because of Anthropic's safety reputation. His conclusion after working there is that the problem is structural, not cultural: no single company can responsibly build systems that outperform humans across a broad range of tasks without either government intervention or a coordinated slowdown across the industry.\nHis timeline is aggressive. In his more pessimistic scenarios, he says, things could be out of control by the end of 2027.\nWhy a pretraining researcher's opinion carries weight\nIt is worth pausing on Coxon's role. P",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "前Anthropic和OpenAI研究员Jacob Coxon辞职",
+        "summary": "Anthropic和OpenAI的预训练研究员Jacob Coxon公开辞职，理由是这两个实验室正在\"直奔自我改进的超级智能\"，但安全措施不足。他估计先进人工智能在十年内导致人类灭绝的概率大于10%，他声称这种观点在前沿实验室的同事中很普遍。他的辞职很有分量，因为它来自于在最先进的人工智能公司直接参与预训练的人。"
+      }
+    }
+  },
+  {
+    "title": "How to Build Secure AI Agents for DeFi: From Blockchain Data to On-Chain Actions",
+    "slug": "build-secure-ai-agents-defi",
+    "url": "https://dev.to/fahadarif/how-to-build-secure-ai-agents-for-defi-from-blockchain-data-to-on-chain-actions-676",
+    "source": "DEV Community",
+    "date": "2026-09-09T15:31:14.000Z",
+    "summary": "Building secure AI agents for decentralized finance requires careful architecture that separates read-only data access from transaction-signing capabilities. The guide recommends starting with read-only functionality before adding controls for on-chain actions, incorporating transaction simulation, risk management rules, and human oversight. Properly designed DeFi agents can monitor blockchain activity and prepare transactions while keeping security and reversibility at the center.",
+    "content": "AI agents are moving beyond chat interfaces. In decentralized finance, they can monitor blockchain activity, analyze market data, identify opportunities, and potentially execute on-chain actions.\nBut giving an AI system access to a blockchain wallet creates a serious security challenge.\nAn agent that can only read blockchain data has limited risk. An agent that can sign transactions can potentially move funds, interact with smart contracts, or make irreversible decisions.\nThat makes secure AI agent architecture especially important for DeFi applications.\nThis guide explains how to design an AI-powered DeFi agent that can move from blockchain data to controlled on-chain actions while keeping security and human oversight at the center.\nA DeFi AI agent is a software system that combines artificial intelligence with blockchain infrastructure.\nInstead of simply responding to user prompts, an agent can observe information, reason about it, and perform predefined actions.\nA typical architecture may include:\nAn LLM for reasoning\nBlockchain RPC providers\nWallet or transaction infrastructure\nSmart contracts\nDeFi protocols\nMarket and protocol data\nRisk-management rules\nTransaction simulation\nMonitoring and logging\nFor example, a portfolio agent could monitor a user's positions and report:\n“Your lending position has crossed the configured risk threshold.”\nA more advanced system could prepare a transaction to rebalance the position. However, automatically sending that transaction should require additional security controls.\nOne of the safest ways to build a DeFi agent is to begin with read-only functionality.\nThe agent can retrieve:\nToken balances\nWallet positions\nLiquidity-pool data\nLending positions\nToken prices\nTransaction history\nSmart-contract events\nAt this stage, the AI does not need private keys or transaction-signing permissions.\nFor example, a Python application can retrieve an ERC-20 balance through a blockchain provider:\nw3 = Web3(Web3.HTTPProvider(RPC_URL)) token =",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何为DeFi构建安全的AI代理：从区块链数据到链上操作",
+        "summary": "为去中心化金融构建安全的AI代理需要仔细的架构设计，将只读数据访问与交易签名能力分开。该指南建议在添加链上操作控制之前从只读功能开始，并结合交易模拟、风险管理规则和人工监督。设计得当的DeFi代理可以监控区块链活动并准备交易，同时将安全性和可逆性置于中心位置。"
+      }
+    }
+  },
+  {
+    "title": "Development diary: Implement folder‑based batch JSON comparison",
+    "slug": "implement-folder-based-batch-json-comparison",
+    "url": "https://dev.to/jerrywang/development-diary-implement-folder-based-batch-json-comparison-12id",
+    "source": "DEV Community",
+    "date": "2026-09-09T15:31:13.000Z",
+    "summary": "A developer is building batch JSON comparison functionality for QA regression testing, including folder-level file matching, dynamic field filtering, and automated HTML report generation. The tool addresses enterprise QA needs by detecting new and deleted files across versions while ignoring predefined noisy fields like timestamps and trace IDs. Core matching logic is nearly complete with full batch comparison and export functions expected within days.",
+    "content": "Hi everyone 👋\nLack dedicated batch folder comparison for QA scenarios\nCannot ignore dynamic fields in batch mode\nFail to export clean, ticket-ready evidence in bulk\nWhat I’m building right now\nI’m currently developing the batch JSON diff module with QA regression workflow in mind:\nLoad two entire folders (old version vs new version API responses)\nAuto-match corresponding JSON files by filename\nSkip predefined noisy fields (timestamp, traceId, requestId) in batch tasks\nBatch-generate standardized HTML comparison reports\nKey technical challenges I’m solving\nBatch field filtering consistency\nSingle-file filtering is simple, but batch mode requires global rule persistence. I optimized the ignore-key configuration to take effect on all batch comparison tasks, ensuring unified filtering standards for the whole regression suite.\nMissing & new file detection\nDuring version iteration, some API files will be added or removed. The tool will mark new-added / deleted files separately in the final report, which is critical for full regression tracking.\nBatch HTML report generation\nInstead of generating separate messy files, I’m designing a structured batch report overview, so testers can quickly locate which API cases have differences.\nCurrent progress & next step\nCore folder traversal and file matching logic is nearly finished. I will complete the full batch comparison and batch export functions in the next few days.\nOnce this feature is shipped, the toolkit will officially support full-scale API batch regression testing — the most demanded feature from enterprise QA teams.\nQuick question for QA testers\nWhat’s your biggest headache during batch API regression? Too many noise changes? Disorganized evidence? Feel free to drop a comment.\nFollow me for more build-in-public progress of my offline QA desktop toolkit.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "开发日记：实现基于文件夹的批量JSON比较",
+        "summary": "一名开发者正在为QA回归测试构建批量JSON比较功能，包括文件夹级别的文件匹配、动态字段过滤和自动化HTML报告生成。该工具通过在版本间检测新增和删除的文件来满足企业QA需求，同时忽略预定义的噪声字段如时间戳和追踪ID。核心匹配逻辑已接近完成，完整的批量比较和导出功能预计在数天内完成。"
+      }
+    }
+  },
+  {
+    "title": "Hybrid search in one file with node:sqlite, FTS5 and zero dependencies",
+    "slug": "hybrid-search-node-sqlite-fts5",
+    "url": "https://dev.to/catidegla/hybrid-search-in-one-file-with-nodesqlite-fts5-and-zero-dependencies-j6j",
+    "source": "DEV Community",
+    "date": "2026-09-09T15:30:08.000Z",
+    "summary": "Node 22.5's built-in node:sqlite module enables hybrid full-text and vector search without external dependencies, removing compilation and platform compatibility issues. SQLite's FTS5 virtual table supports lexical search with stemming and Unicode-aware tokenization, while vectors store as packed binary in ordinary tables without requiring separate services. Reciprocal rank fusion combines lexical and vector results into a unified ranking without the tuning overhead of weighted score normalization.",
+    "content": "Node 22.5 added node:sqlite to the standard library, and I think people have not registered what that removes.\nNo better-sqlite3. No node-gyp. No prebuilt binary that is missing for your platform, no rebuild after a Node upgrade, no Docker image that works locally and fails in CI because the native module was compiled against a different ABI.\nimport { DatabaseSync } from 'node:sqlite';\n\nThat is the whole dependency story, and it is enough to build hybrid retrieval.\nSQLite's FTS5 comes along for the ride, so lexical search is a virtual table:\nCREATE VIRTUAL TABLE IF NOT EXISTS memories_fts USING fts5(\n  content,\n  ...\n  tokenize='porter unicode61'\n);\n\nTwo things in that tokenizer line are doing real work.\nporter is stemming. A search for \"settling\" matches a document containing \"settles\", because both stem to settl. Without it, exact-word-only matching feels broken in a way users cannot articulate.\nunicode61 is Unicode-aware tokenisation with diacritic folding, so \"réconciliation\" and \"reconciliation\" find each other. That matters a great deal if any of your content is French and not at all if you never test with it.\nVectors go in an ordinary table as packed binary. No extension, no separate service, no second thing to back up.\nAt the scale this is designed for, tens of thousands of memories, a linear scan over packed float arrays is fast enough. The point where an index starts paying for itself is further out than people assume.\nThe vectors are optional. A memory with no embedding is still a row, still searchable lexically, still returned by recall.\nFull text search returns BM25 relevance via SQLite's own bm25(). Vector search returns cosine similarity. Those are not on the same scale, they are not on the same scale per query, and their distributions move around.\nA weighted sum of normalised scores gives you a magic constant tuned on one dataset, which needs retuning every time either ranker changes.\nReciprocal rank fusion throws the scores away and keeps the positi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用node:sqlite、FTS5和零依赖实现单文件混合搜索",
+        "summary": "Node 22.5的内置node:sqlite模块支持混合全文和向量搜索，无需外部依赖，消除了编译和平台兼容性问题。SQLite的FTS5虚拟表支持包含词干处理和Unicode感知分词的词汇搜索，向量存储为普通表中的打包二进制格式，无需单独的服务。倒数排名融合将词汇和向量结果结合成统一的排名，无需加权分数归一化的调优开销。"
+      }
+    }
+  },
+  {
+    "title": "Turn Text and Markdown into Confluence-Ready Content Without Reformatting",
+    "slug": "text-markdown-confluence-ready-content",
+    "url": "https://dev.to/ming_wen_5a59992199fcc599/turn-text-and-markdown-into-confluence-ready-content-without-reformatting-1hii",
+    "source": "DEV Community",
+    "date": "2026-09-09T15:29:44.000Z",
+    "summary": "Text to Confluence Editor is a free browser-based tool that converts plain text, Markdown, and document drafts into properly formatted Confluence content without manual restructuring. The tool includes three parsing modes (Auto, Markdown, Plain Text) and preserves structure such as headings, tables, lists, and emphasis while allowing export to HTML or Markdown. It runs locally in the browser without requiring an account or server uploads, supporting a workflow cycle from drafting through publishing and returning edits to local text.",
+    "content": "If you write product requirements, technical notes, release plans, or team documentation in Confluence, you have probably lost time fixing formatting after pasting a draft.\nHeadings collapse into plain text. Tables need to be rebuilt. Important callouts lose emphasis. A quick documentation update turns into a manual cleanup session.\nI built Text to Confluence Editor to make that workflow faster:\n👉 Try Text to Confluence Editor\nText to Confluence Editor is a free browser-based workspace that converts plain text, Markdown, and document drafts into Confluence-ready rich content.\nThe workflow is simple:\nWrite or paste your draft on the left.\nReview the formatted result in the live preview.\nCopy the rich content in one click.\nPaste it into Confluence.\nIt preserves useful structure such as headings, lists, tables, links, emphasis, and common PRD-style sections. You can also export the result as HTML or Markdown.\nDifferent drafts need different parsing rules, so the editor includes three modes:\nAuto recognizes common document patterns automatically.\nMarkdown renders Markdown structures directly.\nPlain Text turns rough notes, numbered sections, and tabular text into a cleaner document layout.\nThis is useful when a draft comes from a text file, a writing tool, meeting notes, a spreadsheet, or an existing wiki page.\nThe tool is not limited to publishing new drafts. You can also paste rich content copied from Confluence and convert it back into editable structured text.\nThat creates a practical loop:\ndraft in text or Markdown\npreview as rich content\npublish to Confluence\nbring later edits back into a local draft\nexport to Markdown when needed\nThe editor runs locally in your browser. There is no installation, and document content does not need to be uploaded to a server.\nThat makes it useful for internal product documents where teams want a lightweight formatting tool without adding another document-processing service.\nThere is no account required for the editor itself. Open t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "将文本和Markdown转换为Confluence就绪内容而无需重新格式化",
+        "summary": "Text to Confluence Editor是一款免费的基于浏览器的工具，可以将纯文本、Markdown和文档草稿转换为格式正确的Confluence内容，无需手动重组。该工具包括三种解析模式（自动、Markdown、纯文本），并保留标题、表格、列表和强调等结构，同时允许导出为HTML或Markdown。它在浏览器本地运行，无需账户或服务器上传，支持从草稿阶段到发布再返回编辑本地文本的完整工作流程。"
+      }
+    }
+  },
+  {
+    "title": "Tailwind Labs is joining Shopify",
+    "slug": "tailwind-labs-joining-shopify",
+    "url": "https://tailwindcss.com/blog/tailwind-is-joining-shopify",
+    "source": "Hacker News",
+    "date": "2026-09-09T13:27:11.000Z",
+    "summary": "Tailwind Labs, creators of the popular Tailwind CSS utility-first framework, has announced it is joining Shopify. The acquisition brings together the widely-adopted CSS framework with Shopify's e-commerce platform capabilities. This move aims to integrate Tailwind more closely with Shopify's developer ecosystem and product offerings.",
+    "content": "Article URL: https://tailwindcss.com/blog/tailwind-is-joining-shopify\nComments URL: https://news.ycombinator.com/item?id=49626190\nPoints: 378\n# Comments: 145",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Tailwind Labs 加入 Shopify",
+        "summary": "Tailwind Labs 是流行的 Tailwind CSS 工具优先框架的创建者，已宣布加入 Shopify。此次收购将广泛采用的 CSS 框架与 Shopify 的电子商务平台功能整合在一起。此举旨在将 Tailwind 更紧密地整合到 Shopify 的开发者生态和产品提供中。"
+      }
+    }
+  },
+  {
+    "title": "DeepSeek launching v4.1 flash cheaper and more capable than v4 pro",
+    "slug": "deepseek-v4-1-flash-launch",
+    "url": "https://news.ycombinator.com/item?id=49624603",
+    "source": "Hacker News",
+    "date": "2026-09-09T11:19:26.000Z",
+    "summary": "DeepSeek announced v4.1 Flash model launching September 10, 2026, which surpasses v4 Pro across performance, cost, and speed metrics. During a transition period, all Pro model requests will be routed to v4.1 Flash and billed at the cheaper Flash rate, with adjusted peak and off-peak pricing for input and output. The company welcomes comparative testing feedback and emphasizes user responsibility in deployment.",
+    "content": "DSeek plans to officially release the V4.1 Flash model around September 10, 2026 (Beijing Time). After extensive internal and external testing, V4.1 Flash has comprehensively surpassed V4 Pro across all key metrics, including performance, cost, speed, and task completion time. In keeping with our commitment to user responsibility, following the official launch of V4.1 Flash and prior to the release of V4.1 Pro, all requests to the Pro model will be routed to V4.1 Flash and billed at Flash's price. If you encounter any issues during your comparative testing between V4 Pro and V4.1 Flash, please do not hesitate to reach out to us with your feedback. Thank you for your support!\nWe will adjust the pricing for the Flash series effective from 12:00 Beijing Time on September 10, 2026. During off-peak hours, the unit price will be $0.003 for input cache hits, $0.15 for input cache misses, and $0.6 for output. Peak-hour prices will be double the off-peak rates. Please plan your usage accordingly.\nComments URL: https://news.ycombinator.com/item?id=49624603\nPoints: 278\n# Comments: 140",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "DeepSeek 推出 v4.1 Flash，价格更便宜且性能优于 v4 Pro",
+        "summary": "DeepSeek 宣布 v4.1 Flash 模型将于 2026 年 9 月 10 日发布，在性能、成本和速度指标上超越 v4 Pro。在过渡期间，所有 Pro 模型请求将被路由到 v4.1 Flash，并按较便宜的 Flash 费率计费，输入和输出的峰值和非峰值定价已调整。该公司欢迎比较测试反馈，并强调用户在部署中的责任。"
+      }
+    }
+  },
+  {
+    "title": "Flock Wants a Closely Surveilled World with No Exit",
+    "slug": "flock-closely-surveilled-world-no-exit",
+    "url": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit",
+    "source": "Hacker News",
+    "date": "2026-09-09T10:54:18.000Z",
+    "summary": "A New Yorker article examines Flock, a surveillance technology that proposes comprehensive monitoring with limited individual choice or escape mechanisms. The piece critiques the implications of such pervasive surveillance infrastructure on personal freedom and autonomy. The article raises ethical and societal concerns about surveillance systems designed with no practical exit.",
+    "content": "Article URL: https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit\nComments URL: https://news.ycombinator.com/item?id=49624394\nPoints: 525\n# Comments: 420",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Flock 想要一个没有出口的紧密监控世界",
+        "summary": "《纽约客》的一篇文章审视了 Flock，这是一种提议进行全面监控但个人选择或逃脱机制有限的监控技术。这篇文章批评了这种普遍监控基础设施对个人自由和自主权的影响。该文章对设计无实际出口的监控系统提出了伦理和社会问题。"
+      }
+    }
+  },
+  {
     "title": "NicheDB 0.2.0: the domain layer, counted daily",
     "slug": "nichedb-0-2-0-domain-tracking",
     "url": "https://dev.to/chovy/nichedb-020-the-domain-layer-counted-daily-28id",
