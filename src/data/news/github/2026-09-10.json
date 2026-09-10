@@ -1,0 +1,210 @@
+[
+  {
+    "title": "The Remote Job Printed Nothing for 48 Hours. stdout Had No TTY.",
+    "slug": "remote-job-printed-nothing-stdout-no-tty",
+    "url": "https://dev.to/codepy_1473/the-remote-job-printed-nothing-for-48-hours-stdout-had-no-tty-3kaf",
+    "source": "DEV Community",
+    "date": "2026-09-10T03:12:58.000Z",
+    "summary": "A developer spent 48 hours debugging a remote job that appeared deadlocked, only to discover CPython block-buffers stdout when no TTY is attached, causing print statements to disappear until the process crashed. This stdout buffering difference between local and remote execution is a subtle but critical distinction that affects logging on remote servers.",
+    "content": "I spent forty-eight hours convinced a worker was deadlocked, because the remote log never showed the first print. Have you ever rerun the same Python file on your laptop and watched it chatter, then watched a server swallow every line? That gap is easy to blame on locks, agents, or a hung HTTP client that never returns. The quieter explanation is that CPython block-buffers stdout whenever the stream is not attached to a TTY.\nThe job was a small batch script, not a service, and it was supposed to print a checkpoint before each expensive step. I started it on a remote shell that captured output through a pipe, then I waited, then I waited more. Why would a simple starting-batch print vanish while the process was still listed in ps? I assumed the interpreter never reached that line, so I started hunting for an import deadlock that did not exist.\nLocally the same file was noisy in a good way, which made the remote silence feel like a different codebase. I compared SHAs, and I compared sys.version, and I still did not have a story that fit. I even compared os.getcwd() because I have already been burned by working-directory surprises on remote runners. None of those checks explained a print that existed in the file and never arrived in the captured log.\nI added more prints, then I added logging.warning, then I added a file write sitting beside the print. The file write showed up on disk almost immediately, and that should have been the only clue I needed. The print did not appear until the process crashed, and then every delayed line arrived together. Does that sound like a deadlock to you, or like two streams following different flush rules?\nI still wasted a morning on threading.Lock, a join that never returned, and a queue that was never actually empty. The process was running, the disk checkpoint was running, and only stdout was being polite. Here is the shape of the script I was running, simplified so you can reproduce the silence without any of my business logic.\n# r",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "远程作业48小时内无任何输出。stdout无TTY连接。",
+        "summary": "一位开发者花了48小时调试一个看似死锁的远程作业，最后发现当没有TTY连接时，CPython会缓冲stdout，导致print语句消失直到进程崩溃。这种本地和远程执行之间的stdout缓冲差异是一个微妙但关键的区别，影响远程服务器上的日志记录。"
+      }
+    }
+  },
+  {
+    "title": "Your robots.txt might not say what you think it says",
+    "slug": "robots-txt-might-not-say-what-you-think",
+    "url": "https://dev.to/janibertdev/your-robotstxt-might-not-say-what-you-think-it-says-lmg",
+    "source": "DEV Community",
+    "date": "2026-09-10T03:11:20.000Z",
+    "summary": "Cloudflare's AI Crawl Control feature can silently rewrite robots.txt at the edge without modifying the origin file, potentially hiding injected crawler rules from developers. The author built an open-source tool to fetch and inspect the actual live robots.txt, helping site owners verify their real crawler rules match expectations.",
+    "content": "I ship a bunch of small free tools, and last week I wanted a quick way to double-check what robots.txt a site was actually serving to crawlers — not what's sitting in the repo, what's actually on the wire.\nTurns out those aren't always the same thing. Cloudflare has a feature called AI Crawl Control that can rewrite robots.txt at the edge — inject its own rules for AI crawlers — without touching your origin file at all. If you're only ever checking the file in your repo (or your CMS, or wherever it's generated), you'd never see that. The version Googlebot, GPTBot, or your own CI sees can be different from the one you think you're serving.\nEvery robots.txt tool I could find is a generator — it helps you build a static file. None of them check what's actually live. So I built a tiny one that does:\nnpx github:janibert1/robots-check yourdomain.com\n\nZero dependencies, just fetches the live file and tells you what's there, including whether anything looks CDN-injected. There's also a --ci flag for build pipelines (exits 1 if the whole site is accidentally disallowed) and a stricter --fail-on-cloudflare-managed flag if you want CI to fail on any Cloudflare-injected rewrite specifically, plus a matching GitHub Action (janibert1/robots-check@v1) if you'd rather wire it into a workflow than run it by hand.\nRepo (MIT): https://github.com/janibert1/robots-check\nIf you run a site behind Cloudflare, it's worth a 10-second check — worst case it confirms nothing weird is happening.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的robots.txt可能不是你想象的那样",
+        "summary": "Cloudflare的AI爬虫控制功能可以在边缘悄悄改写robots.txt，而不修改源文件，可能会向开发者隐藏注入的爬虫规则。作者构建了一个开源工具来获取和检查实时的robots.txt，帮助网站所有者验证他们真实的爬虫规则是否符合预期。"
+      }
+    }
+  },
+  {
+    "title": "Deep Learning and Transformers",
+    "slug": "deep-learning-and-transformers",
+    "url": "https://dev.to/p_ym_n/deep-learning-and-transformers-bii",
+    "source": "DEV Community",
+    "date": "2026-09-10T03:05:21.000Z",
+    "summary": "This article explains neural networks and transformers using mathematical perspectives rather than biological analogies, treating them as parameterized transformations in optimization spaces. The explanation demonstrates why nonlinearity is essential for network expressiveness, with linear layers collapsing into single transformations while nonlinear networks gain genuine expressive power.",
+    "content": "Deep Learning and Transformers\n\n\nArtificial intelligence is often introduced with phrases like:\n“Neural networks imitate the human brain.”\nThat analogy can be useful, but if you come from physics, mathematics, engineering, or scientific computing, there is another way to think about modern AI that may feel much more natural.\nA neural network is fundamentally a parameterized mathematical transformation.\nTraining that network is an optimization problem in a very high-dimensional space.\nAnd the attention mechanism inside a Transformer can be interpreted as a learned, input-dependent interaction matrix.\nOnce we look at AI from this perspective, much of the mystery starts to disappear.\nLet’s build the idea from the ground up.\nThe basic computational element of a neural network is an artificial neuron.\nSuppose we have several inputs:\nx₁, x₂, …, xₙ\n\nEach input is associated with a weight:\nw₁, w₂, …, wₙ\n\nThe neuron calculates a weighted sum:\nz = Σᵢ wᵢxᵢ + b\n\nwhere b is called the bias.\nThe result then passes through an activation function:\na = f(z)\n\nIn vector notation, we can write the same basic idea as:\nz = w · x + b\n\nSo despite the biological name, an artificial neuron is not literally a microscopic brain cell.\nIt is a mathematical operation.\nThe interesting behavior begins when many of these operations are connected together.\nSuppose we create several neural-network layers but use only linear transformations.\nThe first layer might be:\nh₁ = W₁x\n\nThe second layer could be:\nh₂ = W₂h₁\n\nSubstituting the first expression into the second gives:\nh₂ = W₂W₁x\n\nBut W₂W₁ is simply another matrix.\nSo no matter how many purely linear layers we stack, the entire system can still collapse into one larger linear transformation.\nWe have added depth, but not much expressive power.\nThat changes when we introduce nonlinearity.\nNow suppose the first layer becomes:\nh₁ = f(W₁x + b₁)\n\nand the next layer becomes:\nh₂ = f(W₂h₁ + b₂)\n\nThe activation function f prevents the whole network from reducin",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "深度学习与Transformers",
+        "summary": "本文用数学角度而非生物类比来解释神经网络和Transformers，将其视为优化空间中的参数化变换。解释演示了为什么非线性对网络表达能力至关重要，线性层会坍缩为单一变换，而非线性网络获得真正的表达能力。"
+      }
+    }
+  },
+  {
+    "title": "OpenAI Cracks a Million-Dollar Math Problem — and the Credit Fight Starts Immediately",
+    "slug": "openai-cracks-million-dollar-math-problem-credit-fight",
+    "url": "https://dev.to/jason_gunnells/openai-cracks-a-million-dollar-math-problem-and-the-credit-fight-starts-immediately-1608",
+    "source": "DEV Community",
+    "date": "2026-09-10T03:04:53.000Z",
+    "summary": "OpenAI announced an internal model solved Navier-Stokes, one of mathematics' unsolved Millennium Prize problems, using 10,000 AI agents and millions of dollars in compute. However, researchers at NYU and a rival lab immediately claimed they were pursuing the same approach and posted partial results the night before, raising questions about data access and prior work.",
+    "content": "OpenAI Cracks a Million-Dollar Math Problem — and the Credit Fight Starts Immediately\n\n\nToday's biggest AI story isn't really about the breakthrough itself — it's about who gets to claim it.\nOpenAI announced that an unreleased internal model, one the company describes as \"significantly more capable\" than its just-launched flagship, has produced a proof solving Navier-Stokes, one of mathematics' seven Millennium Prize problems and the equation set that governs how fluids flow. The company says it threw roughly 10,000 AI agents at the problem simultaneously, ran them for 88 hours, and spent an estimated \"millions of dollars\" in compute to get there. Sam Altman called it one of the most amazing moments in the company's history. It's a genuinely enormous result — Navier-Stokes has resisted a full solution for over a century, and a $1 million prize has sat unclaimed since 2000 waiting for someone to nail it down.\nExcept the win came with an asterisk attached almost immediately. A mathematician at NYU and a researcher at a rival AI lab say they'd spent roughly a year chasing the exact same approach, feeding their own draft work into OpenAI's own coding tool along the way, and had posted partial results online the night before OpenAI's announcement dropped. The NYU mathematician published a statement saying OpenAI only ramped up its own effort after learning about his work, and that the company never directly answered whether the drafts he'd fed into its tools ended up training the model that beat him to the finish line. OpenAI's response was carefully worded: it says it never saw his actual work and that no specific user data was accessed, while stopping short of ruling out that usage patterns broadly may have shaped its models. Whatever the truth turns out to be, the dispute has mostly buried what should be one of the year's cleanest wins for AI-assisted science — and it's a pointed reminder that the models labs keep behind closed doors are running well ahead of whatever",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "OpenAI破解百万美元数学问题——功劳争夺战立即展开",
+        "summary": "OpenAI宣布其内部模型成功解决了纳维叶-斯托克斯方程（数学中未解决的千禧年大奖问题之一），使用了10,000个AI智能体和数百万美元的计算资源。然而，纽约大学的研究人员和一个竞争实验室立即声称他们也在追求相同的方法，并在前一晚发布了部分结果，引发了关于数据访问权和先前工作的质疑。"
+      }
+    }
+  },
+  {
+    "title": "Open-PR: một AI agent review PR nói chuyện như đồng nghiệp, không như một con bot",
+    "slug": "open-pr-ai-agent-review-colleague-not-bot",
+    "url": "https://dev.to/open_pr/open-pr-mot-ai-review-pr-noi-chuyen-nhu-dong-nghiep-khong-nhu-mot-con-bot-bpb",
+    "source": "DEV Community",
+    "date": "2026-09-10T03:03:45.000Z",
+    "summary": "Open-PR is an open-source AI agent that reviews pull requests while learning project-specific conventions from documentation and maintaining context across multiple review runs. It tracks previous feedback threads, confirms resolutions, and only comments on new changes, mimicking human colleague behavior and reducing notification fatigue.",
+    "content": "AI coding giúp viết code nhanh hơn, nhưng số PR mở ra cũng nhiều hơn trong khi số người review vẫn vậy. Kết quả: review — chứ không phải viết code — mới là nút thắt cổ chai mới.\nOpen-PR ra đời từ đó — một AI agent mã nguồn mở chuyên review Pull Request, chạy thẳng trong các agent CLI quen thuộc (Claude Code, Cursor, Codex, Gemini CLI, Antigravity) thay vì một dịch vụ SaaS hay bot account riêng:\nDeveloper mở PR → AI review vòng đầu → người review quyết định cuối cùng → merge.\nĐã có khá nhiều AI agent làm nhiệm vụ review code. Vậy Open-PR khác gì?\nNhiều skill/agent review hiện nay chỉ là một file mô tả (SKILL.md) bảo AI \"hãy review cẩn thận\". Vấn đề là mỗi lần chạy một kiểu — khi khắt khe, khi dễ dãi — và gần như không biết gì về convention riêng của dự án.\nOpen-PR khác ở chỗ: ngay lần chạy đầu tiên trong một repo, nó đọc README, CLAUDE.md, AGENTS.md, docs, wiki để hiểu convention thật của dự án đó, và quy tắc riêng của team luôn thắng quy tắc chung chung. Nó cũng có trí nhớ theo từng repo: mọi điều team từng góp ý hay thống nhất sẽ được ghi lại, để lần review sau không phải nhắc lại. Nhờ vậy, dù chạy lúc nào, review vẫn giữ đúng một \"giọng\" — giọng của chính dự án, không trôi nổi theo từng lần chạy.\nĐiểm đáng chú ý nhất ở Open-PR không phải là tìm ra bao nhiêu lỗi, mà là cách nó duy trì cuộc trò chuyện trên PR.\nMột AI review \"kiểu cũ\" thường ném ra một cục comment rồi thôi; chạy lại là review lại từ đầu, có khi lặp lại đúng điều đã nói. Open-PR thì khác: chạy /open-pr:review lần hai trên cùng PR, nó đọc lại từng thread cũ, xem điều đã góp ý được xử lý chưa — đã sửa thì xác nhận ngay trên đúng thread (có thể tự resolve nếu bạn bật tùy chọn này), chưa sửa thì im lặng chứ không lặp lại finding cũ. Review mới chỉ nói về phần vừa thay đổi.\nThú vị hơn là /open-pr:fix. Thay vì thấy comment là sửa theo — kể cả khi comment sai và biến code đúng thành sai — Open-PR tự cân nhắc finding có hợp lý không. Hợp lý thì sửa theo đúng convention và trí nhớ của repo; chưa ổn thì trả lời",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Open-PR：像同事一样交流的AI代理审查PR，而不是像机器人一样",
+        "summary": "Open-PR是一个开源的AI代理，用于审查拉取请求，同时从文档中学习项目特定的约定，并在多次审查运行中保持上下文。它跟踪之前的反馈线程，确认解决方案，仅对新更改进行评论，模仿人类同事的行为并减少通知疲劳。"
+      }
+    }
+  },
+  {
+    "title": "Was TinyStories the Domain or the Vocabulary?",
+    "slug": "was-tinystories-domain-or-vocabulary",
+    "url": "https://dev.to/megapixel99/was-tinystories-the-domain-or-the-vocabulary-2gg0",
+    "source": "DEV Community",
+    "date": "2026-09-10T03:00:00.000Z",
+    "summary": "Researchers tested whether TinyStories' success came from its restricted vocabulary or the children's-story domain by holding domain constant and varying vocabulary size, finding that reducing vocabulary actually hurt performance. This suggests domain mattered more than vocabulary and demonstrates how naive scoring can mislead when comparing models with different vocabulary caps.",
+    "content": "I have been running a long series of experiments on whether small models can be made to behave usefully, and one obvious thing to borrow is whatever TinyStories did. That paper trained very small transformers to write coherent children's stories, and the detail everyone remembers is the vocabulary: roughly 1,500 words.\nAn earlier experiment of mine had already varied the domain at a fixed vocabulary, restricting a corpus to a single arXiv category, and found a real win: +3.7 points of top-1, perplexity down 1.8x, and 17x less degeneration into repetition. So the natural follow-up is the other axis. Hold the domain and vary the vocabulary. If the vocabulary is the lever, capping it should help.\nIt does not help; it hurts, by 4 points, and it wrecks the generated text. The research repo is not public, so the figures below come from the experiment's own harness and its recorded results.json rather than from anything you can clone.\nA smaller vocabulary makes next-token prediction trivially easier, because everything outside the cap becomes <unk> and <unk> becomes a frequent, easy target. Any arm with a smaller vocabulary will look better on a naive score, and it will look better for a reason that has nothing to do with capability.\nSo every arm is scored only on positions whose target is inside the smallest vocabulary, which is 1,498 types. Identical positions, identical targets, across all three arms; <unk> is never a scored target. 3,000 scored positions each.\nGetting that right was most of the work, and it is the part I would want someone to check first. Without it the headline result reverses, and the reversed version is the one that would have confirmed what I expected to find.\nSame corpus (846K training tokens of cs.CL abstracts), same model at 4 layers and d=256 with a 128-token context, same budget per arm. Vocabulary capped at 1,500, 4,000 and 8,000 types.\n\n\n\nvocab cap\ntraining <unk> rate\ntop-1\ntop-5\nMRR\nperplexity\n\n\n\n\n1,500\n18.5%\n0.211\n0.446\n0.321\n75.9\n\n\n4,000",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "TinyStories的成功是由于领域还是词汇？",
+        "summary": "研究人员通过固定领域并改变词汇大小来测试TinyStories的成功是源于其受限词汇还是儿童故事领域，发现减少词汇实际上会降低性能。这表明领域比词汇更重要，并演示了在比较具有不同词汇限制的模型时，朴素评分可能会产生误导。"
+      }
+    }
+  },
+  {
+    "title": "Building an investing knowledge graph, part 6: if you're merging data from more than one source, you'll hit this",
+    "slug": "building-investing-knowledge-graph-merging-data",
+    "url": "https://dev.to/hannune/building-an-investing-knowledge-graph-part-6-if-youre-merging-data-from-more-than-one-source-2ecn",
+    "source": "DEV Community",
+    "date": "2026-09-10T02:55:22.000Z",
+    "summary": "Building knowledge graphs from multiple data sources requires entity resolution with vastly different error tolerance depending on use case. In financial analysis, missed merges reduce graph utility, but in compliance and sanctions screening, false negatives mean flagged entities slip through, requiring fundamentally different thresholds and training approaches.",
+    "content": "Building an investing knowledge graph, part 6: if you're merging data from more than one source, you'll hit this\n\n\nSince part 5 went up, I've had two conversations worth writing about. One was with someone building a financial news aggregation system who wanted to know if the ER setup here would work for their case. The other was with someone doing KYC screening who asked roughly the same question. Those conversations are what prompted this final part.\nThe financial news question had an obvious answer: yes, with some caveats about cross-language blocking. The KYC question took me longer, because the error tolerance is so different that I wasn't sure how much of what I built would actually transfer.\nThe person I talked to was working on sanctions screening. Their problem was name matching: entity strings from incoming documents against a registry of flagged persons and organizations. The description of the ER problem was familiar enough that I recognized it immediately.\nWhat I had to think through more carefully was what the differences meant in practice. In the investing graph, a false negative means a traversal stops short. Two nodes that should be the same entity exist as separate nodes, and a path that should go through them stops at the first one. The graph is less useful, and you can often tell something is wrong because you're getting empty results where you expect some.\nIn sanctions screening, a false negative is an entity that should have been flagged clearing a check it shouldn't have. The downstream consequences are not \"the graph is less useful.\" This changes how you'd set the threshold, and it probably changes how you'd approach training data. The model I've been running was tuned for a corpus where some missed merges are acceptable in exchange for keeping false positives low. For compliance tooling, that tradeoff goes the other way. I couldn't tell the KYC person \"use the same model and threshold\" and be confident they'd get results they could actually",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建投资知识图谱第六部分：如果你从多个来源合并数据，你会遇到这个",
+        "summary": "从多个数据源构建知识图谱需要进行实体匹配，其容错度因使用场景而异。在财务分析中，合并失败会降低图谱的效用，但在合规和制裁筛选中，假阴性意味着被标记实体会通过筛选，这需要根本上不同的阈值和训练方法。"
+      }
+    }
+  },
+  {
+    "title": "The Hard Truth About Data Engineering Interviews Nobody Tells You",
+    "slug": "hard-truth-data-engineering-interviews-nobody-tells",
+    "url": "https://dev.to/rahmanfrr/the-hard-truth-about-data-engineering-interviews-nobody-tells-you-235c",
+    "source": "DEV Community",
+    "date": "2026-09-10T02:54:23.000Z",
+    "summary": "Data engineering interviews often test production knowledge and debugging skills like troubleshooting slow queries rather than algorithm speed, yet most candidates prepare only LeetCode and trendy tools. Silent failures, long-term reliability, and handling edge cases matter far more to hiring managers than optimal big-O complexity.",
+    "content": "It's 11 PM. You've solved forty LeetCode mediums this month. Your GitHub has a shiny new Airflow project with green checkmarks all the way down. Tomorrow's interview feels like a formality.\nThen the interviewer shares their screen, pulls up a query that's been quietly timing out in production for three days, and says: \"Walk me through how you'd find out why.\"\nYour mind goes blank. Not because you don't know SQL. Because nobody told you this was the interview.\nHere are the hard truths that would have saved you the panic.\nBeing fast at LeetCode tells an interviewer you can think in code. It doesn't tell them you can design something that runs unattended, every single night, for two years straight, without falling over.\nPicture two candidates. One breezes through a dynamic programming problem in twelve minutes. The other takes twenty minutes on the same problem but then says: \"Also, in production I'd want to know what happens if this runs on a dataset ten times bigger than we planned for, and what alerts I'd want if it silently returns zero rows instead of failing loudly.\"\nMost hiring managers remember the second candidate. Silent failures are the thing that actually keeps data engineers up at night — not big-O notation.\nEveryone preps buzzwords: Spark, Kafka, dbt, Airflow. Then the interview opens with a plain SQL question, and half the room stumbles.\nHere's a version of the kind of question that trips people up:\n-- Find each customer's second most recent order\nSELECT customer_id, order_id, order_date\nFROM (\n  SELECT\n    customer_id,\n    order_id,\n    order_date,\n    ROW_NUMBER() OVER (\n      PARTITION BY customer_id\n      ORDER BY order_date DESC\n    ) AS rn\n  FROM orders\n) ranked\nWHERE rn = 2;\n\nIt looks simple once you see it. But candidates who haven't sat with window functions long enough tend to reach for a self-join instead, get the logic tangled, and burn ten minutes on something that should take two. Tools change every year. ROW_NUMBER(), RANK(), and self-join",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "关于数据工程面试的真相：没人告诉你的事",
+        "summary": "数据工程面试通常测试生产环境知识和调试能力（如排查缓慢查询），而不是算法速度，但大多数候选人只准备LeetCode和热门工具。无声故障、长期可靠性和处理边界情况对招聘经理的重要性远超过最优的大O复杂度。"
+      }
+    }
+  },
+  {
+    "title": "Apple Pay or Google Pay silently failing on WooCommerce? Check these hidden problems",
+    "slug": "apple-pay-google-pay-silently-failing-woocommerce",
+    "url": "https://dev.to/exeptionalpeople_/apple-pay-or-google-pay-silently-failing-on-woocommerce-check-these-hidden-problems-28kl",
+    "source": "DEV Community",
+    "date": "2026-09-10T02:53:56.000Z",
+    "summary": "Apple Pay and Google Pay can fail silently on WooCommerce sites without obvious error messages, appearing only as lower conversion rates. Failures often relate to misconfigured domain association files, particularly when different behavior occurs between www and non-www versions due to redirects.",
+    "content": "Apple Pay and Google Pay have a nasty failure mode: when something breaks, the problem may not be obvious from your normal WooCommerce logs.\nA shopper can tap a wallet button, attempt payment, and still fail to complete an order without leaving you with an obvious explanation of what went wrong.\nFrom the store owner's side, the symptom may simply look like slightly worse conversion.\nI went through public WooCommerce support threads for two major gateway plugins — woocommerce-paypal-payments and woocommerce-gateway-stripe — looking specifically at unresolved problems.\nOne phrase stood out:\napple pay\nIt appeared repeatedly in unresolved threads for both gateway ecosystems.\nThat made the problem worth investigating further.\nHere's a short set of checks you can run in the next ten minutes.\nStart with the domain association file\nApple Pay on the web relies on a domain association file available at:\nhttps://yourstore.com/.well-known/apple-developer-merchantid-domain-association\nA browser isn't always the best way to test this URL because browsers automatically handle things like redirects.\nInstead, inspect the raw HTTP response.\nRun:\ncurl -sI https://yourstore.com/.well-known/apple-developer-merchantid-domain-association\nThings worth investigating include:\n301 or 302 — the request is being redirected\nNow check the www version too:\ncurl -sI https://www.yourstore.com/.well-known/apple-developer-merchantid-domain-association\nA browser can automatically follow redirects and hide what is actually happening at the original URL.\nIf the two hosts behave differently, you may have found a configuration problem that doesn't affect every customer in the same way.\nI built a free checker for this\nInstead of running the checks manually, I built a small diagnostic script called Wallet Payment Preflight.\nIt checks six things:\nDNS resolution\nIt's one Python file.\nNo third-party dependencies.\nNo signup.\nMIT licensed.\nRun it with:\npython walletcheck.py yourstore.com\nFree checker:\nhttps://git",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Apple Pay或Google Pay在WooCommerce上无声故障？检查这些隐藏问题",
+        "summary": "Apple Pay和Google Pay在WooCommerce网站上可能会无声失败，没有明显错误信息，只表现为转化率下降。故障通常与域关联文件配置错误有关，特别是在www和非www版本之间因重定向导致不同行为的情况。"
+      }
+    }
+  },
+  {
+    "title": "Delete the report before you automate it: the test most owners skip",
+    "slug": "delete-report-before-automate-test-owners-skip",
+    "url": "https://dev.to/automate-archit/delete-the-report-before-you-automate-it-the-test-most-owners-skip-4a9h",
+    "source": "DEV Community",
+    "date": "2026-09-10T02:45:04.000Z",
+    "summary": "Many recurring reports that owners ask to automate actually go unused because they addressed past crises that have resolved. The honest first step before automating is to stop sending the report and see who complains, preventing resources from being wasted automating work nobody actually reads.",
+    "content": "Roughly half the recurring work that owners ask me to automate is output nobody uses. Not badly-made output. Not output that needs a better format or a nicer dashboard. Output that no human being reads, acts on, or would miss if it vanished.\nThe daily sales summary that goes to a WhatsApp group where the last reply was months ago. The weekly stock report emailed to a partner who checks the actual stock by walking into the godown. The monthly MIS deck assembled by an accountant over two full days, opened once, skimmed, and filed.\nWhen an owner says \"automate this report\", the honest first question is not \"which tool\" or \"what will it cost\". It is: does anyone use this? And there is a much cheaper way to answer that question than paying someone like me.\nStop sending it. See who asks.\nNo one sets out to create a useless report. Every dead report was born alive.\nThere was a crisis once. A distributor's payment slipped, or a stockout embarrassed you in front of a customer, or a partner suspected leakage. So you asked for a report. For a few weeks you read it closely, because the wound was fresh. Then the crisis passed, the reading stopped, and the sending continued. The person compiling it has no authority to stop, and stopping feels like admitting the work was pointless. The person receiving it will not say \"stop sending this\", because that sounds like they are not on top of things.\nSo the report survives on politeness. In a business run on WhatsApp and Excel, it can survive that way for years, quietly eating a few hours of someone's week.\nAutomation consultants love these reports, and you should be suspicious of that. A recurring, well-defined, repetitive task is the easiest thing in the world to sell an automation for. The pitch writes itself: your staff spends hours every week on this, the system does it in seconds. Everything in that pitch can be true, and the project can still be worthless, because the hours saved were being spent producing something nobody wanted.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在自动化前删除报告：大多数所有者跳过的测试",
+        "summary": "许多所有者要求自动化的定期报告实际上没有被使用，因为它们解决的过去危机已经消退。在自动化之前，诚实的第一步是停止发送报告，看看谁会抱怨，这样可以防止资源被浪费在自动化没有人实际阅读的工作上。"
+      }
+    }
+  },
+  {
+    "title": "Why Rotating Proxies Alone Stopped Working for My Scraper",
+    "slug": "why-rotating-proxies-alone-stopped-working-scraper",
+    "url": "https://dev.to/christhor/why-rotating-proxies-alone-stopped-working-for-my-scraper-2mpc",
+    "source": "DEV Community",
+    "date": "2026-09-10T02:43:59.000Z",
+    "summary": "A long-running web scraper suddenly failed when its target site switched from simple IP-based blocking to behavioral analysis by modern anti-bot systems. These systems now evaluate patterns across entire sessions—tracking session continuity and browser consistency—rather than blocking individual requests, making simple IP rotation ineffective.",
+    "content": "I spent the better part of last month debugging a scraper that had been running fine for almost a year. The symptom was familiar: requests started returning 403s, then CAPTCHAs, then nothing at all. I did what I always did. I added more IPs to the pool. I shortened the rotation interval. I swapped out the proxy provider entirely.\nIt didn't help.\nThat's when I realized the thing doing the blocking had changed what it was looking at. And my architecture was built for a problem that no longer existed.\nFor years, the mental model was simple. A website sees a request coming from an IP address. If that IP has made too many requests too fast, or if the IP belongs to a known datacenter range, it gets blocked. The fix was equally simple: rotate IPs. Use residential proxies, spread requests across thousands of addresses, and the blocking system loses track of you.\nThis model still exists in places. Sites with basic rate limiting, simple IP reputation checks, or no behavioral analysis at all. If your target falls into this category, rotation works perfectly fine.\nBut the sites that matter — the ones with real data, the ones behind Cloudflare, Akamai, DataDome, or HUMAN — are running something different now.\nModern anti-bot systems don't judge a single request in isolation. They evaluate the pattern of behavior across an entire session. A few signals show up repeatedly across these platforms:\nSession continuity. A real visitor arrives, looks around, and takes a sequence of actions that build on each other. Cookies persist. A session token carries across pages. The same client keeps showing up in a way that looks like one visitor rather than a new stranger every time.\nBrowser environment consistency. A genuine browser has a stable, internally consistent set of characteristics — rendering behavior, available APIs, hardware-reported details — that stay the same request to request. A scraping setup that swaps configuration on every attempt produces a client that looks like a differ",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么单纯轮换代理对我的爬虫不再有效",
+        "summary": "一个长期运行的网络爬虫突然失效，因为其目标网站从简单的基于IP的阻止切换到现代反机器人系统的行为分析。这些系统现在评估整个会话中的模式——跟踪会话连续性和浏览器一致性——而不是阻止单个请求，使得简单的IP轮换变得无效。"
+      }
+    }
+  },
+  {
+    "title": "Taking Advantage of Cloud Run Sandboxes with Google Apps Script for Google Workspace",
+    "slug": "cloud-run-sandboxes-google-apps-script-workspace",
+    "url": "https://dev.to/gde/taking-advantage-of-cloud-run-sandboxes-with-google-apps-script-for-google-workspace-5fc5",
+    "source": "DEV Community",
+    "date": "2026-09-10T02:43:19.000Z",
+    "summary": "Cloud Run sandboxes with gVisor can integrate with Google Apps Script to execute Python and Bash scripts in 200-450 milliseconds with deterministic results, bypassing the 6-minute timeout and JavaScript-only constraints. This enables Workspace automations using Linux binaries without the latency and token cost overhead of LLM agents.",
+    "content": "Deterministic Sub-Second Python and Bash Execution, Zero-Trust gVisor Isolation, and Zero Idle Cost\n\n\n\nWhile secure sandboxes are pivotal for running Generative AI-generated code safely, connecting Google Cloud Run Sandboxes (gVisor) directly to Google Apps Script unlocks a vastly broader horizon. Beyond executing AI-drafted scripts on the fly, this complementary architecture empowers Google Workspace with deterministic Python data science (Pandas, Seaborn) and Bash execution in 200–450 ms. With zero-trust micro-isolation, zero-token data ingestion, and zero idle cost, it elevates Workspace automations far beyond standard V8 runtime constraints.\nGoogle Apps Script (GAS) Ref is a cornerstone of Google Workspace automation across Sheets, Docs, Forms, and Drive. Yet, developers often hit hard limits. Standard accounts enforce a strict 6-minute timeout. The environment runs only JavaScript on V8, precluding native Linux binaries or external compilers. When an unhandled exception occurs, the entire script halts abruptly.\nRecently, in my article \"Taking Advantage of Gemini Managed Agents with Google Apps Script\" Ref, I showed how to break past these limits by connecting Apps Script to a persistent Linux sandbox provisioned by Gemini Managed Agents Ref. Using my Go CLI tool ggsrun Ref for direct streaming between the sandbox and Google Drive, that architecture handles heavy, multi-turn agentic workflows. Examples include Playwright scraping across multiple viewports and audio transcoding with FFmpeg.\nGemini Managed Agents excel at autonomous, multi-step reasoning. However, they rely on LLM prompts via the Interactions API. This adds conversational inference overhead, pushing response latencies to several seconds or tens of seconds while burning token quotas (such as 200k TPM) Ref. Many everyday Workspace automations do not need an LLM. Tasks like mathematical evaluations, string parsing, regular expression matching, and shell commands require deterministic, instant executi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在Google Workspace中利用Cloud Run沙箱与Google Apps Script的优势",
+        "summary": "带有gVisor的Cloud Run沙箱可以与Google Apps Script集成，在200-450毫秒内以确定性结果执行Python和Bash脚本，绕过6分钟的超时限制和仅限JavaScript的约束。这使Workspace自动化能够使用Linux二进制文件，而无需LLM代理的延迟和令牌成本开销。"
+      }
+    }
+  },
+  {
+    "title": "GitHub availability report: August 2026",
+    "slug": "github-availability-report-august-2026",
+    "url": "https://github.blog/news-insights/company-news/github-availability-report-august-2026/",
+    "source": "GitHub Blog",
+    "date": "2026-09-10T02:05:17.000Z",
+    "summary": "GitHub experienced five incidents in August 2026 that caused degraded performance across services. The report documents availability issues during the month.",
+    "content": "In August, we experienced five incidents that resulted in degraded performance across GitHub services.\nThe post GitHub availability report: August 2026 appeared first on The GitHub Blog.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "GitHub 2026年8月可用性报告",
+        "summary": "GitHub 在2026年8月经历了五起事件，导致服务性能下降。该报告记录了该月的可用性问题。"
+      }
+    }
+  }
+]
