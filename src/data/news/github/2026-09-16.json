@@ -1,5 +1,197 @@
 [
   {
+    "title": "How to Validate FFI Between QM and ASIL-D in Zero-Heap AUTOSAR + HSM",
+    "slug": "validate-ffi-qm-asil-d-zero-heap-autosar-hsm",
+    "url": "https://dev.to/kadritalal38/how-to-validate-ffi-between-qm-and-asil-d-in-zero-heap-autosar-hsm-26ln",
+    "source": "DEV Community",
+    "date": "2026-09-16T20:53:30.000Z",
+    "summary": "A technical deep-dive on validating Functional Independence (FFI) between QM and ASIL-D safety domains in AUTOSAR systems using zero-heap design, HSM cryptographic isolation, and fault-injection testing. Demonstrates 100% containment of faults with safe-state transition in 8.7µs, meeting ISO 26262 requirements for automotive safety-critical systems.",
+    "content": "Architecture: Classic AUTOSAR R22-11, zero-heap design with static allocation only. No dynamic memory (MISRA Rule 21.3 compliant). Spatial isolation enforced via MPU regions per OS-Application. Temporal isolation via OsTaskExecutionBudget and timing protection. Communication via IOC with E2E Profile P11.\nHSM Enforcement: Evita Full HSM, FW 3.1. SHE+ key isolation, secure boot verification chain, and hardware firewall. QM domain has no physical access to ASIL-D NVM, keys, or secure RAM. All crypto services routed through CSM -> Crypto Driver -> HSM. HSM acts as safety guardian, not just crypto accelerator.\nHIL Validation: dSPACE SCALEXIO HIL. Fault injection campaign: 1000+ tests including pointer corruption, stack overflow, and MPU violation attempts from QM tasks. Result: 100% containment. No ASIL-D data corruption, no timing overrun. Measured safe-state transition: 8.7µs (FTTI Requirement: <10µs).\nConclusion: Full FFI achieved per ISO 26262-6 Annex D. Zero interference on memory, timing, and data exchange. Architecture ready for ASIL-D product audit.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何在零堆AUTOSAR + HSM中验证QM和ASIL-D之间的功能独立性",
+        "summary": "深入技术探讨，介绍如何在AUTOSAR系统中使用零堆设计、HSM密码隔离和故障注入测试来验证QM和ASIL-D安全域之间的功能独立性。演示实现了故障100%隔离，安全状态转换时间为8.7微秒，符合汽车安全关键系统的ISO 26262要求。"
+      }
+    }
+  },
+  {
+    "title": "Github Actions: Re-intentar automáticamente los jobs de CI que un reclamo de spot instance mató",
+    "slug": "github-actions-retry-ci-jobs-spot-instance",
+    "url": "https://dev.to/elchesco_/github-actions-re-intentar-automaticamente-los-jobs-de-ci-que-un-reclamo-de-spot-instance-mato-1f79",
+    "source": "DEV Community",
+    "date": "2026-09-16T20:42:58.000Z",
+    "summary": "A practical guide for distinguishing CI test failures from infrastructure failures in GitHub Actions when using spot instances. Uses runner loss detection markers to automatically retry failed jobs caused by instance termination, preventing false negatives and blocking deployments.",
+    "content": "Mi CI corre en un runner spot ARM64 autoalojado. Cuando AWS se lleva la instancia de vuelta a media corrida, GitHub muestra una X roja en cualquier paso que estuviera corriendo, y se ve idéntico a una prueba que falla. \nStack: GitHub Actions, una instancia spot EC2 en un Auto Scaling Group, CDK.\nUn deploy de backend se puso en rojo en Tests (shard 1/2). El log crudo:\n2026-09-16T19:31:20Z ........................................................................ [ 75%]\n2026-09-16T19:31:31Z ##[error]The runner has received a shutdown signal. This can happen when the runner service is stopped, or a manually started runner is canceled.\n2026-09-16T19:31:44Z ##[error]The operation was canceled.\n2026-09-16T19:31:44Z Terminate orphan process: pid (18652) (pytest)\n\nPuntos ininterrumpidos hasta 75%, luego la máquina se fue. Cero pruebas fallaron. El otro shard se murió 13 segundos después, mismo host. El deploy de frontend entonces abortó a propósito, porque se niega a publicar cuando el deploy de backend para ese commit no tuvo éxito.\nUn detalle que vale la pena saber: gh run view <id> --log-failed imprime nada para esta clase de falla. La salida vacía se ve como una herramienta rota, así que el log real casi nunca se abre. Hay que jalarlo por job:\ngh api repos/myorg/myapp/actions/jobs/<job-id>/logs | tail -20\n\nUn listener de workflow_run dispara después de que cualquier corrida de CI o de deploy termina. Para una corrida fallida jala los logs de los jobs fallidos y busca líneas que solo el host del runner puede producir:\nRUNNER_LOSS_MARKERS = (\n    \"The runner has received a shutdown signal\",\n    \"lost communication with the server\",\n    \"The runner has received a cancellation signal from the server\",\n    \"The operation was canceled by the runner service\",\n)\n\nSi una hace match, llama a rerun-failed-jobs. Si ninguna hace match, no hace nada y la corrida se queda en rojo.\nTambién se niega a actuar en tres casos:\nExiste una corrida más nueva del mismo workflow y branch. Re-corre",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "GitHub Actions：自动重试被Spot实例中断的CI任务",
+        "summary": "在GitHub Actions中使用Spot实例时，区分CI测试失败和基础设施故障的实用指南。使用运行器丢失检测标记自动重试因实例终止引起的失败任务，防止误判并避免阻止部署。"
+      }
+    }
+  },
+  {
+    "title": "A Pedagogical Introduction to Porting a Conjugate Gradient Solver to CUDA",
+    "slug": "conjugate-gradient-cuda-porting-tutorial",
+    "url": "https://dev.to/junsik_yoo/a-pedagogical-introduction-to-porting-a-conjugate-gradient-solver-to-cuda-aih",
+    "source": "DEV Community",
+    "date": "2026-09-16T20:39:48.000Z",
+    "summary": "A pedagogical walkthrough of incrementally porting a Conjugate Gradient solver from CPU to CUDA, starting with profiling, moving individual kernels, then optimizing data residency. Compares explicit CUDA implementation against the performance-portability approach using Kokkos.",
+    "content": "GPU programming tutorials often begin with isolated examples: vector addition, reductions, matrix multiplication, and memory coalescing. These are useful for learning individual CUDA concepts, but there is another question that quickly arises when working with real scientific software:\nHow do we actually port an existing CPU application to a GPU?\nIn this article, I will walk through a small but realistic example using HPCCG, a Conjugate Gradient mini-application from the Mantevo project. Rather than rewriting the entire solver for CUDA at once, we will migrate it incrementally:\nprofile the original CPU application and identify the dominant kernel,\nmove sparse matrix-vector multiplication (SpMV) to the GPU,\nmigrate the remaining vector operations and reductions,\nexamine why accelerating individual kernels is not enough,\nkeep the CG working set resident on the GPU, and\nprofile the resulting implementation to see where the bottleneck moved.\nAs a final experiment, we will return to the original CPU implementation and port it independently to Kokkos, then run essentially the same Kokkos source using both CPU and CUDA backends. This gives us a simple way to compare an explicitly written CUDA implementation with a performance-portability approach.\nThe purpose is not to produce the fastest possible Conjugate Gradient implementation. Instead, the goal is to make the porting and performance-engineering process itself visible: profile, form a hypothesis, change one part of the application, measure again, and follow the bottleneck.\nAll of the code and intermediate CUDA-porting commits used in this article are available in my HPCCG GitHub repository, so the individual stages can be checked out and reproduced while following along.\nHPCCG solves a linear system arising from a 27-point stencil on a structured 3D grid, using an unpreconditioned Conjugate Gradient method. The solver is deliberately simple, which makes it a good porting target: almost all of the work is done by three",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "共轭梯度求解器移植到CUDA的教学介绍",
+        "summary": "递增地将共轭梯度求解器从CPU移植到CUDA的教学演练，从性能分析开始，逐步转移各个计算核心，然后优化数据驻留。对比显式CUDA实现与使用Kokkos的性能可移植性方法。"
+      }
+    }
+  },
+  {
+    "title": "I tried giving a 26 MB Burp Suite dump to an LLM. It didn't work. So I built BurpSqueezer.",
+    "slug": "burpsqueezer-http-traffic-ai-compression",
+    "url": "https://dev.to/vaginskii/i-tried-giving-a-26-mb-burp-suite-dump-to-an-llm-it-didnt-work-so-i-built-burpsqueezer-29i4",
+    "source": "DEV Community",
+    "date": "2026-09-16T20:27:54.000Z",
+    "summary": "BurpSqueezer compresses large HTTP traffic dumps (26.7 MB to 35 KB, 745× reduction) into AI-readable markdown reports by filtering unnecessary traffic and identifying endpoint relationships. Designed for penetration testers who want LLM assistance with real traffic captures, not an autonomous pentesting tool.",
+    "content": "Hi, everyone. I’ve put together a tool that will help many web and API penetration testers solve the problem of integrating AI into their workflow.\nBurpSqueezer is a utility that lets you “compress” the HTTP traffic you need for your work (which can take up tens or even hundreds of megabytes) into a small .md report, generated specifically for AI processing.\nI haven’t hardcoded anything into the code. (Well, almost—but only to automatically filter out unnecessary traffic like CDN requests, etc.) All the logic is based on universal approaches that allow you not only to “filter out” the unnecessary but also to establish connections between endpoints (especially useful when testing APIs or business logic).\nThe reports themselves are compressed to incredibly small sizes. When I tested in normal mode, I managed to compress my working dump from 26.7 MB to 35 KB (the result was 745 times smaller than the original dump). Different modes may yield different results, but what they’ll have in common is that almost any neural network will be able to read and understand them. (Seriously. When I tried to upload the original traffic dump to OpenCode, I couldn’t do it because of file size limitations.)\nThere are some important limitations, though.\nBurpSqueezer is primarily designed for large HTTP datasets, especially APIs and applications with meaningful business logic. If you give it a relatively small or structurally simple dump — for example, a website with little backend logic and mostly static or repetitive traffic — the results may be much less useful. There simply may not be enough relationships and structure for the analysis to extract.\nIt is also not an autonomous pentesting tool. It doesn’t send requests or attack the target. It takes traffic you have already captured and authorized to analyze, processes it, and produces a much more compact representation that can then be given to an LLM for further analysis.\nI built this because I wanted AI to be able to work with real B",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我尝试给LLM输入26 MB的Burp Suite转储。它失败了。所以我构建了BurpSqueezer。",
+        "summary": "BurpSqueezer通过过滤不必要的流量和识别端点关系，将大型HTTP流量转储（26.7 MB到35 KB，745倍压缩）压缩成AI可读的markdown报告。专为想要LLM协助处理真实流量捕获的渗透测试人员设计，而不是自主渗透测试工具。"
+      }
+    }
+  },
+  {
+    "title": "I scanned 13 popular AI-app starter repos. 4 were clean, and the same bug was in 6 of them.",
+    "slug": "ai-app-security-scan-starter-repos",
+    "url": "https://dev.to/vibecheckai/i-scanned-13-popular-ai-app-starter-repos-4-were-clean-and-the-same-bug-was-in-6-of-them-4hdm",
+    "source": "DEV Community",
+    "date": "2026-09-16T20:21:17.000Z",
+    "summary": "A static-analysis scan of 13 popular AI-app starter repos found 31% completely clean while 46% contained route-without-auth vulnerabilities. Across 101 total findings (50 critical), the same security patterns repeat, highlighting common pitfalls in LLM-generated code defaults.",
+    "content": "I built a small deterministic scanner for the failure patterns that show up in AI-built apps — the ones that don't stop the demo, but break you in production.\nThen I pointed it at a corpus of popular open-source starter templates and AI-app repos, because those are what a lot of \"vibe-coded\" projects are actually built on. If the failure is in the default the framework hands you, it should show up even in well-maintained, heavily-starred repos.\nIt did.\nMeasured 2026-09-16 with vibecheck, a deterministic static analyser for the production-failure patterns AI-built apps hit.\nCorpus: 13 popular open-source starter/app repos (shallow clone, default branch).\nOne repo excluded from the per-project numbers: Anil-matcha/awesome-generative-ai-apps is a catalogue containing many sub-projects, so its counts are not comparable to a single app.\nScanner: vibecheck.py (stdlib-only, deterministic, no network, test/fixture paths skipped by default). Run on the tree as published, unmodified.\n4 of 13 repos scanned clean (31%).\n101 findings across the rest: 50 critical, 18 high, 33 medium.\nThe excluded catalogue repo alone produced 269 further findings, a hint at what accumulates when many small AI-built projects are combined.\n\n\n\nrule\nrepos affected\nwhat it means\n\n\n\n\nroute-without-auth\n6\nAn API route with no authentication check — the classic 'I'll add auth later'.\n\n\nclient-exposed-secret\n5\nA secret-ish variable shipped to the browser bundle via a public prefix.\n\n\ndangerous-html\n5\nUntrusted content rendered as raw HTML (XSS surface).\n\n\nauth-todo\n1\nA TODO/stub standing where an auth check should be.\n\n\ncors-wildcard\n1\n\nAccess-Control-Allow-Origin: * on an authenticated surface.\n\n\nhardcoded-secret\n1\nA real credential literal committed in source.\n\n\n\nProjects are anonymised: the counts are static-analysis output and a pattern is a prompt to look, not proof of exploitability. Naming a specific project on unverified counts would be unfair to its maintainers, so the aggregate and rule tables a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我扫描了13个流行的AI应用启动器仓库。4个很干净，同一个漏洞出现在6个中。",
+        "summary": "对13个流行的AI应用启动器仓库的静态分析扫描发现，31%完全干净，而46%包含未授权路由漏洞。在101个总发现（50个严重）中，相同的安全模式重复出现，突显了LLM生成代码默认设置中的常见陷阱。"
+      }
+    }
+  },
+  {
+    "title": "The AI Slowdown Nobody's Actually Slowing Down For",
+    "slug": "ai-regulation-slowdown-trump-china-response",
+    "url": "https://dev.to/jason_gunnells/the-ai-slowdown-nobodys-actually-slowing-down-for-4i62",
+    "source": "DEV Community",
+    "date": "2026-09-16T20:15:29.000Z",
+    "summary": "Despite industry leaders calling for AI development to slow down, the Trump administration dismissed concerns as a hoax while China labeled it a Cold War tactic. Wall Street and major companies are treating AI-enabled hacking as the immediate risk, indicating market incentives override safety calls.",
+    "content": "A week ago, three of the industry's biggest names agreed AI needed to pump the brakes. This week, the two governments that would actually have to enforce that both said no — and the fallout says more about where AI is headed than the original call for caution did.\nThe story starts with Dario Amodei, Sam Altman, and Elon Musk publicly endorsing a plan to slow frontier AI development, a rare moment of alignment among rivals. It didn't last. President Trump used Truth Social to call warnings about AI \"taking over the World, destroying Humanity\" a \"HOAX,\" comparing it directly to climate change, and phoned Nvidia CEO Jensen Huang live on stage at a tech summit just to hear him agree that a slowdown \"is not going to happen.\" China's government was no warmer to the idea: its Foreign Ministry dismissed the plan as against everyone's interests, and state media called it a \"Cold War playbook\" dressed up as safety concern. Layer in skepticism from a former White House AI czar, who argued labs could simply slow down without needing new rules, and speculation from at least one investor that the sudden three-way agreement had more to do with an unnamed spooked incident than genuine principle, and the neat consensus from a week ago looks a lot shakier. The debate isn't staying theoretical, either — Wall Street is already voting with its money, sending cybersecurity stocks up double digits this week on the bet that AI-capable hacking is the more immediate risk, while at least three major companies are reportedly restricting how their staff use one leading AI assistant on sensitive work over data-retention concerns.\nAmid all that noise, actual products kept shipping. Apple finally began rolling out its rebuilt Siri, an assistant that can read what's on your screen and act across apps like WhatsApp and Audible — built in part on Google's models and notably absent from the EU and China at launch. It's a genuinely significant upgrade for the world's most-used phone, even if it's arriv",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "没人真正在放慢速度的AI放缓",
+        "summary": "尽管行业领袖呼吁放慢AI开发速度，但特朗普政府将这些担忧驳斥为骗局，中国则将其标记为冷战战术。华尔街和主要公司将AI赋能的黑客攻击视为直接风险，表明市场激励优先于安全呼吁。"
+      }
+    }
+  },
+  {
+    "title": "What Actually Goes In an llms.txt",
+    "slug": "llms-txt-file-business-clarity-guide",
+    "url": "https://dev.to/lucasfernandezdiaz/what-actually-goes-in-an-llmstxt-2me5",
+    "source": "DEV Community",
+    "date": "2026-09-16T20:05:37.000Z",
+    "summary": "An llms.txt file is an unconfirmed proposal for summarizing sites to language models, but its value lies in forcing clarity—writing one requires stating what you do, who it's for, pricing, and refusals. That clarity leaks into actual website design regardless of whether AI companies read it.",
+    "content": "Originally published on Contento Solutions, where I write about SEO and AI visibility for service businesses.\nAn llms.txt file is a plain text summary of your site. It is written for language models, not for crawlers. It is also a proposal rather than a standard (Jeremy Howard published it in September 2024), and no major AI company has confirmed that it reads one. Write it anyway. The reason is not the file.\nSomebody proposes a convention. A few thousand sites adopt it. Nobody who runs a large model says whether they use it. That is roughly where llms.txt sits today, and any article that tells you otherwise is selling something.\nSo the useful question is not whether assistants read it. It is whether writing one is worth an hour of your time given that they might not.\nIt is. Here is the part that gets left out of most explanations: the file is a forcing function. To write it you have to state, in fewer than a thousand words and without marketing cover, what your business does, who it is for, who it is not for, what it charges, and what it refuses to claim. Most businesses have never written that down anywhere. The ones that have tend to have a clearer website, because the same clarity leaks into every page.\nThe file is the cheap part. The decision is the asset.\nFour files describe your site to machines, and they answer four different questions. Confusing them is the most common mistake in this area.\n\n\n\nFile\nWho reads it\nThe question it answers\nHonored?\n\n\n\n\nrobots.txt\nAny crawler that chooses to\nMay you fetch this path?\nYes, by long convention\n\n\nsitemap.xml\nSearch crawlers\nWhat exists here, and when did it change?\nYes\n\n\nSchema, as JSON-LD\nSearch engines and assistants\nWhat is this page, expressed as data?\nYes, where the type is supported\n\n\nllms.txt\nProposed for language models\nWhat is this business, in prose?\nUnconfirmed\n\n\n\nNotice that only one of the four is prose. That is the whole idea. Schema is excellent at facts with a fixed shape, and useless for the things th",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "llms.txt 文件中究竟应该包含什么",
+        "summary": "llms.txt 文件是一个未确认的提议，用于向语言模型总结网站，但其价值在于强制明确—编写一个需要说明你做什么、针对谁、定价和拒绝。无论 AI 公司是否阅读，这种清晰度都会渗透到实际的网站设计中。"
+      }
+    }
+  },
+  {
+    "title": "Scoped Cursor Rules for Next.js App Router: Conventions, Server Actions, and Security",
+    "slug": "cursor-rules-nextjs-app-router-scoped",
+    "url": "https://dev.to/vildandenai/scoped-cursor-rules-for-nextjs-app-router-conventions-server-actions-and-security-413l",
+    "source": "DEV Community",
+    "date": "2026-09-16T20:04:57.000Z",
+    "summary": "Organizing Cursor AI rules into three scoped .mdc files—app-conventions, server-actions, and security-boundaries—puts relevant reminders at the code locations where mistakes are most expensive. Scope matters more than a single oversized rule applied everywhere.",
+    "content": "A Cursor rule that applies to every file is easy to write and surprisingly easy to ignore. In a Next.js App Router project, a convention for app/ is useful while editing route code, a server-action reminder belongs near mutations, and a security checklist should be visible at server boundaries. Those are different contexts, so they should not be one oversized instruction file.\nThis tutorial builds three small .mdc rules with different scopes. The goal is not to make an agent autonomous. The goal is to put the right reminder beside the code where a mistake would be expensive.\nIf you want the background model first, see A Minimal AGENTS.md and Cursor Rules Setup for Next.js App Router. This article takes the narrower, hands-on path: designing and installing the Cursor rules themselves.\nAssume a conventional App Router repository:\napp/\n  dashboard/page.tsx\n  settings/actions.ts\n  api/reports/route.ts\ncomponents/\nlib/\n.cursor/\n  rules/\n\nWe will add:\napp-conventions.mdc for route and component conventions.\nserver-actions.mdc for mutations and server-side data access.\nsecurity-boundaries.mdc for authentication, authorization, validation, and secret handling.\nThe first two rules are scoped to relevant paths. The security rule is deliberately broader, because a secret or authorization mistake can happen in a route, a library, or a component boundary.\nFrom the project root:\nmkdir -p .cursor/rules\n\nIf the project already has .cursor/rules/, inspect the existing files before adding new ones. Keep one responsibility per rule. A rule should be small enough that a teammate can review it in one sitting.\nCreate .cursor/rules/app-conventions.mdc:\n---\ndescription: \"Next.js App Router and React conventions\"\nglobs: \"app/**/*.{ts,tsx},components/**/*.{ts,tsx}\"\nalwaysApply: false\n---\n\n# App Router conventions\n\n- Keep route UI, loading states, and error boundaries close to their route under `app/`.\n- Prefer Server Components by default.\n- Add `\"use client\"` only for hooks, browser APIs, o",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Next.js App Router 的作用域 Cursor 规则：约定、服务器操作和安全性",
+        "summary": "将 Cursor AI 规则组织成三个作用域 .mdc 文件—app-conventions、server-actions 和 security-boundaries—将相关提醒放在错误代价最高的代码位置。作用域比应用于任何地方的单个超大规则更重要。"
+      }
+    }
+  },
+  {
+    "title": "Ollama Not Using GPU? Fix It on Linux, Windows and WSL",
+    "slug": "ollama-gpu-troubleshooting-diagnosis",
+    "url": "https://dev.to/mrsaynothing/ollama-not-using-gpu-fix-it-on-linux-windows-and-wsl-3jb8",
+    "source": "DEV Community",
+    "date": "2026-09-16T20:03:39.000Z",
+    "summary": "Run `ollama ps` to diagnose GPU acceleration issues by checking the PROCESSOR column; 100% GPU means success while 100% CPU indicates outdated drivers, missing group membership, pinned OLLAMA_LLM_LIBRARY, or container GPU access problems. The fix usually falls into one of five common causes.",
+    "content": "TL;DR\n\n\nRun ollama ps while a model is loaded: the PROCESSOR column tells you the truth. 100% GPU means the GPU is fine and you can stop reading. A split like 40%/60% CPU/GPU means the model didn't fit in VRAM — use a smaller quant. 100% CPU means Ollama found no usable GPU: usually an outdated driver, a missing group membership (AMD on Linux), a pinned OLLAMA_LLM_LIBRARY, or a container started without GPU access. Fix the cause the logs name; there are only about five.\nTwo commands, no guessing.\n# In one terminal: load a model\nollama run llama3.2 \"hello\"\n\n# In another: see where it runs\nollama ps\n\nNAME            ID          SIZE     PROCESSOR        UNTIL\nllama3.2:latest a80c4de17cd9 3.3 GB   100% GPU         4 minutes from now\n\nThe PROCESSOR column has three states:\n100% GPU — every layer offloaded. Done.\n48%/52% CPU/GPU — partial offload. The GPU is working, but the model plus context didn't fit in VRAM. See the VRAM section below.\n100% CPU — inference is on the CPU. The GPU was either not detected or deliberately disabled.\nThen read the server log, which names the hardware Ollama actually found at startup:\njournalctl -u ollama --no-pager | grep -i \"inference compute\"\n\nOn a healthy NVIDIA box you want a line like:\ninference compute id=GPU-xxxx library=CUDA compute=8.9 driver=12.4 name=NVIDIA GeForce RTX 4070\n\nNo line at all, or one that ends with a CPU-only fallback message, and you've found your problem. The rest of this post is the five causes, most likely first.\nOn NVIDIA, the usual culprit is the driver, not CUDA. Ollama ships its own CUDA runtime libraries, so you do not need the CUDA toolkit installed — but the bundled runtime needs a driver new enough to talk to it. nvidia-smi working is not proof; it only proves a driver exists, not that it's recent enough.\nnvidia-smi --query-gpu=driver_version --format=csv,noheader\n\nIf the version is years old, update it and reboot:\n# Debian/Ubuntu family\nsudo apt install nvidia-driver-570\n# Arch family\nsudo pacman -S n",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Ollama 未使用 GPU？在 Linux、Windows 和 WSL 上修复",
+        "summary": "运行 `ollama ps` 来诊断 GPU 加速问题，检查 PROCESSOR 列；100% GPU 表示成功，而 100% CPU 表示驱动程序过时、缺少组成员身份、固定 OLLAMA_LLM_LIBRARY 或容器 GPU 访问问题。修复通常属于五个常见原因之一。"
+      }
+    }
+  },
+  {
+    "title": "Putting Apple's Virtualization framework under a Flutter app",
+    "slug": "apple-virtualization-framework-flutter",
+    "url": "https://dev.to/bostrot/putting-apples-virtualization-framework-under-a-flutter-app-3d13",
+    "source": "DEV Community",
+    "date": "2026-09-16T20:03:26.000Z",
+    "summary": "WSL Manager's macOS version bridges Flutter with Apple's Virtualization framework using a separate Swift helper (vmctl) that communicates via JSON-serialized CLI output. This pattern avoids holding long-lived VM objects in Flutter while providing unified cross-platform VM management.",
+    "content": "I maintain WSL Manager, a Flutter desktop app from 2021 that saves you from typing wsl.exe flags. Version 2 runs the same app on Apple silicon, where it manages native Linux and macOS VMs through Apple's Virtualization framework.\nThis post is about what that took. Almost none of it was in the Flutter part.\nInstall on macOS with brew install --cask wsl-manager. The macOS side is still beta.\nA VZVirtualMachine only lives inside the process that created it, and Flutter has no business holding one. So the macOS side is a separate Swift helper called vmctl, shipped inside the app bundle.\nIt is a plain CLI. Every subcommand prints JSON on stdout. The Dart code spawns it and parses the result. No XPC, no sockets.\nOne directory per VM: config.json, a sparse raw disk.img, an EFI variable store, the cloud-init seed ISO, and a run/ folder with pid file and logs.\nOne backend interface in Dart that both WSL and the Apple helper implement, plus a capabilities record the UI reads instead of checking the platform. That is what lets one codebase carry both.\n\n\n\n\nvmctl --store ~/Library/Application\\ Support/WSLManager/vms create ubuntu --image noble-server-cloudimg-arm64.img\nvmctl --store ... start ubuntu\nvmctl --store ... exec ubuntu -- uname -a\n\nBecause the VM object dies with its process, vmctl start cannot simply return.\nIt spawns a detached copy of itself as vmctl __run and polls for the pid file for five seconds, so a broken config fails at the command line instead of silently.\nThe daemon is a headless NSApplication. SIGTERM maps to requestStop(), an ACPI shutdown, with a hard stop after thirty seconds.\nSIGUSR1 shows the screen. It opens a VZVirtualMachineView window and promotes the process to a regular app. Closing the window demotes it again. The VM never notices.\nEvery VM gets a virtio graphics device at creation, even headless ones. Devices cannot be added to a running VM, and someone will ask for the screen later.\nThe NoCloud seed is built with hdiutil makehybrid. No third",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在 Flutter 应用中使用苹果虚拟化框架",
+        "summary": "WSL Manager 的 macOS 版本通过一个单独的 Swift 辅助程序 (vmctl) 将 Flutter 与苹果虚拟化框架连接，通过 JSON 序列化的 CLI 输出进行通信。这种模式避免在 Flutter 中持有长期存在的 VM 对象，同时提供统一的跨平台 VM 管理。"
+      }
+    }
+  },
+  {
+    "title": "A 4 GB Laptop GPU Beats a 12-Core CPU by 4.3x on Gemma 4",
+    "slug": "gpu-vs-cpu-gemma-4-inference",
+    "url": "https://dev.to/gde/a-4-gb-laptop-gpu-beats-a-12-core-cpu-by-43x-on-gemma-4-4150",
+    "source": "DEV Community",
+    "date": "2026-09-16T20:03:02.000Z",
+    "summary": "A 4GB GTX 1650 Ti GPU outperforms a 12-core i7-1360P CPU by 4.3× on Gemma-4 decode (3.63× on prefill) with identical hardware setup, demonstrating practical LLM inference acceleration even on modest laptop GPUs when properly configured with layer offloading.",
+    "content": "This article compares two ways of serving the same small language model on the same laptop: CPU-only, and on the 4 GB GTX 1650 Ti sitting in the same chassis. The payload is byte-identical on both arms and the command lines differ by a single flag. The card takes decode by 4.3x.\nThe repository is at https://github.com/xbill9/gemma4-dev\nOne machine, a 13th Gen Intel Core i7-1360P laptop with a GTX 1650 Ti (Max-Q) in it. Two arms:\n\n\n\n\nCPU arm\nGPU arm\n\n\n\n\nDevice\ni7-1360P, 12 cores / 16 threads\nGTX 1650 Ti Max-Q, 4096 MiB\n\n\nTopology\n4 SMT P-cores (0-7) + 8 E-cores (8-15)\nTU117, compute capability 7.5, no tensor cores\n\n\n\nSIMD / math\n\navx2, avx_vnni, no AVX-512\n\nCUDA\n\n\nllama.cpp\n\nc6824a9, GGML_CUDA=OFF build\n\nc6824a9, CUDA build\n\n\nFlag that differs\n-ngl 0\n-ngl 99\n\n\n\nEverything else matches, and that is the whole exercise:\n-m gemma-4-E2B_q4_0-it.gguf --host 127.0.0.1 --port 8080 \\\n  -ngl {0|99} -c 8192 -ctk f16 -ctv f16 -fa 1 -t 4 -tb 8 --parallel 1 --metrics\n\nThe model is google/gemma-4-E2B-it-qat-q4_0-gguf, a 3.35 GB quantization-aware GGUF. The two arms were run alternately against the same endpoint, CPU first, with a fixed 120 second cooldown between them.\nEight cells: four prompt lengths by two output lengths, three repeats each, concurrency 1. Decode is client-side inter-token rate measured off the SSE stream, which is the only decode statistic both arms can produce.\n\n\n\nin tok\nout tok\nCPU decode\nGPU decode\n🥇\nCPU TTFT ms\nGPU TTFT ms\n🥇\n\n\n\n\n94\n32\n17.61\n71.22\n4.04x\n1143\n385\n2.97x\n\n\n94\n128\n17.22\n71.20\n4.13x\n1219\n385\n3.17x\n\n\n516\n32\n16.16\n69.93\n4.33x\n5978\n1610\n3.71x\n\n\n516\n128\n16.39\n69.49\n4.24x\n5995\n1612\n3.72x\n\n\n998\n32\n15.81\n68.60\n4.34x\n11748\n3244\n3.62x\n\n\n998\n128\n16.10\n68.52\n4.26x\n11532\n3242\n3.56x\n\n\n1959\n32\n15.66\n67.61\n4.32x\n23926\n6522\n3.67x\n\n\n1959\n128\n15.80\n67.64\n4.28x\n23773\n6522\n3.65x\n\n\n\nMedians over the eight cells: decode 4.27x, prefill 3.63x, end-to-end 3.81x.\nWithin-cell spread over three repeats was 6.29% worst case on the CPU arm and 0.84% on the GPU arm. The decod",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "4GB 笔记本 GPU 在 Gemma 4 上性能超过 12 核 CPU 4.3 倍",
+        "summary": "4GB GTX 1650 Ti GPU 在 Gemma-4 解码上的性能比 12 核 i7-1360P CPU 高 4.3 倍（预填充时为 3.63 倍），使用相同的硬件设置，说明当正确配置层卸载时，即使在普通笔记本 GPU 上也能实现实际的 LLM 推理加速。"
+      }
+    }
+  },
+  {
+    "title": "Learn PostgreSQL extensibility through a gloriously bad idea: MM/DD/YYYY native datatype",
+    "slug": "postgresql-extensions-mm-dd-yyyy-tutorial",
+    "url": "https://dev.to/franckpachot/learn-postgresql-extensions-through-a-gloriously-bad-idea-mmddyyyy-2pc4",
+    "source": "DEV Community",
+    "date": "2026-09-16T20:02:06.000Z",
+    "summary": "A PostgreSQL learning project teaches extensions, expression indexes, custom operators, and specialized types by building an intentionally terrible MM/DD/YYYY date type. Using a bad-but-simple example is the fastest way to understand what each PostgreSQL feature actually does.",
+    "content": "This project teaches four of PostgreSQL's most powerful features by building something no sane person would ship:\nextensions — how you add new capabilities to PostgreSQL in C,\nexpression indexes — how you index a computed value, not a stored one,\ncustom operators — how you teach PostgreSQL new verbs like <@ and <->,\nspecialized indexed types — how you invent a data type and the index that makes it fast.\nThe bad idea that ties them together: store every date as the literal ten characters MM/DD/YYYY and then make that terrible choice searchable.\n⚠️ Do not do this in production. PostgreSQL already has a perfectly good\ndate type. We are torturing a string on purpose, because a bad-but-simple\nsee what each PostgreSQL feature is really\n / \n        pg-mm-dd-yyyy\n      \n    \n\npg-mm-dd-yyyy: learn PostgreSQL extensions through a gloriously bad idea\nThis project teaches four of PostgreSQL's most powerful features by building\nsomething no sane person would ship:\nextensions — how you add new capabilities to PostgreSQL in C,\nexpression indexes — how you index a computed value, not a stored one,\ncustom operators — how you teach PostgreSQL new verbs like <@ and <->,\nspecialized indexed types — how you invent a data type and the index\nthat makes it fast.\nThe bad idea that ties them together: store every date as the literal ten\ncharacters MM/DD/YYYY and then make that terrible choice searchable.\n⚠️ Do not do this in production. PostgreSQL already has a perfectly good\ndate type. We are torturing a string on purpose, because a bad-but-simple\nexample is the fastest way to see what each PostgreSQL feature is really\nfor. Every section below tells you the sensible…\n\n  \nView on GitHub\nImagine you inherit an application from a team that stored all its dates as US text: 09/15/2026, 12/31/2025, and so on. You cannot change the column. The new feature request is deceptively small:\nFind me everything that happened in September, any year.\nThat one sentence walks us straight through all four feat",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "通过绝妙的坏主意学习 PostgreSQL 可扩展性：MM/DD/YYYY 本机数据类型",
+        "summary": "一个 PostgreSQL 学习项目通过构建一个故意设计得很糟糕的 MM/DD/YYYY 日期类型来教授扩展、表达式索引、自定义操作符和专用类型。使用一个不好但简单的例子是理解每个 PostgreSQL 功能实际工作原理的最快方式。"
+      }
+    }
+  },
+  {
     "title": "Como criar TikToks virais com IA usando Runway Gen‑2 e Beatoven",
     "slug": "criar-tiktoks-virais-com-ia-runway-beatoven",
     "url": "https://dev.to/leojulieta/como-criar-tiktoks-virais-com-ia-usando-runway-gen-2-e-beatoven-n6a",
@@ -128,6 +320,22 @@
     }
   },
   {
+    "title": "Small programming tricks",
+    "slug": "small-programming-tricks",
+    "url": "https://will-keleher.com/posts/small-programming-tricks-matter/",
+    "source": "Hacker News",
+    "date": "2026-09-16T15:56:47.000Z",
+    "summary": "An exploration of small programming tricks and techniques that matter in real development work, gaining significant Hacker News attention with 268 points and 147 comments.",
+    "content": "Article URL: https://will-keleher.com/posts/small-programming-tricks-matter/\nComments URL: https://news.ycombinator.com/item?id=49729000\nPoints: 268\n# Comments: 147",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "小编程技巧",
+        "summary": "对小编程技巧和在实际开发工作中重要的技术的探索，在黑客新闻上获得了重大关注，获得了268分和147条评论。"
+      }
+    }
+  },
+  {
     "title": "I built a motion design studio in the browser. Here's what it took.",
     "slug": "built-motion-design-studio-browser",
     "url": "https://dev.to/codeideal/i-built-a-motion-design-studio-in-the-browser-heres-what-it-took-3ic1",
@@ -188,6 +396,38 @@
       "zh": {
         "title": "没有人设计过 frontmatter",
         "summary": "Frontmatter——Markdown 文件中的元数据字段，如标题、日期和标签——在四个不同的来源中逐步演变，七个字段族在不同时间被添加。该文章追踪了不同的机制（模板、同步钩子、发布脚本）如何引入和维护这些字段，展示了复杂的元数据结构如何在没有集中设计的情况下出现。"
+      }
+    }
+  },
+  {
+    "title": "PS5 Linux lead quits: \"a bunch of noobs using LLMs\" that \"they don't understand\"",
+    "slug": "ps5-linux-lead-quits-llm-criticism",
+    "url": "https://frvr.com/blog/news/ps5-linux-lead-quits-as-open-source-projects-have-become-a-bunch-of-noobs-using-llms-that-they-dont-even-understand/",
+    "source": "Hacker News",
+    "date": "2026-09-16T14:30:36.000Z",
+    "summary": "The lead developer for PS5 Linux has quit citing that contributors are \"a bunch of noobs using LLMs\" without understanding their work. The controversy highlights risks when open-source projects adopt AI tools without matching expertise or review.",
+    "content": "Article URL: https://frvr.com/blog/news/ps5-linux-lead-quits-as-open-source-projects-have-become-a-bunch-of-noobs-using-llms-that-they-dont-even-understand/\nComments URL: https://news.ycombinator.com/item?id=49727627\nPoints: 290\n# Comments: 204",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "PS5 Linux负责人辞职：\"一群使用LLM的菜鸟\"他们\"不理解\"",
+        "summary": "PS5 Linux的主要开发者因贡献者是\"一群使用LLM的菜鸟\"而不理解他们的工作而辞职。这场争议突出了当开源项目采用AI工具但缺乏相应专业知识或审查时的风险。"
+      }
+    }
+  },
+  {
+    "title": "Hackers Got Inside a Flock Camera",
+    "slug": "flock-camera-hack-security-breach",
+    "url": "https://www.wired.com/story/hackers-flock-camera-data-shows-how-system-works/",
+    "source": "Hacker News",
+    "date": "2026-09-16T13:18:47.000Z",
+    "summary": "Security researchers demonstrated how hackers compromised Flock Camera systems and exposed the security mechanisms protecting the service. The breach drew significant Hacker News attention (389 points, 189 comments) for revealing vulnerabilities in the widely-used home security product.",
+    "content": "Article URL: https://www.wired.com/story/hackers-flock-camera-data-shows-how-system-works/\nComments URL: https://news.ycombinator.com/item?id=49726586\nPoints: 389\n# Comments: 189",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "黑客入侵了Flock摄像头",
+        "summary": "安全研究人员演示了黑客如何入侵Flock摄像头系统并暴露了保护该服务的安全机制。该漏洞因在广泛使用的家庭安全产品中暴露漏洞而在黑客新闻上获得了重大关注（389分，189条评论）。"
       }
     }
   },
