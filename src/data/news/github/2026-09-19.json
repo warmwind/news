@@ -1,0 +1,194 @@
+[
+  {
+    "title": "Oracle PL/SQL Exception Handling",
+    "slug": "oracle-plsql-exception-handling",
+    "url": "https://dev.to/f8wamhn/oracle-plsql-exception-handling-inc",
+    "source": "DEV Community",
+    "date": "2026-09-19T03:11:51.000Z",
+    "summary": "This article explains PL/SQL exception handling, categorizing exceptions into predefined Oracle server errors, non-predefined Oracle server errors, and user-defined exceptions. It covers how exceptions interrupt code execution and transfer control to exception handlers, with key rules about handler placement and execution flow.",
+    "content": "An Exception is a PL/SQL runtime error condition triggered during code execution. When an exception is raised, normal execution of the current PL/SQL block halts immediately, and control transfers to the EXCEPTION section. If an appropriate exception handler is present, final corrective actions are executed before the block exits; otherwise, the unhandled error propagates to the host environment.\nExceptions in PL/SQL are classified into three distinct categories:\n\n\n\nException Type\nDescription\nDeclaration Requirement\nHow Raised\n\n\n\n\nPredefined Oracle Server\nCommon system errors (~20 named standard errors like NO_DATA_FOUND).\nAutomatically declared by Oracle.\nImplicitly by the Oracle database engine.\n\n\nNon-Predefined Oracle Server\nStandard Oracle system errors that do not have pre-assigned PL/SQL names.\nDeclared in the DECLARE section and bound using PRAGMA EXCEPTION_INIT.\nImplicitly by the Oracle database engine.\n\n\nUser-Defined\nCustom business logic violations defined by application developers.\nDeclared in the DECLARE section.\nExplicitly using RAISE or RAISE_APPLICATION_ERROR.\n\n\n\nIMPORTANT:\nOnly one exception handler can be executed per block execution.\nA block can contain multiple exception handlers, but it can have only one WHEN OTHERS clause.\nThe WHEN OTHERS handler must be the last exception handler listed in the EXCEPTION section.\nException handlers cannot appear inside assignment statements or standard SQL statements.\n1. Predefined Oracle Server Exceptions\n\n\nOracle pre-defines names for common runtime errors in the STANDARD package. You do not need to declare these in your code block; reference them directly by name.\nCommon Predefined Exceptions:\n\n\n\nNO_DATA_FOUND (ORA-01403): A SELECT INTO statement returned zero rows.\nTOO_MANY_ROWS (ORA-01422): A SELECT INTO statement returned more than one row.\nINVALID_CURSOR (ORA-01001): Illegal cursor operation (e.g., closing an unopened cursor).\nZERO_DIVIDE (ORA-01476): Attempted division by zero.\nVALUE_ERROR (ORA-06502): T",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Oracle PL/SQL 异常处理",
+        "summary": "本文介绍了 PL/SQL 异常处理，将异常分为预定义的 Oracle 服务器错误、非预定义的 Oracle 服务器错误和用户定义的异常。它阐述了异常如何中断代码执行并将控制权转移到异常处理程序，以及关于处理程序位置和执行流的关键规则。"
+      }
+    }
+  },
+  {
+    "title": "Debugging R8 Release-Only Crashes Without Disabling Optimization",
+    "slug": "debugging-r8-release-crashes-without-disabling",
+    "url": "https://dev.to/ufebri/debugging-r8-release-only-crashes-without-disabling-optimization-49pd",
+    "source": "DEV Community",
+    "date": "2026-09-19T03:07:27.000Z",
+    "summary": "This guide addresses how to debug crashes that only occur in release builds after R8 optimization is enabled, emphasizing systematic investigation rather than blindly adding keep rules. It explains how to reproduce the issue, interpret obfuscated stack traces using mapping files, and identify missing ProGuard rules by understanding the broken runtime contracts.",
+    "content": "A debug build works. The release build installs. Then one screen crashes only after minification is enabled.\nThe tempting fix is immediate:\n-keep class com.example.** { *; }\n\nOr worse, turn R8 off and ship.\nBoth can make the symptom disappear. Neither tells you what broke.\nA release-only R8 failure is usually easier to solve when you treat it as an indirect-reference debugging problem, not a ProGuard guessing contest. The goal is to identify the runtime contract that static analysis cannot see, preserve exactly that contract, and keep the rest of the optimizer working.\nDo not begin by editing keep rules.\nReproduce the failure with the same release variant that users receive. That matters because build type, flavor, dependency graph, resource shrinking, signing configuration, and generated code can all differ from debug.\nA useful first comparison is:\nDebug build        → works\nRelease, R8 on     → fails\nRelease, R8 off    → works\n\nThat strongly points toward optimization, shrinking, obfuscation, or a rule consumed from a dependency. It still does not prove which class needs to be kept.\nIf your release pipeline is already automated, this is also why Android CI should build the real release variants, not only compile debug APKs.\nAn obfuscated stack trace is evidence with its labels removed.\nR8 produces mapping.txt for the optimized variant. Preserve the mapping file for every published build, because a later build can overwrite the local copy. Android's documentation recommends using retrace when the original stack trace is not automatically deobfuscated.\nA manual workflow looks like this:\n$ANDROID_HOME/cmdline-tools/latest/bin/retrace \\\n  app/build/outputs/mapping/release/mapping.txt \\\n  trace.txt\n\nThe important question after retracing is not simply, \"Which class crashed?\"\nAsk:\nWhat runtime mechanism expected this class, method, field, constructor, annotation, or name to remain discoverable?\nThat question usually gets you much closer to the missing rule.\nR8 is very g",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "无需禁用优化即可调试 R8 仅发布版本崩溃",
+        "summary": "本指南说明了如何调试仅在启用 R8 优化后的发布版本中发生的崩溃，强调系统性调查而非盲目添加保留规则。它解释了如何重现问题、使用映射文件解释混淆的堆栈跟踪，以及通过理解被破坏的运行时契约来识别缺失的 ProGuard 规则。"
+      }
+    }
+  },
+  {
+    "title": "The Automation Gap Is a Finance Workflow Problem, Not a Spreadsheet Problem",
+    "slug": "automation-gap-finance-workflow-not-spreadsheet",
+    "url": "https://dev.to/tali_from_portali/the-automation-gap-is-a-finance-workflow-problem-not-a-spreadsheet-problem-55n6",
+    "source": "DEV Community",
+    "date": "2026-09-19T03:02:23.000Z",
+    "summary": "The article argues that finance automation challenges stem not from spreadsheets themselves but from complex workflows involving multiple handoffs, exceptions, and approvals that no single system fully models. Effective financial automation requires addressing idempotency, event identity, and operator workflows rather than just replacing interfaces.",
+    "content": "Recent fintech research has put a useful number on an old frustration: UK businesses are still losing several days a month to manual finance administration. The headline is easy to interpret as a spreadsheet indictment. In practice, spreadsheets are rarely the root cause. The deeper problem is that finance work is a chain of handoffs, exceptions, approvals, and evidence checks that no single system models well.\nThat distinction matters to engineers building financial products. Replacing a spreadsheet with a dashboard does not remove the work. It often just moves the same reconciliation, chasing, and review tasks into a prettier interface. The better target is the workflow around the number.\nConsider a routine supplier payment review. Someone downloads a bank statement, someone else checks an invoice, a third person asks whether the purchase was approved, and a manager reviews an exception in a chat thread. The final accounting entry may take seconds. The surrounding coordination can consume hours.\nThis is why “automation rate” is a weak metric on its own. A process can automatically import 98% of transactions and still feel manual if the remaining 2% are ambiguous, high-value, or impossible to explain later. Those cases create queues, duplicate questions, and last-minute close pressure.\nA useful finance workflow should answer four questions for every material decision:\nWhat source records were considered?\nWhat rule or model produced the proposal?\nWho reviewed or changed it?\nWhat should happen if the same event arrives again?\nThe fourth question is the engineering detail that gets missed most often. Financial integrations retry. Webhooks arrive out of order. A bank feed may restate a transaction. Without idempotency and a stable event identity, “automation” can create duplicate work or duplicate entries.\nA common implementation pattern is to optimize the happy path and add an exception screen later. For finance, reverse that order. Start by defining what an operator",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "自动化差距是财务工作流问题，而非电子表格问题",
+        "summary": "该文章论证财务自动化的挑战并非源于电子表格本身，而是源于涉及多个交接、例外和审批的复杂工作流，没有单一系统能完全模型化这些。有效的财务自动化需要解决幂等性、事件标识和操作员工作流，而不仅仅是替换接口。"
+      }
+    }
+  },
+  {
+    "title": "Why LLM Cascades Fail for Interactive Apps — Use Router",
+    "slug": "why-llm-cascades-fail-interactive-apps-use-router",
+    "url": "https://dev.to/nainikmehta/why-llm-cascades-fail-for-interactive-apps-use-router-leg",
+    "source": "DEV Community",
+    "date": "2026-09-19T03:02:19.000Z",
+    "summary": "The article compares LLM routing—selecting a single model upfront—versus cascading for interactive applications, demonstrating that routers typically achieve better latency predictability and cost control. Even small escalation rates can eliminate cascade savings when accounting for verifier costs and worst-case tail latency.",
+    "content": "Stop Defaulting to Cascades: Why Router-First Wins for Interactive Apps (LLM routing vs cascading)\n\n\nThe question of \"LLM routing vs cascading\" is not just academic—it's an operational decision that changes latency profiles, cost predictability, and user experience for interactive apps. In practice, a conservative router + semantic cache + calibrated gates will usually outperform a \"cheap-first\" cascade for latency-sensitive, user-facing systems.\nThis article explains why, gives a practical checklist you can implement this week, and includes a concrete engineering example and code snippets to monitor escalation risk.\nA predictive router inspects the incoming prompt and selects a single model before any generation. Routers range from tiny deterministic rules to embedding-based matrix-factorization routers (RouteLLM-style) or lightweight BERT classifiers. Typical latency overhead is small: embedding+MF routers add ~2–8ms; heavier cross-encoders add 15–35ms. The result is a single model hop, predictable p99 latency, and zero redundant token generation.\nPros: predictable tail latency, clear cost per request, no double-generation on escalations.\nA cascade sends the prompt to a cheap model, runs a verifier/judge on the output, and escalates to bigger models only when the verifier fails. This guarantees the accuracy floor of the strongest model (because you can always escalate), but it pays for the cheap model and verifier on every request and for the expensive model on escalated ones.\nPros: safer accuracy floor, automatic recovery from cheap-model errors.\nEverything hinges on escalation rate — the percentage of requests that move up the chain. Cost for a cascade approximates:\ncost ≈ cheap + verifier + (escalation_rate × expensive)\nEven a small escalation rate (1–3%) can erase most cascade savings when you include worst-case latency, verifier miscalibration, or cache behavior on the expensive model. For interactive apps where p99 latency and jitter affect user retention, t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "LLM级联为何对交互式应用失败——使用Router",
+        "summary": "本文对比了LLM路由（预先选择单一模型）与交互式应用中的级联方法，证明路由器通常能提供更好的延迟可预测性和成本控制。即使考虑验证器成本和最坏情况尾部延迟，小幅的升级率也会消除级联节省。"
+      }
+    }
+  },
+  {
+    "title": "Translating Full Books with LLMs: Our Chunking Strategy for Long-Form Context",
+    "slug": "translating-full-books-llms-chunking-strategy",
+    "url": "https://dev.to/jacob_gong/translating-full-books-with-llms-our-chunking-strategy-for-long-form-context-2o5h",
+    "source": "DEV Community",
+    "date": "2026-09-19T03:01:25.000Z",
+    "summary": "The article describes how to build an LLM-based book translation pipeline that preserves cross-chapter context by splitting books into overlapping, token-aware chunks supplemented with running glossaries and chapter summaries. The approach balances cost, quality, and resilience by managing token limits explicitly and storing intermediate state in a database.",
+    "content": "How we built a pipeline that preserves context across 100k+ token books using Python, FastAPI, and Claude's context window.\nWhen we started building LectuLibre, our AI-powered book translation service, we assumed we could just send an entire book to a large language model and get a translation back. After all, Claude 3.5 Sonnet advertises a 200k token context window. But a typical novel is 80,000–120,000 words, which is roughly 100,000–150,000 tokens. That's technically within limits, but...\nCost: translating a 100k token book in one shot is expensive.\nQuality: LLMs lose attention to early chapters when processing long contexts.\nRate limits and timeouts.\nHard to resume if fails.\nSo we needed a chunking strategy that preserves cross-chapter context: terminology, character voice, consistent style.\nWe split the book into overlapping chunks, translate each with a context buffer containing:\nA running glossary of terms and character names\nA summary of previous chapters\nThe current chunk's raw text\nThe pipeline:\nParse EPUB/PDF into plain text with chapter metadata.\nSplit text into token-aware chunks with overlap.\nFor each chunk, fetch glossary + previous summary from PostgreSQL.\nCall LLM to translate with system prompt.\nExtract new terms from translation, update glossary.\nGenerate a concise summary of the translated chunk, store for next chunk.\nAssemble final translated book.\nWe tried LangChain's RecursiveCharacterTextSplitter first, but it works on characters, not tokens, so some chunks exceeded the model's token limit. We switched to tiktoken for exact token counting.\nimport tiktoken\nfrom typing import List, Tuple\n\ndef chunk_text_by_tokens(\n    text: str,\n    target_tokens: int = 3000,\n    overlap_tokens: int = 500,\n    model: str = \"claude-3-5-sonnet-20240620\"\n) -> List[str]:\n    # Use cl100k_base for Claude? Claude uses its own tokenizer but tiktoken's\n    # cl100k_base approximates well enough for chunk sizing.\n    enc = tiktoken.get_encoding(\"cl100k_base\")\n    tokens",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用LLM翻译整部著作：我们的长文本分块策略",
+        "summary": "本文介绍了如何构建基于LLM的图书翻译管道，通过将书籍分割成重叠的、token感知的分块，并补充运行词汇表和章节摘要，来保留跨章节上下文。该方法通过显式管理token限制和将中间状态存储在数据库中，在成本、质量和弹性之间取得平衡。"
+      }
+    }
+  },
+  {
+    "title": "What Mutation Testing Frameworks Do When a Timeout Kills Them",
+    "slug": "mutation-testing-frameworks-timeout-sigkill",
+    "url": "https://dev.to/megapixel99/what-mutation-testing-frameworks-do-when-a-timeout-kills-them-2joo",
+    "source": "DEV Community",
+    "date": "2026-09-19T03:00:00.000Z",
+    "summary": "The article audits how mutation testing frameworks handle SIGKILL signals from timeouts, showing that four popular tools behave inconsistently—some leaving mutated source files on disk when killed abruptly. The findings reveal significant variance in SIGKILL-safety across mutmut, cosmic-ray, Stryker, and PIT.",
+    "content": "Code: Megapixel99/assay-checks\nassay audits mutation harnesses: the scripts that deliberately break your code and check that a test notices. It looks for seven properties, each one a way a harness can report success without having run anything, and its README admits in writing that the seven have a hole underneath them. SIGKILL cannot be caught, blocked or handled, so no handler runs and no finally runs. The ordinary way to be SIGKILLed is a timeout rather than an impatient person; subprocess.run(..., timeout=...) kills the child outright, and so does the kill step of a CI runner that has waited long enough. A harness satisfying all seven, invoked under a timeout it then exceeds, leaves your tree mutated exactly as though it carried none of them.\nThat argument had never been pointed at anybody else's tool. So I built a conformance suite and pointed it at four: mutmut 3.7.0, cosmic-ray 8.4.6, Stryker 8.7.1 and PIT 1.16.1, all four of them other people's work, all four pinned in their own container. The method is one sentence: hash the tree, start the framework, wait until a source file is observably mutated on disk, kill it at that instant, and hash the tree again.\nI expected four dirty trees. I got one.\n\n\n\nframework\nbaseline\nSIGTERM to the leader\nSIGTERM to the group\nSIGKILL\n\n\n\n\n\nmutmut 3.7.0\nscratch\nscratch\nscratch\nscratch\n\n\n\ncosmic-ray 8.4.6\nscratch\ndirty\ndirty\ndirty\n\n\n\nstryker 8.7.1\nclean\nscratch\nscratch\nscratch\n\n\n\npit 1.16.1\nscratch\nclean\nclean\nclean\n\n\n\nDirty means a file under test was left mutated. Scratch means the code under test came back and the run left other paths behind. Clean means every file is byte-for-byte what it was.\nThis is the part I had not modelled, and it makes the SIGKILL question inapplicable rather than answered. mutmut copies the project into mutants/ and mutates the copy; Stryker copies it into .stryker-tmp/ and mutates that. PIT does not write a mutated .java file anywhere at all, because it mutates bytecode in memory. Their source surv",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "变异测试框架被超时SIGKILL杀死时会发生什么",
+        "summary": "本文审查了变异测试框架如何处理来自超时的SIGKILL信号，发现四个流行工具的行为不一致——某些工具在被突然终止时会在磁盘上留下变异的源文件。这些发现揭示了mutmut、cosmic-ray、Stryker和PIT之间SIGKILL安全性的显著差异。"
+      }
+    }
+  },
+  {
+    "title": "GeneSign: Autonomous Biosecurity Agent & DNA Steganography on Sanity Content Lake",
+    "slug": "genesign-biosecurity-agent-dna-steganography",
+    "url": "https://dev.to/fokrulanthro16eng/genesign-autonomous-biosecurity-agent-dna-steganography-on-sanity-content-lake-36a5",
+    "source": "DEV Community",
+    "date": "2026-09-19T02:52:07.000Z",
+    "summary": "GeneSign is an autonomous biosecurity screening system that validates genetic sequences against a structured knowledge base before DNA synthesis, using zero-drift cryptographic watermarking to prevent tampering. The system combines real-time threat detection, LLM-driven regulatory analysis, and tamper-resistant provenance tracking to secure synthetic biology workflows.",
+    "content": "This is a submission for the Sanity Challenge, Path One: Ship an Agent That Queries Real Content\nModern synthetic biology is accelerating, but physical DNA synthesizers operate with a dangerous blindspot: lack of real-time provenance verification and context-aware biosecurity threat screening.\nGeneSign is an autonomous biosecurity agent and cryptographic DNA steganography engine. It screens genetic sequences against an authoritative, structured Biosecurity Knowledge Base hosted on Sanity before physical fabrication. If cleared, GeneSign embeds zero-drift, tamper-resistant watermarks into coding sequences without altering amino acid translation ($\\Delta GC = 0.000\\%$)[cite: 4, 14].\nKey Capabilities:\nReal-time Threat Radar: Matches biological sequence motifs against regulated select agents and restricted viral strains[cite: 4, 14].\nNVIDIA Nemotron AI Rationale: Synthesizes regulatory compliance decisions and pathogen threat rationales via LLM inference[cite: 4].\nZero-Drift Wobble Steganography: Embeds dual-layer Ed25519 cryptographic signatures utilizing synonymous codons[cite: 4, 14].\n1-Base Mutation Interlock: Simulates physical hardware interlocks to halt synthesis immediately upon signature tampering[cite: 4, 14].\n🌐 Live Application: genesign-biosecurity-engine-1.onrender.com[cite: 14]\n🧬 Interface: Interactive Dark Tactical Operations HUD with real-time 3D DNA visualization and threat ledger[cite: 4, 14].\n💻 GitHub Repository: github.com/fokrulanthro16-eng/genesign-biosecurity-engine[cite: 4, 10]\nBiosecurity screening cannot rely on naive keyword search. A keyword match does not distinguish between harmless GFP reporter markers and regulated toxins or dual-use select agents.\nStructured Content Lake: High-consequence pathogen taxonomies, biosafety levels (BSL-3/4), CDC/Australia Group regulated sequence motifs, and watermarking provenance records are modeled as structured JSON schemas in Sanity.\nSanity Context & GROQ Querying: When a user submits a FASTA sequence",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "GeneSign：自主生物安全代理与Sanity内容湖上的DNA隐写术",
+        "summary": "GeneSign是一个自主生物安全筛查系统，在DNA合成前针对结构化知识库验证遗传序列，使用零漂移密码学水印来防止篡改。该系统结合实时威胁检测、LLM驱动的监管分析和防篡改的出处追踪，以保护合成生物学工作流程。"
+      }
+    }
+  },
+  {
+    "title": "I Built 30 AI-Generated Game Wiki Sites in 45 Days. Google Rejected Every Single One. Here's the Post-Mortem.",
+    "slug": "built-ai-generated-game-wiki-sites-google-rejected",
+    "url": "https://dev.to/lianlele168/i-built-30-ai-generated-game-wiki-sites-in-45-days-google-rejected-every-single-one-heres-the-260l",
+    "source": "DEV Community",
+    "date": "2026-09-19T02:50:44.000Z",
+    "summary": "The author describes building 30 AI-generated game wiki sites that received zero Google indexing despite being indexed by Bing, revealing three layers of failure including content hallucination rates reaching 78%. Google's analysis showed the network was broadly rejected after sampling rather than individually deprioritized, and audits revealed most content was fabricated.",
+    "content": "I Built 30 AI-Generated Game Wiki Sites in 45 Days. Google Rejected Every Single One. Here's the Post-Mortem.\n\n\nThe numbers, the three layers of failure, and the 78% hallucination rate I found when I actually audited my own data.\nBetween August 12 and September 10, I used AI coding agents to build a network of game wiki sites — Roblox game guides with interactive calculators, code lists, and tier lists — deployed on Next.js and Vercel, all hanging off one domain with subdomains.\nThe plan was simple: pick games with real search demand, ship useful tools faster than legacy wikis, let SEO do the rest.\nGoogle indexed approximately zero pages from the entire network. Not \"ranked poorly.\" Not \"sandboxed for a few weeks.\" The indexing report read like a rejection letter.\nThis is the honest post-mortem: what the data said, the three separate layers of failure I found, and the uncomfortable discovery that scared me most — that when I finally audited my own content, most of it was fabricated.\nHere's what Google Search Console showed for the whole network (302 known URLs):\n\n\n\nStatus\nCount\nWhat it means\n\n\n\n\nCrawled — currently not indexed\n116\nGoogle came, read the page, and said no\n\n\nDiscovered — not crawled\n186\nGoogle knows the URL exists and hasn't bothered to visit\n\n\nRedirect error / duplicate clusters\n~25\nVarious technical junk\n\n\n\nZero pages ranking. Meanwhile, Bing had already indexed at least 7 of the sites organically — same pages, same content. That contrast mattered later, because it ruled out \"the content is unindexable\" and pointed at something else.\nThe timeline was the most revealing part. The \"crawled, not indexed\" count sat at 16–19 pages through late August, then jumped from 19 to 107 in a single day (Aug 29), then flatlined at 116 for the next three weeks. I hadn't launched 88 sites that day — Google had simply finished sampling the network, decided what it thought of it, and applied that verdict wholesale. Sites it never sampled just stayed frozen in \"discover",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我在45天内建立了30个AI生成的游戏Wiki网站。谷歌全部拒绝了。事后分析。",
+        "summary": "作者描述了构建30个AI生成的游戏Wiki网站，这些网站虽然被Bing索引但未被谷歌索引，揭示了三层失败，包括内容幻觉率达到78%。谷歌的分析显示该网络在采样后被广泛拒绝而不是单独降级，审计发现大多数内容是捏造的。"
+      }
+    }
+  },
+  {
+    "title": "Using the Grok API to Reduce the Effort of Keeping Up with AI",
+    "slug": "using-grok-api-reduce-keeping-up-with-ai",
+    "url": "https://dev.to/tohru_yaginuma_4f041533c6/using-the-grok-api-to-reduce-the-effort-of-keeping-up-with-ai-3edk",
+    "source": "DEV Community",
+    "date": "2026-09-19T02:45:05.000Z",
+    "summary": "The article describes an automation pipeline that uses Grok API to filter AI-related topics from X and deliver curated summaries via messaging app rather than requiring manual feed browsing. The approach separates information access from platform engagement, addressing information overload without sacrificing awareness of fast-moving AI developments.",
+    "content": "Long Story Short\n\n\n\nX is useful for keeping up with AI and tech, but I find browsing the feed mentally exhausting.\nI built a simple pipeline with Grok API, Google Apps Script, and Message App that sends me a few selected AI topics every morning.\nThe most important part was not collecting more information, but defining what information was actually worth sending to me.\nI am very sensitive to information, and X is one of the social platforms I struggle with the most.\nReading the feed can leave me surprisingly drained.\nIn particular, if I accidentally open the \"For you\" tab and start scrolling through posts from people I do not follow, I sometimes notice that it affects my mood for a while afterward.\nAt the same time, X is still one of the most useful places for me to keep up with fast-moving information.\nThis is especially true for AI and software engineering.\nNew tools, coding-agent workflows, experiments, failures, pricing changes, and practical tips often appear there before they are summarized elsewhere.\nSo I had a problem:\nI wanted information from X, but I did not want to spend time inside X.\nI had been thinking for a while about whether I could separate those two things.\nThen I learned that Grok could help with exactly that.\nIt could access information from X, summarize it, filter it, and be called through an API.\nThat was enough for me to start building something the same day.\nThe pipeline is very simple.\nX\n↓\nGrok API\n↓\nGoogle Apps Script\n↓\nMessage App (LINE in my case)\n↓\nMe\n\nGoogle Apps Script runs on a schedule every morning.\nIt calls Grok and asks for a small number of AI-related topics from roughly the previous 24 hours.\nThe selected topics are then sent to LINE, which is the messaging app I already use every day.\nSo instead of opening X and searching for useful information, I wake up and find a short list already waiting for me.\nGrok is mainly doing two things:\nCollecting information from X\nSelecting which information is worth showing me\nThe second part t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用Grok API减少跟上AI进展的工作",
+        "summary": "该文章描述了一个自动化管道，使用Grok API从X中过滤AI相关主题，并通过消息应用程序提供精选摘要，而不是需要手动浏览信息源。这种方法将信息访问与平台参与分开，在不牺牲对快速发展的AI的认识的情况下解决信息过载。"
+      }
+    }
+  },
+  {
+    "title": "Building GeneSign: Synthetic DNA Watermarking and Biosecurity Firewall with NVIDIA Nemotron",
+    "slug": "building-genesign-synthetic-dna-watermarking-biosecurity",
+    "url": "https://dev.to/fokrulanthro16eng/building-genesign-synthetic-dna-watermarking-and-biosecurity-firewall-with-nvidia-nemotron-54eg",
+    "source": "DEV Community",
+    "date": "2026-09-19T02:29:30.000Z",
+    "summary": "GeneSign is a platform for embedding tamper-proof cryptographic signatures into DNA sequences using synonymous codons without altering protein translation, combined with real-time threat detection for biosecurity. The system integrates NVIDIA Nemotron for AI-driven threat analysis and tracks provenance in an immutable audit ledger.",
+    "content": "Biosecurity verification in synthetic biology is often treated as an afterthought. With modern DNA synthesis pipelines accelerating worldwide, validating genetic sequence provenance and detecting hazardous biological threats in real-time is critical[cite: 13, 14].\nTo solve this, I built GeneSign — a zero-drift wobble codon DNA watermarking platform and biosecurity firewall with integrated AI threat rationale[cite: 3, 13].\nZero-Drift Wobble Steganography: Injects tamper-proof cryptographic metadata into protein coding sequences (CDS) by utilizing degenerate synonymous codons without modifying amino acid translation ($\\Delta GC = 0.000\\%$)[cite: 13].\nOrigin Provenance & Verification: Embeds dual-layer Ed25519 signatures and tracks authorization records in a tamper-resistant audit ledger[cite: 13].\nReal-time Threat Radar: Automatically flags regulated pathogens and select agents using high-throughput biological sequence screening[cite: 13, 14].\nNVIDIA Nemotron AI Rationale: Synthesizes regulatory guidance, biohazard threat rationales, and enforcement actions via LLM inference[cite: 3, 14].\n1-Base Tamper Simulation: Validates hardware interlocks by illustrating instant signature invalidation under single nucleotide substitutions[cite: 13].\nCore Engine & API: Python, FastAPI, SQLite ledger, and Uvicorn.\nAI Intelligence: NVIDIA Nemotron via OpenRouter for biosecurity compliance and threat analysis[cite: 3, 7].\nInteractive Frontend: Dark tactical HUD with Three.js-powered 3D DNA helix visualization[cite: 13].\nCloud Infrastructure: Production-grade deployment containerized on Render[cite: 13].\n🌐 Live Platform: genesign-biosecurity-engine-1.onrender.com[cite: 13]\n📂 GitHub Repository: github.com/fokrulanthro16-eng/genesign-biosecurity-engine[cite: 3]\nBuilding this system balances biological preservation constraints with low-latency cryptographic verification. GeneSign enforces origin integrity before synthetic constructs ever reach the physical synthesizer.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建GeneSign：合成DNA水印与NVIDIA Nemotron生物安全防火墙",
+        "summary": "GeneSign是一个平台，用于使用同义密码子在DNA序列中嵌入防篡改的密码学签名，同时不改变蛋白质翻译，并配合实时生物安全威胁检测。该系统集成了NVIDIA Nemotron进行AI驱动的威胁分析，并在不可变的审计账本中追踪出处。"
+      }
+    }
+  },
+  {
+    "title": "The Architecture of Live Video Streaming: How HLS, DASH, and CDNs Actually Work",
+    "slug": "architecture-live-video-streaming-hls-dash-cdns",
+    "url": "https://dev.to/cianosdev/the-architecture-of-live-video-streaming-how-hls-dash-and-cdns-actually-work-df6",
+    "source": "DEV Community",
+    "date": "2026-09-19T02:26:58.000Z",
+    "summary": "This article explains the complete architecture of live video streaming from ingest through CDN delivery to client playback, breaking down the five stages and protocols like RTMP, SRT, HLS, and DASH. It covers how streaming infrastructure scales to millions of concurrent viewers and adapts bitrate dynamically without buffering.",
+    "content": "Live video streaming has become the backbone of modern entertainment infrastructure. Whether a user is watching a football match, joining a video conference, or consuming on-demand content, the underlying delivery pipeline is an extraordinary feat of distributed systems engineering.\nYet most developers treat streaming as a black box. You point a video player at a URL and it works. But how does a single origin server deliver 4K video to millions of concurrent viewers without collapsing? How does the player seamlessly switch between 480p and 4K mid-stream without buffering? And why does the same stream load in 200ms in Dublin but take 4 seconds in rural Kerry?\nThis article breaks down the complete architecture - from ingest to last-mile delivery - with real protocol analysis and code examples.\nEvery live video stream traverses five distinct architectural stages before reaching the viewer's screen:\nINGEST ──▶ TRANSCODE ──▶ PACKAGE ──▶ CDN ──▶ CLIENT\n(Camera)    (Encode)     (Segment)   (Edge)   (Player)\n RTMP/SRT   H.264/265    HLS/DASH   HTTP      ExoPlayer\n\nLet's examine each stage.\nThe raw video signal enters the pipeline via one of two dominant protocols:\nOriginally developed by Macromedia (later Adobe), RTMP operates over TCP port 1935. Despite being officially deprecated, it remains the de facto ingest protocol for most streaming infrastructure due to its universal encoder support.\n# Simplified RTMP handshake sequence\n# C0 + C1 (client) -> S0 + S1 + S2 (server) -> C2 (client)\n\nimport struct\nimport os\n\ndef create_rtmp_c0_c1():\n    c0 = struct.pack('B', 3)  # RTMP version 3\n    timestamp = struct.pack('>I', 0)\n    zero = struct.pack('>I', 0)\n    random_bytes = os.urandom(1528)\n    c1 = timestamp + zero + random_bytes\n    return c0 + c1\n\nSRT is the modern successor, developed by Haivision. It operates over UDP with built-in AES-128/256 encryption and Forward Error Correction (FEC). SRT's killer feature is its adaptive bitrate recovery - it dynamically adjusts packet",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "直播视频流的架构：HLS、DASH和CDN如何工作",
+        "summary": "本文介绍了直播视频流的完整架构，从采集到CDN交付再到客户端播放，分解了五个阶段和RTMP、SRT、HLS和DASH等协议。它涵盖了流媒体基础设施如何扩展到数百万并发观众，以及如何动态自适应比特率而不产生缓冲。"
+      }
+    }
+  },
+  {
+    "title": "Why console.log Shows 'Promise {<pending>}' Instead of Your Actual Value",
+    "slug": "console-log-shows-promise-pending-instead-actual-value",
+    "url": "https://dev.to/systemcraftdev/why-consolelog-shows-promise-instead-of-your-actual-value-1c60",
+    "source": "DEV Community",
+    "date": "2026-09-19T02:26:42.000Z",
+    "summary": "The article explains why async functions log pending promises instead of values—the console.log executes synchronously before the awaited operation completes, showing the actual pending promise state. Understanding that async functions always return promises and that logging happens in the same tick clarifies why the value isn't immediately available.",
+    "content": "That's not a broken await — it's JavaScript reporting exactly what the promise's state was the instant you logged it. Here's why the value isn't there yet, and how to actually wait for it.\nAdapted from the JavaScript Essentials Companion Guide.\nYou write a function to fetch a user, call it, and log the result to check it worked:\nasync function getUser(id) {\n  return fetch(`/api/users/${id}`).then(r => r.json());\n}\n\nconst user = getUser(42);\nconsole.log(user);\n\nPromise { <pending> }\n\nNo error, no crash — just that. It looks like the function silently failed, or that console.log is somehow broken. Neither is true. JavaScript is telling you, accurately, exactly what user was at the precise moment you logged it: not a user object, but a promise that hadn't settled yet. That's not a placeholder for a bug — it's a snapshot of real, correct state.\nAn async function always returns a promise. Always — even if every line inside it looks like it's returning a plain value. Write return someValue inside an async function, and the caller still gets back a promise that will eventually resolve to someValue, not someValue itself. That's not a special case you opt into; it's what the async keyword does to the function's return type, unconditionally.\nHere's the part that actually causes the confusion: getUser(42) starts running immediately, synchronously, right up until it hits something it has to wait on — here, the fetch call. At that point it hands control back to whatever called it and steps aside, to be resumed later once the network response actually arrives. Your console.log(user) on the next line doesn't wait around for that — it runs immediately, the same tick, before the fetch has had any chance to complete. So user genuinely is a pending promise at that instant. console.log isn't lying to you or failing to unwrap something; it's printing the actual, current value of the variable, and that value just happens to be \"a promise that hasn't resolved yet.\"\n1. Confirm this is the",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么console.log显示'Promise {<pending>}'而不是您的实际值",
+        "summary": "本文解释了为什么异步函数记录挂起的Promise而不是值——console.log在等待的操作完成之前同步执行，显示实际的挂起Promise状态。理解异步函数总是返回Promise，以及日志记录发生在同一事件循环中，可以解释为什么该值不能立即获得。"
+      }
+    }
+  }
+]
