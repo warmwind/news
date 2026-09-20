@@ -1,5 +1,197 @@
 [
   {
+    "title": "AWS Step Functions vs Camunda for Sagas: Two Orchestrators, Different Blast Radii",
+    "slug": "aws-step-functions-vs-camunda-for-sagas",
+    "url": "https://dev.to/andriiboyko/aws-step-functions-vs-camunda-for-sagas-two-orchestrators-different-blast-radii-4l7l",
+    "source": "DEV Community",
+    "date": "2026-09-20T10:38:46.000Z",
+    "summary": "This article compares AWS Step Functions and Camunda 8 as saga orchestrators, examining not just features but operational responsibility and failure ownership. Both implement the same pattern of centralized workflow coordination with compensating actions, but the \"blast radius\"—what each team must manage—differs significantly. Understanding these tradeoffs prevents choosing the wrong platform and paying for it later.",
+    "content": "Here's a trap I've watched smart teams walk into. They pick a saga orchestrator by comparing the two engines feature-for-feature, decide they both \"do sagas,\" flip a coin weighted by whatever's already in their cloud bill, and move on. Then a year later one team is tuning Zeebe partitions at 2am and the other is staring at a Step Functions bill that grew faster than their traffic, both wondering how the \"same pattern\" turned into such different jobs.\nThey do run the same pattern. A saga is a sequence of local transactions where, if step four fails, you run compensating actions to undo steps one through three, because you don't have a distributed transaction to roll back for you. Both AWS Step Functions and Camunda 8 are orchestration-style saga coordinators: a central brain that knows the steps, drives them in order, and triggers the rollback when something breaks. That part is genuinely the same.\nWhat's not the same is what you're on the hook for. We run Camunda 8 in production for credentialing and scheduling workflows, so I've lived one of these; the other I've read the docs on and priced out for real proposals. The honest comparison isn't \"which has more features.\" It's \"which failure is yours to own.\" Let me lay both out.\nOrchestration sagas need a coordinator because someone has to remember where the process is. Choreography (services reacting to each other's events with no central brain) works until you need to answer \"why is order 8842 stuck,\" and then nobody can, because the state lives smeared across six services' logs. An orchestrator centralizes that: one place holds the process state, drives the next step, and owns the compensation logic.\nSo the shape is identical on both. Take a classic order saga: reserve inventory, charge the card, ship. If the charge fails, release the inventory. If shipping fails, refund the charge and release the inventory. Three forward steps, a compensation for each, run in reverse. The pattern is old and boring, which is the po",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AWS Step Functions vs Camunda for Sagas：两个编排器，不同的影响范围",
+        "summary": "本文比较了AWS Step Functions和Camunda 8作为saga编排器的异同，不仅审视功能特性，还审视了运营责任和故障归属。两者都实现了相同的集中式工作流协调和补偿操作模式，但每个团队必须管理的\"影响范围\"（blast radius）存在显著差异。理解这些权衡可以避免选择错误的平台并付出相应代价。"
+      }
+    }
+  },
+  {
+    "title": "Turn a Spring Boot app into a distributed cron cluster",
+    "slug": "turn-spring-boot-app-into-distributed-cron-cluster",
+    "url": "https://dev.to/paganini2008/turn-a-spring-boot-app-into-a-distributed-cron-cluster-3pd0",
+    "source": "DEV Community",
+    "date": "2026-09-20T10:37:27.000Z",
+    "summary": "Cronflower is a distributed scheduler for Spring Boot that solves the multi-instance cron problem using a leader-based cluster pattern. Unlike @Scheduled which runs in a single JVM, cronflower maintains task state across instances and ensures tasks run exactly once through simple annotations. It supports cron expressions, fixed intervals, and SpEL templates for parameterized scheduling.",
+    "content": "Turn a Spring Boot app into a distributed cron cluster\n\n\n@Scheduled is fine until it isn't. It runs in one JVM, so the moment you scale to two instances the\ncronflower is that whole stack, open source: a distributed, stateful scheduler for Spring Boot\ntask scheduling, which you use through two\ncronsmith); a companion post covers its DAG workflows.\nThere are two kinds of process:\nA scheduler owns the schedule. It keeps task state in a store, decides when each task is due,\nand calls out to run it. Run several and they form a cluster with a leader.\nAn executor is your application. It declares tasks with @Task and runs the code when the\nscheduler says it's time.\nYour business code lives in the executor. The scheduler is infrastructure you run alongside it.\nOn the executor, a task is a bean method with @Task. It's discovered on startup and registered\n@Component\npublic class DemoTasks {\n\n    // Traditional cron, every 5 seconds; takes its parameter as a String.\n    @Task(cron = \"*/5 * * * * ?\", group = \"showcase\", name = \"sayHello\", initialParameter = \"world\")\n    public String sayHello(String who) {\n        return \"hello, \" + who + \" @ \" + LocalDateTime.now();\n    }\n\n    // Fixed interval, no cron needed.\n    @Task(interval = 10, intervalUnit = TimeUnit.SECONDS, group = \"showcase\", name = \"every10s\")\n    public void every10s() { /* ... */ }\n\n    // An ISO-8601 duration for the intervals cron can't span (every 90 minutes).\n    @Task(iso = \"PT1H30M\", group = \"showcase\", name = \"every90m\")\n    public void every90m() { /* ... */ }\n}\n\nThe parameter is optional. A method can take nothing, or a single String (the task's\ninitialParameter). That parameter can be a constant, or a SpEL template evaluated on the executor\n@Task(cron = \"0 0 * * * ?\", group = \"showcase\", name = \"heartbeatTick\",\n      initialParameter = \"#{T(java.time.LocalDate).now().toString()}\")\npublic void heartbeatTick(String today) { /* today is recomputed every hour */ }\n\nNeed a schedule the month-based grammar c",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "将Spring Boot应用转变为分布式定时任务集群",
+        "summary": "Cronflower是一个Spring Boot分布式调度器，使用基于领导者的集群模式解决多实例定时任务问题。与在单个JVM中运行的@Scheduled不同，cronflower跨实例维护任务状态，并通过简单注解确保任务恰好执行一次。它支持cron表达式、固定间隔和SpEL模板以实现参数化调度。"
+      }
+    }
+  },
+  {
+    "title": "Build a Read-Only Eval Slice Before Giving Free Inference Write Authority",
+    "slug": "build-read-only-eval-slice-before-inference-write",
+    "url": "https://dev.to/kongkong1/build-a-read-only-eval-slice-before-giving-free-inference-write-authority-2895",
+    "source": "DEV Community",
+    "date": "2026-09-20T10:35:22.000Z",
+    "summary": "Free AI inference should not bypass testing safeguards when features can mutate user data like tickets or invoices. Building a read-only eval slice first—using the same protocol as production but without database writes—catches failures before they reach customers. This approach treats AI output as a draft requiring a production-like test harness before committing changes.",
+    "content": "Last Tuesday a teammate wired \"draft a reply\" onto the ticket page because inference had become free overnight. A support lead clicked that button on a live customer thread, watched the spinner stall, and then saw the draft publish. Was the model actually wrong, or did we skip the layer that should have kept that draft private? The first failure was not generation quality; it was a write path that treated a guess like a commit.\nI keep arguing the same unpopular position on these prototypes, and I will argue it again here. Free inference is a gift for evaluation loops, but it is not permission to skip handoff tests. If your feature can mutate a ticket, an invoice note, or a user record, the model is not the product. The product is the contract between the button click, the provider, the store, and the identity of the actor.\nTeams still celebrate a cheap completion the way they once celebrated a green unit test on a mapper. They paste a client call into a route handler, render the string, and call the vertical slice done. Have you noticed how often that slice dies at the first timeout, the first empty body, or the first retry? A contended rehearsal server will show you those failures earlier, which is useful only if you actually look.\nSo I refuse to give a completion write authority until a read-only eval slice can fail in public. The slice uses the same provider protocol the production route will use, minus the database mutation. Think of it like a dress rehearsal with the lighting board live and the curtain still down. You want the lights to flicker now, not during the matinee when customers are already in their seats.\nWhen I need a cheap place to run that rehearsal, I point the same protocol at MonkeyCode's free model access and free server option. Disclosure: This article was prepared as part of MonkeyCode's product outreach. That free path is enough if you want to drive this harness, and I still refuse to treat it as launch capacity. The application pins an envel",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在授予免费推理写入权限前构建只读评估切片",
+        "summary": "当功能可能改变用户数据（如工单或发票）时，免费AI推理不应绕过测试防护措施。首先构建只读评估切片——使用与生产相同的协议但无数据库写操作——可在故障到达客户前捕获。这种方法将AI输出视为草稿，需通过类似生产的测试工具验证后再提交更改。"
+      }
+    }
+  },
+  {
+    "title": "Why I built 43+ PDF tools to process files locally in the browser",
+    "slug": "why-i-built-43-pdf-tools-process-files-locally",
+    "url": "https://dev.to/aniketgawande/why-i-built-43-pdf-tools-to-process-files-locally-in-the-browser-44oa",
+    "source": "DEV Community",
+    "date": "2026-09-20T10:34:01.000Z",
+    "summary": "1into1 PDF is a privacy-first suite with 43+ tools that process documents locally in the browser rather than uploading to servers. The approach eliminates security risks of sensitive files leaving the device while improving performance by removing the upload-process-download cycle. It supports offline workflows and uses device-aware processing limits adapted to different hardware capabilities.",
+    "content": "Most online PDF tools follow the same pattern:\nUpload your file → wait for it to process → download it again.\nThat works, but it also means sensitive documents may leave your device.\nI wanted to build the opposite.\nYour files. Your device.\n1into1 PDF is a privacy-first, local-first suite with 43+ PDF and document tools.\nCore workflows process files directly in the browser instead of uploading them to a processing server.\nThat means users can work with PDFs while keeping their documents on their own device.\nWhy local processing matters\nPDFs often contain sensitive information:\ncontracts\nFor these files, privacy should not depend on trusting another processing server.\nLocal browser processing changes that model.\nInstead of sending the document somewhere else, the browser does the work.\nWhat I wanted 1into1 PDF to offer\nPrivacy-first processing\nCore workflows run locally, so the files stay on the user's device.\nNo signup required\nUsers can start using the core tools without creating an account.\nNo desktop software installation\nThe suite runs in the browser and can also be installed as a PWA.\nOffline-capable workflows\nAfter the application and required resources are loaded, many core tools can continue working without an active internet connection.\nFast local processing\nRemoving the traditional upload → server processing → download cycle can make many workflows feel much faster.\nMore than basic PDF tools\nThe suite currently includes 43+ tools, including:\nPDF compression\nOne challenge with local processing is that every user's device has different hardware and browser resources.\nSo instead of pretending there is one universal desktop limit, 1into1 PDF uses device-aware capacity guidance.\nPro supports up to 150 MB on mobile and tablet, while desktop can process files beyond 150 MB based on the user's device capacity and the selected workflow.\nThe main idea\nThe positioning became very simple:\nMost online PDF tools are upload-first.\nThe goal is not only to provide lots of P",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么我开发了43+个PDF工具在浏览器中本地处理文件",
+        "summary": "1into1 PDF是一个隐私优先的套件，包含43+个工具，可以在浏览器中本地处理文档，而不是上传到服务器。这种方法消除了敏感文件离开设备的安全风险，同时通过消除上传-处理-下载周期来提高性能。它支持离线工作流，并使用适应不同硬件功能的设备感知处理限制。"
+      }
+    }
+  },
+  {
+    "title": "A timeout is not a failure",
+    "slug": "a-timeout-is-not-a-failure",
+    "url": "https://dev.to/deval123/a-timeout-is-not-a-failure-4a9d",
+    "source": "DEV Community",
+    "date": "2026-09-20T10:33:19.000Z",
+    "summary": "Testing MTN Mobile Money's API reveals that a missing X-Callback-Url header causes silent failure rather than an error, contradicting documentation. The critical insight is that payment integration timeouts tell you nothing about whether the request arrived or succeeded—payment may have been processed but the response lost. Treating timeout as failure is a dangerous assumption.",
+    "content": "Five submissions to MTN Mobile Money's sandbox, and what they cost me to learn.\nOn 16 September I put a catch-all recorder behind a Cloudflare tunnel, created a second MTN API user pinned to that tunnel's hostname, and sent five collection requests straight to MTN in curl — deliberately bypassing my own gateway, so that whatever came back would be MTN's behaviour and not mine.\nEverything about the five submissions was identical except one header.\n\n\n\nMSISDN\n\nX-Callback-Url sent\nCallback received\n\n\n\n\n46733123453\nno\nnone\n\n\n46733123453\nyes\nyes\n\n\n46733123451\nyes\nyes, twice\n\n\n46733123451\nno\nnone\n\n\n46733123450\nyes\nyes\n\n\n\nThree carried the header. All three produced a callback. Two omitted it. Neither produced anything — not a rejection, not a delayed delivery, nothing at all.\nThat table says something the documentation does not. providerCallbackHost, the field you register when you create an API user and can never change afterwards, is an allow-list, not a destination. Registering it does not cause MTN to call you. It only constrains where a supplied X-Callback-Url is permitted to point. Omit the header and you are simply not called, silently, forever.\nIf you have ever wired up an integration, registered your callback host, and then sat watching a log that never fills, that is why.\nHere is the question that decides whether a payment integration is correct or merely convincing: your request to the operator times out. What do you write down?\nThe tempting answer is FAILED. The request did not succeed, after all. It is also the answer that eventually costs somebody real money, because a timeout says nothing whatsoever about what happened on the other side. The operator may have never seen your request. It may have seen it, debited the customer, and had its response lost on the way back to you. Those two situations are indistinguishable from where you are standing, and they have opposite consequences.\nWriting FAILED is not recording an outcome. It is guessing one, and then trea",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "超时不是失败",
+        "summary": "对MTN Mobile Money API的测试表明，缺少X-Callback-Url头会导致静默失败而不是错误，这与文档相矛盾。关键的洞察是支付集成超时无法告诉你请求是否到达或成功——支付可能已被处理但响应丢失。将超时视为失败是一个危险的假设。"
+      }
+    }
+  },
+  {
+    "title": "Building a Hybrid RAG System: Combining Neo4j Graph Memory with Vector Search",
+    "slug": "building-hybrid-rag-system-neo4j-graph-vector-search",
+    "url": "https://dev.to/rajanpanwar/building-a-hybrid-rag-system-combining-neo4j-graph-memory-with-vector-search-4mng",
+    "source": "DEV Community",
+    "date": "2026-09-20T10:23:57.000Z",
+    "summary": "Hybrid RAG systems combine Neo4j graph databases with vector search (ChromaDB/FAISS) to overcome pure vector search's inability to reason about entity relationships and multi-hop dependencies. Entities are extracted and stored as graph nodes before indexing, allowing queries to find semantically relevant chunks then traverse relationships. This architecture enables structured relationship reasoning at the cost of added complexity.",
+    "content": "Most Retrieval-Augmented Generation (RAG) tutorials stop at \"chunk your docs, embed them, throw them in a vector store.\" That works fine for simple Q&A over a PDF. But the moment your data has relationships entities that connect to other entities, hierarchies, dependencies pure vector search starts falling short. It can find semantically similar chunks, but it has no concept of how those chunks relate to each other.\nThat's the problem I set out to solve while building a RAG system that combines Neo4j's graph database with vector memory (ChromaDB/FAISS), orchestrated using LangChain.\nVector search is great at answering \"what's similar to this query?\" but weak at answering \"how is A connected to B?\" If a user asks something that requires multi-hop reasoning for example, connecting a person to a project to a client to a contract clause a flat vector index has no native way to traverse that chain. It just returns whatever chunks score highest on similarity, even if the actually relevant answer requires linking two or three separate pieces of information together.\nWhy a Hybrid Architecture\nThe system I built uses two memory layers working together instead of one:\nVector Memory (ChromaDB/FAISS) handles semantic similarity. Given a query, it quickly narrows down the most relevant candidate chunks/entities based on embedding distance.\nThe retrieval flow looks roughly like this:\nUser Query\nThis way, the vector store does what it's good at (fast semantic narrowing), and the graph does what it's good at (structured, multi-hop relationship reasoning) instead of forcing one system to do both jobs.\nKey Engineering Decisions\nEntity extraction before storage. Instead of just chunking and embedding raw text, incoming data is first parsed to extract entities and relationships, which get written into Neo4j as nodes and edges. The raw text chunks still go into the vector store, but now they're linked to graph nodes via shared IDs — so a vector hit can be used to \"jump into\" the graph.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建混合RAG系统：结合Neo4j图数据库和向量搜索",
+        "summary": "混合RAG系统将Neo4j图数据库与向量搜索（ChromaDB/FAISS）相结合，以克服纯向量搜索无法推理实体关系和多跳依赖的问题。在索引之前提取实体并将其存储为图节点，允许查询找到语义相关的块然后遍历关系。这个架构以增加复杂性的代价实现了结构化关系推理。"
+      }
+    }
+  },
+  {
+    "title": "We’ve Forgotten How to Write Fast Software (and How Gen Coding Fixes It)",
+    "slug": "weve-forgotten-how-to-write-fast-software",
+    "url": "https://dev.to/makalin/weve-forgotten-how-to-write-fast-software-and-how-gen-coding-fixes-it-28p3",
+    "source": "DEV Community",
+    "date": "2026-09-20T10:22:59.000Z",
+    "summary": "The software industry has become intellectually lazy by assuming hardware is cheap, resulting in bloated applications—megabytes of JavaScript for buttons, gigabytes of RAM for chat apps. Returning to zero-dependency, efficient design is necessary to manage latency, power consumption, and maintenance overhead. Frameworks like RAW demonstrate the performance gains from stripping away unnecessary abstraction.",
+    "content": "The tech industry has a memory problem—and it goes far beyond uncollected garbage in the heap. We have collectively forgotten what it means to write efficient software.\nMegabytes of JavaScript are shipped across the wire just to render a static button. Gigabytes of RAM are loaded into an Electron instance for chat applications that could have easily run on a fraction of those resources twenty years ago. The illusion that hardware is cheap has made software architecture intellectually lazy. But hardware isn't cheap when you factor in latency, power consumption and the immense cognitive overhead of maintaining thousands of hidden dependencies.\nHere is why a return to zero-dependency, bare-metal thinking is no longer just a retro aesthetic but a necessary survival strategy for the next generation of development.\nThe modern web stack has convinced us that complexity is a feature. We build massive stateful client applications that duplicate the logic already running on the server.\nThis is the exact bloat that drives the philosophy behind zero-hydration web engines like RAW. If a user needs information the server should generate it and the client should display it. There is no legitimate reason to re-render a virtual DOM a thousand times a second just to update a timestamp or toggle a menu. When you strip away the React or Next.js abstractions you are left with pure, instant delivery. The client becomes a lightweight viewer again not a sprawling operating system running inside a browser tab.\nThe same philosophy applies directly to data transport. JSON has been the undisputed king of web communication for years because it is human readable and universally supported. But for machine-to-machine communication, it is inherently inefficient. It is text-heavy, requires continuous parsing, wastes bandwidth with repetitive keys and forces the CPU to guess data types on the fly.\nThis is where the transition to custom binary serialization formats like CompactBinaryData changes the g",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我们已经忘记了如何编写快速软件（以及生成代码如何修复它）",
+        "summary": "软件行业由于假设硬件便宜而变得智力懒惰，导致应用程序臃肿——按钮需要数百万字节的JavaScript，聊天应用需要数十亿字节的RAM。回归零依赖、高效的设计对于管理延迟、功耗和维护开销是必要的。像RAW这样的框架展示了去除不必要抽象所带来的性能收益。"
+      }
+    }
+  },
+  {
+    "title": "Delivery dates are a data problem: 62 lanes, 385k SKUs and a calendar that zeroes production",
+    "slug": "delivery-dates-data-problem-62-lanes-385k-skus",
+    "url": "https://dev.to/opttoyschina/delivery-dates-are-a-data-problem-62-lanes-385k-skus-and-a-calendar-that-zeroes-production-1450",
+    "source": "DEV Community",
+    "date": "2026-09-20T10:18:14.000Z",
+    "summary": "Delivery date estimation for a 385k-SKU catalog shipping to 62 countries requires modeling as a data pipeline, not a lookup table, because transport mode, stock availability, and seasonal factory closures all affect results. The solution is a sparse matrix where empty cells carry as much information as filled ones—e.g., rail to Brazil is geographically impossible. Code comments must make this explicit.",
+    "content": "We run a wholesale catalogue of 385,315 listings from 5,233 Chinese factories, and we ship to 62 countries. Every product page has to answer one question a buyer actually cares about: when will this be on my shelf?\nFor a long time we treated that answer as a field. It is not a field. It is a pipeline with three independent inputs, and one of those inputs drops to zero for six weeks every year. This post is about how we model it, with the real numbers from our own data.\nThe obvious model is a lookup:\nconst dni = srokiPoStrane[strana];   // \"18-40\"\n\nThat is wrong in three separate ways, and each one shows up as an angry email.\nIt assumes one transport mode. Air, rail and sea to the same country differ by a factor of five.\nIt assumes the goods exist. Half a catalogue is stock, half is made to order.\nIt assumes a factory is working today. For roughly six weeks a year, it is not.\nOur matrix is 62 destinations × 3 modes. Not every cell is filled — and the empty cells carry as much information as the full ones.\n\n\n\nRegion\nCountries\nAir\nRail\nSea\n\n\n\n\nEurope\n28\n5–9 d\n12–22 d (all 28)\n22–38 d\n\n\nAsia-Pacific\n11\n1–9 d\n—\n2–30 d\n\n\nMiddle East\n9\n4–8 d\n18–25 d (1 of 9)\n14–32 d\n\n\nAfrica\n7\n6–12 d\n—\n22–40 d\n\n\nSouth America\n4\n11–15 d\n—\n30–45 d\n\n\nNorth America\n3\n8–15 d\n—\n18–40 d\n\n\n\nRail exists for 29 of 62 destinations and for exactly one reason: continuous track from China. Every European destination has a rail figure; the Middle East has one (Iran); the Americas, Africa and the island parts of Asia-Pacific have none and never will. A null in that column is not missing data — it is geography, and the code should say so:\n// null в колонке rail — это НЕ «данных нет», это «рельсов нет».\n// Их нельзя дозаполнить позже и нельзя подставить среднее по региону.\nconst dostupno = ['air', 'sea', ...(lane.rail ? ['rail'] : [])];\n\nIf you let a null fall through to \"unknown\" your UI will eventually offer a train to Brazil.\nThe widest spread is Asia-Pacific: sea from 2 days to 30. A single regional ave",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "交付日期是一个数据问题：62条航线、385k个SKU和使生产停止的日历",
+        "summary": "对于385k SKU目录运送到62个国家的交付日期估计，需要建模为数据管道而非查找表，因为运输方式、库存可用性和季节性工厂停工都会影响结果。解决方案是一个稀疏矩阵，其中空单元格与填充单元格携带相同的信息——例如，到巴西的铁路在地理上是不可能的。代码注释必须明确说明这一点。"
+      }
+    }
+  },
+  {
+    "title": "Building a tested calculator in the Uniface 10 IDE",
+    "slug": "building-tested-calculator-uniface-10-ide",
+    "url": "https://dev.to/f345345dfg/building-a-tested-calculator-in-the-uniface-10-ide-c73",
+    "source": "DEV Community",
+    "date": "2026-09-20T10:15:30.000Z",
+    "summary": "Building a tested calculator in Uniface 10 IDE demonstrates separation of concerns: the form collects input and displays results, while a service layer handles all calculation logic and validation. This architecture makes math testable without GUI dependencies and includes 69 automated test cases. The approach uses a dummy entity to work around Uniface's requirement that forms have at least one database entity.",
+    "content": "Uniface is one of those tools you rarely read about, but that still runs a surprising amount of business software. I work with it regularly, and I wanted a small, self-contained project to try out a few things properly: a clean structure, input validation and - the part you almost never see in Uniface examples - automated tests.\nThe result is a calculator with a modern flat look, about 25 functions (basic arithmetic, powers, roots, trigonometry, logarithms, rounding, memory, history) and a test service with 69 test cases.\n\nEverything here was built with Rocket Uniface 10 Community Edition (10.4), so you can follow along for free.\nCALC_FRM (Form)          CALC_SVC (Service)           CALC_TEST_SVC (Service)\n - fields & buttons   --->   - public operations    <---  - exec -> RUN_ALL\n - checks empty fields       - all math                   - 69 test cases\n - shows errors              - validation                 - PASS/FAIL via putmess\n - history                   - returns 0 / -1 + text\n\nThe most important decision: the form does not calculate anything. It collects input, calls the service and displays the result. That is what makes the logic testable at all.\nA Uniface form needs at least one entity - if you try to compile a form without one, you get:\nerror: 1017 - Compiling a component without entities is not allowed.\n\nFor a calculator there is no table, so I created a modeled entity that is not in the database:\nModel: CALCULATOR_MDL\n\nEntity: CALCULATOR_DMY (Database Behavior: Not in Database)\nFields: NUMBER1, NUMBER2, RESULT - data type Numeric\nYou will see warnings like 1065 - Field ... might be truncated on output to DBMS and 1072 - Scaling ... changed to 8 when compiling. Since the entity is never written to a database, they are harmless.\nCreate a Non-modal Form (CALC_FRM), drag the entity into it and add:\nthe three modeled fields for input and result,\nnon-modeled fields for CALCULATION (last calculation), MEMORY and HISTORY (multi-line edit box),\none Command Bu",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在Uniface 10 IDE中构建经过测试的计算器",
+        "summary": "在Uniface 10 IDE中构建经过测试的计算器演示了关注点分离：表单收集输入并显示结果，服务层处理所有计算逻辑和验证。这个架构使数学在没有GUI依赖的情况下可测试，并包括69个自动化测试用例。该方法使用虚拟实体来解决Uniface要求表单必须至少有一个数据库实体的限制。"
+      }
+    }
+  },
+  {
+    "title": "Building a Hacker News Scraper with Python and BeautifulSoup",
+    "slug": "building-hacker-news-scraper-python-beautifulsoup",
+    "url": "https://dev.to/logicshadowdev/building-a-hacker-news-scraper-with-python-and-beautifulsoup-1709",
+    "source": "DEV Community",
+    "date": "2026-09-20T10:15:16.000Z",
+    "summary": "A Python scraper fetches Hacker News pages using Requests and parses HTML with BeautifulSoup to extract story titles, links, scores, and comment counts into CSV. The code demonstrates basic web scraping patterns including HTTP headers, HTML parsing, and handling missing elements gracefully. The author plans to extend it with pagination, improved error handling, and database storage.",
+    "content": "Introduction\n\n\nI built a Python web scraper that collects Hacker News stories and saves them to a CSV file.\nThe scraper collects:\nStory titles\nStory links\nStory scores\nComment counts\nPython\nRequests\nBeautifulSoup\nlxml\nCSV\nFirst, I sent a request to the Hacker News website using the Requests library. Then I used BeautifulSoup to find the story information in the HTML page. Finally, I saved the extracted data into a CSV file.\nfrom bs4 import BeautifulSoup as bs\nimport requests\nimport csv\n\nurl = \"https://news.ycombinator.com/news\"\nheaders = {\n    \"User-Agent\": \"Mozilla/5.0\"\n}\nsource = requests.get(url, headers=headers)\nsource.raise_for_status()\n\nsoup = bs(source.content, \"lxml\")\nstories = soup.find_all(\"tr\", class_=\"athing\")\ndata =[]\n\nfor story in stories:\n    title_tag = story.find(\"span\", class_=\"titleline\").find(\"a\")\n    title = title_tag.text\n    link = title_tag[\"href\"]\n\n    subtext = story.find_next_sibling(\"tr\")\n    score_tag = subtext.find(\"span\", class_=\"score\")\n    score = score_tag.text if score_tag else \"0 points\"\n\n    comments =\"0 comments\"\n    comment_links = subtext.find_all(\"a\")\n    if comment_links:\n        last = comment_links[-1].text\n        if \"comment\" in last or \"discuss\" in last:\n            comments = last\n\n    data.append([title, score, comments, link])\n\nwith open(\"hacker_news.csv\", \"w\", newline=\"\", encoding=\"utf-8\") as file:\n    writer = csv.writer(file)\n    writer.writerow([\n        \"Title\",\n        \"Score\",\n        \"Comments\",\n        \"Link\"\n    ])\n    writer.writerows(data)\n\nprint(f\"Successfully scraped {len(data)} stories\")\n\nThis project helped me practice sending HTTP requests, parsing HTML, extracting data, and saving information to CSV.\nNext, I want to add pagination, improve error handling, and store the scraped data in a database.\nYou can find the complete project on my GitHub:\nhttps://github.com/logicshadowdev/web-scraping-project)",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用Python和BeautifulSoup构建Hacker News爬虫",
+        "summary": "Python爬虫使用Requests获取Hacker News页面，并用BeautifulSoup解析HTML以提取故事标题、链接、得分和评论数到CSV。该代码演示了基本的网页爬取模式，包括HTTP头、HTML解析和优雅处理缺失元素。作者计划用分页、改进的错误处理和数据库存储来扩展它。"
+      }
+    }
+  },
+  {
+    "title": "I Built 12 MCP Tools for PDF Generation — Here's How Product Engineers Use Them",
+    "slug": "built-12-mcp-tools-pdf-generation",
+    "url": "https://dev.to/dev_dc9eca0093606c9a4162e/i-built-12-mcp-tools-for-pdf-generation-heres-how-product-engineers-use-them-232i",
+    "source": "DEV Community",
+    "date": "2026-09-20T10:06:46.000Z",
+    "summary": "A PDF generation API exposed as 12 MCP tools allows AI agents to generate invoices, contracts, and reports without boilerplate. The pipeline handles template validation, XML schema extraction, loop expansion, rendering, and PDF conversion—solving the problem where docxtpl breaks on nested table structures. This eliminates the typical choice between manual work, HTML templates, and accepting limitations.",
+    "content": "Product engineers spend hours writing boilerplate to generate invoices, contracts, and reports. I was one of them. So I built an API that handles the entire pipeline — upload template, fill with data, return PDF — and exposed it as MCP tools so AI agents can call it directly.\nYou have a Word template for invoices. It has a table with line items. You need to fill it with data from your API.\nYou reach for docxtpl. You throw in some Jinja2 syntax. And... it breaks.\nfrom docxtpl import DocxTemplate\n\ntemplate = DocxTemplate(\"invoice.docx\")\ncontext = {\n    \"client\": \"Acme Corp\",\n    \"items\": [\n        {\"name\": \"Design\", \"qty\": 10, \"rate\": 150},\n        {\"name\": \"Development\", \"qty\": 20, \"rate\": 175},\n        {\"name\": \"Review\", \"qty\": 5, \"rate\": 120},\n    ]\n}\ntemplate.render(context)  # Table collapses. XML is garbage.\ntemplate.save(\"invoice-filled.docx\")\n\nThe table collapses. The PDF is garbage. You Google \"docx to pdf python\" and find 47 Stack Overflow answers that all say \"just use HTML templates.\"\nHere's why it breaks: Word's XML isn't HTML. A table row isn't a <tr> tag. It's <w:tr> wrapped in <w:tbl>, with properties, cell definitions, and spans all entangled. When docxtpl expands a {% for %} loop across rows, it doesn't understand the XML boundaries. It copies text. The row structure breaks. LibreOffice throws an error.\nMost devs give up here. They either manually duplicate rows, switch to HTML templates and forget about Word, or accept that DOCX templates only work for flat documents without loops.\nI refused to accept any of those options.\nI built a pipeline that handles the entire lifecycle:\n.docx upload → validate ZIP → extract schema → expand loops → render → convert to PDF → store\n\nBut here's the thing: you don't need to understand any of that. You just need three API calls:\n# 1. Upload your template\ncurl -X POST https://api.docuqueue.com/templates/upload \\\n  -H \"Authorization: Bearer dq_...\" \\\n  -F file=@invoice.docx\n# Returns: { \"template_id\": \"tpl_abc123\", \"f",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了12个MCP PDF生成工具——产品工程师如何使用它们",
+        "summary": "一个PDF生成API作为12个MCP工具公开，允许AI代理无需样板代码地生成发票、合同和报告。该管道处理模板验证、XML模式提取、循环扩展、渲染和PDF转换——解决了docxtpl在嵌套表结构上失败的问题。这消除了在手动工作、HTML模板和接受限制之间的典型选择。"
+      }
+    }
+  },
+  {
+    "title": "Building a production-ready AI chatbot with memory and context",
+    "slug": "building-production-ready-ai-chatbot-memory-context",
+    "url": "https://dev.to/ayinedjimi-consultants/building-a-production-ready-ai-chatbot-with-memory-and-context-12jk",
+    "source": "DEV Community",
+    "date": "2026-09-20T10:01:58.000Z",
+    "summary": "Production chatbots require a memory layer (typically Redis) that persists conversation history with TTL expiration, manages token budgets, and survives restarts. The system uses a session store for persistence, a context builder for token selection, and an API wrapper that maintains history. This prevents hitting token limits, reduces costs, and handles graceful degradation when history grows too large.",
+    "content": "Most chatbot tutorials end after the first response. Production chatbots need to remember what was said three turns ago, survive restarts, and stay within token budgets — that's where the real work is. Skip that layer and you'll be rewriting core logic under pressure at 2am.\nA language model has no memory between API calls. Every request starts from a blank slate. If you want the bot to remember the user's name from turn one, you have to send that history yourself in every subsequent request.\nThat works fine in demos. In production, you'll hit the model's context limit fast — and you'll pay for every token you resend. The solution is a memory layer between your application and the model: it stores conversation history, decides what to include in each request, and handles gracefully the case where history grows too large.\nThree components make this work:\nSession store — persists message history with a TTL (Redis is a natural fit)\nContext builder — selects which messages fit within the token budget\nAPI wrapper — calls the model and appends responses to history\nI'll use Redis because it handles TTL natively, which matters for chatbot sessions: you want idle conversations to expire automatically rather than accumulating forever. tiktoken handles token counting server-side.\nimport json\nimport redis\nimport tiktoken\n\nr = redis.Redis(host=\"localhost\", port=6379, db=0)\nenc = tiktoken.get_encoding(\"cl100k_base\")\n\nSESSION_TTL = 1800  # 30 minutes\n\ndef load_history(session_id: str) -> list[dict]:\n    raw = r.get(f\"chat:{session_id}\")\n    if not raw:\n        return []\n    return json.loads(raw)\n\ndef save_history(session_id: str, messages: list[dict]) -> None:\n    r.set(f\"chat:{session_id}\", json.dumps(messages), ex=SESSION_TTL)\n\ndef count_tokens(messages: list[dict]) -> int:\n    total = 0\n    for msg in messages:\n        total += 4  # per-message overhead (role, separators)\n        total += len(enc.encode(msg.get(\"content\", \"\")))\n    return total + 2  # reply priming tokens\n\nOne",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "构建具有记忆和上下文的生产级AI聊天机器人",
+        "summary": "生产级聊天机器人需要一个内存层（通常是Redis），它能持久化对话历史并带有TTL过期、管理令牌预算并在重启后继续存在。该系统使用会话存储以实现持久化，使用上下文构建器进行令牌选择，以及一个维护历史的API包装器。这可防止达到令牌限制、降低成本并在历史增长过大时处理优雅降级。"
+      }
+    }
+  },
+  {
     "title": "From Warehouses to Algorithms: How JD Logistics Builds a Technology-Driven Supply Chain",
     "slug": "jd-logistics-supply-chain-technology",
     "url": "https://dev.to/lyee_blair_a5996ecaf9cd2b/from-warehouses-to-algorithms-how-jd-logistics-builds-a-technology-driven-supply-chain-1jl2",
