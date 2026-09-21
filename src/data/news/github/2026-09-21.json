@@ -1,0 +1,194 @@
+[
+  {
+    "title": "When AI Agents Hammer tools/list: Building a Caching-Aware MCP Server (SEP-2549)",
+    "slug": "ai-agents-hammer-tools-list-caching",
+    "url": "https://dev.to/sindhuja_sudhakar/when-ai-agents-hammer-toolslist-building-a-caching-aware-mcp-server-sep-2549-38k6",
+    "source": "DEV Community",
+    "date": "2026-09-21T03:30:00.000Z",
+    "summary": "This article explores how AI agents that plan recursively can overload discovery endpoints by calling tools/list repeatedly, creating unintended denial-of-service risks. It demonstrates the problem with real examples from GitHub Copilot CLI and explains how SEP-2549's caching mechanism—using ttlMs and cacheScope fields—lets servers advertise result freshness to prevent wasteful re-fetching.",
+    "content": "Part 2 of 2. Part 1 covered statelessness; here I tackle caching.\nPart 1 was about statelessness, now shipped in the 2026-07-28 spec. This time it's another feature from that same spec: caching (SEP-2549, \"TTL for List Results\"). It adds two tiny fields — ttlMs and cacheScope — to cacheable results, giving clients a way to avoid re-fetching the same discovery data. So I built a server that emits them, pointed real AI clients at it, and watched what actually happened. The result surprised me.\nAI agents plan in loops. A human calls a tool because they decided to; an agent can call — and re-discover — the same tools dozens of times inside a single planning loop. That changes the economics of the protocol: one user request fans out into many MCP calls. A ReAct-style agent can repeatedly re-check the available tools during a multi-step task, calling my discovery endpoint (tools/list) over and over.\nIn a toy server that's harmless — the tool list is a constant. In a real one it isn't. Building a genuine tools/list means querying a service registry, filtering tools through RBAC, assembling input schemas from config, applying feature flags — one or more backend round-trips per call. Now multiply that by a recursive planning loop across many agents, and my discovery endpoint has quietly become a self-inflicted DoS risk for my own databases.\nflowchart LR\n    A[\"AI agent<br/>(recursive planner)\"] -->|tools/list x9| S[MCP Server]\n    S -->|registry + RBAC + schema| DB[(Corporate DB)]\n    style DB fill:#f8d7da,stroke:#842029\nThis isn't hypothetical. When I pointed GitHub Copilot CLI at my server, it fired nine tools/list calls in ~40 seconds in one short session — plus repeated re-initializes. That's the storm SEP-2549 is meant to tame.\nttlMs and cacheScope\n\n\nSEP-2549 lets the server advertise, right in the discovery result, how long the schema may be cached and by whom. The fields sit at the top level of the result (a CacheableResult):\n// a tools/list result\n{ \"tools\": [ /* ...",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "当AI代理频繁调用tools/list时：构建缓存感知的MCP服务器(SEP-2549)",
+        "summary": "本文探讨了进行递归规划的AI代理如何通过反复调用tools/list来过载发现端点，从而造成无意的拒绝服务风险。文章通过GitHub Copilot CLI的真实例子演示了这个问题，并解释了SEP-2549的缓存机制——使用ttlMs和cacheScope字段——如何让服务器公告结果新鲜度以防止浪费性的重新获取。"
+      }
+    }
+  },
+  {
+    "title": "Your AI Agent Can Call APIs Now",
+    "slug": "ai-agents-calling-apis-authorization",
+    "url": "https://dev.to/peeyushkmisra/your-ai-agent-can-call-apis-now-5hi9",
+    "source": "DEV Community",
+    "date": "2026-09-21T03:25:48.000Z",
+    "summary": "As AI agents gain the ability to interact with APIs, databases, and internal systems, a critical security question emerges: who controls what actions an agent is authorized to take? The article explores how Model Context Protocol (MCP), authorization controls, and runtime verification are essential to prevent unauthorized or unintended agent actions in production systems.",
+    "content": "Your AI Agent Can Call APIs Now. Who Is Checking What It Does?\nThe real problem with agentic AI isn't giving an LLM tools. It's\nyour GitHub\nyour database\nSlack\nJira\nAWS\nemail\ninternal company APIs\nAnd then you tell it:\n\"Fix the production issue.\"\nThe agent doesn't just generate text anymore.\nIt can *read data, call APIs, create files, modify code, open pull requests, send messages, and potentially trigger real-world actions.\n\nThat's incredibly powerful.\nBut it creates a new question that we don't talk about enough:\nWhen an AI agent has permission to act, who decides what it is actually allowed to do?\nThis is where MCP, authorization, runtime verification, and agent security become extremely important.\nAnd this is quickly becoming one of the biggest engineering problems in the agentic-AI era.\nA traditional chatbot mostly follows this pattern:\nUser\n  ↓\nLLM\n  ↓\nResponse\n\nYou ask:\n\"Explain Kubernetes.\"\nThe model generates an answer.\nAn AI agent is different.\nIt can look more like this:\n> User\n>   ↓\n> AI Agent\n>   ↓\n> Reasoning\n>   ↓\n> Choose Tool\n>   ↓\n> Call API\n>   ↓\n> Observe Result\n>   ↓\n> Reason Again\n>   ↓\n> Call Another Tool\n>   ↓\n> Take Action\n\nThe important change is the final step.\nIt can potentially do it for you.\nThat's the fundamental shift behind agentic AI.\nSuppose we give our agent three tools:\nsearch_database()\nsend_email()\ncreate_github_pr()\n\nThe LLM might decide:\nUser request\n     ↓\n\"Investigate failed deployment\"\n     ↓\nsearch_database()\n     ↓\nFind error\n     ↓\ncreate_github_pr()\n     ↓\nFix proposed\n     ↓\nsend_email()\n     ↓\nNotify developer\n\nFrom the user's perspective:\n\"The AI fixed my problem.\"\nFrom the infrastructure's perspective:\nAn AI-controlled identity just accessed multiple systems and performed multiple actions.\nThat's a very different security problem.\nThis is one reason Model Context Protocol (MCP) has become so important.\nMCP provides a standardized way for AI applications to interact with external capabilities such as tools and resou",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的AI代理现在可以调用API了",
+        "summary": "随着AI代理获得与API、数据库和内部系统交互的能力，一个关键的安全问题浮现出来：谁控制代理被授权采取什么行动？文章探讨了模型上下文协议(MCP)、授权控制和运行时验证如何对于防止生产系统中的未授权或无意的代理行为至关重要。"
+      }
+    }
+  },
+  {
+    "title": "I flew helicopters for a living. If I had to break into Azure again, I'd start with the Cloud Resume Challenge",
+    "slug": "cloud-resume-challenge-guide",
+    "url": "https://dev.to/kloudcaptain/i-trained-as-a-helicopter-pilot-if-i-had-to-break-into-azure-again-id-start-with-the-cloud-3m2c",
+    "source": "DEV Community",
+    "date": "2026-09-21T03:20:45.000Z",
+    "summary": "A cloud engineer with a unique background—helicopter pilot turned Azure specialist—explains why the Cloud Resume Challenge is an ideal starting point for career switchers without formal credentials. The article breaks down the project into manageable steps and identifies often-overlooked costs, making it more accessible than the original sixteen-step guide.",
+    "content": "Quick bit of background so you know who's talking. I didn't do computer science. I flew helicopters for a living for a few years, and at some point I realised the thing I actually wanted to do was build systems, not fly them. So I taught myself, got a foot in the door in enterprise IT, and kept going. That was about nine years ago. The last six have been all Azure, and these days I do cloud and DevSecOps work for a living and run a free bootcamp on the side. I still fly, just for fun now.\nPeople message me fairly often asking what to build first when they've got no degree and nothing on their resume. My answer is nearly always the Cloud Resume Challenge, but with a warning I wish someone had given me: most of the Azure walkthroughs out there will quietly cost you about $35 a month the moment you want HTTPS on your own domain. Nobody mentions it. You find out when the bill turns up.\nThat, plus the fact that the official page hits you with sixteen steps at once, is why I think so many people open it, feel their stomach drop, and close the tab. So this is my version. Same project, same order, but chopped into seven pieces you can do one at a time, and I've marked the free option at every point where there's a paid one.\nForrest Brazeal put the challenge out in 2020. The idea is simple: build your resume as a website, but make the website a proper cloud app underneath. Static site, serverless API, database, pipeline, the lot. Tens of thousands of people have done it since, and that's actually the point. When a hiring manager sees \"Cloud Resume Challenge\" on your resume they already know roughly what you built, how hard it was, and that you finished it. You're borrowing the project's reputation, which is a fair trade when you don't have one of your own yet.\nIt's also, almost by accident, a decent sample of what a junior cloud job actually involves. Some hosting, some serverless, a database, DNS and certificates, and a pipeline gluing it together. If you can explain every",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我曾以驾驶直升机为生。如果我要重新进入Azure，我会从云简历挑战开始",
+        "summary": "一位拥有独特背景的云工程师——从直升机飞行员转变为Azure专家——解释了为什么云简历挑战对于没有正式证书的职业转换者来说是理想的起点。文章将项目分解为可管理的步骤，并确定了经常被忽视的成本，使其比原始的十六步指南更容易接近。"
+      }
+    }
+  },
+  {
+    "title": "Suffix Matching Is Not Authorization: Lessons from CVE-2026-49869 in Kestra",
+    "slug": "suffix-matching-not-authorization",
+    "url": "https://dev.to/jeffreyciend/suffix-matching-is-not-authorization-lessons-from-cve-2026-49869-in-kestra-29jp",
+    "source": "DEV Community",
+    "date": "2026-09-21T03:20:17.000Z",
+    "summary": "A critical vulnerability (CVE-2026-49869, CVSS 10.0) in Kestra demonstrates how using suffix-matching for authentication bypasses—comparing raw URL strings instead of route identity—created an authentication bypass enabling command injection. The lesson applies broadly: lexical comparisons on paths are weaker than structural route-based checks.",
+    "content": "Suffix Matching Is Not Authorization: Lessons from CVE-2026-49869 in Kestra\n\n\nA single string comparison decided whether an HTTP request to a workflow orchestration platform needed credentials. The comparison was endsWith(\"/configs\"). Because the platform allowed caller-controlled resource identifiers in the same URL position, any path that happened to end with those characters skipped authentication. The result, tracked as CVE-2026-49869, was rated CVSS 10.0 and added to CISA's Known Exploited Vulnerabilities catalog on 2 September 2026.\nThis is worth examining as an engineering lesson rather than as a single vendor incident. The same mistake appears in web applications far outside workflow tooling.\nKestra exposes a REST API for creating and running flows. An AuthenticationFilter protected the API with Basic Authentication but exempted a small set of public endpoints. The exemption was implemented as a suffix match: if the request path ended with /configs, the filter allowed it through.\nKestra also uses configs as a namespace or flow identifier in paths such as /api/v1/main/flows/{namespace}/{id}. An attacker could therefore name a flow configs and construct a request whose path ended with the exempted string. The filter treated the request as public.\nOnce past the filter, the attacker could create a flow and execute it. Kestra's script execution plugin, enabled by default, runs shell commands inside a worker container. The authentication bypass therefore became OS command injection with the privileges of that container.\nThree properties make this class of bug common.\nThe check is on text, not on identity. A framework knows which route matched and which handler will run. Comparing raw path strings discards that information and replaces a structural fact with a lexical guess.\nThe exempted set is defined by convenience. Public endpoints are usually added one at a time, each with a quick condition. Over time the conditions accumulate and interact.\nThe blast radius is",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "后缀匹配不是授权：Kestra 中 CVE-2026-49869 的教训",
+        "summary": "Kestra 中的严重漏洞（CVE-2026-49869，CVSS 10.0）展示了使用后缀匹配进行身份验证绕过的问题——比较原始 URL 字符串而不是路由身份——导致身份验证绕过从而允许命令注入。这个教训具有广泛适用性：对路径的词法比较比基于结构的路由检查要弱得多。"
+      }
+    }
+  },
+  {
+    "title": "Large AI Labs Face Regulatory Capture Allegations",
+    "slug": "ai-labs-regulatory-capture",
+    "url": "https://dev.to/vpodk/large-ai-labs-face-regulatory-capture-allegations-16g9",
+    "source": "DEV Community",
+    "date": "2026-09-21T03:18:30.000Z",
+    "summary": "Critics argue that major AI laboratories are leveraging safety concerns to advocate for expensive regulatory requirements that would effectively lock out smaller competitors and open-source projects. If only well-funded firms can afford compliance audits and specialized infrastructure, regulatory capture could consolidate the AI market into a handful of dominant players.",
+    "content": "Major artificial intelligence laboratories face scrutiny as analysts suggest their public calls for safety regulation are a calculated move to stifle competition. By advocating for strict oversight and expensive independent audits, these dominant firms might be creating a marketplace where only the wealthiest entities can survive, effectively sidelining smaller developers and open-source projects.\nThe concept of regulatory capture involves a situation where an industry successfully influences the laws meant to govern it, often to protect its own interests. In the context of artificial intelligence, several high-profile investors and industry watchers believe companies like Anthropic and OpenAI are utilizing safety concerns to entrench their market positions. While the risks associated with frontier models are legitimate, the financial burden of complying with proposed rules could prove fatal for smaller innovators.\nPitchBook senior analyst Harrison Rolfes notes that these large labs are adept at making safety initiatives a focal point of public discourse. However, he suggests there is a deeper business strategy at play. If federal or international bodies mandate specific testing protocols, the number of companies capable of meeting those standards would be limited. This could consolidate the entire industry into a handful of players like Microsoft, Google, SpaceXAI, and Anthropic.\nInstead of government-only oversight, the industry is seeing a push toward third-party evaluation firms. Organizations such as Apollo Research and METR might become the gatekeepers of the industry, similar to how the Big Four accounting firms operate in finance. While this sounds like a responsible check on power, the fees associated with these audits would be astronomical. Smaller labs simply lack the capital to pay for a third-party stamp of approval for every new model release.\nFurthermore, the complexity of these evaluations requires significant computing power. As models become more c",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "大型人工智能实验室面临监管俘获指控",
+        "summary": "评论人士辩称，主要的人工智能实验室正在利用安全问题来倡导昂贵的监管要求，这些要求实际上会将较小的竞争对手和开源项目排除在外。如果只有资金充足的公司才能负担合规审计和专门基础设施，监管俘获可能会将人工智能市场整合到少数几个主导参与者手中。"
+      }
+    }
+  },
+  {
+    "title": "Prometheus na prática - scraping, o endpoint /metrics e uma mini app Python expondo métricas",
+    "slug": "prometheus-scraping-metrics-python",
+    "url": "https://dev.to/apsis-cc/prometheus-na-pratica-scraping-o-endpoint-metrics-e-uma-mini-app-python-expondo-metricas-2j08",
+    "source": "DEV Community",
+    "date": "2026-09-21T03:16:08.000Z",
+    "summary": "This Portuguese-language article explains Prometheus's pull-based metric collection model (scraping) and walks through building a minimal Python application that exposes metrics via the /metrics endpoint in Prometheus exposition format. Understanding scraping mechanics is essential for implementing observability in production systems.",
+    "content": "1. Retomando: da stack vazia à primeira fonte de dados\n\n\nNo primeiro artigo desta série, subimos Prometheus, Loki e Grafana com Docker Compose, mas sem nenhuma aplicação real enviando dados — o Prometheus só monitorava a si mesmo. Este artigo resolve isso: vamos entender como o Prometheus efetivamente coleta métricas de uma aplicação (scraping) e construir uma mini aplicação em Python puro, sem nenhum framework, que expõe métricas nesse formato.\nExistem duas formas de uma ferramenta de métricas obter dados de uma aplicação:\nPush — a aplicação envia ativamente os valores para um servidor central sempre que quiser (ou em intervalos definidos por ela mesma). StatsD funciona assim.\nPull (scraping) — a aplicação apenas expõe seus valores atuais em um endpoint HTTP, e é o servidor de métricas que periodicamente visita esse endpoint e lê o estado atual. É o modelo do Prometheus.\nO Prometheus escolheu pull deliberadamente, por algumas razões práticas:\nDescoberta centralizada de falhas — se o Prometheus não consegue fazer scraping de um alvo, ele mesmo já sabe e registra isso (métrica up == 0), sem depender da aplicação perceber que parou de enviar dados.\nFacilidade de testar manualmente — como o endpoint é só HTTP, dá para abrir /metrics num navegador ou com curl e ver exatamente o que será coletado, sem precisar simular o lado do Prometheus.\nControle central do intervalo de coleta — quem decide a frequência é quem consome os dados (o Prometheus), não cada aplicação individualmente.\nA exceção fica por conta de jobs de curta duração (um script batch que roda e termina em segundos, sem ficar no ar para ser \"scrapeado\") — para esses casos existe o Pushgateway, um componente auxiliar que aceita push e fica exposto para o Prometheus fazer pull dele. Para aplicações de vida longa como as desta série (servidores HTTP), o modelo pull padrão é suficiente.\nUm endpoint /metrics do Prometheus é simplesmente texto plano, em um formato específico chamado exposition format. Cada métrica s",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Prometheus 实战：抓取、/metrics 端点和小型 Python 应用暴露指标",
+        "summary": "本文用葡萄牙语解释了 Prometheus 的拉取式指标收集模型（抓取），并演示了如何构建一个最小化的 Python 应用程序，通过 /metrics 端点以 Prometheus 格式暴露指标。理解抓取机制对于在生产系统中实现可观测性至关重要。"
+      }
+    }
+  },
+  {
+    "title": "Observabilidade - o que é, métricas vs logs vs traces e a stack Prometheus + Loki + Grafana",
+    "slug": "observabilidade-metricas-logs-traces",
+    "url": "https://dev.to/apsis-cc/observabilidade-o-que-e-metricas-vs-logs-vs-traces-e-a-stack-prometheus-loki-grafana-2136",
+    "source": "DEV Community",
+    "date": "2026-09-21T03:16:06.000Z",
+    "summary": "A foundational article (in Portuguese) that explains observability as the ability to answer unforeseen questions about system behavior using only externally exposed data. It introduces the three pillars—metrics, logs, and traces—and contrasts modern observability practices with the traditional reactive monitoring approach of pre-configured alerts.",
+    "content": "1. Por que \"monitoramento\" não é mais suficiente\n\n\nPor muito tempo, \"monitorar\" um sistema significava basicamente uma coisa: configurar alguns alertas (CPU alta, disco cheio, processo caiu) e torcer para que eles cubram os problemas que realmente vão acontecer. Isso funciona enquanto o sistema é simples e as formas de falhar são poucas e conhecidas de antemão.\nO problema aparece quando o sistema cresce: dezenas de serviços, comunicando-se entre si, rodando em múltiplos containers ou máquinas, com falhas que emergem de combinações imprevisíveis de fatores. Nesse cenário, a pergunta deixa de ser \"esse alerta específico disparou?\" e passa a ser \"por que essa requisição específica ficou lenta, agora, nesse serviço, para esse usuário?\" — uma pergunta que ninguém pensou em antecipar com um alerta configurado de antemão.\nObservabilidade é a propriedade de um sistema que permite responder a esse tipo de pergunta nova, não prevista, olhando apenas para os dados que ele expõe externamente — sem precisar adicionar instrumentação nova ou fazer deploy de novo código toda vez que surge uma dúvida diferente. Ela se apoia em três tipos de dados, chamados informalmente de \"os três pilares\": métricas, logs e traces. Esta é a primeira parte de uma série sobre observabilidade que vai construir, artigo a artigo, uma stack completa e funcional com exemplos práticos em Docker Compose.\nUma métrica é um valor numérico associado a um timestamp, coletado repetidamente ao longo do tempo — uma série temporal. Exemplos: número de requisições por segundo, uso de memória, tempo de resposta médio, número de erros nos últimos 5 minutos.\nCaracterísticas importantes:\nBaratas de armazenar em volume e por longo prazo — um número por intervalo de tempo ocupa muito menos espaço que um log de texto completo, o que permite guardar meses ou anos de histórico sem custo proibitivo.\nÓtimas para alertas e dashboards — perguntas como \"a taxa de erro passou de 5%?\" ou \"a latência p99 está subindo?\" são naturalmen",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "可观测性 - 是什么、指标 vs 日志 vs 追踪以及 Prometheus + Loki + Grafana 堆栈",
+        "summary": "一篇基础文章,解释可观测性的核心能力:仅使用外部暴露的数据来回答关于系统行为的预期之外的问题。文章介绍了三个支柱——指标、日志和追踪——并将现代可观测性实践与传统的反应式监控方法(依赖预配置告警)进行了对比。"
+      }
+    }
+  },
+  {
+    "title": "GitOps avançado - automação de deploy, rollback e boas práticas para produção",
+    "slug": "gitops-automation-deploy-rollback",
+    "url": "https://dev.to/apsis-cc/gitops-avancado-automacao-de-deploy-rollback-e-boas-praticas-para-producao-5cfa",
+    "source": "DEV Community",
+    "date": "2026-09-21T03:16:05.000Z",
+    "summary": "This advanced GitOps guide (in Portuguese) covers automating deployments and rollbacks using ArgoCD, configuring appropriate sync policies, and implementing the practices that distinguish production-ready setups from demonstrations. Topics include complete CI/CD pipeline integration where code changes automatically trigger cluster state synchronization.",
+    "content": "1. Retomando: da sincronização manual à confiança em produção\n\n\nEsta série cobriu, até aqui, o suficiente para operar Kubernetes com GitOps no dia a dia: conceitos fundamentais de Pods, Deployments e Services, kubectl, namespaces, ConfigMaps e Secrets, e uma introdução ao ArgoCD com uma Application sincronizando um repositório ao cluster. Este último artigo fecha a lacuna entre \"o ArgoCD está instalado\" e \"confio nesse pipeline para colocar mudanças em produção sem supervisão constante\": automação completa de deploy, rollback automático, sync policies mais refinadas e as boas práticas que separam um setup de demonstração de um setup pronto para produção.\nUm pipeline GitOps completo normalmente combina CI (que constrói e testa a aplicação) com CD via ArgoCD (que aplica o resultado ao cluster). O CI não aplica nada diretamente ao cluster — sua única responsabilidade é atualizar o repositório de manifests com a nova versão, deixando o ArgoCD detectar e aplicar a mudança:\n# .github/workflows/deploy.yml\nname: build-and-release\non:\n  push:\n    branches: [main]\n\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n\n      - name: Build e push da imagem\n        run: |\n          docker build -t registry.exemplo.com/minha-app:${{ github.sha }} .\n          docker push registry.exemplo.com/minha-app:${{ github.sha }}\n\n      - name: Atualizar tag da imagem no repositório de manifests\n        run: |\n          git clone https://github.com/minha-org/minha-app-manifests.git\n          cd minha-app-manifests\n          kustomize edit set image minha-app=registry.exemplo.com/minha-app:${{ github.sha }}\n          git commit -am \"deploy: minha-app@${{ github.sha }}\"\n          git push\n\nEsse último passo — um commit automatizado no repositório de manifests, trocando a tag da imagem — é o gatilho que faz o ArgoCD (com syncPolicy.automated configurado, como visto no artigo anterior) detectar a diferença e aplicar o rollout automaticamente, sem que o pipeline",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "高级 GitOps - 部署自动化、回滚和生产最佳实践",
+        "summary": "这是一份高级 GitOps 指南,涵盖使用 ArgoCD 自动化部署和回滚、配置适当的同步策略,以及实施区分生产就绪系统与演示环境的最佳实践。主题包括完整的 CI/CD 管道集成,其中代码更改会自动触发集群状态同步。"
+      }
+    }
+  },
+  {
+    "title": "GitOps na prática - ArgoCD e estrutura de repositório",
+    "slug": "gitops-argocd-repository-structure",
+    "url": "https://dev.to/apsis-cc/gitops-na-pratica-argocd-e-estrutura-de-repositorio-28j5",
+    "source": "DEV Community",
+    "date": "2026-09-21T03:16:04.000Z",
+    "summary": "An introduction to GitOps (in Portuguese) that positions Git as the single source of truth for cluster state, explaining how ArgoCD continuously reconciles the cluster to match the repository. This approach eliminates manual kubectl workflows and creates an audit trail where every change flows through version control and review.",
+    "content": "1. Retomando: do kubectl apply manual a um fluxo automatizado\n\n\nNas duas primeiras partes desta série, todo Deployment foi aplicado com kubectl apply -f arquivo.yaml, rodado à mão a partir da máquina de quem estava operando o cluster. Isso funciona para aprender e para clusters pequenos, mas expõe problemas reais em produção: não há registro confiável de quem aplicou o quê e quando, é fácil um manifesto aplicado manualmente divergir silenciosamente do que está versionado no Git, e cada pessoa do time precisa de acesso direto (e credenciais) ao cluster para fazer deploy. Este artigo introduz GitOps, a prática que resolve exatamente isso, e o ArgoCD, uma das ferramentas mais usadas para implementá-la.\nGitOps é a aplicação da ideia de infraestrutura como código a um extremo específico: o Git como única fonte de verdade do estado desejado de um cluster Kubernetes, com um agente rodando dentro do próprio cluster que observa o repositório continuamente e aplica qualquer mudança automaticamente — sem que ninguém precise rodar kubectl apply manualmente.\nO fluxo típico é:\nAlguém abre um pull request alterando um manifesto YAML (por exemplo, mudando replicas: 2 para replicas: 4, ou atualizando a tag de uma imagem).\nO PR passa por revisão e CI, como qualquer outra mudança de código.\nAo ser mesclado (merge) na branch principal, um agente GitOps rodando no cluster detecta a diferença entre o que está no Git e o que está rodando, e aplica a mudança automaticamente.\nO cluster converge para o estado descrito no repositório — sem que ninguém tenha rodado um comando manual contra o cluster.\n\n\n\n\nPull Request → Review/CI → Merge no Git\n                                  │\n                     (agente GitOps observa o repo)\n                                  │\n                                  ▼\n                    Cluster Kubernetes converge\n                    automaticamente para o estado\n                          descrito no Git\n\nComparado a aplicar manifestos manualmente (mesmo que a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "实践中的 GitOps - ArgoCD 和仓库结构",
+        "summary": "GitOps 介绍,将 Git 定位为集群状态的唯一真实来源,阐述 ArgoCD 如何持续协调集群以匹配仓库。这种方法消除了手动 kubectl 工作流,并创建了审计轨迹,其中每个更改都流经版本控制和审查。"
+      }
+    }
+  },
+  {
+    "title": "Kubernetes no dia a dia - kubectl, Namespaces, ConfigMaps e Secrets",
+    "slug": "kubernetes-kubectl-namespaces-configmaps",
+    "url": "https://dev.to/apsis-cc/kubernetes-no-dia-a-dia-kubectl-namespaces-configmaps-e-secrets-gd6",
+    "source": "DEV Community",
+    "date": "2026-09-21T03:16:03.000Z",
+    "summary": "A practical guide (in Portuguese) to daily Kubernetes operations, covering essential kubectl commands, namespace isolation for logical resource separation, and configuration management via ConfigMaps and Secrets. The article bridges learning examples and real-world deployments with actionable command patterns.",
+    "content": "1. Retomando: de conceitos a comandos\n\n\nNa primeira parte desta série vimos o que é o Kubernetes, o problema que ele resolve e os três conceitos fundamentais — Pods, Deployments e Services — aplicando-os em um Deployment mínimo de Nginx. Agora que a base teórica está posta, o foco deste artigo é prático: o kubectl no dia a dia, como organizar recursos com namespaces, como gerenciar configuração e segredos com ConfigMaps e Secrets, e um primeiro deploy de uma aplicação real (não só um Nginx de exemplo).\nkubectl além do apply e do get\n\n\nO artigo anterior já usou kubectl apply e kubectl get. No dia a dia, alguns outros comandos aparecem o tempo todo:\n# Descrever um recurso em detalhes (eventos, status, configuração completa)\nkubectl describe pod nginx-7d9f8c6b4-x2z9k\n\n# Ver os logs de um container dentro de um Pod\nkubectl logs nginx-7d9f8c6b4-x2z9k\nkubectl logs -f nginx-7d9f8c6b4-x2z9k    # segue o log em tempo real\n\n# Abrir um shell dentro de um container em execução\nkubectl exec -it nginx-7d9f8c6b4-x2z9k -- bash\n\n# Remover um recurso\nkubectl delete -f nginx-deployment.yaml\n\n# Encaminhar uma porta local para um Pod, sem precisar expor um Service externo\nkubectl port-forward pod/nginx-7d9f8c6b4-x2z9k 8080:80\n\nkubectl describe costuma ser o primeiro comando rodado ao investigar um Pod que não sobe como esperado — a seção Events no final da saída normalmente aponta a causa (imagem não encontrada, falta de recursos no cluster, falha no readiness probe, etc.) antes mesmo de olhar os logs da aplicação.\nUm namespace é uma forma de dividir um cluster em espaços lógicos isolados — times, ambientes (dev, staging, prod) ou aplicações diferentes podem viver em namespaces separados, com nomes de recursos que não colidem entre si e (com as políticas certas) sem visibilidade de rede umas nas outras.\n# Criar um namespace\nkubectl create namespace minha-app\n\n# Listar todos os namespaces do cluster\nkubectl get namespaces\n\n# Aplicar um manifesto em um namespace específico\nkubectl apply -",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Kubernetes 日常运维：kubectl、命名空间、ConfigMaps 和 Secrets",
+        "summary": "关于日常 Kubernetes 运维的实践指南，涵盖基本的 kubectl 命令、用于逻辑资源隔离的命名空间，以及通过 ConfigMaps 和 Secrets 进行的配置管理。本文将学习示例与实际部署相结合，提供可行的命令模式。"
+      }
+    }
+  },
+  {
+    "title": "Kubernetes - o que é, para que serve e conceitos iniciais",
+    "slug": "kubernetes-concepts-introduction",
+    "url": "https://dev.to/apsis-cc/kubernetes-o-que-e-para-que-serve-e-conceitos-iniciais-mm9",
+    "source": "DEV Community",
+    "date": "2026-09-21T03:16:02.000Z",
+    "summary": "A foundational introduction (in Portuguese) to Kubernetes as a container orchestrator, explaining the operational challenges of managing multiple container instances at scale. The article describes how Kubernetes automates scheduling, self-healing, load balancing, and resource allocation—transforming manual docker run workflows into declarative infrastructure.",
+    "content": "1. O problema que o Kubernetes resolve\n\n\nRodar um container isolado, à mão, com docker run, resolve bem o problema de empacotar e distribuir uma aplicação. Mas assim que essa aplicação precisa rodar em produção — com múltiplas réplicas, tolerância a falhas, atualizações sem downtime e escalando conforme a demanda — o \"container solto\" vira um problema de gestão manual: quem reinicia um container que caiu? Quem distribui a carga entre várias instâncias? Quem decide em qual máquina cada container roda quando há dezenas de servidores disponíveis? Scripts caseiros de docker run e cron para verificar se o processo ainda está vivo resolvem por um tempo, mas não escalam além de poucos serviços.\nO Kubernetes (às vezes abreviado como k8s) é um orquestrador de containers: um sistema que recebe uma descrição de \"o que\" deve estar rodando (quantas réplicas, quanto de CPU/memória, quais portas expor) e se encarrega do \"como\" — decide em qual máquina cada container roda, reinicia o que falhar, distribui tráfego entre réplicas saudáveis e reagenda containers automaticamente se um servidor inteiro cair. Esta é a primeira parte de uma série que vai do zero ao avançado em Kubernetes e GitOps: hoje o foco é entender o problema que o Kubernetes resolve e os conceitos iniciais que sustentam tudo o que vem depois.\nComparado a rodar containers \"soltos\" (um docker run por servidor, gerenciado manualmente ou por scripts), o Kubernetes automatiza justamente o que se torna inviável de fazer à mão em escala:\nAuto-recuperação (self-healing): se um container trava ou o processo morre, o Kubernetes detecta e sobe um novo automaticamente — sem intervenção humana e, idealmente, sem impacto perceptível para quem usa a aplicação.\nEscalonamento: aumentar de 2 para 10 réplicas de uma aplicação é uma mudança de configuração (ou automática, via métricas de uso), não um processo manual de logar em servidores e rodar comandos um por um.\nDistribuição de carga: o Kubernetes decide em qual máquina (node) cada",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Kubernetes - 什么是、有什么用以及基本概念",
+        "summary": "对 Kubernetes 作为容器编排器的基础介绍，解释了大规模管理多个容器实例的运维挑战。本文描述了 Kubernetes 如何自动化调度、自我修复、负载均衡和资源分配——将手动的 docker run 工作流转变为声明式基础设施。"
+      }
+    }
+  },
+  {
+    "title": "File Share Access Reviews: Why Ownership Matters More Than Another ACL Export",
+    "slug": "file-share-access-ownership-acl",
+    "url": "https://dev.to/rakeshranderia/file-share-access-reviews-why-ownership-matters-more-than-another-acl-export-31d4",
+    "source": "DEV Community",
+    "date": "2026-09-21T03:14:28.000Z",
+    "summary": "Traditional file-share reviews often produce permissions reports without clear accountability for access decisions. This article argues for treating ownership as a first-class control, where IT discovers permissions but business owners—not IT staff—decide whether access should remain appropriate, creating proper separation of concerns.",
+    "content": "File Share Access Reviews: Why Ownership Matters More Than Another ACL Export\n\n\nTraditional Windows file shares are easy to underestimate.\nThe permissions are visible. Active Directory groups exist. NTFS ACLs can be exported. On paper, that can look like access governance.\nIn practice, the difficult question is usually not:\nWho has access?\nIt is:\nWho is accountable for deciding whether that access should still exist?\nThat distinction is what turns a permissions report into an access-governance process.\nA typical file-share review starts with an export of directories, groups and users.\nThat is useful, but it quickly runs into familiar problems:\ngroups have no clear owner;\nthe listed owner has left the organisation;\npermissions are inherited through several layers;\nusers appear directly on ACLs rather than through governed groups;\nIT understands the technical permissions but not whether the access is still appropriate;\nreview spreadsheets are produced, emailed and then quietly become evidence of activity rather than evidence of a decision.\nThe technical visibility is there. The accountability often is not.\nThe approach I prefer is to treat ownership as a first-class control.\nIT or IAM should operate the technical process: discover permissions, resolve identities, validate ownership records, package reviews and implement approved changes.\nBut the access decision should sit with a verified business or data owner.\nThat creates a much cleaner separation:\nIT discovers and operates the control.\n\nOwners decide whether access remains appropriate.\n\nIAM/IT implements approved remediation.\n\nEvidence records what happened.\nThis avoids turning a quarterly access review into an IT-owned exercise where the people with the least business context are effectively deciding who should retain access.\nFor traditional Windows file shares, I use the following pattern:\nDiscover → Resolve → Validate Ownership → Monitor → Certify → Remediate → Evidence\nEnumerate the file-share scope and collect",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "文件共享访问审查：所有权为何比 ACL 导出更重要",
+        "summary": "传统的文件共享审查通常生成权限报告，但对访问决策缺乏明确的责任制。本文主张将所有权视为一流的控制机制，其中 IT 部门发现权限，但业务所有者（而非 IT 人员）决定访问是否应该保持恰当，从而建立适当的关注点分离。"
+      }
+    }
+  }
+]
