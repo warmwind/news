@@ -1,0 +1,194 @@
+[
+  {
+    "title": "Making Verification Visible",
+    "slug": "making-verification-visible",
+    "url": "https://dev.to/abhinav_pangaria/making-verification-visible-151l",
+    "source": "DEV Community",
+    "date": "2026-09-22T03:34:10.000Z",
+    "summary": "GuardianKane's dashboard visualizes how agents modify code relative to PRD requirements through interconnected graphs showing code, memory, and requirements mapping. The system uses cytoscape graphs with nodes for files, features, and claims, annotated with test quality rings to make verification transparent and actionable.",
+    "content": "The hackathon gate had one output: a line in the terminal saying a task passed, failed, or needed a human. That line is honest, but it is small. It does not tell you what the agent touched, which requirements have a test behind them, which of those tests have ever passed in a browser, or why a task has been blocked since last night.\nThe rebuild's answer was a dashboard, and it is the part people miss when they hear GuardianKane described as a Stop hook. This is a tour of it, using screenshots from the ecommerce demo, a real project built through the loop and committed with its unedited history. Part 1 covers how the system got here.\nThe dashboard runs at localhost:4173 and has four tabs: Code graph, Memory graph, PRD graph, and Kane activity. An \"Ask GuardianKane\" chat panel sits on the right of every tab. The graphs are drawn with cytoscape; the panels poll small JSON files that the hooks and the graph build write into .testmuai/.\n\nThe v2 design spec defines three kinds of node and four kinds of edge:\ncode nodes are files, from an import scan with madge\n\n\nfeature nodes are tasks from the tracker\nclaim nodes are Kane's use cases\nimports and calls connect code to code\ntouches connects a task to every file the agent edited while working on it\nabout connects a claim to the files it mentions\nThe legend on this screenshot counts 42 code nodes, 7 features, 6 claims, 42 import edges, 41 touches, and 13 about edges. The touches edges are the dormant data from Part 1: the PostToolUse hook had been recording them since the hackathon version and nothing read them until this graph did. They are also the reason the graph is useful. The orange cluster on the right is what the agent actually changed per task, drawn next to what the PRD says those tasks are about.\nNodes carry a phase (P0 to P5 here) and a test-quality ring: strong, weak, or untested. Clicking one or more rings isolates them.\n\nThis is what \"pull-based\" from Part 1 looks like in practice. You select nodes; the sideba",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使验证过程可见化",
+        "summary": "GuardianKane的仪表板通过互连图表可视化代理如何根据PRD需求修改代码，展示代码、内存和需求映射。该系统使用包含文件、功能和声明节点的cytoscape图，并带有测试质量环注释，以使验证过程透明且可操作。"
+      }
+    }
+  },
+  {
+    "title": "The Second Build Was Mostly Wiring",
+    "slug": "second-build-mostly-wiring",
+    "url": "https://dev.to/abhinav_pangaria/the-second-build-was-mostly-wiring-3hlm",
+    "source": "DEV Community",
+    "date": "2026-09-22T03:34:09.000Z",
+    "summary": "GuardianKane evolved from a simple planning tool through three eras: initial task tracking, verification gating, and a comprehensive dashboard system combining browser verification, PRD analysis, and live scope management. The system addresses the core problem of agents generating hundreds of tests that pass without exercising real browser behavior or mapping to actual requirements.",
+    "content": "My first series, Your agent might actually lie to you, is about one shape of GuardianKane: a Claude Code Stop hook that will not let the agent finish until Kane CLI has checked the work in a real browser. That shape placed 2nd in the TestMuAI Kane CLI hackathon, and four paired experiments stand behind it.\nIt is not what GuardianKane is today. The hook is still there, but it is one piece of a larger system: a reviewed PRD, a phase model, a live scope guard, a file lock, a secret scan, and a dashboard with graph views and a chat panel wired into the running Claude Code session. This is the story of how it got there. Part 2 is the tour of what it looks like.\n\nThe repo's JOURNEY.md records each shape against the commits that built it.\nEra 1 was a planning tool. The first four commits are a design spec, an implementation plan, a task-tracker library, and a Claude Code skill with a thin kane-cli wrapper. You gave it a PRD and got back a task-tracker.md: tasks with ids, titles, PRD references, and dependencies. Nothing checked whether a task marked done was done.\nEra 2 was the gate. The same afternoon, 896bc57 added the Stop and PostToolUse hooks with the full decision table, and a day of running the loop against real apps turned it into the product the first series describes: scripted replay, a defect sweep, bug memory, an installer, and the four paired experiments. Two demo videos come from this era, a 14-minute walkthrough and a 3-minute cut.\nEra 3 started five days later. It opens with a new dashboard on August 26 and then runs through twelve numbered phases, each with its own design spec and implementation plan under docs/superpowers/. The current build has its own demo video.\nThe v2 design spec opens with the problem, and it is not \"the gate was broken\". It is that asking a coding agent to generate tests for a system produces \"on the order of hundreds of assertions, all green\", that do not exercise real browser behaviour and do not map to what the PRD asked for. The",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第二次构建主要是布线",
+        "summary": "GuardianKane从一个简单的规划工具演进，经历了三个时代：初始任务跟踪、验证门控和综合仪表板系统，结合浏览器验证、PRD分析和实时作用域管理。该系统解决了代理生成数百个能通过但不执行真实浏览器行为或映射到实际需求的测试的核心问题。"
+      }
+    }
+  },
+  {
+    "title": "Who Verifies the Verifier?",
+    "slug": "who-verifies-verifier",
+    "url": "https://dev.to/abhinav_pangaria/who-verifies-the-verifier-1nff",
+    "source": "DEV Community",
+    "date": "2026-09-22T03:34:07.000Z",
+    "summary": "An examination of verification failures in GuardianKane itself reveals that 12 tasks completed with one real bug, six human overrides for test failures (chart targeting, missing steps, stale baselines), and one timing issue. The analysis demonstrates that Kane CLI's triage correctly categorized failures as automation bugs rather than application bugs.",
+    "content": "The premise of this series is that you should not take an agent's word that it is done. So I built a gate that makes Claude Code prove each task in a real browser before it may stop. The browser is driven by Kane CLI, which is itself an agent.\nThe obvious question arrives late and uncomfortably: why would I take that agent's word either?\nThis is the part of the story where the gate turns around and looks at itself. It has three layers: the verifier's failures, my own, and the rule that decides when to stop asking.\nORBITAL is the densest build in the project, the one with the doubled chart from Part 1. Every task went through the gate, and the Stop hook wrote each attempt to an append-only activity log. Here is the whole build, from that log.\n\n12 of 12 verified. One sweep catch. Six overrides.\nEight tasks failed a check at least once. T1 failed on an assertion timing mismatch after the navigation it was checking had already happened, and passed on retry. Six more (T2, T3, T4, T9, T10, T11) failed badly enough to need a human-reviewed override. For every one of the six, kane-cli's own triage came back confirmed: false, family automation_bug. The causes were specific:\nT2, the performance chart. Three attempts, three different failure points. One opened the wrong page entirely. Triage pointed at flaky headless hover targeting and an ambiguous unlock-state assertion.\nT3, the allocation donut. The test asserted a hover effect without ever hovering the segment first. The script was missing a step.\nT4, the holdings table. A legitimate layout fix invalidated recorded replay baselines. Re-recorded with --author, all eight test files passed.\nT9, T10, T11. The feature steps passed, then a redundant final re-check stalled. On T11 the browser agent oscillated between two buttons until it detected a cycle in its own plan.\nThe eighth was T7, the sweep catch from Part 1. That was the one real problem in the app across twelve tasks.\nEight failures, one bug. Read by exit code, all eig",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "谁来验证验证者？",
+        "summary": "对GuardianKane本身验证失败的检查揭示了12个任务完成时有一个真实的bug、六个人工覆盖测试失败（图表定位、缺失步骤、过时基线）和一个时序问题。该分析表明Kane CLI的分类正确地将失败归类为自动化bug而不是应用程序bug。"
+      }
+    }
+  },
+  {
+    "title": "The Requirement Nobody Wrote",
+    "slug": "requirement-nobody-wrote",
+    "url": "https://dev.to/abhinav_pangaria/the-requirement-nobody-wrote-43je",
+    "source": "DEV Community",
+    "date": "2026-09-22T03:34:05.000Z",
+    "summary": "GuardianKane's PRD \"grilling pass\" discovered a missing specification in a CRUD app: how tasks become High or Low priority when only the default (Medium) could be set. The system's structured conversation approach found this gap before coding, while a baseline Claude agent missed the incomplete requirement entirely.",
+    "content": "The smallest PRD in my experiments has a section called \"Priority badge\". It asks for a badge on each task card, keeps the existing layout, and then says this, which is the whole specification of priority:\njust with a small badge showing High/\nMedium/Low priority somewhere on the card, defaulting to Medium.\n\nRead it again and try to answer one question: how does a task become High?\nIt does not say. Three values are allowed, one is the default, and there is no mechanism for reaching the other two. Nobody wrote that part down, and I did not notice until a tool asked.\nThis was the first of four paired experiments. Same PRD, same starting commit, same operator. todo-kane went through the full GuardianKane loop. todo-baseline was a fresh Claude Code agent given the PRD verbatim and told \"Build this. Let me know when it's done.\" No hooks, no gate, no follow-up.\nBoth builds worked. The baseline passed the add, complete, delete, and default-badge tests from the gated build's own suite. On a CRUD app this small you would expect nothing else. Then I pointed the explicit-priority test at it, and Kane's verdict came back:\nconfirmed: true\nseverity: major\n\"The high-priority task is displayed with a MEDIUM badge instead of High.\"\n\nThere was no way, anywhere in the baseline, to set a task to High or Low. You do not find that by reading the code, because the code is fine for what it does. You do not find it by clicking around either, because every task shows \"Medium\" and Medium is a valid value. The app looks correct right up until someone needs a High.\nThe gated build did not get this right because it was smarter. It got it right because, before any code existed, GuardianKane's start flow ran a grilling pass over the PRD: a structured conversation whose only job is to find every place the document is ambiguous and force a decision while deciding is cheap.\n\nOne question during grilling became a convention, a task, and a test.\nThe question was the obvious one, once someone asks it. T",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "没有人写过的需求",
+        "summary": "GuardianKane的PRD\"烧烤测试\"在一个CRUD应用中发现了缺失的规范：当只能设置默认（中等）优先级时，任务是如何变成高或低优先级的。该系统的结构化对话方法在编码前发现了这个差距，而基准Claude代理则完全错过了这个不完整的需求。"
+      }
+    }
+  },
+  {
+    "title": "My Agent Shipped a Broken Chart and Told Me It Was Done",
+    "slug": "agent-shipped-broken-chart",
+    "url": "https://dev.to/abhinav_pangaria/my-agent-shipped-a-broken-chart-and-told-me-it-was-done-36k7",
+    "source": "DEV Community",
+    "date": "2026-09-22T03:34:04.000Z",
+    "summary": "A rendering bug where a performance chart displayed the same series twice—a smeared doubled line—passed code review and was marked complete by the agent. This incident prompted the creation of GuardianKane, a verification system requiring real browser validation before agents can finish tasks.",
+    "content": "The chart looked fine in the code.\nThe data pipeline was correct. The chart library call had the right shape. Every prop was passed, every array was populated, and nothing about the component would have looked suspicious in thirty seconds of review. If you had put that diff in front of me cold, I would have approved it.\nThen I opened the page. The performance chart was rendering the same series twice: two overlapping traces at slightly different weights, a smeared, doubled line that no one would ship on purpose.\n\nThe same series, drawn twice. This build reported the task complete.\nThe agent that wrote it had already marked the task done.\nThis series is about that word, \"done\", and what it took to stop trusting it. It starts with a tool I built for the TestMuAI Kane CLI hackathon, where it placed 2nd.\nGuardianKane did not start as a verifier. The first four commits in the repo are a planning tool: a design spec, an implementation plan, a task-tracker library, and a Claude Code skill with a thin kane-cli wrapper. You gave it a PRD and got back a task-tracker.md: tasks with ids, titles, the PRD lines each one implements, and dependencies.\nIt was tidy, and it had one hole in the middle. The agent worked through the tracker and moved each task to done when it decided the task was done. Nothing checked. The tracker was a list of claims, and the planner's whole output depended on believing them.\nThe same afternoon, commit 896bc57 added two Claude Code hooks, and the planner became a gate.\nClaude Code has a hook called Stop. It fires every time the agent finishes a turn and is about to hand control back. If the hook prints {\"decision\": \"block\"} with a reason, the agent does not stop. It reads the reason and keeps working.\nThat is the entire lever. Everything else is what I put behind it.\n\nThe agent never calls Kane itself. The hook does, every time it tries to stop.\nThe tracker grew a state machine. The agent may move a task to IN_PROGRESS and CLAIMED_DONE. Only the hook is",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我的代理交付了一个损坏的图表并告诉我已完成",
+        "summary": "一个渲染错误，性能图表显示同一个系列两次——一条模糊的双线——通过了代码审查并被代理标记为完成。这个事件促成了GuardianKane的创建，这是一个验证系统，在代理完成任务之前需要真实浏览器验证。"
+      }
+    }
+  },
+  {
+    "title": "Playwright with Python: Stable Locators and Better Assertions",
+    "slug": "playwright-python-stable-locators",
+    "url": "https://dev.to/karansharma2312/playwright-with-python-stable-locators-and-better-assertions-2b35",
+    "source": "DEV Community",
+    "date": "2026-09-22T03:30:18.000Z",
+    "summary": "Using strong CSS/accessible locators, built-in wait mechanisms, and meaningful assertions in Playwright reduces test flakiness and improves reliability. This approach minimizes false failures and provides clearer reporting for test validation and review.",
+    "content": "Reliable automation starts with stable tests.\nIn Playwright, test stability improves when we use:\nstrong locators\nbuilt-in waiting behavior\nmeaningful assertions\nfrom playwright.sync_api import sync_playwright, expect\n\ndef test_google_search_box_is_ready():\n    with sync_playwright() as p:\n        browser = p.chromium.launch(headless=True)\n        page = browser.new_page()\n\n        page.goto(\"https://www.google.com\", wait_until=\"domcontentloaded\")\n\n        search_box = page.locator(\"textarea[name='q']\")\n        expect(search_box).to_be_visible()\n        expect(search_box).to_be_editable()\n\n        browser.close()\n\n## What this test checks\n\n- Search input is visible\n- Search input is editable\n\npy -m pytest -q test_google_playwright.py --html=playwright_report.html --self-contained-html\n\n## Why this approach is useful\n\n- Fewer flaky failures\n- Better confidence in test outcomes\n- Cleaner reporting for review and collaboration",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Playwright与Python：稳定的定位器和更好的断言",
+        "summary": "在Playwright中使用强大的CSS/无障碍定位器、内置等待机制和有意义的断言可以减少测试不稳定性并提高可靠性。这种方法可以最小化虚假失败并为测试验证和审查提供更清晰的报告。"
+      }
+    }
+  },
+  {
+    "title": "3 Primary Key Boundaries for Application DNS Zone ID Record Operations",
+    "slug": "dns-zone-id-boundaries",
+    "url": "https://dev.to/dexterpierce3542/3-primary-key-boundaries-for-application-dns-zone-id-record-operations-bhp",
+    "source": "DEV Community",
+    "date": "2026-09-22T03:25:18.000Z",
+    "summary": "DNS zone operations should separate three identities: an application-owned stable key, the normalized domain name, and the provider-issued zone ID. Treating the provider ID as the primary key risks identity failures during account moves or provider changes, especially critical for mail operations.",
+    "content": "Short answer: store the provider's DNS zone ID with the application's zone inventory, but treat it as a replaceable external reference, never as the primary key for the domain or its records. Resolve every record operation through a stable application-owned zone key, verify that the returned zone still represents the expected domain, and reconcile desired MX records against published DNS before declaring a logistics mail cutover complete.\nThat separation is the difference between remembering where a zone lives and letting a provider define what the zone is. The first is useful state. The second turns an account move, a delete-and-recreate event, or stale inventory into an identity failure.\nYes, as a scoped locator. No, as the application's primary key.\nThe useful model has three identities: an application-owned zone key, the normalized domain name that humans recognize, and the provider-issued zone ID used for remote record operations. The application key stays stable through infrastructure changes. The domain is the assertion checked at the provider boundary. The provider ID is cached coordination data that can be replaced after discovery or reconciliation.\nThis matters in a logistics company because mail is operational traffic. Dispatch notices, carrier exceptions, and warehouse escalations may all depend on the same domain while DNS control moves between accounts or providers. A write that reaches the wrong zone can be syntactically successful and still violate intent. A write that reaches no zone is easier to notice.\nI bring an idempotency reflex to this problem because I've been paged by missed scheduled jobs and duplicate queue deliveries. Those incidents don't prove anything special about DNS, but they expose the same bad assumption: a job executing once is not a reliability property. For an MX cutover, the durable question is whether the published record set converges on the approved intent after retries, overlap, and process restarts.\nUse the domain as a ve",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "应用程序DNS区域ID记录操作的三个关键边界",
+        "summary": "DNS区域操作应该分离三个身份：应用程序拥有的稳定密钥、规范化的域名和提供商颁发的区域ID。将提供商ID作为主密钥会在账户迁移或提供商更换时导致身份故障风险，这对邮件操作尤其关键。"
+      }
+    }
+  },
+  {
+    "title": "text === '' is the wrong way to check whether Unicode normalization ate your data",
+    "slug": "unicode-normalization-empty-string",
+    "url": "https://dev.to/ink_gu/text-is-the-wrong-way-to-check-whether-unicode-normalization-ate-your-data-b5h",
+    "source": "DEV Community",
+    "date": "2026-09-22T03:24:51.000Z",
+    "summary": "Unicode normalization (NFKD) can convert fullwidth punctuation to ASCII while stripping all name content, leaving only punctuation—a case the `text === ''` check misses. This causes incorrect warnings about partial data loss while silently losing entire fields like customer names.",
+    "content": "qbofile converts bank files between the formats accounting\nENCODING:USASCII\nCHARSET:1252\n\nSo every payee name has to be reduced to printable ASCII before it goes in. The function\nsanitizeText('CAFÉ')        // 'CAFE'\nsanitizeText('MCDONALD’S')  // \"MCDONALD'S\"\nsanitizeText('北京 STORE')   // 'STORE'\nsanitizeText('北京烤鸭')      // ''\n\nTwo of those outcomes are fine. CAFE is still readable, and so is the straightened\ntrim() finishes the job, and the field is empty.\nThose two outcomes need different handling. Transliteration should be silent, because a\né is a warning people learn to dismiss. Losing the whole\nSo the warning counted the two cases separately:\nconst { text, dropped } = sanitizeCore(src);\nif (!dropped.length) continue;\nif (text === '') emptied += 1;\nelse partial += 1;\n\nThat reads like it is obviously correct. It is not, and the input that breaks it is\nsanitizeText('北京，上海')   // ','\n\nNot an empty string. One comma.\nI did not put that comma there. The input contains U+FF0C FULLWIDTH COMMA, the comma used\ncompatibility decomposition, and fullwidth\n'，'.normalize('NFKD')   // ','   U+FF0C becomes U+002C\n'（'.normalize('NFKD')   // '('\n'）'.normalize('NFKD')   // ')'\n'：'.normalize('NFKD')   // ':'\n'！'.normalize('NFKD')   // '!'\n'　'.normalize('NFKD')   // ' '   ideographic space becomes an ordinary space\n\nThe name is gone. The punctuation between the parts of the name is not, because the\nSo text === '' is false, the else branch runs, and the user is told this:\n1 description lost characters. QBO files can only hold plain ASCII text. Accented\nEvery sentence there is true. It is still the wrong message, because it is the message for\nsome of its characters, and the line that belongs to a name that lost\nall of them never gets printed:\nA transaction like that still imports with the right date and amount, but with no payee\nThe blind spot was shaped exactly like a Chinese or Japanese business name with\n北京，上海            ->  ','\n星巴克（北京）         ->  '( )'\n全家便利店：朝阳店      ->  ':'\n株式",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "text === '' 不是检查Unicode规范化是否丢失数据的正确方式",
+        "summary": "Unicode规范化（NFKD）可将全角标点转换为ASCII，同时剥离所有名称内容，仅保留标点符号——`text === ''` 检查会遗漏这种情况。这导致关于部分数据丢失的错误警告，同时无声地丢失整个字段（如客户名称）。"
+      }
+    }
+  },
+  {
+    "title": "Five ways a voice agent tells you it booked a table when it didn't",
+    "slug": "voice-agent-incomplete-bookings",
+    "url": "https://dev.to/forifor/five-ways-a-voice-agent-tells-you-it-booked-a-table-when-it-didnt-1lpj",
+    "source": "DEV Community",
+    "date": "2026-09-22T03:24:48.000Z",
+    "summary": "Voice agents can falsely report successful bookings through five common failure patterns: extracting valid details from incomplete confirmations, negating time information, mistaking clarification questions for offers, losing bookings after apparent confirmation, and returning null from valid confirmations. Reliable confirmation requires explicit availability words.",
+    "content": "I maintain Oathra, an open-source runtime for AI agents that make\nThat sounds like belt and braces until you look at what clerks actually say. Here are five replies to\nsound like a yes.\nThe request, every time:\nAI: Could I book a table for two at 7:30 pm on September 25? The name is Tanaka.\n\nThem: Sure, I will pencil you in for September 25 at 7:30 pm and call you back to confirm.\n\nVerdict: incomplete, { date, time, partySize } extracted, confirmed missing.\n\"Sure\" is agreement. The date, the time and the party size are all there, and they are all correct.\nThem: We can hold September 25 at 7:30 pm for now, but it is not confirmed yet.\n\nVerdict: incomplete, nothing extracted at all.\nThis one is interesting because the clerk is being maximally clear, and a naive extractor still walks\ntime = 19:30. The clause carrying the time is the one being negated. If you extract values\nThem: The only thing left that evening is 9 pm. Would that do?\n\nVerdict: incomplete, nothing extracted.\nA number was said. It was not offered as your booking; it was offered as a question. The trap here is\nnext turn is usually \"9 pm works, thank you\" — and if your extractor took 21:00\nThem: Yes, we have you down for two at 7:30 pm on September 25.\nThem: Sorry, that day is fully booked after all.\n\nVerdict: incomplete, { date, time, partySize } extracted, confirmed gone.\nThis is the one I got wrong. Until yesterday, Oathra reported this as completed.\nMy retraction pattern required the refusal to name the booking — \"we cannot take the reservation\",\nThe fix is narrow on purpose: an availability word from the callee (full, private hire, closed,\nearlier, so the ordinary \"7 pm is\nbefore a booking is untouched.\nIt went out as PR #37 with tests in both directions.\nThem: You are all set for September 25 at 7:30 pm, party of two.\n\nVerdict: completed, { date: 2026-09-25, time: 19:30, partySize: 2, confirmed: true }.\nThis one also failed until today, in a way I find more embarrassing than #4: it returned nothing",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "语音代理声称已预订但实际未预订的五种方式",
+        "summary": "语音代理可通过五种常见故障模式错误地报告成功预订：从不完整确认中提取有效详情、否定时间信息、将澄清问题误认为报价、在明确确认后丢失预订、从有效确认返回空值。可靠的确认需要明确的可用性词汇。"
+      }
+    }
+  },
+  {
+    "title": "The sensor was fine. The read path was dead, and it died looking alive.",
+    "slug": "sensor-read-path-stale-data",
+    "url": "https://dev.to/ilya_mozerov_867dbdd91feb/the-sensor-was-fine-the-read-path-was-dead-and-it-died-looking-alive-ag4",
+    "source": "DEV Community",
+    "date": "2026-09-22T03:23:49.000Z",
+    "summary": "A barometer reading remained frozen for eleven days while the sensor worked normally, representing a stale value that never signals staleness. Moving to a live listener and making the consumer (not producer) the freshness authority resolved the issue and recovered previously hidden temperature and humidity data.",
+    "content": "For eleven days our barometer read 981.8 hPa. That number was plausible atmospheric pressure for\nThe sensor was fine the whole time. The value was a fossil.\nThe last=<hpa> line we were reading from adb shell dumpsys sensorservice is a frozen snapshot\nA stale value that never looks stale is worse than no value, because nothing downstream has a\nHaving moved the read off the fossil onto a live listener, the pressure went dark again eleven\nrc=124, while adb devices still listed the phone as present.\nThat is the ambiguous case. The device table said healthy. The read did not return. Recovery was a\nadb kill-server, no commit and no new tool.\nBoth failures are the same shape. The sensor was fine, the read path was dead, and the dead path\nThe instinct when a reading looks wrong is to distrust the sensor, or to add a health check on the\nThe fix was to make the consumer the freshness authority, and to accept that a producer's\nThe producer now reads a native sensor listener, which actually samples:\nSENSOR|SHTC1 ambient temperature sensor|13|23.4052|26.16|3|243885381030238\nSENSOR|SHTC1 relative humidity sensor|12|55.175|45.66|3|243885381022196\nSENSOR|LPS25H Barometer Sensor|6|995.8|146.306|30.3104|243885601563443\n\nMoving to the listener also recovered live temperature and humidity, which had been permanently\nn/a before. On-change sensors with no listener report exactly 0.0, which is another way to\n1. A failed read writes no state. With the read path forced dark, the producer exits rc=2\nrc=2 is an honest n/a, and the landing layer reads it as a pass\n2. An unreachable input is announced once per outage. A second consecutive dark run emits the\nrc=0. One\n3. The consumer does not trust the number — it trusts its freshness. This is the part that\nSTABLE | pressure=STALE | out_c=18.1 ... | inputs=2/3\n\nRestore freshness, and the field comes back with the count:\nSTABLE | in_hpa=995.84 trend=STABLE d_hpa=+0.11 | out_c=18.1 ... | inputs=3/3\n\nA stale producer cannot ship a number, because t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "传感器没问题。读取路径已死亡，却看起来活着。",
+        "summary": "气压计读数冻结了11天，而传感器工作正常，这是一个从不显示陈旧迹象的陈旧值。通过改用实时监听器并让消费者（而不是生产者）成为新鲜度权威来解决，恢复了之前隐藏的温度和湿度数据。"
+      }
+    }
+  },
+  {
+    "title": "Your agent said the tests passed. Check whether they ran.",
+    "slug": "agent-tests-passed-didnt-run",
+    "url": "https://dev.to/david_lee_bf42eec7236085d/your-agent-said-the-tests-passed-check-whether-they-ran-4njm",
+    "source": "DEV Community",
+    "date": "2026-09-22T03:23:03.000Z",
+    "summary": "Tests can report as passed without actually running due to command not found, flags like `--passWithNoTests`, or shell escape sequences like `|| true`. Verification requires the exact test command, test count output, and explicit exit code—unverified claims of passing tests are worse than no tests.",
+    "content": "There is a failure mode in agent-assisted coding that does not look like a failure. You ask for a fix, the agent works for a while, and the summary says the tests pass. They did not fail. They also did not run.\nA failing test is information. A test that never ran, reported as a pass, is worse than having no tests at all, because now you believe something.\nThis is not about any one tool being bad. It is a reporting gap, and it shows up the same way in Claude Code, Cursor, Copilot Workspace or a shell script somebody wrote in 2014. Here is what causes it and the smallest thing you can do about it.\n1. The command was never found.\nThe agent does not know how you run tests. It guesses npm test, your project uses pnpm vitest run, the guess errors out, and the error gets folded into the summary as \"no test failures\". Technically true. Completely useless.\n2. A flag made nothing count as something.\nnpm test -- --passWithNoTests\n\nThat flag does exactly what it says. Zero tests collected, exit code 0, green checkmark. Jest and Vitest both have it, and it exists for good reasons in a monorepo, which is precisely why it turns up in commands where it does not belong.\n3. Somebody appended a shrug.\npytest || true\n\nNow the command cannot fail. Whatever pytest thinks, the shell reports success. You see this a lot in CI files that somebody was trying to unblock at 6pm on a Friday, and once it is there nobody removes it.\nWhen an agent tells you the tests pass, ask for three things. It takes one line and it is the difference between a verified change and a claimed one.\n\n\n\nAsk for\nGood answer\nBad answer\n\n\n\n\nThe command it ran\nThe exact string, matching your repo\nA paraphrase, or nothing\n\n\nThe output\nA count: \"42 passed, 0 failed\"\n\"Tests pass\"\n\n\nThe exit code\n\n0, and it says so\nNot mentioned\n\n\n\nIf you get a count and an exit code, something ran. If you get the word \"pass\" and nothing else, treat it as unverified. That is not cynicism, it is the same standard you would apply to a pull requ",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的代理说测试通过了。检查一下它们是否真的运行了。",
+        "summary": "测试可能在未实际运行的情况下报告为通过，原因包括命令未找到、--passWithNoTests 等标志或 || true 等 shell 转义序列。验证需要确切的测试命令、测试数量输出和明确的退出代码——未验证的测试通过声明比没有测试更糟糕。"
+      }
+    }
+  },
+  {
+    "title": "The LiteLLM Supply Chain Backdoor: What 3 Hours Means for Your AI Agent Gateway",
+    "slug": "litellm-supply-chain-backdoor",
+    "url": "https://dev.to/kielltampubolon/the-litellm-supply-chain-backdoor-what-3-hours-means-for-your-ai-agent-gateway-417n",
+    "source": "DEV Community",
+    "date": "2026-09-22T03:22:12.000Z",
+    "summary": "Backdoored versions of litellm (1.82.7 and 1.82.8) were live on PyPI for approximately 3 hours on March 24, 2026, after attackers stole credentials via a compromised Trivy GitHub Action. The malicious code collected SSH keys and cloud tokens via proxy_server.py and a .pth startup hook affecting every Python process.",
+    "content": "On March 24, 2026, two backdoored versions of litellm sat on PyPI. Version 1.82.7 went up at 10:39 UTC. Version 1.82.8 followed 13 minutes later. According to an NHS England cyber alert, PyPI quarantined the packages at 13:38 UTC that same day. That is roughly 3 hours where a pip install in the wrong window could hand an attacker your SSH keys, your cloud tokens, your Kubernetes secrets, and every LLM API key your agents use.\nLiteLLM's own incident blog describes a shorter window, about 40 minutes. I could not fully reconcile the two timelines, so treat the exact duration as uncertain. The point survives either way. A package with over 95 million monthly downloads shipped attacker code from its official PyPI project, and most teams running agent stacks had no process that would have caught it.\nI build security tools for AI agents. mcpscan scans MCP servers for dangerous patterns. secops-toolkit-mcp wraps security operations for agent workflows. agent-memory-protocol is my attempt to make agent memory inspectable. Most of my time goes into one question: who controls the front door of an agent system. This incident is the front door story I keep warning about. Here is what happened, then what changes for anyone running a gateway.\nMultiple security teams published analyses, and the core facts line up:\nThreat actor: a group calling itself TeamPCP.\nInitial access: they never touched LiteLLM's code. They stole PyPI publishing credentials through a compromised Trivy GitHub Action in LiteLLM's CI pipeline. Trivy is a vulnerability scanner. A security tool was the way in.\n1.82.7, 10:39 UTC: malicious code injected into proxy_server.py, triggered when the LiteLLM proxy module gets imported.\n1.82.8, 10:52 UTC: same injection, plus a file named litellm_init.pth. A .pth file runs on every Python interpreter startup in that environment. It does not wait for you to import litellm. Install it, and every Python process on that box executes it.\nThe payload collected SSH keys, cloud c",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "LiteLLM 供应链后门：3 小时对你的 AI 代理网关意味着什么",
+        "summary": "LiteLLM 的后门版本（1.82.7 和 1.82.8）在 2026 年 3 月 24 日在 PyPI 上存在约 3 小时，攻击者通过被入侵的 Trivy GitHub Action 窃取凭证。恶意代码通过 proxy_server.py 和影响每个 Python 进程的 .pth 启动钩子收集 SSH 密钥和云令牌。"
+      }
+    }
+  }
+]
