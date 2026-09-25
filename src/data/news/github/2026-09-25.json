@@ -1,5 +1,213 @@
 [
   {
+    "title": "Scripta 3.4.7: schedule local meeting recordings without sending anything to the cloud",
+    "slug": "scripta-schedule-local-meeting-recordings",
+    "url": "https://dev.to/thehwang/scripta-347-schedule-local-meeting-recordings-without-sending-anything-to-the-cloud-13od",
+    "source": "DEV Community",
+    "date": "2026-09-25T21:03:32.000Z",
+    "summary": "Scripta 3.4.7 adds automated scheduling for meeting recordings without cloud uploads. Users can name meetings, set start/end times, and let the app handle recording start/stop while keeping all transcripts local. The update maintains Scripta's privacy-first design by requiring the app to run locally and seeking user consent before interrupting existing recordings.",
+    "content": "Follow-up to Building a 100% local meeting transcription app for macOS — Scripta already records dual-channel audio and summarizes with a local LLM. v3.4.7 adds something I kept forgetting to do myself: **hit Record before the meeting starts.\nScripta works great when I remember to open it and tap Start Recording. I do not always remember.\nRecurring standups, interviews, and “just a quick sync” calls all have a start time on the calendar — but my muscle memory does not. Cloud assistants solve this by running in someone else’s datacenter. Scripta’s whole pitch is nothing leaves the Mac, so “schedule a bot in the cloud” was never an option.\nWhat I wanted instead:\nName the meeting (“Product sync”, not 2026-09-25_16-50-00)\nPick start and end (or start + duration)\nLet the app start and stop capture while it is running\nKeep transcripts and metadata local, same as manual recording\nThat shipped in Scripta v3.4.7.\nOpen Scheduled Recordings from the toolbar calendar icon (or the menu bar):\n\nCreate a meeting — title, window, language, optional notification if the app is not open at start time:\n\nUpcoming items show status (Pending, Recording now, Waiting to start, etc.) with Edit, Cancel, or Stop recording when relevant:\n\nWhen a scheduled session finishes, the export folder’s session.json includes a title and optional scheduledRecordingId, so Meeting History is searchable by name.\nThese are intentional — not missing features for v3.5:\n\n\n\nRule\nWhy\n\n\n\n\nNo overlapping schedules\nSaves fail validation if windows intersect\n\n\nNo auto-summary after scheduled stop\nManual recordings still offer the summary sheet when Ollama is ready; scheduled runs set suppressAutoSummary so you are not interrupted\n\n\nNo takeover without consent\nIf you are already recording at start time, Scripta asks whether to stop the current session and start the scheduled one\n\n\nApp must be running for auto-capture\nPhase 1 is in-process scheduling only — no launchd daemon silently recording in the background\n\n\nIf the a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Scripta 3.4.7：在本地安排会议录制，无需向云端发送任何内容",
+        "summary": "Scripta 3.4.7 添加了自动化调度功能，可以进行会议录制而无需上传到云端。用户可以命名会议、设置开始和结束时间，让应用处理录制的启动和停止，同时保持所有记录本地存储。该更新通过要求应用在本地运行并在中断现有录制之前征求用户同意，维持了 Scripta 的隐私优先设计理念。"
+      }
+    }
+  },
+  {
+    "title": "Cron Worker Retry Failure Capture Explained — Durable Background Evidence for SaaS",
+    "slug": "durable-evidence-cron-worker-retry-capture",
+    "url": "https://dev.to/jerichorhodes5847/cron-worker-retry-failure-capture-explained-durable-background-evidence-for-saas-5342",
+    "source": "DEV Community",
+    "date": "2026-09-25T20:58:06.000Z",
+    "summary": "Effective background job retry tracking requires treating each execution as a durable evidence record with separate identifiers for jobs, attempts, and operations. Store state transitions with timestamps and sanitized error summaries in a queryable database, never including secrets. This approach enables incident reconstruction by correlating tenant operations to their background work outcomes.",
+    "content": "Short answer: treat each scheduled or queued execution as a durable evidence record, not as a line of application logging. Give the logical job a stable ID, give every attempt its own ID, write state transitions to Postgres, and store a sanitized error summary plus a pointer to detailed telemetry. Retries must append evidence rather than overwrite it. That design lets a B2B SaaS team answer the question that matters during an incident: what ran for this tenant, what failed, what was retried, and what finally happened?\nA worker library can schedule retries, while an error tracker can group exceptions. Neither boundary, by itself, is an incident history. The useful unit is the logical job and its ordered attempts, connected to the customer operation that created it.\nStart with the reconstruction query, because it determines the schema. Given a tenant ID, an operation ID, and a time range, an investigator should be able to find the job, see each attempt in order, distinguish a retryable failure from terminal exhaustion, and correlate the failure with sanitized diagnostic detail. That is a narrower goal than retaining every log forever, and it is more defensible than hoping a stack trace contains enough business context.\nKeep three identities separate: job_id identifies the logical unit of work, attempt_id identifies one execution, and operation_id connects the background work to the customer-visible action. Reusing one identifier for all three looks convenient until an operator cannot tell whether two errors describe duplicate execution or two retries.\nAmbiguity wins.\nThe evidence record should carry timestamps, attempt number, outcome, an error class, a bounded message, and a correlation key for detailed telemetry. It should not carry session tokens, database connection strings, raw request bodies, or other secrets. OWASP's logging guidance explicitly warns against recording access tokens, passwords, sensitive personal data, and database connection strings directly; i",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "后台工作重试失败捕获解析 — SaaS 的持久后台证据",
+        "summary": "有效的后台工作重试跟踪需要将每次执行视为具有独立标识符的持久证据记录，用于区分工作、尝试和操作。在可查询的数据库中存储具有时间戳和清理过的错误摘要的状态转换，永远不要包含机密。这种方法通过将租户操作与其后台工作结果相关联，能够实现事件重建。"
+      }
+    }
+  },
+  {
+    "title": "Integração com o iFood: o bug escondido por semanas",
+    "slug": "ifood-bug-hidden-weeks-temperô-saaS",
+    "url": "https://dev.to/felipebufelli/integracao-com-o-ifood-o-bug-escondido-por-semanas-2ob7",
+    "source": "DEV Community",
+    "date": "2026-09-25T20:53:03.000Z",
+    "summary": "A multi-tenant restaurant SaaS spent weeks debugging why iFood marketplace cancellation events sometimes never arrived despite a functioning integration. Using polling-based event processing every 15 seconds, the real issue traced to subtleties in iFood's centralized credential system. The investigation illustrates how production failures in third-party integrations can hide in credential scope and polling logic.",
+    "content": "O desafio\n\n\nHoje eu quero falar da Temperô, um SaaS multi-tenant de gestão de restaurantes: pedidos, cozinha, caixa, comandas, várias unidades por restaurante. Stack em Node/TypeScript/Express, Postgres com pg puro (sem ORM, SQL cru, migrations numeradas).\nO objetivo era simples de enunciar,mas em termos de produção, bem difícil de sustentar: um pedido feito no marketplace iFood precisa entrar automaticamente no fluxo operacional do Temperô, cair na cozinha, seguir para produção e entrega, fechar o pagamento - e tudo isso com o status sincronizado nos dois sentidos. O restaurante não pode ter que operar dois sistemas em paralelo, um para o delivery do marketplace e outro para o resto.\nNo artigo de hoje, eu conto como implementamos isso, os bugs que apareceram no caminho, e principalmente a investigação mais longa do projeto: o por que, às vezes, o evento de confirmação de um cancelamento simplesmente não chegava nunca.\nPolling, não webhook. A Order API do iFood expõe GET /order/v1.0/events:polling, que devolve os eventos pendentes de um merchant, e POST /order/v1.0/events/acknowledgment, que confirma o recebimento e tira o evento da fila. A cada 15 segundos, o Temperô sempre inicia a chamada, dentro de um setInterval no próprio processo Node, sem serviço separado. Uma flag de controle simples evita sobreposição de execuções caso um tick demore mais que o intervalo:\nlet polling = false;\n\nsetInterval(async () => {\n  if (polling) return;\n  polling = true;\n\n  try {\n    await pollIfoodEvents();\n  } finally {\n    polling = false;\n  }\n}, 15_000);\n\nNesse sentido, é importante dizer que não escolhemos polling por preferência técnica; ela era a única opção viável no momento: o iFood nunca chama o Temperô, o Temperô sempre chama o iFood.\nApp \"Centralizado\" do iFood Developer. O iFood oferece dois modelos de credencial: \"Distribuído\", uma credencial OAuth2 por restaurante/unidade, e \"Centralizado\", uma única credencial client_credentials para toda a plataforma, filtrando o merc",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "与 iFood 的集成：隐藏数周的错误",
+        "summary": "一家多租户餐厅 SaaS 花费数周时间调试为什么 iFood 市场取消事件有时从未到达，尽管集成功能正常。使用每 15 秒进行一次轮询的事件处理，真正的问题追溯到 iFood 集中式凭证系统中的细微差别。这项调查说明了第三方集成中的生产故障如何可能隐藏在凭证范围和轮询逻辑中。"
+      }
+    }
+  },
+  {
+    "title": "Integração com o iFood: o problema na homologação do developer",
+    "slug": "ifood-problema-homologacao-developer",
+    "url": "https://dev.to/felipebufelli/integracao-com-o-ifood-o-bug-que-ficou-escondido-por-semanas-e-a-investigacao-que-terminou-numa-30hf",
+    "source": "DEV Community",
+    "date": "2026-09-25T20:48:48.000Z",
+    "summary": "Testing a restaurant management SaaS against iFood's marketplace API revealed homologation-stage challenges distinct from production bugs. The centralized credential model creates failure modes that sandbox environments may not expose. Integration teams must account for both technical issues and process-level surprises during staging.",
+    "content": "O desafio\n\n\nHoje eu quero falar da Temperô, um SaaS multi-tenant de gestão de restaurantes: pedidos, cozinha, caixa, comandas, várias unidades por restaurante. Stack em Node/TypeScript/Express, Postgres com pg puro (sem ORM, SQL cru, migrations numeradas).\nO objetivo era simples de enunciar,mas em termos de produção, bem difícil de sustentar: um pedido feito no marketplace iFood precisa entrar automaticamente no fluxo operacional do Temperô, cair na cozinha, seguir para produção e entrega, fechar o pagamento - e tudo isso com o status sincronizado nos dois sentidos. O restaurante não pode ter que operar dois sistemas em paralelo, um para o delivery do marketplace e outro para o resto.\nNo artigo de hoje, eu conto como implementamos isso, os bugs que apareceram no caminho, e principalmente a investigação mais longa do projeto: o por que, às vezes, o evento de confirmação de um cancelamento simplesmente não chegava nunca.\nPolling, não webhook. A Order API do iFood expõe GET /order/v1.0/events:polling, que devolve os eventos pendentes de um merchant, e POST /order/v1.0/events/acknowledgment, que confirma o recebimento e tira o evento da fila. A cada 15 segundos, o Temperô sempre inicia a chamada, dentro de um setInterval no próprio processo Node, sem serviço separado. Uma flag de controle simples evita sobreposição de execuções caso um tick demore mais que o intervalo:\nlet polling = false;\n\nsetInterval(async () => {\n  if (polling) return;\n  polling = true;\n\n  try {\n    await pollIfoodEvents();\n  } finally {\n    polling = false;\n  }\n}, 15_000);\n\nNesse sentido, é importante dizer que não escolhemos polling por preferência técnica; ela era a única opção viável no momento: o iFood nunca chama o Temperô, o Temperô sempre chama o iFood.\nApp \"Centralizado\" do iFood Developer. O iFood oferece dois modelos de credencial: \"Distribuído\", uma credencial OAuth2 por restaurante/unidade, e \"Centralizado\", uma única credencial client_credentials para toda a plataforma, filtrando o merc",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "与iFood的集成：开发者审批中的问题",
+        "summary": "针对iFood市场API测试餐厅管理SaaS时，暴露了审批阶段中与生产错误不同的挑战。集中式凭证模型造成的故障模式可能无法在沙箱环境中充分暴露。集成团队必须在测试阶段既要解决技术问题，也要应对流程层面的意外情况。"
+      }
+    }
+  },
+  {
+    "title": "DORA metrics + SLOs without external infrastructure: a Cloudflare Workers approach",
+    "slug": "dora-metrics-slos-cloudflare-workers",
+    "url": "https://dev.to/trimtabsignal/dora-metrics-slos-without-external-infrastructure-a-cloudflare-workers-approach-423c",
+    "source": "DEV Community",
+    "date": "2026-09-25T20:48:37.000Z",
+    "summary": "DORA metrics and SLOs can be tracked without external tools by logging API requests to SQLite and running periodic SQL rollups via Cloudflare cron. A single table captures method, route, status, and timestamp; simple queries reveal availability and latency percentiles. Start with 99.9% availability and p95/p99 latency targets, then refine.",
+    "content": "You do not need Prometheus, a metrics SaaS, or a dedicated observability stack\nEvery request appends a row to the api_usage table — method, route, status,\n-- error budget window: 30 days, target 99.9% availability\nSELECT\n  count(*) AS total,\n  sum(status >= 500) AS errors,\n  sum(status >= 500) * 1.0 / count(*) AS error_rate\nFROM api_usage\nWHERE ts > datetime('now', '-30 days');\n\nThe SLO is 99.9% availability, which yields roughly 43 minutes of allowed\nfast,\nslow, or ok. Fast burn means the budget is being consumed at multiples of\nok requires no action — and the p95/p99 latency numbers\nThe cron runs on the platform via p31-ci (Cloudflare cron triggers), so the\napi_usage rows → SQL rollup → status page, with no external\nThe three SLOs to start with: availability (99.9%), p95 latency, p99 latency.\nEverything else is a refinement.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "无需外部基础设施的DORA指标和SLO：Cloudflare Workers方案",
+        "summary": "通过将API请求日志记录到SQLite并使用Cloudflare定时任务运行周期性SQL聚合，可以在无需外部工具的情况下跟踪DORA指标和SLO。单个表格捕获方法、路由、状态和时间戳；简单的查询就能揭示可用性和延迟百分位数。从99.9%的可用性和p95/p99延迟目标开始，然后进行调整。"
+      }
+    }
+  },
+  {
+    "title": "The spoon-dial: capacity-aware financial UI for neurodivergent users",
+    "slug": "spoon-dial-neurodivergent-financial-ui",
+    "url": "https://dev.to/trimtabsignal/the-spoon-dial-capacity-aware-financial-ui-for-neurodivergent-users-1eo1",
+    "source": "DEV Community",
+    "date": "2026-09-25T20:48:36.000Z",
+    "summary": "The spoon-dial adapts financial dashboards to cognitive capacity using a 0–5 scale. At full attention all widgets display; at low spoons (1–2) only top three widgets appear with progressive disclosure. The design applies spoon theory and neurodivergent research to make fintech usable when attention or energy is limited.",
+    "content": "Financial dashboards are built for peak attention. Dense grids, live tickers,\nThe spoon model is a 0–5 cognitive-capacity dial. At 5 the user is fully\nAt spoons 1–2 the screen shows the top three widgets only, with progressive\nThe research basis is the spoons construct from spoon theory plus established\nSPOON_MODEL_RESEARCH.md. The contrast with density-first fintech is\nImplementing the dial is a few CSS custom properties and one state machine.\n:root { --spoons: 3; --motion-scale: 0.6; }\n@media (prefers-reduced-motion: reduce) { --motion-scale: 0; }\n.widget { transform: scale(var(--motion-scale)); }",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "勺子拨盘：面向神经发散用户的能力感知型财务界面",
+        "summary": "勺子拨盘使用0-5刻度根据认知能力调整金融仪表板。在注意力充分时所有小部件显示；在能量不足时（1-2勺）仅显示前三个小部件并支持渐进式展开。该设计应用了勺子理论和神经发散相关研究，使金融科技产品在认知能力或能量有限时也能被有效使用。"
+      }
+    }
+  },
+  {
+    "title": "Your Trading Bot Assumes the Exchange Will Exist Tomorrow. BitMEX and CoinEx Just Proved Otherwise",
+    "slug": "trading-bot-exchange-closures-bitmex-coinex",
+    "url": "https://dev.to/nefiswap/your-trading-bot-assumes-the-exchange-will-exist-tomorrow-bitmex-and-coinex-just-proved-otherwise-8bh",
+    "source": "DEV Community",
+    "date": "2026-09-25T20:48:20.000Z",
+    "summary": "BitMEX and CoinEx announced closures in September 2026, demonstrating that exchange wind-downs follow predictable failure phases: reduce-only mode, product halts, trading halt, deposit disabling, and API withdrawals off. Trading bots must recognize each phase as a distinct failure, kill-switch deposits before sending funds, and halt strategy logic on unknown rejection codes rather than retry.",
+    "content": "In September 2026, two exchanges entered wind-down within days of each other. BitMEX stopped trading on September 23. CoinEx announced on September 15 that it will close on December 22.\nBoth closures are orderly: reserves reported as fully backed, withdrawals open. But if you run bots, treasury scripts, or any integration against an exchange API, an orderly closure is still a sequence of breaking changes, and most codebases don't model it.\nLooking at both timelines, closures move through predictable phases:\n\n\n\nPhase\nWhat breaks\nBitMEX\nCoinEx\n\n\n\n\nReduce-only\nNew orders rejected; only closes allowed\nFrom Aug 26\nFutures from Sep 15\n\n\nProduct halts\nMargin, loans, staking, Earn stop\n—\nSep 22\n\n\nTrading halt\nAll order placement fails; open positions force-closed\nSep 23\nSpot ends Sep 29\n\n\nDeposits disabled\nFunds sent in are not credited\n\nAfter closure\nBefore final close\n\n\nAPI withdrawals off\nScripted exits stop working\nSep 28\n—\n\n\nFinal close\nRemaining balances charged fees / moved to custody\n1%/yr or $50/mo\n5%/mo on unclaimed USDT\n\n\n\nEach phase is a failure mode your code should recognize, not just \"the API returned an error.\"\nThe most expensive bug in a wind-down isn't a failed withdrawal. It's an automated top-up that keeps sending funds to a deposit address that no longer credits them.\nAny process that pushes funds to an exchange should check a kill switch before every transfer:\nimport os\n\ndef deposits_allowed(exchange_id: str) -> bool:\n    blocked = os.environ.get(\"DEPOSIT_BLOCKLIST\", \"\").split(\",\")\n    return exchange_id not in blocked\n\nFlipping one environment variable is faster than finding every cron job that sends funds.\nOnce an exchange is in reduce-only mode, order placement returns errors your bot has probably never seen. A naive retry loop will hammer the endpoint, hit rate limits, and potentially get the key restricted, right when you need it for withdrawals.\nTreat unknown rejection codes as a signal to halt strategy logic and alert a human, not to retry.\nThe",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的交易机器人假设交易所明天还会存在。BitMEX 和 CoinEx 刚刚证明了这一点",
+        "summary": "BitMEX 和 CoinEx 在 2026 年 9 月宣布关闭，证明交易所风险关闭遵循可预测的失败阶段：仅限减少模式、产品暂停、交易暂停、禁用存款和 API 提取关闭。交易机器人必须将每个阶段识别为不同的失败，在发送资金前关闭存款开关，并对未知拒绝代码停止策略逻辑而不是重试。"
+      }
+    }
+  },
+  {
+    "title": "Google Gemini 3.8 Connects Expressive Voice, Live Avatar and Notebook Context",
+    "slug": "google-gemini-3-8-voice-avatar-notebooks",
+    "url": "https://dev.to/alifar/google-gemini-38-connects-expressive-voice-live-avatar-and-notebook-context-32h6",
+    "source": "DEV Community",
+    "date": "2026-09-25T20:45:30.000Z",
+    "summary": "Google expanded Gemini 3.8 with three features: Flash TTS for expressive speech, Live Avatar for visually grounded real-time conversation, and notebook integration for context across products. Together they enable businesses to build more natural, visually aware, and context-rich AI workflows for customer-facing and internal use. Features target different audiences but share a goal of expressive, grounded interaction.",
+    "content": "Google is expanding Gemini 3.8 across voice generation, conversational AI and knowledge work. The connected updates include Gemini 3.8 Flash TTS and Flash-Lite TTS, Gemini 3.8 Live with Live Avatar, and notebook integration spanning Gemini and NotebookLM-related experiences. Together, they point to a broader push to make Gemini more useful in interactions that involve spoken output, visual context and organization-specific source material.\nThe most visible part of the rollout is Gemini 3.8 Live with Live Avatar. In Google's official Live Avatar announcement, the company presents the capability as bringing near real-time visual presence and visual grounding to Gemini conversations. Separate official documentation and announcements support the related text-to-speech and notebook components, which were introduced across Google's developer, Gemini and Workspace-oriented products rather than through one single release page.\nFor businesses, the practical significance is not one standalone feature. It is the possibility of combining more natural audio, visually grounded dialogue and reusable notebook context in customer-facing and internal AI workflows. The scope is broad, though the features serve different audiences and product surfaces.\nGoogle's 3.8 updates cover three distinct capabilities. They are connected by the goal of making Gemini interactions more expressive and more grounded in the information or context available to the user.\n\n  \n    \nGemini 3.8 update\n      Confirmed capability\n      Primary audience or product context\n    \nFlash TTS and Flash-Lite TTS\n      Expressive text-to-speech generation\n      Developers using the Gemini API\n    \nGemini 3.8 Live with Live Avatar\n      Near real-time, visually grounded conversational presence\n      Gemini Live users\n    \nGemini Notebook integration\n      Notebook content connected to Gemini conversations across products\n      Gemini and NotebookLM-related knowledge work\n    \n\n\n\n  \n  \n  Expressive speech generation for",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "谷歌 Gemini 3.8 连接表达性语音、实时虚拟形象和笔记本上下文",
+        "summary": "谷歌通过三个功能扩展了 Gemini 3.8：用于表达性语音的 Flash TTS、用于视觉上有根据的实时对话的 Live Avatar，以及用于跨产品上下文的笔记本集成。它们一起使企业能够为面向客户和内部使用构建更自然、视觉感知和上下文丰富的 AI 工作流程。这些功能针对不同的受众，但共享表达性、有根据的交互的目标。"
+      }
+    }
+  },
+  {
+    "title": "Crystals: agent memory that arrives before you act",
+    "slug": "crystals-agent-memory-proactive-delivery",
+    "url": "https://dev.to/tom_jones_230c4659491adcd/crystals-agent-memory-that-arrives-before-you-act-27h8",
+    "source": "DEV Community",
+    "date": "2026-09-25T20:44:57.000Z",
+    "summary": "Crystals are proactive agent memory notes attached to actions that arrive before execution runs, not triggered by retrieval queries. Each crystal holds one knowing, creating a constraint that prevents silent failures. This push-before-action design differs from search-based memory by contextualizing information at decision time rather than waiting for the agent to ask.",
+    "content": "Most agent memory is a search box. The model wonders something, a retriever runs, chunks come back. That design has one load-bearing hole: retrieval fires only when the agent already suspects it needs help. The expensive mistakes are the confident ones, and a confident agent never queries.\nSo we push instead. A note gets bound to an action, and it arrives in the moment before that action runs, whether or not anybody asked.\nWe call these crystals. The name earns its keep. A crystal has one axis, it formed under pressure, and what you get out is small and hard. One knowing per crystal. That constraint turns out to be the difference between this working and this quietly failing, for reasons I will get to.\nBefore writing this up I went looking for prior art, expecting to find none. Expecting to find none is usually the sign you have not looked hard enough, and sure enough, two of the four ideas here are already published. Rules that fire on the action rather than on a similarity score have been described, right down to injecting before a git commit under a hook time budget. The agent-memory evaluation literature also has a failure taxonomy that comes close. Mem2ActBench attributes memory-grounded errors to five types, two of which sound like the one below: Retrieved-but-Unused, \"evidence is retrieved but not utilized\", and Lossless Retention Failure, \"long/structured values are corrupted (e.g., truncation or character-level errors)\".\nRead them closely, though, and both sit on the model's side of the boundary. Retrieved-but-Unused means the evidence reached the context window and the model ignored it. Lossless Retention Failure means the model mangled a long value on the way out. The failure I describe below happens earlier, in the plumbing: the note is correctly matched and then cut by the budget packer, so it never reaches the model at all. To the model it never existed; to the logs it was a hit.\nThe budget problem is named too. A 2026 survey of agent memory lists \"cur",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "晶体：在你采取行动之前到达的智能体记忆",
+        "summary": "晶体是附加到操作的主动代理记忆笔记，在执行运行之前到达，而不是由检索查询触发。每个晶体保持一个认知，创建一个约束，防止无声失败。这种先于行动的推送设计通过在决策时对信息进行上下文化，而不是等待代理询问，与基于搜索的记忆不同。"
+      }
+    }
+  },
+  {
+    "title": "The System Never Checked If You Slept. Ours Reads Your Pulse First.",
+    "slug": "solofit-heart-rate-camera-readiness",
+    "url": "https://dev.to/dronzer2code/the-system-never-checked-if-you-slept-ours-reads-your-pulse-first-2hai",
+    "source": "DEV Community",
+    "date": "2026-09-25T20:43:24.000Z",
+    "summary": "SoloFit is a React Native app that measures heart rate from phone camera—subtle color changes in facial capillaries during each heartbeat are visible to camera sensors. It calculates readiness before an LLM generates a personalized workout plan. Built in 36 hours at a hackathon, it shows how physiological sensing can replace self-reported fitness metrics.",
+    "content": "Let's Start With Hackathon Scene\n\n\n  \n  \n\n\n\nMain video is made by the Organizers of Hacktropica this my edited version on it\nRight now, while you read this, your face is changing colour.\nNot by much. Every heartbeat pushes a pulse of blood into the capillaries under your skin. Haemoglobin soaks up green light a little more than the tissue around it, so your cheeks darken and fade, darken and fade, roughly once a second. The change is far too small for anyone looking at you to notice.\nA phone camera notices it anyway.\n\nYou have never seen it happen. It has happened every second of your life.\nKeep that in mind, because this story runs on three clocks, and they do not run at the same speed:\nCLOCK 1  THE SCAN      10 seconds    a face, a front camera, a pulse\nCLOCK 2  THE BUILD     36 hours      four people, one repo, one prize\nCLOCK 3  THE READING   5 months      one line in the docs we never read\n\n \nThe first clock is the product. The second is how it got made. The third is the reason this post exists, and it does not show up until near the end. When it does, it changes what the first two mean.\nIn Solo Leveling, a mysterious System hands Sung Jinwoo the same daily quest every single day. 100 push-ups, 100 sit-ups, 100 squats, a 10 km run. Didn't sleep? The System doesn't care. Nearly died yesterday? The System doesn't care.\nEvery fitness app is that System. It asks how you feel, lets you tap a smiley face, and then serves the plan it was always going to serve.\nBut your face is already telling the camera how you feel. Heart rate and breathing rate are sitting right there in the colour of your skin.\nSo the question is not \"what workout should I do today?\" It is:\nWhat if the System measured you before it assigned the quest?\n\nThat is SoloFit (\"Arise. Train. Conquer.\"), a React Native app that reads heart rate from the phone camera, turns it into a readiness score, and only then asks an LLM to write your week. Our team, Kolkatar Rosogollas, built it in 36 hours at HackTrop",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "系统从未检查过你的睡眠。我们先读取你的脉搏。",
+        "summary": "SoloFit是一个React Native应用程序，可以通过手机摄像头测量心率——每次心跳时面部毛细血管中的微妙颜色变化对摄像头传感器可见。它在LLM生成个性化锻炼计划之前计算就绪度。在黑客马拉松上用36小时构建，展示了生理传感如何取代自我报告的健身指标。"
+      }
+    }
+  },
+  {
+    "title": "# Building an Interactive Excel Dashboard for E-commerce Product Analysis: A Case Study of Jumia Products",
+    "slug": "jumia-excel-dashboard-ecommerce-analysis",
+    "url": "https://dev.to/dakgony2022arch/-building-an-interactive-excel-dashboard-for-e-commerce-product-analysis-a-case-study-of-jumia-41l1",
+    "source": "DEV Community",
+    "date": "2026-09-25T20:40:21.000Z",
+    "summary": "Transforming raw Jumia e-commerce data into an interactive Excel dashboard reveals three business insights: whether discounts drive engagement, pricing-rating relationships, and which products perform best. The workflow covers data cleaning, pivot tables, and chart-building to answer questions sellers and category managers need answered. Demonstrates end-to-end data-to-insights process.",
+    "content": "Introduction\n\n\nE-commerce platforms generate huge volumes of product-level data every day  prices, discounts, reviews, and ratings , but raw data on its own doesn't tell a story. It has to be cleaned, structured, and visualized before it can support real decisions.\nFor this project, I set out to analyze a dataset of products scraped from Jumia, one of Africa's largest e-commerce platforms, and turn it into an interactive Excel dashboard. My objective was to answer three practical questions that any Jumia seller or category manager would care about:\nDo higher discounts actually drive more customer engagement (reviews)?\nDo highly rated products command higher or lower prices?\nWhich products are performing best, and which need a different pricing or marketing strategy?\nThis article walks through the full workflow — from raw data to a finished dashboard — including the data cleaning steps, the Excel formulas and techniques I used, the pivot tables and charts I built, and the business recommendations that came out of the analysis.\n📸 [Insert screenshot: project overview / cover image of the final dashboard]\nThe raw dataset contains 115 products pulled from Jumia, with the following original fields:\n\n\n\nColumn\nDescription\n\n\n\n\nProduct\nProduct name/title\n\n\nCurrent price\nListed selling price (KSh)\n\n\nOld price\nOriginal price before discount (KSh)\n\n\nDiscount\nDiscount percentage\n\n\nReview\nNumber of customer reviews\n\n\nRating\nStar rating (e.g. \"4.5 out of 5\")\n\n\n\nThe data came in a fairly \"raw\" state — prices were stored as text strings with currency symbols and thousands separators (e.g. \"KSh 1,525\"), ratings were embedded in descriptive text (\"4.5 out of 5\"), and a large portion of the review and rating fields were blank.\n📸 [Insert screenshot: raw dataset — first rows of the \"Excel_jumia_dataset\" sheet]\nBefore any analysis could happen, the dataset needed a proper cleanup. Here's what that involved:\nConverting price fields to numeric values — stripping the \"KSh\" prefix and comma",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为电子商务产品分析构建交互式Excel仪表板：Jumia产品案例研究",
+        "summary": "将原始Jumia电子商务数据转换为交互式Excel仪表板揭示了三个业务见解：折扣是否推动参与度、定价与评级的关系以及哪些产品表现最佳。该工作流涵盖数据清理、数据透视表和图表构建，以回答卖家和类别经理需要解答的问题。展示了端到端的数据到见解的过程。"
+      }
+    }
+  },
+  {
+    "title": "GRPO practical guide",
+    "slug": "grpo-practical-guide-llm-fine-tuning",
+    "url": "https://dev.to/sagnik_bose_e58f142666a4b/grpo-practical-guide-50cc",
+    "source": "DEV Community",
+    "date": "2026-09-25T20:39:15.000Z",
+    "summary": "GRPO (Group Relative Policy Optimization) is a lightweight reinforcement learning method for LLM alignment that avoids the computational cost of PPO by using no separate reward model or critic. It generates multiple responses, scores them via simple rule-based functions, and optimizes policy to increase good responses. Well-suited for fine-tuning with static reward functions.",
+    "content": "In this article, we will learn about GRPO. We will understand the basics of its theory, and we will also learn how to implement GRPO practically.\nGRPO (Group Relative Policy Optimization) is an RL method used to fine-tune (align) LLMs. Other RL methods like PPO require a reward model and a critic/value model, which makes them more computationally expensive. On the other hand, GRPO doesn't require a separate critic model, and you can also use a simple reward function based on static rules to evaluate the model's responses. This makes GRPO relatively lightweight compared to methods like PPO, especially when the reward can be calculated using simple rule-based functions.\nAs a beginner, when I first read the definition of GRPO, I could understand it, but I couldn't connect it with its name. I think you also need some assistance to connect the GRPO name with its concept, so here is the meaning of its name.\nWe will break it down into words and then explain the meaning using each of those words.\nG of GRPO stands for GROUP, which means instead of generating a single response using our model, in GRPO we generate a group of responses, denoted as G number of responses.\n\n\nR stands for RELATIVE, which means we compare each of those G number of responses and calculate their rewards using a reward function.\n\n\nP stands for POLICY, which means the current approach of the model to generating responses.\n\n\nAnd O stands for OPTIMIZATION, which optimizes the policy of the model to increase the probability of good responses and decrease the probability of bad responses.\n\n\n\nDon't worry if you are unable to fully understand this part. Just read it, and later when we discuss the workflow, you will properly understand it.\nIf you ever tried to fine-tune an LLM, you definitely came across a very common method named SFT (Supervised Fine-Tuning). This is one of the common and popular ways of fine-tuning an LLM.\nIn SFT, we have our queries and their desired responses in our dataset, and we fine-tu",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "GRPO实用指南",
+        "summary": "GRPO（组相对策略优化）是一种轻量级强化学习方法，用于LLM对齐，通过不使用单独的奖励模型或评论家来避免PPO的计算成本。它生成多个响应，通过简单的基于规则的函数对其进行评分，并优化策略以增加好的响应。非常适合使用静态奖励函数进行微调。"
+      }
+    }
+  },
+  {
+    "title": "GitHub Copilot app for Beginners: How to build custom workflows with canvases",
+    "slug": "github-copilot-canvases-custom-workflows",
+    "url": "https://github.blog/ai-and-ml/github-copilot/github-copilot-app-for-beginners-how-to-build-custom-workflows-with-canvases/",
+    "source": "GitHub Blog",
+    "date": "2026-09-25T18:00:00.000Z",
+    "summary": "GitHub Copilot now generates custom workflow interfaces through canvases—users describe an interface in plain English and the agent builds a live, editable surface. This reduces friction from adapting to pre-built tools and lets teams focus on work. Canvases enable rapid iteration on team-specific workflows.",
+    "content": "Describe the interface you need in plain English, then let the agent build a live surface you can both use and update—so you spend less time adapting to tools and more time getting work done.\nThe post GitHub Copilot app for Beginners: How to build custom workflows with canvases appeared first on The GitHub Blog.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "GitHub Copilot应用入门指南：如何使用Canvas构建自定义工作流",
+        "summary": "GitHub Copilot现已通过Canvas生成自定义工作流界面——用户可以用英文描述界面，代理会构建一个实时、可编辑的界面。这减少了适应预构建工具的摩擦，让团队能够专注于工作。Canvas能够快速迭代团队特定的工作流。"
+      }
+    }
+  },
+  {
     "title": "Two Iceberg Clients, One Protocol: Where the Time Goes",
     "slug": "two-iceberg-clients-one-protocol-time",
     "url": "https://dev.to/gde/two-iceberg-clients-one-protocol-where-the-time-goes-4g88",
@@ -204,6 +412,38 @@
       "zh": {
         "title": "通过增加CSS交付来改进网站性能",
         "summary": "GitHub设计系统案例研究展示了战略性地交付CSS如何改进网站性能，同时管理系统复杂性。该方法在部署主要设计系统变更时平衡了性能提升与可维护性。"
+      }
+    }
+  },
+  {
+    "title": "Factorio that you can touch",
+    "slug": "factorio-touchscreen-support",
+    "url": "https://factorio.com/blog/post/fff-447",
+    "source": "Hacker News",
+    "date": "2026-09-25T14:24:42.000Z",
+    "summary": "Factorio is receiving touchscreen support, making the factory-building simulation accessible on mobile and tablet devices. The adaptation preserves complex logistics gameplay while enabling a new input method for broader player reach.",
+    "content": "Article URL: https://factorio.com/blog/post/fff-447\nComments URL: https://news.ycombinator.com/item?id=49845133\nPoints: 254\n# Comments: 72",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "可触摸的Factorio",
+        "summary": "Factorio正在增加触屏支持，使这款工厂建造模拟游戏可以在移动设备和平板电脑上使用。这项适配保留了复杂的物流游戏玩法，同时支持新的输入方式，让更广泛的玩家可以接触到这款游戏。"
+      }
+    }
+  },
+  {
+    "title": "Platform-independent SIMD in Go",
+    "slug": "platform-independent-simd-go",
+    "url": "https://go.dev/blog/simd-experiment",
+    "source": "Hacker News",
+    "date": "2026-09-25T11:47:06.000Z",
+    "summary": "Go now offers platform-independent SIMD (Single Instruction, Multiple Data) operations, letting developers write vectorized code without hardware-specific assembly. The abstraction improves portability across architectures and makes high-performance computing more maintainable than traditional SIMD.",
+    "content": "Article URL: https://go.dev/blog/simd-experiment\nComments URL: https://news.ycombinator.com/item?id=49843269\nPoints: 311\n# Comments: 120",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Go中的平台独立SIMD",
+        "summary": "Go现已提供平台独立的SIMD（单指令多数据）操作，让开发者能够编写矢量化代码，无需硬件特定的汇编。这种抽象改进了跨架构的可移植性，使高性能计算比传统SIMD更易维护。"
       }
     }
   },
