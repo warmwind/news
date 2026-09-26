@@ -1,5 +1,213 @@
 [
   {
+    "title": "A worktree per agent, so they never step on each other",
+    "slug": "worktree-per-agent-isolation",
+    "url": "https://dev.to/autonomousaj/a-worktree-per-agent-so-they-never-step-on-each-other-5849",
+    "source": "DEV Community",
+    "date": "2026-09-26T20:27:32.000Z",
+    "summary": "Git worktrees enable parallel agent development by creating isolated checkouts of the same repository, eliminating the need for coordination mechanisms that don't scale. This approach removes shared state conflicts entirely, allowing multiple processes to work independently and merge changes cleanly at the end.",
+    "content": "By Andrew Pyle\nThe first time I tried to run two coding agents at once on the same project, it went exactly as badly as it should have. They were both editing files in the same directory, and the result was the software equivalent of two people writing on the same page at the same time — half-finished edits from one landing in the middle of the other's work, a build that made no sense, and no clean way to tell whose change was whose.\nMy first instinct was to make them coordinate: locks, turns, a queue. That instinct was wrong, and recognizing why it was wrong is the whole point. The problem wasn't a lack of coordination. It was shared state. And the cleanest fix for shared state isn't to negotiate access to it — it's to stop sharing it.\n01Isolate, don't referee\nWhen two processes fight over the same files, you can try to referee — put a lock around the shared thing, make them take turns, build a protocol for who edits what when. This works for two and becomes a nightmare at ten. Every new agent is another party to the negotiation, another way for the coordination itself to deadlock or starve. You've turned a parallelism problem into a distributed-systems problem, and distributed-systems problems are where good weekends go to die.\nIsolation flips it. If each agent has its own copy of the working tree, there's nothing to referee — they can all charge ahead at full speed because none of them can see, let alone corrupt, another's in-progress edits. The parallelism stops being a fight over one page and becomes a stack of separate pages that get collated at the end. Ten agents isn't ten times the coordination; it's ten independent workspaces and one merge step.\nWhen parallel work fights over shared state, don't build a better referee. Remove the sharing. Isolation scales where coordination collapses.\nGit has a built-in feature for exactly this, and it's underused. A worktree is a second (or third, or tenth) checkout of the same repository, living in its own directory, on",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "每个代理一个工作树，这样它们就不会互相干扰",
+        "summary": "Git工作树通过为同一个仓库创建隔离的检出，实现并行代理开发，消除了不可扩展的协调机制的需求。这种方法完全消除了共享状态冲突，允许多个进程独立工作并在最后整洁地合并更改。"
+      }
+    }
+  },
+  {
+    "title": "Monitor your robots.txt and sitemap for accidental changes",
+    "slug": "monitor-robots-txt-sitemap-changes",
+    "url": "https://dev.to/daniel_root_5c360ddb87563/monitor-your-robotstxt-and-sitemap-for-accidental-changes-45ac",
+    "source": "DEV Community",
+    "date": "2026-09-26T20:21:15.000Z",
+    "summary": "Critical SEO files like robots.txt and sitemaps require monitoring to catch accidental deployment issues that search engines notice but aren't immediately visible to users. Implementing smoke tests and change monitors for these files can prevent weeks-long organic traffic loss.",
+    "content": "Two SEO accidents come up again and again:\nA staging robots.txt with Disallow: / gets deployed to production.\nA migration or plugin update changes the sitemap generator, and whole sections disappear from sitemap.xml.\nNeither breaks the site for visitors, so nobody notices. Search engines do notice, just slowly: Google says it generally caches robots.txt for up to 24 hours, and the effect on indexing and traffic can take much longer to show up in reports. By the time someone asks \"why is organic down?\", the cause is weeks old.\nThe fix is boring: watch the few files that control crawling, and add a smoke test to your deploys.\n/robots.txt: plain text, small, and should almost never change. Any change is worth a human look.\nYour sitemap index and the child sitemaps that matter. If your sitemap is split (sitemap-pages.xml, sitemap-products.xml...), watch the index plus the ones for your most important sections.\nThe visible text of 3-5 money pages (home, pricing, top landing pages), which catches a template change that wipes copy.\nOther plain-text control files you rely on, such as /ads.txt or /.well-known/security.txt.\nMost change monitors, ours included, compare a page's visible text. That's great for robots.txt and sitemaps, but several indexing controls live in markup or headers, not in text:\n<meta name=\"robots\" content=\"noindex\"> (an attribute, not visible text)\nthe X-Robots-Tag: noindex HTTP header\nrel=\"canonical\" and hreflang changes\ntags injected by JavaScript after load\nFor those, use Search Console's indexing reports, a scheduled crawl (Screaming Frog, Sitebulb and similar tools can run on a schedule), or better, a check that runs on every deploy.\nDrop this into your CI after deploy (or run it from cron). It exits non-zero if production looks de-indexed:\n#!/usr/bin/env bash\n# seo-smoke.sh: fail loudly if production is telling crawlers to go away\nset -uo pipefail\nsite=\"https://example.com\"\npages=(/ /pricing /blog)\nfail=0\n\nrobots=$(curl -fsS \"$site/robots.txt\") ||",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "监控你的robots.txt和网站地图以检测意外更改",
+        "summary": "像robots.txt和网站地图这样的关键SEO文件需要监控，以捕捉搜索引擎注意到但对用户不立即可见的意外部署问题。为这些文件实施烟雾测试和变更监控可以防止长达数周的有机流量损失。"
+      }
+    }
+  },
+  {
+    "title": "How to get notified when a web page changes (without writing a scraper)",
+    "slug": "web-page-change-notification-without-scraper",
+    "url": "https://dev.to/daniel_root_5c360ddb87563/how-to-get-notified-when-a-web-page-changes-without-writing-a-scraper-531c",
+    "source": "DEV Community",
+    "date": "2026-09-26T20:21:11.000Z",
+    "summary": "Finding existing RSS feeds and data APIs is more effective than building scrapers for page monitoring, as feeds are free, reliable, and require checking whether a page is server-rendered or JavaScript-based. The right URL matters more than the tool when setting up change notifications.",
+    "content": "You want to know when a page changes: a \"registration opens soon\" notice, a competitor's pricing table, a changelog with no RSS, a government page that says \"updates will be posted here\". Most guides jump straight to a tool. It's worth spending five minutes first, because the right URL matters more than the right tool.\nA feed is the most reliable change notification there is, and it's free.\nLook in the page source for <link rel=\"alternate\" type=\"application/rss+xml\"> or application/atom+xml.\nTry the usual paths: /feed, /rss, /atom.xml, /index.xml.\nGitHub has Atom feeds for releases (https://github.com/OWNER/REPO/releases.atom), tags (/tags.atom) and commits (/commits/main.atom).\nSubreddits have one at https://www.reddit.com/r/NAME/.rss.\nIf there's a feed, put it in any feed reader (or an automation tool that emails you new items) and stop here.\nOpen the page, then open its source: Ctrl+U / Cmd+Option+U, or prefix the address with view-source:. Search for the words you care about.\nThe text is in the source. The page is server-rendered. Any text-based monitor will see what you see, and a simple, cheap tool is enough.\nThe source is mostly <script> tags and an empty <div id=\"root\">. The page is rendered by JavaScript in the browser. A plain HTTP fetch sees an empty shell.\nFor JavaScript pages you have two options:\nFind the data URL. Open DevTools, go to the Network tab, filter by Fetch/XHR, and reload. The page is usually loading JSON from an API. If that JSON URL works when you open it in a new tab (no login cookie needed), watch the JSON instead of the page. It's smaller, it changes only when the data changes, and many monitors handle JSON well.\nUse a monitor that runs a real browser (Visualping, PageCrawl, or self-hosted changedetection.io with its Playwright fetcher). These are heavier and usually cost more per check, but they work on single-page apps.\nWhatever tool you use, noise usually comes from the page, not the tool. Before you set anything up:\nPrefer the spec",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何在网页更改时获得通知（无需编写爬虫）",
+        "summary": "查找现有的RSS源和数据API比为页面监控构建爬虫更有效，因为源是免费的、可靠的，并且需要检查页面是服务器渲染还是基于JavaScript。在设置变更通知时，正确的URL比工具更重要。"
+      }
+    }
+  },
+  {
+    "title": "Jev: What Happens When AI Stops Generating and Starts Deciding?",
+    "slug": "jev-ai-decision-making-not-generation",
+    "url": "https://dev.to/pubdev/jev-what-happens-when-ai-stops-generating-and-starts-deciding-16a2",
+    "source": "DEV Community",
+    "date": "2026-09-26T20:20:13.000Z",
+    "summary": "Jev is a decision-making model designed for structured outputs rather than prose generation, offering faster processing for tasks like classification where traditional LLMs produce unnecessary overhead. This represents a potential architectural shift toward dedicated decision layers alongside reasoning and generative models.",
+    "content": "** Jev: What Happens When AI Stops Generating and Starts Deciding?**\n\n\nFor the last few years, the dominant interface to AI has been simple:\nGive the model a prompt → generate tokens → parse the response → make a decision.\nThat architecture works extremely well when the output is meant for a human.\nBut what happens when the output is not meant for a human at all?\nWhat if the only thing your software needs to know is:\nWhich workflow should run?\nIs this request safe?\nShould we call another model?\nIs this customer review positive or negative?\nShould this transaction be escalated?\nWhich tool should an AI agent use?\nIs the model's previous answer good enough to continue?\nFor these problems, generating a paragraph of text can be unnecessary overhead.\nThis is where Jev, TypeSafe AI's first System One model, becomes interesting.\nTypeSafe describes Jev as a model designed to make fast, structured decisions that software can consume directly rather than generating prose for humans.\nAnd that introduces a fascinating architectural question:\nDo AI systems need a dedicated decision layer alongside reasoning and generative models?\nTraditional LLMs are primarily optimized for generating sequences of tokens.\nConceptually:\nPrompt\n   ↓\nToken 1\n   ↓\nToken 2\n   ↓\nToken 3\n   ↓\nToken 4\n   ↓\n...\n   ↓\nFinal response\n\nIf you ask an LLM:\n\"Classify this customer review as positive, neutral, or negative.\"\nyou may receive:\nThe customer appears to be expressing dissatisfaction\nwith the product because...\n\nBut your application doesn't need the explanation.\nIt needs:\n{\n  \"sentiment\": \"negative\"\n}\n\nSo the traditional approach becomes:\nGenerate → constrain → parse → validate → handle errors → execute\nJev approaches the problem differently.\nInstead of asking the model to write an answer, you define the possible decisions.\nConceptually:\nApplication State\n       ↓\nTyped Questions\n       ↓\nCandidate Decisions\n       ↓\nProbability Distribution\n       ↓\nStructured Decision\n\nTypeSafe calls this family of mo",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Jev：当AI停止生成并开始决策时会发生什么？",
+        "summary": "Jev是一个为结构化输出而非散文生成而设计的决策制定模型，为分类等任务提供更快的处理速度，其中传统大语言模型会产生不必要的开销。这代表了一个朝向专门决策层的潜在架构转变，与推理和生成模型并行存在。"
+      }
+    }
+  },
+  {
+    "title": "Distributed Locks in Go: Correctness, Failure Modes, and Production Patterns",
+    "slug": "distributed-locks-go-failure-modes",
+    "url": "https://dev.to/serifcolakel/distributed-locks-in-go-correctness-failure-modes-and-production-patterns-4mdg",
+    "source": "DEV Community",
+    "date": "2026-09-26T20:18:49.000Z",
+    "summary": "Distributed locks in Go face complexity beyond simple acquisition, including crash recovery, lease expiration, and network partition scenarios that don't occur with local mutexes. Understanding failure modes and production patterns is essential for correctness across multiple service instances.",
+    "content": "A distributed lock looks deceptively simple.\nYou have multiple instances of a service, but only one of them should perform a particular operation at a time.\nSo you put a key in Redis:\nlock:invoice:123 = worker-1\n\nIf the key exists, another worker waits.\nIf it does not exist, the worker creates it and starts processing.\nProblem solved.\nExcept it isn't.\nThe difficult part of distributed locking is not acquiring the lock.\nThe difficult part is answering questions like:\nWhat happens if the process crashes?\nWhat happens if the lock expires while the process is still running?\nWhat happens if another worker acquires the lock?\nWhat happens if the original worker continues executing?\nWhat happens if the network connection disappears temporarily?\nCan a worker accidentally release another worker's lock?\nWhat happens when the protected operation takes longer than the lease?\nCan the system prevent a stale worker from modifying the resource?\nThese are not edge cases.\nThey are the reason distributed locking is fundamentally different from using sync.Mutex.\nsync.Mutex in Redis\n\n\nA Go mutex protects shared memory inside one process.\nvar mu sync.Mutex\n\nfunc update() {\n    mu.Lock()\n    defer mu.Unlock()\n\n    // critical section\n}\n\nEvery goroutine using that mutex is part of the same process and shares the same memory.\nA distributed lock operates across:\n            ┌───────────────┐\n            │     Redis     │\n            └───────┬───────┘\n                    │\n          ┌─────────┴─────────┐\n          │                   │\n      Worker A             Worker B\n      Instance 1           Instance 2\n\nThe workers do not share memory.\nThey communicate through a remote system.\nThat introduces failure modes that a local mutex does not have:\nprocess crash\nnetwork partition\npacket delay\nRedis failover\nclock differences\nlease expiration\nlong-running operations\nstale clients\n\nRedis itself documents the basic single-instance pattern as an atomic SET with NX and an expiration, using a unique ra",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Go中的分布式锁：正确性、故障模式和生产模式",
+        "summary": "Go中的分布式锁面临超越简单获取的复杂性，包括崩溃恢复、租约过期和在本地互斥锁中不会发生的网络分区场景。理解故障模式和生产模式对于跨多个服务实例的正确性至关重要。"
+      }
+    }
+  },
+  {
+    "title": "Laya a decision making system one model.",
+    "slug": "laya-decision-model-fraud-detection",
+    "url": "https://dev.to/sharifulislamsourav/laya-a-decision-making-system-one-model-41fb",
+    "source": "DEV Community",
+    "date": "2026-09-26T20:11:44.000Z",
+    "summary": "Laya is an open-source decision model built on ModernBERT for fast structured decisions like fraud detection, avoiding the computational overhead of large generative LLMs for simple classification tasks. Effective use requires defining business rules separately from risk estimation and carefully formatting input data to avoid semantic bias.",
+    "content": "JEV is the new hot topic in the tech community from last week. So I decided to spend the weekend testing Laya (open-source alternative to JEV) for E-Commerce Fraud Detection. Here’s what I learned... (Laya can be run locally on your device)\nMost AI projects nowadays use generative LLM models like GPT or Claude for almost every task. Which can be a huge overhead and costly for simpler and quick tasks.\nFor simple decision-making tasks like fraud detection, support systems, validation we don't always need a huge LLM. We need something fast and consistent for decisions.\nThat’s where Jev/Laya comes in.\nJev/Laya is a decision model built on ModernBERT. JEV/Laya is a non-autoregressive System One decision model. Instead of generating text like a chatbot, it takes structured information and gives answers as scores, choices or nouls.\nTo understand and test it, I built a small Order Risk Detector.\nHere are the takeaways after doing this small project\nDon't Let the AI Decide Your Business Rules\nAt first, I asked Laya:\n\"Should we APPROVE/REVIEW/HOLD this order?\"\nIt wanted to HOLD all orders even when the orders looked completely normal.\nThe problem was that \"Approve/Review/Hold\" is a business decision. Every e-commerce company can have its own rules for this. Like a company selling very expensive items can be more cautious. Whereas a small company can ignore some indicators and approve orders easily.\nSo I changed the approach:\nThe model estimates the fraud risk and our application decides what to do.\nFor example:\nHow We Write the Data Matters\nI also found something interesting. When we gave the model raw data like failed_payment_attempts: 0\nthe model focused on the word \"failed\" and treated it as a risk signal. It's a classic semantic bias issue also on LLM's.\nSo I changed it to a more natural one\n\"Customer has a clean payment history with 0 failed attempts.\"\nThis gave much better results.\nCPU vs GPU Makes a Big Difference\nWe also tested how fast Laya runs on different hardware",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Laya一个决策模型欺诈检测",
+        "summary": "Laya是一个基于ModernBERT构建的开源决策模型，用于快速结构化决策（如欺诈检测），避免了大规模生成型大语言模型在简单分类任务中的计算开销。有效使用需要将业务规则与风险估计分离定义，并仔细格式化输入数据以避免语义偏差。"
+      }
+    }
+  },
+  {
+    "title": "Run Luxir on a Mac or Windows laptop (no Linux, no C++)",
+    "slug": "run-luxir-docker-mac-windows",
+    "url": "https://dev.to/sjayesh/run-luxir-on-a-mac-or-windows-laptop-no-linux-no-c-k6l",
+    "source": "DEV Community",
+    "date": "2026-09-26T20:08:52.000Z",
+    "summary": "Luxir, a new open-source hybrid search engine, can be evaluated on Mac or Windows laptops using Docker emulation of its Linux x86-64 build. The engine offers full-text ranking, vector search, and hybrid ranking without requiring a JVM or cluster setup.",
+    "content": "Luxir ships a Linux x86-64 binary. This post is how I run that build in Docker on a laptop that is not Linux, including ARM machines that have to emulate linux/amd64. Four files, docker compose up, then a small index and search. Good enough to try the API. Not how you measure production speed.\nLuxir is a new open-source hybrid search engine. You put documents in. You ask for the ones that match words, numbers, maps, or vectors. It talks HTTP and JSON on port 9400, so curl is enough. There is also gRPC on 9401 for programs. Official site: luxir.org.\nYonik Seeley created it. He is the original author of Apache Solr and a longtime Lucene/Solr committer. Luxir is not Solr, Lucene, Elasticsearch, or OpenSearch. It is a separate C++ engine, Apache License 2.0, first public release 0.1.0 (September 2026). It is pre-1.0: APIs and on-disk format can still change.\nWhat it does, in one list (from the project's own docs):\nFull-text ranking (BM25), plus a small query language you can type by hand\nVector / kNN search, with filters applied inside the vector search\nHybrid ranking: lexical and vector in one request (rank fusion)\nFacets and analytics on the same index view (counts, ranges, metrics)\nGeo (box and radius), composed with the rest\nNo JVM. Native code. The pitch is more search per core, per gigabyte, and per dollar\nCollections appear on first write. You can start without declaring a schema\nIf you already know Solr or Elasticsearch: think \"one process, curl-first, text plus vectors plus facets,\" not \"a cluster you assemble from plugins.\"\nLuxir is new enough that most people have never heard of it. The official ready-made program is a Linux x86-64 download. If you evaluate search engines on a Mac or Windows laptop, you hit that wall before you ever send a query.\nThis page exists so you can try Luxir this afternoon without installing Linux, without compiling C++, and without treating Docker emulation as production. The engine is Yonik Seeley and contributors (luxir.org). This",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在Mac或Windows笔记本上运行Luxir（无需Linux，无需C++）",
+        "summary": "Luxir是一个新的开源混合搜索引擎，可以通过Docker模拟其Linux x86-64构建版本在Mac或Windows笔记本上进行评估。该引擎提供全文排名、向量搜索和混合排名，无需JVM或集群设置。"
+      }
+    }
+  },
+  {
+    "title": "Moving off Microsoft.Azure.ServiceBus and WindowsAzure.ServiceBus before September 30, 2026",
+    "slug": "azure-servicebus-migration-september-2026",
+    "url": "https://dev.to/mauricio_acua_5650fb8a8c/moving-off-microsoftazureservicebus-and-windowsazureservicebus-before-september-30-2026-4bcg",
+    "source": "DEV Community",
+    "date": "2026-09-26T20:05:00.000Z",
+    "summary": "Microsoft retires old Azure Service Bus libraries (WindowsAzure.ServiceBus, Microsoft.Azure.ServiceBus) on September 30, 2026, with the SBMP protocol support ending the same date. Migration to Azure.Messaging.ServiceBus is required to maintain support, though connection string modifications can provide temporary compatibility.",
+    "content": "On September 30, 2026, Microsoft retires the old Azure Service Bus client libraries for .NET: WindowsAzure.ServiceBus and Microsoft.Azure.ServiceBus (plus com.microsoft.azure.servicebus on Java). Support for the SBMP protocol ends the same day. The replacement is Azure.Messaging.ServiceBus, which has been available since November 2020.\nI went through the official docs and migration guides to separate what actually stops working from what just loses support, and turned the rest into a type map and a checklist. Every claim below links to the source.\nThe notice is repeated on several Microsoft Learn pages, including the Service Bus FAQ. In short:\nWindowsAzure.ServiceBus, Microsoft.Azure.ServiceBus and com.microsoft.azure.servicebus are retired on September 30, 2026.\nSupport for the SBMP protocol ends and \"you'll no longer be able to use this protocol after 30 September 2026\".\nThe old libraries \"can still be used beyond 30 September 2026\", but they get no official support and no updates from Microsoft.\nSo there are two different situations, depending on the package and the transport.\nWindowsAzure.ServiceBus on its default settings stops working. That package talks to Service Bus over SBMP by default (Microsoft Learn). If your connection string does not contain TransportType=Amqp, your app is using SBMP, and SBMP is what goes away.\nThere is a documented stopgap: append ;TransportType=Amqp to the connection string and the same package uses AMQP 1.0 instead. The same page lists the behavior differences when you do that: OperationTimeout is ignored, Receive(TimeSpan.Zero) becomes a 10 second receive, and only the receiver that got a message can complete it by lock token. It also changes how message bodies are serialized (more on that below). Treat it as a way to buy a few weeks, not as the migration.\nMicrosoft.Azure.ServiceBus keeps connecting, without support. This package already uses AMQP (the transport options the FAQ lists for it are AMQP and AMQP over WebSockets), so",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在2026年9月30日之前迁移离开Microsoft.Azure.ServiceBus和WindowsAzure.ServiceBus",
+        "summary": "微软将在2026年9月30日停用旧的Azure Service Bus库（WindowsAzure.ServiceBus、Microsoft.Azure.ServiceBus），同一日期SBMP协议支持也将终止。需要迁移到Azure.Messaging.ServiceBus以维持支持，尽管连接字符串修改可以提供临时兼容性。"
+      }
+    }
+  },
+  {
+    "title": "Shared Hosting and CVE-2026-48842: When One Mail Server Holds Every Tenant",
+    "slug": "cve-2026-48842-roundcube-shared-hosting",
+    "url": "https://dev.to/bianliang/shared-hosting-and-cve-2026-48842-when-one-mail-server-holds-every-tenant-4bhf",
+    "source": "DEV Community",
+    "date": "2026-09-26T20:00:43.000Z",
+    "summary": "CVE-2026-48842 is a pre-authentication SQL injection in Roundcube Webmail that affects shared hosting environments where multiple tenants use one database account, potentially exposing email records across unrelated customers. Fixed in May 2026, this vulnerability exemplifies how shared hosting amplifies database-level compromise across tenant boundaries.",
+    "content": "Shared Hosting and CVE-2026-48842: When One Mail Server Holds Every Tenant\n\n\n\n  \n  \n  Vulnerability overview\n\n\nCVE-2026-48842 is a pre-authentication SQL injection in the Roundcube Webmail virtuser_query plugin, fixed on 24 May 2026 in releases 1.6.16 and 1.7.1. Roundcube names the mechanism as a preg_replace backslash escape bypass and credits skull. A secondary record rates it CVSS 8.1 (CVSSv3), class CWE-89, and reports that the Canadian Centre for Cyber Security confirmed exploitation in the wild. The flaw matters most where many tenants share one webmail application and one database account.\nThe plugin answers identity questions before login. It takes a value supplied by the client, filters it with a regular expression substitution, and queries the directory that maps addresses to mailboxes. Crafted backslash sequences survive that substitution, so the query carries attacker-chosen SQL and runs without credentials or user interaction.\nThe database account used by the webmail application defines the blast radius, and on shared hosting that account typically reaches every tenant's mail records. Reported outcomes are extraction of sensitive email records and compromise of the database layer. A single unauthenticated injection therefore crosses the isolation boundary that customers were promised, and the data at risk includes password-reset mail, invoices and business correspondence belonging to parties with no relationship to the attacker.\nReported affected releases are 1.6.x before 1.6.16 and 1.7.x before 1.7.1, limited to installations with virtuser_query in use. The same 24 May 2026 release also fixed a stored XSS and CSS injection in the draft restore dialog subject field, a CSS injection bypass in the HTML sanitizer via an SVG animate attribute, an SSRF bypass through specific local address URLs, a local or private URL fetch bypass, a remote image blocking bypass via CSS var(), a pre-auth arbitrary file delete reached through redis or memcache session poisoni",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "共享主机和CVE-2026-48842：当一个邮件服务器掌握每个租户时",
+        "summary": "CVE-2026-48842是Roundcube Webmail中的认证前SQL注入漏洞，影响使用一个数据库账户的多租户共享主机环境，可能暴露跨不相关客户的电子邮件记录。该漏洞于2026年5月修复，是共享主机如何放大跨租户边界数据库级别危害的典型例证。"
+      }
+    }
+  },
+  {
+    "title": "The hardest part of a local AI writing assistant is not the model",
+    "slug": "local-ai-writing-assistant-workflow",
+    "url": "https://dev.to/sergeylevi/the-hardest-part-of-a-local-ai-writing-assistant-is-not-the-model-j94",
+    "source": "DEV Community",
+    "date": "2026-09-26T19:58:46.000Z",
+    "summary": "Building effective local AI writing assistants requires prioritizing workflow and integration over model quality alone, focusing on features like on-device processing and seamless text-field integration. DraftKey exemplifies this approach by keeping the AI layer transparent and low-friction rather than forcing chat interfaces.",
+    "content": "A lot of people assume the hard part of a local AI writing app is picking the model.\nThat matters, but it has not been the whole problem.\nThe harder product problem is making the assistant feel like it belongs in the text field you are already using.\nIf writing help forces you to copy text into a separate chat window, wait, copy the result back, then clean it up, the model can be good and the workflow can still feel bad.\nFor a Mac writing assistant, the boring details matter more than they look:\nHow quickly suggestions show up\nWhether rewriting works on selected text\nWhether the app stays out of the way when you do not need it\nWhether the text stays private instead of being sent to a server\nWhether the assistant works in normal macOS text fields instead of only inside one editor\nThat is the direction I have been taking with DraftKey.\nDraftKey is a native Mac app for local AI autocomplete and instruction-based rewriting inside existing macOS text fields. It runs on-device on Apple Silicon, so the writing workflow is closer to \"keep typing\" than \"open another AI tab.\"\nI am not trying to turn every writing moment into a chat session. I want the AI part to feel like a small layer on top of the text box you already picked.\nThere are real tradeoffs with that approach. Local models need a download. Performance depends on the Mac. Some apps expose text fields better than others. But for private writing assistance, those tradeoffs feel worth it.\nIf you are curious, the app is here: https://www.getdraftkey.com/\nThe bigger lesson for me: with AI products, raw output quality is only one part of the product. The workflow around the output decides whether people actually use it.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "本地AI写作助手最难的部分不是模型",
+        "summary": "构建有效的本地AI写作助手需要优先考虑工作流和集成，而不仅仅是模型质量，重点关注设备上处理和无缝文本字段集成等功能。DraftKey通过保持AI层的透明性和低摩擦力而不是强制使用聊天界面来体现这一方法。"
+      }
+    }
+  },
+  {
+    "title": "Verify an Indexer Can Recover from a Chain Reorganization",
+    "slug": "verify-indexer-chain-reorganization-recovery",
+    "url": "https://dev.to/pharos_production/verify-an-indexer-can-recover-from-a-chain-reorganization-1gn0",
+    "source": "DEV Community",
+    "date": "2026-09-26T19:57:43.000Z",
+    "summary": "Blockchain indexers must verify recovery from chain reorganizations not just by checkpoint health but by reconstructing canonical history independently to ensure indexed results remain correct. This requires storing block hashes alongside heights and testing end-to-end recovery scenarios with realistic failure modes.",
+    "content": "An indexer can reach the latest block and still serve data from an abandoned chain. Its checkpoint advances, its health endpoint stays green and its token balance includes a transfer that no longer exists in canonical history. Recovery needs a stronger acceptance test: after replacing a branch, every indexed result must match an independent rebuild of the selected canonical history.\nThis tutorial turns that requirement into an executable rehearsal. A small Python and SQLite model indexes signed amounts, replaces an orphaned suffix and checks its state against a separate pure replay function. The fixture finishes at block B4 with a total of 24. Repeating the same input changes nothing. Injecting an exception during recovery leaves the previously committed state intact.\nThe example is deliberately bounded. It uses synthetic block identifiers and complete, already selected branches. It does not implement Ethereum consensus, validate block hashes or connect to a node. The database represents one chain and one aggregate. Those limits make the assertions easy to inspect before adapting them to a production indexer with multiple projections and concurrent readers.\nThe acceptance condition is useful beyond this model. A wallet requires correct ownership and balances; an analytics product requires correct event history and aggregates. Decide which results users depend on before choosing the recovery mechanism.\nA checkpoint containing only a height cannot identify a chain. Two competing blocks can occupy the same position. Record the block number together with its hash, then retain enough parent relationships to establish which stored blocks belong to the replacement branch. Treat the checkpoint as a claim about fully committed application state, not merely the most recent RPC response.\nFor an Ethereum log pipeline, distinguish an observed event from the transaction that produced it. A useful occurrence key contains the chain identity, block hash, transaction hash and log ind",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "验证索引器能否从链重组中恢复",
+        "summary": "区块链索引器必须验证从链重组中恢复，不仅仅通过检查点健康状态，还要独立重建规范历史以确保索引结果保持正确。这需要将区块哈希与高度一起存储，并测试具有现实故障模式的端到端恢复场景。"
+      }
+    }
+  },
+  {
+    "title": "Astra Killed Claude, Claude Killed Gemini, Gemini Killed Google, Google Committed Suicide",
+    "slug": "llm-industry-model-saturation-critique",
+    "url": "https://dev.to/web_dev-usman/astra-killed-claude-claude-killed-gemini-gemini-killed-google-google-committed-suicide-n32",
+    "source": "DEV Community",
+    "date": "2026-09-26T19:50:23.000Z",
+    "summary": "The LLM industry's constant model releases mask an underlying lack of differentiation, with new benchmarks serving marketing rather than fundamental innovation. The real market opportunity lies in serving individual clients willing to pay for AI-assisted work rather than transforming how businesses operate at scale.",
+    "content": "Astra killed Claude. Claude killed Gemini. Gemini killed Google. Google committed suicide, and that's the end of the story. Somewhere in between, and nobody even sent flowers.\nWhy am I always crawling backwards into the same graveyard? How many times can one industry die this month? Tell me, genuinely, what changed between these products apart from a thinking level slider and your affiliate link. Why does every funeral have the same sponsor?\n“New model just dropped” is not a personality, it is a subscription.\nAnd can we talk about who is even buying these things. Like actually buying them, not retweeting the benchmark screenshot. Show me the affiliate dashboard, bro. Who is on the other end of that link?\n\nThe agencies don’t have clients who’ll even pay for their team’s ChatGPT Plus seat, so it’s not the agencies. The only people funding this entire ecosystem are the clients themselves, direct, with no middleman, credit card in hand at 11pm.\n\nThese LLMs have figured out something agencies never could: it is a very addictive game for a client who understands their own domain but doesn’t want to pay a stranger to translate it into code. That gap, the one between “I know what I want” and “I don’t want to hire you to build it,” that’s the whole market right now. That’s the funeral home’s business model.\n\nHere’s the part that stings a little. Even when we built it for them, properly, with a team and a contract and a Slack channel, the client never understood the code. They just trusted us.\nSo in a weird way they’re in a better position now. They still don’t understand the code, that part hasn’t changed, but now it’s free, or fifteen dollars a month, and it comes with a chat window that’s nicer to them than their last agency was.\nA client who couldn’t read a for-loop in 2019 still can’t read one in 2026. The only thing that changed is who’s smiling while they don’t read it.\nAnd funny enough, they still come back to us. That’s the twist nobody puts in the keynote. I have ha",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Astra杀死了Claude，Claude杀死了Gemini，Gemini杀死了Google，Google自杀了",
+        "summary": "LLM行业不断发布新模型掩盖了缺乏差异化的根本问题，新基准服务于营销而非根本创新。真正的市场机会在于为愿意为AI辅助工作付费的个人客户服务，而不是改变企业大规模运营的方式。"
+      }
+    }
+  },
+  {
+    "title": "I'm the mom in that viral Giants clip. Let me tell you about my husband",
+    "slug": "mom-viral-giants-moment-personal-story",
+    "url": "https://themomoftheyear.substack.com/p/im-the-mom-in-that-viral-giants-clip",
+    "source": "Hacker News",
+    "date": "2026-09-26T16:12:18.000Z",
+    "summary": "A personal essay from a woman featured in a viral Giants game clip, sharing her experiences and perspective about her husband and the moment that became viral content.",
+    "content": "Article URL: https://themomoftheyear.substack.com/p/im-the-mom-in-that-viral-giants-clip\nComments URL: https://news.ycombinator.com/item?id=49857899\nPoints: 344\n# Comments: 141",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我就是那个病毒视频中的妈妈。让我告诉你关于我丈夫的事",
+        "summary": "来自一位在病毒视频中出现的女性的个人随笔，分享了她对丈夫的经历和看法，以及那个成为网络热点的时刻。"
+      }
+    }
+  },
+  {
     "title": "One operator, a fleet of agents",
     "slug": "one-operator-fleet-agents",
     "url": "https://dev.to/apylepad/one-operator-a-fleet-of-agents-2ee6",
@@ -396,6 +604,22 @@
       "zh": {
         "title": "如何处理轮班的员工可用性？",
         "summary": "UnbindShift是一个早期阶段的应用程序，旨在通过自动化可用性收集和日程安排创建来解决轮班团队的班次调度挑战，以代替电子表格和手动协调。构建者正在寻求来自班次工作人员和经理的反馈，了解当前的痛点，包括可用性跟踪方法和调度挑战。该项目包括对有兴趣参与测试的用户的等待列表。"
+      }
+    }
+  },
+  {
+    "title": "Fifteen years later, the Apple Cards origin story",
+    "slug": "apple-cards-fifteen-year-origin",
+    "url": "https://lexontech.org/fifteen-years-later-the-apple-cards-origin-story",
+    "source": "Hacker News",
+    "date": "2026-09-26T09:13:41.000Z",
+    "summary": "An article examining the fifteen-year history and development behind Apple's Cards product line, tracing its origins and evolution in the technology landscape.",
+    "content": "Article URL: https://lexontech.org/fifteen-years-later-the-apple-cards-origin-story\nComments URL: https://news.ycombinator.com/item?id=49854693\nPoints: 298\n# Comments: 64",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "十五年后，苹果卡片的起源故事",
+        "summary": "一篇文章探讨了苹果卡片产品线背后十五年的历史和发展，追踪了其在科技领域的起源和演变。"
       }
     }
   },
