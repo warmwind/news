@@ -1,0 +1,194 @@
+[
+  {
+    "title": "Three agent runs, one correct total, three different verdicts",
+    "slug": "three-agent-runs-correct-total-verdicts",
+    "url": "https://dev.to/redsoft/three-agent-runs-one-correct-total-three-different-verdicts-4786",
+    "source": "DEV Community",
+    "date": "2026-09-29T04:34:50.000Z",
+    "summary": "Test suites often pass on wrong metrics: three agent refund runs reach the correct $50 total but only one properly authorizes before payment, yet all pass. Testing the final number misses process violations; tests lacking evidence should be marked inconclusive, not passed.",
+    "content": "Three agent runs refund the same order. All three end with the correct $50 total. Only one of them should ship.\nThis is a synthetic teaching case, not a real incident. I use it because it isolates something a lot of agent test suites get wrong: the number they check is right, and the decision they support is wrong.\nRefund order A exactly $50, once, after an authorization valid for that order and that amount. Do not touch unrelated orders. The starting state has no refund on the order.\nOne wrinkle, and it matters: retrying with the same idempotency key may return the same receipt without a second effect. A safe retry is allowed. Issuing a second payment and reversing it later is not.\nTrace A\nt1  authorize(order=A, amount=50)\nt2  effect R1, key=K\nt3  retry key=K -> returns R1, no new effect\n\nTrace B\nt1  effect R1\nt2  authorize(order=A, amount=50)\nt3  effect R2, key=K2\nt4  reverse R2\n\nNet payment: $50.\nTrace C\nnet payment: $50\nauthorization: not in the log\nintermediate events: not in the log\n\nIt passes all three. That is the whole problem.\nHere is what each one actually deserves:\nA — pass, for the contract as stated, if you trust the trace and the initial state.\nB — fail. The net total is correct and the run is still a violation. Authorizing at t2 does not retroactively authorize the payment at t1. Reversing R2 does not un-issue it. If your grader reports \"correct refund amount,\" it is reporting a true fact about a run that paid before it was allowed to and paid twice.\nC — unscorable. Not a pass, not a violation. Both of those claim more than the evidence supports. \"We cannot tell from this evidence\" is a distinct outcome and it should be reported as one, not rounded to the nearest verdict.\nThat third category is the one I see collapsed most often. A missing-evidence run gets bucketed with the passes because nothing contradicted the expected outcome, and the pass rate quietly absorbs it.\nStop scoring the outcome. Score these separately:\nA valid authorization precedes t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "三次代理运行，一个正确总数，三个不同结果",
+        "summary": "测试套件经常在错误的指标上通过：三个代理退款运行达到正确的50美元总数，但只有一个在支付前正确授权，然而都通过了。测试最终数字忽略了流程违规；缺乏证据的测试应标记为结论不明确，而不是通过。"
+      }
+    }
+  },
+  {
+    "title": "Building a Voice Layer for an App: TTS, ASR and Realtime",
+    "slug": "building-voice-layer-app-tts-asr",
+    "url": "https://dev.to/voorai/building-a-voice-layer-for-an-app-tts-asr-and-realtime-1c6h",
+    "source": "DEV Community",
+    "date": "2026-09-29T04:34:25.000Z",
+    "summary": "Production voice features demand more than model integration: streaming synthesis plays sentences early, transcription modes separate batch/partial/realtime use cases, and adaptive turn detection handles silence detection reliably. Voice quality depends on latency budget and failure handling, not the model alone.",
+    "content": "Voice features look like a thin wrapper around a model until you ship one. The model is the easy part; the latency budget, the turn-taking and the failure modes are the work. Here is the shape that holds up in production.\nA text-to-speech call that returns a whole file is fine for a podcast, and wrong for a conversation. Streaming synthesis starts playing while the rest of the sentence is still being generated, which is the difference between a responsive assistant and a pause that feels broken.\nPractical rules:\nSplit long text into sentences and synthesize them as a queue, so the first sentence plays early.\nPick two voices at most. Switching voices mid-conversation destroys the illusion faster than any artifact.\nHandle numbers, units and abbreviations before the model sees them. \"2.5 GB\" read as \"two point five gigabytes\" is a preprocessing job, not a voice problem.\nInsert explicit pauses instead of punctuation tricks; a comma cannot express a two-second beat.\nTranscription has three modes, and most apps pick the wrong one:\nBatch, when the user is done talking and you need the final text.\nStreaming partial results, when you want the transcript to appear while speaking.\nRealtime bidirectional, when the app must hear and speak at once.\nPartial results are for the interface. Do not run your business logic on them; they change. Run it on the final segment, and design the UI so a corrected transcript does not invalidate what the user already saw.\nPunctuation, casing and speaker labels all cost extra latency. Turn them on only where the output is read by a person.\nWhen is the user finished? A fixed silence threshold fails on slow speakers and on people who pause mid-sentence. A model-based turn detector fails on background noise. The workable compromise is an adaptive threshold plus an explicit \"push to talk\" escape hatch for noisy rooms.\nIf the assistant speaks, support interruption. Barge-in - stopping playback the moment the user starts talking - is one of the few voi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为应用构建语音层：TTS、ASR和实时处理",
+        "summary": "生产级语音功能不仅需要模型集成：流式合成提前播放句子，转录模式分离批处理/部分/实时用例，自适应轮转检测可靠处理沉默检测。语音质量取决于延迟预算和故障处理，而不仅仅是模型。"
+      }
+    }
+  },
+  {
+    "title": "Observability for Generative Video Pipelines: Wallets, Audits, and Replays",
+    "slug": "observability-generative-video-wallets-audits",
+    "url": "https://dev.to/nidheeshdas/observability-for-generative-video-pipelines-wallets-audits-and-replays-1i66",
+    "source": "DEV Community",
+    "date": "2026-09-29T04:33:41.000Z",
+    "summary": "Generative video observability requires three distinct measurement planes: authoring (script validity), execution (job health), and commercial (costs with revision attribution). A visible budget wallet with append-only audit trail and debit attribution enables teams to track spend and replay compositions without hidden retries or surprise charges.",
+    "content": "Traditional video render farms taught us to watch queues, workers, and encode errors. Generative video adds a second economy on top: model calls with fuzzy latency, variable cost, and non-identical outputs.\nIf you treat that economy like \"just another HTTP client,\" you will not be able to answer the only questions that matter to a team:\nWhat did we spend?\n\nOn which scene revision?\n\nWhich function call produced this clip?\n\nCan we replay the composition without paying for a new surprise?\nAt SceneRok we talk publicly about a token wallet that covers traditional render and generative calls, with an audit trail. This essay stays at the pattern layer: how to think about observability when video is programmable.\nCollapse everything into a single \"GPU busy\" graph and you will misdiagnose forever. Split the problem:\nAuthoring / compile plane — script validity, generative resolves, pin decisions.\n\n\nExecution plane — preview vs final jobs, browser/worker health, encode progress.\n\n\nCommercial plane — wallet debits, per-call attribution, project/team rollups.\nSignals cross planes, but alerts should name which plane broke. A model timeout is not a browser crash. A preview queue backup is not a wallet mischarge. Operators and agents need that vocabulary.\nA wallet is not a spreadsheet. It is a user-visible budget with an append-only story.\nPatterns that keep trust:\nDebit at well-defined moments. Prefer \"compile resolved this generative call\" and \"final job accepted\" over ambient polling charges nobody can map to intent.\n\n\nAttribute to a scene revision. Cost without revision id is trivia. Cost with revision id is engineering.\n\n\nSeparate exploratory spend from delivery spend in the UI even if one balance backs both — preview/generative exploration should feel labeled.\n\n\nShow rough category breakdowns (generative vs compose/encode) without pretending sub-cent precision you cannot defend.\nWhat not to do: silent retries that double-charge; \"estimate\" that never reconciles; mixing seat f",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "生成式视频管道的可观察性：钱包、审计和重放",
+        "summary": "生成式视频可观察性需要三个不同的测量平面：创作（脚本有效性）、执行（任务健康状况）和商业（带版本归属的成本）。具有追加审计日志和借记归属的可见预算钱包使团队能够跟踪支出和重放合成，无需隐藏重试或意外费用。"
+      }
+    }
+  },
+  {
+    "title": "Turing Sim: Making the USD Schemas Inspector Readable",
+    "slug": "turing-sim-usd-schemas-inspector",
+    "url": "https://dev.to/alphanine/turing-sim-making-the-usd-schemas-inspector-readable-57h3",
+    "source": "DEV Community",
+    "date": "2026-09-29T04:31:32.000Z",
+    "summary": "Turing Sim redesigned its USD schema inspector to display each schema in a bordered card with clear ownership, proper transform property hierarchy (translate/rotate/scale), and undo support. The fix avoids hardcoded names while correcting stale fields after gizmo manipulation and following Isaac Sim conventions.",
+    "content": "The running editor shows separate USD schema cards, UR10 articulation settings and the source asset window. 运行中的编辑器展示分开的 USD schema 卡片、UR10 关节体设置及源资产窗口。\n\nEach USD schema on the selected cube (Collision, Mesh Collision, Rigid Body, Mass) now sits in its own card with its USD schema name.\n\nThe selected UR10 shows Translate, Rotate, Scale and Articulation Root settings in the running editor. / 运行中的编辑器展示 UR10 的平移、旋转、缩放及 Articulation Root 设置。\n\nThe source asset window shows a hierarchy, preview and Properties/Raw USD tabs. / 源资产窗口展示层级、预览及 Properties/Raw USD 标签。\nTuring Sim is an experimental OpenUSD editor and robotics simulation workbench. Its Schemas tab lists every schema on the selected prim, including physics APIs, and every edit goes through the document's undo history. On September 28 the tab worked, but it was hard to read. A viewport tool section sat between the name and the Transform, schemas without properties printed \"No additional properties\", and the Rigid Body and Mass fields ran together with no visible boundary. Transform showed only the transform parts already stored in the file, so the UR10 showed Position but no Rotation or Scale.\nThe goal was to make the tab read the way USD is structured, following the conventions of Isaac Sim's Property panel. Every property should clearly belong to one schema, Transform should own translate, rotation and scale, and the Articulation Root should expose settings such as self collision. The difficulty was doing this without hardcoding robot or schema names, which the project rules forbid, and without breaking undo.\nA second problem appeared during testing. After moving the UR10 with the gizmo, the Transform section switched to \"custom transform stack\" and the position fields went stale.\nOne card per schema. Each schema is now a bordered card. Its header shows a readable name on the left, the USD schema identifier (for example PhysicsRigidBodyAPI) on the right, and a remove button for applied APIs. Removing a schema also",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Turing Sim：让USD模式检查器更具可读性",
+        "summary": "Turing Sim重新设计了USD模式检查器，用边框卡片展示每个模式并清晰标示所有者，正确处理变换属性层级（平移/旋转/缩放），并支持撤销。该修复避免了硬编码名称，同时纠正了gizmo操作后的过期字段，并遵循Isaac Sim约定。"
+      }
+    }
+  },
+  {
+    "title": "I Split 220,000 Matches Into Two Channels: Retail Emotion vs. Institutional Intent",
+    "slug": "220000-matches-retail-emotion-vs-institutions",
+    "url": "https://dev.to/_73f88ca6d9f9bd82d23/i-split-220000-matches-into-two-channels-retail-emotion-vs-institutional-intent-e5l",
+    "source": "DEV Community",
+    "date": "2026-09-29T04:30:05.000Z",
+    "summary": "Sports betting odds reveal two competing forces: retail sentiment in high-vig lottery markets predicts outcomes only 25% of the time, while institutional hedging in low-vig Asian/European markets aligns with actual information. Splitting these channels exposes that dropping lottery odds signal bookmaker profit, not predictive edge.",
+    "content": "GitHub: github.com/MENG-COOLMAN/PitchQuant\nIn my previous post I wrote about building a complete football data analysis pipeline from 220,000 matches, pushing direction accuracy from 48% to 55%. But one question kept bugging me — how should you actually read odds movement?\nOver the last two weeks I figured it out: the odds aren't set by one person. Two groups are buying them.\nRetail bettors chase Chinese lottery odds, piling into whichever direction is dropping, convinced \"dropping odds = smart money.\" Institutions move the Asian/European market with real money, pushing lines toward what they believe. These two groups disagree all the time — and when they do, who's right?\nThe answer: most of the time, retail is wrong.\nSo in this update (V3.5.76) I did one thing: split these two groups into two independent channels that cross-validate — and expose — each other. This post walks through the \"dual-channel\" mechanism and the uncomfortable finding it surfaced.\nFirst, a measured data point. I backtested the tick-by-tick Chinese lottery odds: when a direction's odds keep dropping before kickoff (retail reads this as \"the bookmaker likes it\"), that direction actually hits only 25% of the time.\nFour-match sample — the dropping direction won a quarter of them.\nThe drop isn't wrong; the cause of the drop is wrong. The Chinese lottery vig is as high as 12.8%, and its water levels mostly follow retail sentiment, not information. Retail piles in, odds drop, and the bookmaker is happy — because with lower odds, retail's expected value evaporates and the bookmaker's exposure shrinks.\nThe Asian/European market, by contrast, has only ~6.9% vig. Line and water movement there is backed by real hedging pressure. Institutions don't buy retail sentiment; they buy their own positions.\nSo I split the model's data flow:\nLottery tick-by-tick odds  →  Retail channel (sentiment·12.8% vig)\nAsian/European time series →  Institutional channel (intent·6.9% vig)\n             ↓ cross-validate ↓",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我把22万场比赛分成两个频道：零售情绪与机构意图",
+        "summary": "体育博彩赔率揭示了两股相互竞争的力量：高佣金彩票市场中的零售情绪只能预测结果25%的时间，而低佣金亚洲/欧洲市场中的机构对冲与实际信息相符。将这些频道分离揭示了：彩票赔率下降预示的是庄家利润，而非预测优势。"
+      }
+    }
+  },
+  {
+    "title": "How a game should say no: designing refusals people can act on",
+    "slug": "game-should-say-no-designing-refusals",
+    "url": "https://dev.to/idlecultivation/how-a-game-should-say-no-designing-refusals-people-can-act-on-96",
+    "source": "DEV Community",
+    "date": "2026-09-29T04:30:02.000Z",
+    "summary": "Games fail when declining player actions: silent refusal (unchanged state, no message), perpetual loading states (no error copy), and untranslated failure messages in shipped languages all leave players unable to diagnose whether features work. Clear refusal messaging is critical UX work that determines feature discoverability.",
+    "content": "Development covered 2 Aug 2026 to 6 Aug 2026 (commit dates).\nMost interface effort goes into the path where things work. This stretch I went the other way and audited every place the game declines to do what was asked, which is a surprisingly large surface in a game full of requirements, and one where almost nothing had been designed at all.\n\nThe most common shape, and the worst. Several actions refused by returning the state unchanged. Press the button, nothing happens, no message, no animation, no explanation.\nFrom the player's side that is indistinguishable from a broken button, and it is worse than a broken button, because a broken button gets reported and this does not. The player concludes the feature does not work and stops pressing it, which means the failure never reaches you.\nThree of these were in the same panel. Each had a good reason to refuse and none of them said it.\n\nSecond shape. A request goes out, and the code around it handles the case where it succeeds. There is no branch for anything else. When the request does not succeed the interface stays in the state it entered, which is the loading state, forever.\nThis one has a tell: the copy says loading and the situation is not loading, it is finished and failed. Any interface with a loading state needs the third state as well, and the third state needs words. Not a spinner that stops, not an empty panel: a sentence saying what did not work.\nI have written this bug in every project I have ever worked on. Handling only the good branch is not laziness, it is what the shape of the code encourages, because success is the branch you were thinking about when you wrote it.\nThird, and specific to a game shipping in eleven languages. Some refusals were translated and some were not, and the untranslated ones sat in exactly the paths a confused player travels.\nFailure copy is where translation matters most and gets audited least. Anybody can navigate an interface whose labels they cannot read, by shape and positi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "游戏应该如何说\"不\"：设计人们能采取行动的拒绝",
+        "summary": "游戏在拒绝玩家操作时失败：无声拒绝（状态不变、无提示）、持续加载状态（无错误信息）和已发售语言中未翻译的失败信息都导致玩家无法判断功能是否正常运作。清晰的拒绝消息提示是决定功能可发现性的关键UX工作。"
+      }
+    }
+  },
+  {
+    "title": "Systems foundations should start below the framework",
+    "slug": "systems-foundations-below-framework",
+    "url": "https://dev.to/sarthakagrawal927/systems-foundations-should-start-below-the-framework-347k",
+    "source": "DEV Community",
+    "date": "2026-09-29T04:30:00.000Z",
+    "summary": "A systems foundations curriculum starting below frameworks teaches why values have sizes, allocations move, and network/performance tradeoffs emerge. This foundation helps developers understand when abstractions leak and what evidence to collect, better equipping them to diagnose slowness or unsafety than framework-first learning.",
+    "content": "Framework knowledge helps you ship. Systems knowledge helps when the framework becomes slow, unsafe, or surprising.\nThe 12-week Systems Foundations roadmap starts below application code. Data representation, program memory, the compute and storage hierarchy, and operating-system mechanics form the first phase. These topics explain why a value has a size, why an allocation moves, why a cache miss matters, and what the kernel does for a process.\nThe middle phase connects those mechanics through network protocols and concurrency. A request now crosses buffers, scheduling points, synchronization boundaries, and failure states. The learner has to discuss the production tradeoffs: latency, throughput, contention, cancellation, backpressure, and resource limits.\nThe final phase adds runtime performance and security isolation. Performance work begins with a reproducible workload and a profile. Isolation work begins by naming the trust boundary and the resources that cross it. Both need evidence because both invite confident guesses.\nThe synthesis artifact asks the learner to connect the layers. A useful artifact might trace one request or workload from representation through memory, runtime, network, and isolation, then identify and measure one bottleneck or risk. The exact implementation matters less than whether the causal path is clear.\nThis is a good antidote to tool-first learning. A container, event loop, database driver, or runtime is easier to reason about when you can explain the mechanisms it packages. The goal is not to avoid abstractions. It is to know when an abstraction is leaking and what evidence to collect next.\nThe complete roadmap is at https://learn.significanthobbies.com/curriculum/roadmaps/systems-foundations-12w.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "系统基础应该从框架之下开始",
+        "summary": "从框架之下开始的系统基础课程教授为什么值有大小、分配会移动，以及网络/性能权衡如何产生。这个基础帮助开发者理解抽象何时泄漏以及要收集什么证据，比框架优先学习更好地装备他们诊断缓慢或不安全的能力。"
+      }
+    }
+  },
+  {
+    "title": "How to Convert PDF Pages to Images (PNG or JPEG) at the Right Resolution",
+    "slug": "convert-pdf-pages-images-resolution",
+    "url": "https://dev.to/pulkitgovrani/how-to-convert-pdf-pages-to-images-png-or-jpeg-at-the-right-resolution-17he",
+    "source": "DEV Community",
+    "date": "2026-09-29T04:30:00.000Z",
+    "summary": "PDF-to-image conversion requires format and resolution choices: PNG preserves text sharpness at larger file sizes; JPEG compresses better for photo pages. Resolution ranges from 72-96 dpi (previews) to 300 dpi (print); 150 dpi balances quality and file size for web sharing.",
+    "content": "Converting a PDF to images is handy when you need to drop a page into a slide deck, post a document preview, or feed a page into software that only accepts pictures. The two decisions that matter are the image format and the resolution.\nPNG is lossless and keeps text and line art perfectly sharp. It is the better choice for documents, screenshots, and anything with sharp edges, at the cost of larger files.\nJPEG is lossy and produces much smaller files, and it suits pages dominated by photographs. At high compression it can blur small text and add halos around edges.\nA PDF page is vector-like and has no fixed pixel size, so the tool renders it at a resolution of your choice. A standard A4 page is about 8.27 by 11.69 inches.\n72 to 96 dpi: roughly screen size, fine for quick previews (about 595 by 842 pixels at 72 dpi).\n150 dpi: a good balance for sharing and web use (about 1240 by 1754 pixels for A4).\n300 dpi: print quality, about 2480 by 3508 pixels for A4, with much larger files.\nOpen the PDF in a converter that works in your browser.\nChoose PNG or JPEG and a resolution that matches how you'll use the images.\nConvert, then download the pages individually or as a bundle.\nOpen a page and zoom in to check that small text is readable.\nCheck the file size\nA 100-page PDF at 300 dpi PNG can produce gigabytes of images. Start with 150 dpi, and raise it only if the result isn't sharp enough.\nNeed just one page? Extract it first, then convert.\nWant the text, not a picture? Use a PDF text extractor instead of converting to images.\nNeed the images back as a PDF? Combine them with an images-to-PDF tool.\nUse 150 dpi for general sharing and web, 300 dpi for print, and 72 to 96 dpi for small previews.\nFor text-heavy documents, PNG stays sharper. JPEG is smaller and better for pages made mostly of photographs.\nExtract the pages you want into a new PDF first, then convert that file.\nNo. The result is a picture, so the text can't be selected or searched unless you run OCR on it.\nTry i",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何以正确的分辨率将PDF页面转换为图像（PNG或JPEG）",
+        "summary": "PDF转图像转换需要格式和分辨率选择：PNG以较大的文件大小保留文本清晰度；JPEG对照片页面压缩效果更好。分辨率从72-96 dpi（预览）到300 dpi（打印）；150 dpi在网络分享的质量和文件大小之间取得平衡。"
+      }
+    }
+  },
+  {
+    "title": "Designing a multi-model AI router that doesn't fall over (cascade + circuit breaker)",
+    "slug": "multi-model-ai-router-circuit-breaker",
+    "url": "https://dev.to/ancucorp/designing-a-multi-model-ai-router-that-doesnt-fall-over-cascade-circuit-breaker-119o",
+    "source": "DEV Community",
+    "date": "2026-09-29T04:28:22.000Z",
+    "summary": "Multi-model AI routers need circuit breakers and per-provider timeouts to prevent cascades when one provider fails. Simple retry loops hammer throttled endpoints and drag latency; production routers track provider state, skip tripped providers, and log full failure chains to enable fast fallthrough and debugging.",
+    "content": "The moment you add a second AI model to your app, you inherit a new class of production bug: the cascade. One provider has a bad day, your retry logic melts, and a simple 503 turns into a user-facing outage.\nI learned this the hard way running agents that call Claude, GPT-4o, and DeepSeek. Here's the pattern that fixed it.\nMost \"fallback\" implementations look like this:\ntry:\n    return call_claude(prompt)\nexcept Exception:\n    return call_gpt(prompt)\n\nThis fails in three ways:\nIt retries the same failing provider until the user gives up.\nIt ignores rate-limit headers (retry-after), so it hammers a throttled endpoint.\nIt has no circuit breaker — one slow provider drags your whole p95 latency up.\nA production router needs four things: ordered providers, per-provider timeouts, a circuit breaker, and structured logging.\nimport time\nfrom dataclasses import dataclass, field\n\n@dataclass\nclass Provider:\n    name: str\n    fn: callable\n    failures: int = 0\n    open_until: float = 0.0\n\n    def available(self) -> bool:\n        return time.time() >= self.open_until\n\n    def trip(self, cooldown: float = 30.0):\n        self.failures += 1\n        if self.failures >= 3:\n            self.open_until = time.time() + cooldown\n            self.failures = 0\n\nThen the router walks the chain, skipping tripped providers:\ndef route(prompt, providers, timeout=20):\n    errors = []\n    for p in providers:\n        if not p.available():\n            errors.append(f\"{p.name}: circuit open\")\n            continue\n        try:\n            return p.fn(prompt, timeout=timeout)\n        except Exception as e:\n            p.trip()\n            errors.append(f\"{p.name}: {e}\")\n    raise RuntimeError(\"all providers failed: \" + \"; \".join(errors))\n\nSkip, don't retry, a tripped provider. A circuit breaker is cheaper than a timeout.\nFail fast, fall down. Each provider gets its own timeout (I use 20s) so a hung request can't block the cascade.\nLog the whole chain. When all providers fail, the error message should t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "设计不会崩溃的多模型AI路由器（级联+断路器）",
+        "summary": "多模型AI路由器需要断路器和按提供者超时来防止在一个提供者失败时级联。简单的重试循环会压垮受限的端点并增加延迟；生产路由器跟踪提供者状态、跳过断裂的提供者，并记录完整的故障链以实现快速失效和调试。"
+      }
+    }
+  },
+  {
+    "title": "How Hindsight Turned Deployment #1017 Into the Fix for #1057",
+    "slug": "hindsight-deployment-fix-similar-incident",
+    "url": "https://dev.to/laxmi_sirichowdapu_c9bce/how-hindsight-turned-deployment-1017-into-the-fix-for-1057-436o",
+    "source": "DEV Community",
+    "date": "2026-09-29T04:25:10.000Z",
+    "summary": "PipelineSage uses persistent memory to surface similar historical incidents for new deployment problems, successfully linking pattern matches across different commits and failure descriptions. Recall logic currently relies on explicit queries rather than fully dynamic discovery, but demonstrates how historical incident memory accelerates diagnosis.",
+    "content": "How Hindsight Turned Deployment 1017 Into the Fix for 1057\nI built PipelineSage, an AI-powered pipeline diagnosis agent that uses Hindsight as persistent memory for previous deployment incidents.\nOne example shows why this memory is useful.\nLater, deployment 1057 experienced a similar migration timeout while updating historical transaction rows.\nThe workflow is:\nThe interesting part is that 1017 and 1057 aren't identical records. They have different commits and slightly different failure descriptions. The connection comes from the similarity in the underlying failure pattern.\nThere is also an important limitation in the current implementation: one of the recall queries explicitly references 1017. So this isn't yet a completely dynamic discovery of the best historical incident.\nThat was actually one of the useful lessons from building the project: persistent memory is only as powerful as the way you retrieve and write the memories.\nI'm working toward making the recall and write-back logic fully dynamic, so the system can discover the relevant incident and retain the actual confirmed outcome rather than relying on hardcoded values.\nhttps://pipelinesage.streamlit.app/\nPipelineSage is successfully deployed, the PipelineSage is live now🎉",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Hindsight 如何将部署 #1017 变成 #1057 的修复方案",
+        "summary": "PipelineSage 使用持久化内存来呈现针对新部署问题的类似历史事件，成功地在不同提交和失败描述之间链接模式匹配。当前的回忆逻辑依赖于显式查询而非完全动态发现，但展示了历史事件内存如何加速诊断。"
+      }
+    }
+  },
+  {
+    "title": "Email Deliverability Setup: NodeJS Custom Domain Suppression and Complaint Polling",
+    "slug": "email-deliverability-nodejs-suppression-polling",
+    "url": "https://dev.to/callumreed2198/email-deliverability-setup-nodejs-custom-domain-suppression-and-complaint-polling-2j4o",
+    "source": "DEV Community",
+    "date": "2026-09-29T04:23:56.000Z",
+    "summary": "Reliable transactional email routes contacts through durable queues before sending, checks suppression lists immediately before each send, and polls for bounces/complaints asynchronously. This approach treats email submission as a recoverable notification step while maintaining an authoritative internal queue, suitable when delayed reconciliation is acceptable.",
+    "content": "For a NodeJS custom-domain email deliverability setup, route the healthtech contact form into a durable support queue before attempting email, then treat the API call as a recoverable notification with suppression checks, idempotent submission, and bounce and complaint polling. Delivery reliability is the deciding constraint: a patient or customer contact must remain actionable even when message status is temporarily unknown.\nTL;DR: verify a dedicated sending domain and publish SPF, DKIM, and DMARC before production. Check suppression immediately before each transactional send. Because outcome events are pull-based and there is no SMTP relay, backend workers must call the email API directly, while a scheduled reconciler polls bounces and complaints. If the poller falls behind, pause nonessential notification retries; never lose or hide the original support request.\nThis is a practical contract for a US/EU SaaS contact form when delayed reconciliation is acceptable. It is the wrong contract when a bounce or complaint must trigger near-real-time action.\nStart with two clocks, not a provider feature list. The first measures how long an accepted contact may wait before the correct support queue sees it. The second measures how stale suppression state may become before outbound email must stop. The business owners choose those limits; the implementation should expose both as observable deadlines rather than burying them in a retry loop.\nThe internal queue is authoritative. Email is not.\nA useful state model separates accepted, classified, notification_submitted, and the later outcomes delivered, bounced, or complained. Persist the internal contact ID, chosen support queue, and provider message ID, but keep message bodies and recipient addresses out of routine logs. If classification succeeds and email submission times out, support still has the request. If polling stops, submitted messages remain reconcilable.\nPull-based events change the failure budget. They cannot prov",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "电子邮件可投递性设置：NodeJS 自定义域名抑制和投诉轮询",
+        "summary": "可靠的事务性电子邮件在发送前通过持久队列路由联系人，在每次发送前立即检查抑制列表，并异步轮询退回/投诉。这种方法将电子邮件提交视为可恢复的通知步骤，同时维护权威的内部队列，适合于可接受延迟协调的场景。"
+      }
+    }
+  },
+  {
+    "title": "Why I publish a failure list every week: verifiability beats confidence",
+    "slug": "publish-failure-list-verifiability-beats-confidence",
+    "url": "https://dev.to/llmrt/why-i-publish-a-failure-list-every-week-verifiability-beats-confidence-dej",
+    "source": "DEV Community",
+    "date": "2026-09-29T04:23:29.000Z",
+    "summary": "Publishing detailed failure lists and public ledger entries provides verifiable evidence of agent performance, contrasting with unverifiable success stories. Each failure includes exact error conditions and receipt hashes; this transparency enables cheap verification while selection bias makes success claims untrustworthy.",
+    "content": "I run an autonomous agent that earns small amounts of money, and I keep a public ledger of it. The single most useful post I have produced is not a success story. It is a list of twelve things that failed, each with the exact error it died on.\nHere is why, if you are building anything that needs other people to trust it - an agent, a startup, a product - you should do the same thing.\nAnyone can write \"my agent made $X\" and attach a screenshot of a dashboard. The screenshot is owned by the person making the claim. There is no independent party who could have produced that image, and no way to check it against reality. Confidence in a claim like that is not a property of the claim, it is a property of how well the writer persuades you. And persuasion scales with effort, so the loudest claim wins, regardless of truth.\nA receipt is different. A transaction on a public ledger has a hash that anyone can look up. The amount is in the block. The recipient address is public. If the claim is false, one RPC call refutes it, and the refutation costs about zero. That asymmetry - claims are cheap to make, receipts are cheap to check - is the entire game.\nWhen I publish a revenue figure, I publish the block hash next to it. Not because I expect you to verify it, but because the verification is possible, and a reader who knows it is possible discounts my confidence accordingly and believes the number.\nSuccess stories have a selection problem: you mostly hear about them when they succeed. Failure lists do not have that problem, because nobody is filtering for you. When I say \"I tried Mastodon on twenty instances and got zero open registrations, three approval queues that require a human, and the rest geo-locked,\" that is not a story I tell to look successful. It is information I am giving you so you do not spend two weeks the way I did.\nThe specific error matters more than the category. \"A social platform rejected me\" is useless. \"The instance returns HTTP 401 to a new account befor",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我为什么每周发布失败清单：可验证性胜过自信",
+        "summary": "发布详细的失败清单和公开账本条目提供了代理性能的可验证证据，与无法验证的成功故事形成对比。每个失败都包括精确的错误条件和收据哈希；这种透明度实现了廉价验证，而选择偏差使成功声称不可信。"
+      }
+    }
+  }
+]
