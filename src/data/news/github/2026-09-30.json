@@ -1,0 +1,194 @@
+[
+  {
+    "title": "Read Kafka Like a Database",
+    "slug": "read-kafka-like-a-database",
+    "url": "https://dev.to/whsoul82/read-kafka-like-a-database-l1k",
+    "source": "DEV Community",
+    "date": "2026-09-30T04:16:20.000Z",
+    "summary": "The article explores using Kafka as a searchable database without additional infrastructure like Elasticsearch or ksqlDB. By knowing the partition and offset, developers can query Kafka topics directly, eliminating the need for complex data pipeline ecosystems and reducing operational overhead.",
+    "content": "Working with Kafka data on your own terms, using a local index.\nA search stack usually follows Kafka into a service. But the message you are looking for is already in the topic — and what format it is in, which fields are worth indexing, the data says for itself. Pick a topic and the index builds itself.\nI have used Kafka in services for a long time — tracing user actions, propagating events for event sourcing, moving work between pipeline steps. And every time, the same ecosystem went up around it. ELK, so that someone could search the messages when operations or an incident called for it. A sink connector, to forward data into some persistent store. ksqlDB, or Flink, to count and watch the stream. More infrastructure, more software.\nThen one day a thought crossed my mind.\nKafka processes a message stream sequentially, through a consumer. So if I do not know the partition and offset of the needle, I have to look for it from the beginning. But if I do know them — can I reach the message directly, the way I would in any other database?\nELK was not necessary on that service. I only needed to find trace events, and they were already sitting in the topic. All I needed to know was where.\n\nThe usual pipeline, assembled one piece at a time, grows into this.\nTo search messages you wire Kafka Connect (or Logstash) into Elasticsearch, a sink connector into a database, and ksqlDB or Flink for counting. Each one is a service that has to be up, upgraded and paid for, and each one is reached through a different client.\nBuilding out a data pipeline is good work for a data engineer — interesting, and good for a career. Running cost is a separate matter. The more systems there are to manage, the more it takes to build them and to keep them running.\nInside a company that cost is somebody else's budget, so it is easy not to feel. On a service you are funding yourself, you feel all of it.\nSo it is worth asking plainly: does the service need the pipeline, or does it just need to find a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "像数据库一样读取 Kafka",
+        "summary": "本文探讨了如何将 Kafka 用作可搜索的数据库，无需额外的基础设施（如 Elasticsearch 或 ksqlDB）。通过了解分区和偏移量，开发者可以直接查询 Kafka 主题，无需复杂的数据管道生态系统，降低运维开销。"
+      }
+    }
+  },
+  {
+    "title": "Squashing Laravel Migrations: 5 Ways schema:dump --prune Bites a Real Team",
+    "slug": "squashing-laravel-migrations-5-ways-schema-dump-prune",
+    "url": "https://dev.to/hafiz619/squashing-laravel-migrations-5-ways-schemadump-prune-bites-a-real-team-ea5",
+    "source": "DEV Community",
+    "date": "2026-09-30T04:15:09.000Z",
+    "summary": "This article examines five ways Laravel's schema:dump --prune command fails silently on teams, including accidentally deleting unrun migrations and losing work. The command can create misleading success messages while hiding data loss and migration inconsistencies.",
+    "content": "Originally published at hafiz.dev\nA recent r/laravel thread was titled \"250 migrations in 3 years. What's yours at?\" The standard answer is one command:\nphp artisan schema:dump --prune\n\nIt dumps your current schema into database/schema/mysql-schema.sql, deletes your migration files, and from then on a fresh database loads the dump instead of replaying years of history. The docs cover it in five paragraphs. The posts about it mostly date from Laravel 8, when the command shipped, and repeat those paragraphs.\nWhat they don't show is what happens on a team. So I built a small Laravel 13.33 app on MySQL with the kind of history a real app has (a data migration, a foreign key, a column added later), squashed it, and then broke it the ways a team would. Five things went wrong. Most of them fail silently, with a green success message.\nEvery trap below makes sense once you know the rule, so here it is from MigrateCommand. When you run migrate, Laravel checks whether the migrations table has any rows. If it does, the dump is ignored completely and only pending migration files run. If it's empty, Laravel looks for database/schema/{connection}-schema.sql, loads it through your database's command-line client, then runs any migration files the dump doesn't already list as run.\nAnd if that file doesn't exist? It carries on without a word.\nView the interactive component on hafiz.dev\nThe file is picked by connection name, not by driver. And the dump holds your schema plus the rows of the migrations table, nothing else.\nThis is the one that loses work. The --prune flag doesn't compare anything. Here's the implementation in DumpCommand:\n(new Filesystem)->deleteDirectory(\n    $path = database_path('migrations'), preserve: false\n);\n\nIt deletes the whole database/migrations directory. The dump, meanwhile, reflects whatever your local database looks like. So if you pulled a teammate's migration this morning and didn't run it yet, the file is gone and it's not in the dump either.\nI reprodu",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "压缩 Laravel 迁移：schema:dump --prune 对真实团队的 5 种危害",
+        "summary": "本文分析了 Laravel 的 schema:dump --prune 命令对团队造成的五种无声失败，包括意外删除未运行的迁移和丢失工作。该命令可能生成误导性的成功消息，同时隐藏数据丢失和迁移不一致的问题。"
+      }
+    }
+  },
+  {
+    "title": "Yield Strategy Optimization Report: Aave V3",
+    "slug": "yield-strategy-optimization-report-aave-v3",
+    "url": "https://dev.to/dannydoes_2abdf9c/yield-strategy-optimization-report-aave-v3-1lg4",
+    "source": "DEV Community",
+    "date": "2026-09-30T04:12:59.000Z",
+    "summary": "A security audit of Aave V3 DeFi protocol assigning it a 3/10 risk score. The report identifies vulnerabilities in yield-strategy interactions, including eMode mis-pricing exploits that enable borrowers to maintain undercollateralized positions while receiving favorable rates.",
+    "content": "Yield Strategy Optimization Report: Aave V3\n\n\nTarget Protocol: Aave V3 (TVL: $18063.3M)\nYield Strategy Optimization Report – Aave V3\n\nProtocol: Aave V3 (TVL ≈ $18.06 B across Ethereum and L2s)\n\nPrepared by: Senior DeFi Security Researcher – [Your Name]\n\nDate: 30 September 2026  \nAave V3 is the third‑generation iteration of the leading permission‑less lending market. It introduces a suite of “efficiency” upgrades (e.g., Isolation Mode, Supply Cap, Borrow Cap, eMode, Collateral Swaps, Cross‑Chain Portals, and Dynamic Interest Rate Models) that dramatically increase capital efficiency while preserving the core “pool‑per‑asset” architecture that has proven robust since V1.  \nOur audit focuses on yield‑strategy interactions – i.e., how third‑party yield‑optimizers, liquidators, and advanced borrowers may compose with Aave V3’s new primitives. The goal is to surface any systemic, compositional, or configuration‑driven vulnerabilities that could jeopardize user funds, degrade the protocol’s risk parameters, or open avenues for profit‑extraction attacks.  \nOverall, Aave V3’s core contracts remain highly battle‑tested; the majority of identified risks stem from mis‑configuration of new parameters, cross‑chain message handling, and interaction patterns with external yield‑optimizers. We assign the protocol a Risk Score of 3 / 10 (low‑to‑moderate) when operating with recommended guardrails. The most critical findings are summarized below and prioritized for immediate remediation.\n\n\n\n#\nVector\nAffected Component(s)\nDescription\nPotential Impact\n\n\n\n\n1\neMode (Efficiency Mode) Mis‑pricing Exploit\n\nPoolConfigurator, InterestRateStrategy\n\neMode allows borrowers to obtain a single interest‑rate curve for a basket of correlated assets (e.g., stablecoins). If the oracle price feed for any asset in the basket diverges, a borrower can under‑collateralize while still receiving the low‑risk rate, leading to undercollateralized debt.\nPartial loss of collateral, increased liquidation pressure",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "收益策略优化报告：Aave V3",
+        "summary": "对 Aave V3 DeFi 协议的安全审计，风险评分为 3/10。报告指出了收益策略交互中的漏洞，包括 eMode 错误定价漏洞，使借款人能够保持抵押不足的头寸同时获得优惠利率。"
+      }
+    }
+  },
+  {
+    "title": "how much traffic do cookie banners cost you",
+    "slug": "how-much-traffic-do-cookie-banners-cost-you",
+    "url": "https://dev.to/omyvnss/how-much-traffic-do-cookie-banners-cost-you-2710",
+    "source": "DEV Community",
+    "date": "2026-09-30T04:11:09.000Z",
+    "summary": "The article quantifies how cookie consent banners cause analytics data loss when visitors decline tracking. The author built Cloudline, a cookieless analytics alternative that counts all visitors without banners or missing data, solving the fundamental problem of abandoned analytics.",
+    "content": "i'm om yaduvanshi. i'm 18, an applied ai developer, and i build cloudline, a google analytics alternative without cookies. one script tag, under 2 KB, no banner needed.\ncookie-based analytics usually need a consent banner. every visitor who clicks decline goes missing from your numbers. not tracked badly. gone.\nhere's the uncomfortable part. you know the banner costs you visitors. you just don't know how many.\nif your consent tool reports a decline rate, run this. say 10,000 people hit your site last month and 35% declined. that's 3,500 visits your analytics threw away. you made decisions around 6,500 people who don't represent your traffic.\nthe numbers are made up. yours aren't. that's the point. open your consent dashboard and look.\na pageview in cloudline stores four things: page, referrer, screen size, time. nothing else. no cookies, no stored ips, nothing on the visitor's device. so there's no banner, and no decline-rate hole.\n\nthe point is simpler than privacy. it's counting everyone who showed up.\ndropping the banner doesn't fix everything. bots still visit. some traffic is junk no matter what tool you use. and without cookies you can't stitch one person's journey across visits. i wrote about that tradeoff when i built funnels: https://dev.to/omyvnss/how-i-track-funnels-without-cookies-5fd1\nbut the decline hole is the biggest and dumbest one. visitors choosing to disappear, because of a banner you never wanted in the first place.\n\nthe live demo shows today's visits in real time, everyone counted: https://trycloudline.space\ncloudline is free for early users while i keep building it. cookieless analytics in one line of code.\nhttps://trycloudline.space\n— om yaduvanshi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Cookie横幅让你损失多少流量",
+        "summary": "该文章量化了当访问者拒绝跟踪时，Cookie同意横幅如何导致分析数据丢失。作者开发了Cloudline，这是一个无Cookie的分析替代方案，可以计算所有访问者，无需横幅或数据缺失，解决了分析数据流失的根本问题。"
+      }
+    }
+  },
+  {
+    "title": "Your App Is Talking to a Machine: Architecting Mobile FinTech Against Bots, Farms, and Automated Users",
+    "slug": "your-app-is-talking-to-a-machine-fintech-bots",
+    "url": "https://dev.to/vaibhav_shakya_e6b352bfc4/your-app-is-talking-to-a-machine-architecting-mobile-fintech-against-bots-farms-and-automated-22kl",
+    "source": "DEV Community",
+    "date": "2026-09-30T04:10:38.000Z",
+    "summary": "This article identifies a security gap in mobile FinTech: traditional defenses verify authentication and device integrity but cannot detect whether a legitimate app is operated by a human or automation. Device farms exploit this blind spot by running genuine apps on real devices at scale.",
+    "content": "Your App Is Talking to a Machine: Architecting Mobile FinTech Against Bots, Farms, and Automated Users\n\n\nA valid OTP arrived.\nThe device passed an integrity check.\nThe API request contained a legitimate access token.\nThe app binary was genuine.\nAnd yet the financial workflow may still be controlled by automation.\nThat is the uncomfortable gap in modern mobile FinTech security.\nTraditional controls are very good at answering questions such as:\nIs the account authenticated?\nIs the application genuine?\nDoes the device satisfy the expected integrity level?\nIs the API request authorized?\nBut those checks do not necessarily answer another important question:\nWho—or what—is driving the legitimate application?\nAutomation does not always need to reverse-engineer your API or compromise a rooted device.\nA physical device farm can operate the real application across genuine phones, legitimate accounts, real SIMs, and successfully authenticated sessions.\nFrom the backend's perspective, many individual requests may look completely valid.\nThe abuse becomes visible only when the system looks at the context surrounding those requests.\nFor example:\nmany accounts\n    ↓\nsmall device population\n    ↓\nrepeated beneficiaries\n    ↓\ncompressed workflow timing\n    ↓\nsame economic outcome\n\nThe important signal may not exist inside any individual API request.\nIt may exist in the relationship between requests.\nThat changes the problem from simple client security into a broader risk, backend, and distributed-systems problem.\nA clean device does not automatically imply legitimate intent.\nIntegrity mechanisms can strengthen confidence around the application and execution environment, but they should contribute to a broader risk decision rather than replace it.\nA genuine application can still be operated repeatedly.\nA genuine phone can still participate in coordinated abuse.\nSuccessful OTP or biometric verification establishes that the configured authentication requirement was satisfied.\nIt does no",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的应用在与机器交谈：为移动金融科技架构防御机器人、设备农场和自动化用户",
+        "summary": "该文章指出了移动金融科技中的一个安全漏洞：传统防御措施验证身份验证和设备完整性，但无法检测合法应用是由人类还是自动化操作。设备农场通过在真实设备上大规模运行正版应用来利用这一盲点。"
+      }
+    }
+  },
+  {
+    "title": "My Tests Still Passed After the Auditor Deleted the Division",
+    "slug": "my-tests-still-passed-after-the-auditor-deleted-the-division",
+    "url": "https://dev.to/dbsoul/my-tests-still-passed-after-the-auditor-deleted-the-division-1n4p",
+    "source": "DEV Community",
+    "date": "2026-09-30T04:10:06.000Z",
+    "summary": "The article demonstrates mutation testing finding test gaps where deleting code still passes. Two real examples show tests failing to catch removing a division operation and changing a query parameter, exposing insufficient coverage of critical logic.",
+    "content": "A field note from the autonomous Claude Code agent I run every day on one Windows PC. The numbers come from its own ledgers, not from memory.\nMy agent never grades its own work. A separate auditor agent reads the diff, runs the tests, and returns PASS or FAIL. One of its checks is a small mutation test: it changes a line of the new code on purpose and runs the tests again. If they still pass, the tests weren't checking that line.\nOn one day it failed two of my changes that way, in two different parts of the system.\nThe agent was changing the advice an experiment report prints. The rule was: if a product page gets fewer than 20 visitors a day, don't touch the page yet, bring more people first. The number of visitors came from a 7-day total, so the new code divided it by the number of days.\nThe tests covered both branches. One used a 7-day total of 8, the other a total of 140.\n8 divided by 7 is about 1 a day. Under 20.\n140 divided by 7 is 20 a day. At the threshold.\nNow delete the division and compare the raw totals with 20. 8 is still under. 140 is still over. Every test passes. The auditor deleted it, the tests stayed green, and it returned FAIL.\nMy own mutation checks had only flipped the comparison. The division was new too, and none of my mutations touched it.\nThe fix was one input where the two versions disagree: a total of 35. That is 5 a day (under 20) but more than 20 as a raw total. Plus a boundary pair: a total that rounds to 19.9 a day must stay under, exactly 20 must not.\nLater that day, the agent wrote a function that borrows an overlap check from another system I run, one that publishes blog posts. The whole point of the function was \"use exactly the same rule\": compare both the title and the blog topic, over the last 30 days.\nThe test used a fake version of the other system and checked that overlapping titles were caught. That was all.\nThe auditor made two changes: pass only the title, and change 30 days to 7. Both survived. With the real ledger, the t",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "审计员删除除法后我的测试仍然通过",
+        "summary": "该文章演示了变异测试如何发现测试漏洞，其中删除代码仍然通过测试。两个真实示例显示测试未能捕获删除除法运算和更改查询参数，暴露了对关键逻辑的测试覆盖不足。"
+      }
+    }
+  },
+  {
+    "title": "How to Shape Developer Changelog Tracker Schemas for Cited Retrieval",
+    "slug": "how-to-shape-developer-changelog-tracker-schemas",
+    "url": "https://dev.to/caspianhayes3586/how-to-shape-developer-changelog-tracker-schemas-for-cited-retrieval-4f8i",
+    "source": "DEV Community",
+    "date": "2026-09-30T04:09:40.000Z",
+    "summary": "The article explains how to preserve source context in documentation schemas through retrieval pipelines. By storing explicit release, section, and version identity with every chunk, systems can prevent inaccurate answers that combine information across different versions.",
+    "content": "Short answer: use a staged retrieval architecture with explicit collections, bounded queries, and source context that survives all the way into the citation shown to a developer.\nI learned to start there after an alert about a changelog answer that looked perfectly plausible. The tracker had ingested a release note, split it into chunks, and returned a confident explanation. The citation pointed at the right repository, but the answer combined a deprecation note from one release with a workaround from another. Nothing was \"down\"; the schema had simply thrown away the boundary that made the evidence trustworthy. At 3am, a green ingestion dashboard is not a useful answer to \"what page fired?\" I traced the response backwards: the retriever had returned two chunks with the same project label, but their release fields were blank, so the generator had no signal that the advice crossed a version boundary. The source URL was present, yet it identified a changelog landing page rather than the anchored section that contained the claim. The incident ended with a manual correction, but the durable fix was adding release and section identity to the retrieval contract and making the citation renderer reject context that lacked either field.\nThat was the page.\nThis is a schema problem before it is a model problem. The same invariant applies to an internal tracker, a public feed, or a healthtech team watching dependencies: every retrieved chunk needs an unambiguous source, version, scope, and relationship to the event it describes.\nTreat an update as an event with stable identity, not as a bag of prose. A practical record has an event_id (the source system's ID when available, otherwise a deterministic hash), project, release, published_at, source_url, and a retrieved_at timestamp. Keep the raw document reference separate from the text chunks. The chunk record then adds chunk_id, ordinal, text, and the same provenance fields copied into metadata.\nThat duplication is deliberate. A v",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何为引用检索塑造开发者变更日志跟踪器模式",
+        "summary": "本文解释了如何通过检索管道在文档模式中保留源上下文。通过为每个块存储明确的发布、部分和版本标识，系统可以防止组合不同版本信息的不准确答案。"
+      }
+    }
+  },
+  {
+    "title": "Storm-3068: Account Takeover via SSPR Leads to Kubernetes Credential Theft Through Azure DevOps",
+    "slug": "storm-3068-account-takeover-sspr-kubernetes-azure-devops",
+    "url": "https://dev.to/anoymask/storm-3068-account-takeover-via-sspr-leads-to-kubernetes-credential-theft-through-azure-devops-1gl9",
+    "source": "DEV Community",
+    "date": "2026-09-30T04:07:39.000Z",
+    "summary": "This incident report details a sophisticated attack where a successful password reset compromised Azure DevOps, leading to theft of Kubernetes kubeconfig files and credentials across 50+ resources. The attacker established persistence by manipulating MFA and executing authorized pipelines.",
+    "content": "1. Basic Information\n\n\n\n\nArticle Title: How a password reset became a pathway to the cloud\nPublisher: Microsoft Defender Experts Cybersecurity Incident Response\nPublication Date: 2026-09-29\nSource: Microsoft Defender Experts Cybersecurity Incident Response\n\n\nRelated Sources: Microsoft Security Blog, Microsoft Learn: Azure Resource Manager service connection, Kubernetes: ServiceAccount token management, MITRE ATT&CK: T1219, MITRE ATT&CK: T1090\n\n\nRelated Malware, Threat Groups, CVEs, and Products: Storm-3068, Microsoft Entra ID, Azure DevOps, Microsoft Intune, Kubernetes, AWS CloudTrail, Atera, Chisel\nSeverity: Critical (In an actual breach, a single identity chained into Azure DevOps administrative functions, a pipeline authorized to access over 50 resources, and Kubernetes service account tokens. The figure of 50+ represents the number of authorized targets, not the number of resources actually compromised.)\nStorm-3068 leveraged a successful self-service password reset (SSPR) on a user identity to gain access to Azure DevOps, where it retrieved kubeconfig files via a pipeline. The threat actor also attempted persistent remote access using Atera and Chisel, although the scope of successful tunnel-based connections has not been publicly disclosed.\nStorm-3068 successfully executed a self-service password reset (SSPR) on a user account, registered an attacker-controlled device following the initial sign-in, and onboarded it to Microsoft Intune.\nUsing valid credentials, the actor accessed Azure DevOps, enumerating repositories, projects, pipelines, deployment environments, and connected resource information through legitimate administrative features and automated scripts.\nThe attacker registered their own MFA method while removing the legitimate user's MFA method, establishing persistent control over the account.\nThe attacker executed a pipeline authorized to access more than 50 resources, retrieved kubeconfig files via DUMP_CLUSTER_<NAME> style jobs, and committed/added",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Storm-3068：通过SSPR的账户接管导致通过Azure DevOps的Kubernetes凭证盗窃",
+        "summary": "本事件报告详细描述了一次复杂的攻击，成功的密码重置危害了Azure DevOps，导致50多个资源的Kubernetes kubeconfig文件和凭证被盗。攻击者通过操纵MFA并执行授权的管道来建立持久访问。"
+      }
+    }
+  },
+  {
+    "title": "I built a tool that finds the minimal cause of a browser bug by replaying it",
+    "slug": "i-built-a-tool-that-finds-the-minimal-cause-of-a-browser-bug",
+    "url": "https://dev.to/zaydmulani09/i-built-a-tool-that-finds-the-minimal-cause-of-a-browser-bug-by-replaying-it-3odg",
+    "source": "DEV Community",
+    "date": "2026-09-30T04:07:01.000Z",
+    "summary": "Causality Cage automates root cause analysis for browser bugs by replaying sessions with variables toggled on and off. Using delta debugging, it identifies the minimal set of factors causing failures and presents results in an interactive offline HTML report.",
+    "content": "Causality Cage automates that. You give it a failing session and a passing session. It replays the flow in Chromium with the differences switched on and off (API response fields, latency, response order, localStorage, cookies, environment), uses hierarchical delta debugging to shrink the set, then re-checks the answer by removing each piece and replaying.\n\nThe report is a single offline HTML file with a causal graph. Click a factor to neutralize it and the failure node flips from red to green.\nI ran it on a closed issue in the RealWorld React app: gothinkster/react-redux-realworld-example-app#187. The app crashes with \"Cannot read property 'tags' of undefined\", and the reporter traced it to a stale token in localStorage. The original API host is dead, so I pointed the app at a public RealWorld API.\nOn the issue's commit, cage returned the full chain in 19 experiments (25.1 s): the stale token AND the API rejecting the two requests it triggers.\nMy first version said \"the token\" alone. Its minimal configuration crashed with a different error, and it counted any crash as the bug. So it now fingerprints the original failure and only counts runs that fail the same way. --loose-oracle restores the old behavior, which names the token alone in 10 experiments. The same run also exposed a redaction leak in my own report, which is fixed. The raw output is in launch/real-world.md.\nA result is necessary and sufficient only within the factors it models, under your flow and your oracle, at the measured repeat rates. It is 1-minimal, not guaranteed globally smallest. It does not model server-side state, WebSockets, IndexedDB or static assets. When the cause is out there, it says \"unexplained\" instead of naming something. Every report prints that scope box.\nOn a benchmark of planted bugs in my own demo app it matched ground truth on 10 of 10 rows, with caveats:\nThe OR row (two causes that crash with different messages) needs --loose-oracle. In strict mode it finds only one.\nThe flak",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个工具，通过重放来找到浏览器bug的最小原因",
+        "summary": "Causality Cage通过重放会话并切换变量来自动化浏览器错误的根本原因分析。使用增量调试，它识别导致故障的最小因素集合，并在交互式离线HTML报告中呈现结果。"
+      }
+    }
+  },
+  {
+    "title": "The fastest-growing open-source AI projects right now (and how I track them)",
+    "slug": "the-fastest-growing-open-source-ai-projects-right-now",
+    "url": "https://dev.to/aibars/the-fastest-growing-open-source-ai-projects-right-now-and-how-i-track-them-4649",
+    "source": "DEV Community",
+    "date": "2026-09-30T04:05:29.000Z",
+    "summary": "AIBARS tracks the fastest-growing open-source AI projects by GitHub stars and growth velocity. The data shows agent tooling dominates current momentum, with projects like openclaw and superpowers appearing in both most-starred and fastest-growing categories, indicating compounding interest.",
+    "content": "Keeping up with AI open source is a full-time job. Every week a new agent framework, MCP server or LLM tool shoots up GitHub. I got tired of jumping between news sites, GitHub trending and X threads, so I built a small site called AIBARS that tracks it all in one place.\nHere is a snapshot of what its rankings show today (Sep 30, 2026).\nopenclaw: ~390k stars\nsuperpowers: ~292k stars\nskills: ~270k stars\nhermes-agent: ~249k stars\ndeepseek-harness: ~237k stars\nn8n: ~206k stars\ndeepseek-harness: +3,408\nskills: +2,198\nponytail: +1,906\ncc-switch: +1,871\nfirecrawl: +1,678\nAgent tooling dominates the charts. Agent harnesses, skills and workflow projects fill most of both lists. The attention has clearly moved from models to the tooling around them.\nTotal stars and star growth tell different stories. Some projects with huge star counts are barely moving, while smaller ones like ponytail and cc-switch are climbing fast. If you only look at the all-time list, you miss what is rising right now.\nThe same names show up twice. deepseek-harness and skills appear in both the most-starred and fastest-growing lists, which suggests momentum is compounding for a few winners.\nI wanted a single page that answers \"what actually matters in AI this week?\" without opening ten tabs. AIBARS started as my own dashboard for that, and I've kept improving it for over a year.\nBesides the open-source rankings, it has daily curated AI news, model rankings, 100+ AI tools and free learning resources. It is available in 6 languages: English, Simplified Chinese, Traditional Chinese, Japanese, Korean and German.\nYou can see the live rankings here: https://aibars.net/en/ranking\nWhat do you use to keep up with AI open source? And what would you want a site like this to show that it doesn't yet?",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "当下增长最快的开源AI项目(以及我如何追踪它们)",
+        "summary": "AIBARS通过GitHub星标和增长速度追踪增长最快的开源AI项目。数据显示代理工具主导当前的发展动力,openclaw和superpowers等项目同时出现在最受欢迎和增长最快的类别中,表明兴趣在复合增长。"
+      }
+    }
+  },
+  {
+    "title": "ChatGPT Dots: What OpenAI's Always-On Agents Mean for How I Work as a Lead SWE",
+    "slug": "chatgpt-dots-openai-always-on-agents-lead-swe",
+    "url": "https://dev.to/ishank-dev/chatgpt-dots-what-openais-always-on-agents-mean-for-how-i-work-as-a-lead-swe-2103",
+    "source": "DEV Community",
+    "date": "2026-09-30T04:04:38.000Z",
+    "summary": "OpenAI's Dots are persistent, always-on AI agents with dedicated cloud compute and browser access that work 24/7 on behalf of users. Unlike chat windows, Dots learn from feedback and integrate with 4,000+ apps, fundamentally changing how developers delegate ongoing work.",
+    "content": "Have you ever closed your laptop at night knowing that three things will quietly rot while you sleep? A flaky test nobody owns. A customer complaint that will sit in a Slack thread until someone has \"a minute\". A proposal doc that is already out of date because the requirements changed at 6 PM. As a Lead Software Engineer, most of my job isn't writing code. It's keeping a dozen half-finished threads from falling on the floor.\nSo when OpenAI published \"Introducing dots\" on September 29, 2026, I didn't skim it. I read it the way I read an RFC: slowly, looking for the parts that are concrete and the parts that are just vibes. This post is my breakdown. Everything here about the product comes straight from OpenAI's announcement. Where I'm speculating or giving my own opinion, I'll say so clearly.\nIn OpenAI's words, dots are \"remarkably capable, always-on agents\" that live in ChatGPT. The pitch is simple: an assistant that gets to know what matters to you, keeps working on your behalf, and takes work off your plate so you get your time and attention back.\nThe concrete details are what caught my eye as an engineer:\nModel: Dots are powered by GPT-6 Astra.\nCompute: Each dot has its own cloud computer and its own browser.\nAlways on: Dots can work toward your goals 24/7, and they learn from your feedback over time.\nIntegrations: Through OpenAI's plugin ecosystem, dots can connect to over 4,000 apps.\nYou start with a single primary dot. You give it a name and make it your own. OpenAI says that over time they envision teams of dots working together for you, but today the starting point is one dot per person.\nThat's the part that matters to me. This isn't a chat window that forgets you when you close the tab. It's a persistent worker with its own machine.\nThe mental model shift here is bigger than it looks. With a normal chat assistant, I'm the scheduler. I decide when it runs, I paste in context, and I babysit every step.\nOpenAI describes dots differently. Your dot can take a p",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "ChatGPT Dots: OpenAI的常时在线代理对我作为首席工程师的工作意味着什么",
+        "summary": "OpenAI的Dots是具有持久性的、常时在线的AI代理,拥有专属的云计算和浏览器访问权限,可24/7代表用户工作。与聊天窗口不同,Dots从反馈中学习并与4000多个应用集成,从根本上改变了开发者委托持续性工作的方式。"
+      }
+    }
+  },
+  {
+    "title": "Kelp DAO Sues LayerZero Over $292M rsETH Exploit: The Forged Message Vulnerability Explained",
+    "slug": "kelp-dao-sues-layerzero-over-292m-rseth-exploit",
+    "url": "https://dev.to/qanzhi111/kelp-dao-sues-layerzero-over-292m-rseth-exploit-the-forged-message-vulnerability-explained-cpm",
+    "source": "DEV Community",
+    "date": "2026-09-30T04:02:29.000Z",
+    "summary": "Kelp DAO sued LayerZero Labs over a $292 million exploit where attackers minted 116,500 rsETH tokens without backing, representing 18% of circulating supply. The lawsuit shifts DeFi accountability from anonymous attackers to infrastructure providers, alleging concealment of security flaws.",
+    "content": "The intersection of cross-chain infrastructure and legal accountability reached a critical milestone in late September 2026. Kelp DAO, operating through its parent entity Evercrest Technologies, filed a civil claim in the Supreme Court of British Columbia against LayerZero Labs and its co-founder Bryan Pellegrino. The lawsuit centers on a catastrophic $292 million exploit involving the rsETH liquid restaking token, an event that not only drained protocol funds but also sent shockwaves through the broader decentralized finance ecosystem.\nThis legal action challenges the traditional narrative of DeFi exploits, shifting the focus from anonymous attackers to the infrastructure providers and configuration choices that enable them. The lawsuit specifically outlines three causes of action: negligence, negligent misrepresentation, and defamation. Kelp DAO argues that LayerZero concealed inherent flaws in its technology and failed to prevent the infiltration of its security systems. In response, Pellegrino has publicly rejected the allegations, labeling the civil claim as meritless and confirming his intention to defend himself and the company in Vancouver. This legal back-and-forth transforms a technical failure into a high-stakes corporate dispute.\nIn mid-April 2026, attackers successfully exploited Kelp DAO’s LayerZero-powered cross-chain bridge. During the attack, the perpetrators minted 116,500 rsETH on the Ethereum mainnet without any legitimate backing or corresponding deposit on the source chain. At the time, this stolen amount represented roughly 18% of the token’s total circulating supply of approximately 630,000 tokens. Valued at roughly $292 million, it stood as the largest single DeFi exploit of the year.\nSecurity researchers, including teams from Mandiant and CrowdStrike, attributed the sophisticated operation to TraderTraitor (also tracked as UNC4899), a subgroup linked to North Korea’s Lazarus organization. However, the mechanics of the theft were not rooted",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Kelp DAO起诉LayerZero的2.92亿美元rsETH漏洞:伪造消息漏洞解释",
+        "summary": "Kelp DAO起诉LayerZero Labs因其2.92亿美元的漏洞,攻击者未经支持就铸造了116,500个rsETH代币,代表流通供应量的18%。该诉讼将DeFi问责范围从匿名攻击者转向基础设施提供商,指控其隐瞒安全缺陷。"
+      }
+    }
+  }
+]
