@@ -1,5 +1,197 @@
 [
   {
+    "title": "React useState and useEffect",
+    "slug": "react-usestate-useeffect",
+    "url": "https://dev.to/aesakki_muthu_41d29e463b/react-usestate-and-useeffect-1nia",
+    "source": "DEV Community",
+    "date": "2026-10-01T12:27:55.000Z",
+    "summary": "Tutorial on React's useState and useEffect hooks for managing component state and side effects. useState stores and updates changing data while triggering UI re-renders; useEffect runs code after rendering or when dependencies change, essential patterns for handling dynamic content and API calls.",
+    "content": "useState\nDefinition\nuseState is a React Hook used to store and manage changing data in a component.\nPurpose\nWe use useState when a value can change and we want React to update the UI when that value changes.\nExample\nHere:\ncount → current value\nIf we click a button:\nsetCount(count + 1);\nThe value changes:\n0 → 1 → 2 → 3\nAnd React updates the screen.\nWhere can we use it?\nuseState is commonly used for:\nCounter\nuseState = Store changing data + update the UI\nuseEffect\nDefinition\nuseEffect is a React Hook used to run some code after a component renders or when a particular value changes.\nPurpose\nWe use useEffect when we need to perform an action based on rendering or changes in data.\nFor example:\nFetch data from an API\nThe code inside useEffect runs after the component renders.\nWhat is []?\nThe empty [] means the effect runs after the initial render.\nIf we use:\nuseEffect(() => {\nThe effect runs when count changes.\nuseState → \"What data should I store?\"\nuseEffect → \"What code should I run after rendering or when something changes?\"",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "React useState 和 useEffect",
+        "summary": "关于React中useState和useEffect钩子用于管理组件状态和副作用的教程。useState存储和更新变化的数据，同时触发UI重新渲染；useEffect在渲染后或依赖项更改时运行代码，是处理动态内容和API调用的基本模式。"
+      }
+    }
+  },
+  {
+    "title": "How to save game settings (volume, fullscreen, keybinds) in Godot 4 with ConfigFile",
+    "slug": "godot-4-save-game-settings-configfile",
+    "url": "https://dev.to/saltmire/how-to-save-game-settings-volume-fullscreen-keybinds-in-godot-4-with-configfile-abp",
+    "source": "DEV Community",
+    "date": "2026-10-01T12:26:35.000Z",
+    "summary": "Guide to persisting game settings (volume, fullscreen, keybinds) in Godot 4 using ConfigFile for human-readable INI storage. Settings are stored per machine rather than per save slot, with automatic default fallbacks preventing crashes from missing keys.",
+    "content": "Every player opens the options menu, turns the music down, and expects it to stay down\nConfigFile, a tiny INI-style file that Godot reads and writes in one call.\nThis tutorial builds a Settings autoload that stores volume, fullscreen, vsync and\nuser://settings.cfg and re-applies them every time the game starts.\nIt's human-readable ([audio] / master=0.8), so you can debug it by opening the file.\nget_value(section, key, default) gives you a fallback for free — a missing key never crashes.\nSettings are per machine, not per save slot. Keeping them out of your game save means\ndeleting a slot never resets the player's volume.\nCreate settings.gd and register it in Project → Project Settings → Globals → Autoload\nSettings.\nextends Node\n\nconst PATH := \"user://settings.cfg\"\n\nvar config := ConfigFile.new()\n\nfunc _ready() -> void:\n    var err := config.load(PATH)\n    if err != OK and err != ERR_FILE_NOT_FOUND:\n        push_warning(\"Settings: could not read %s (error %d), using defaults\" % [PATH, err])\n    apply_all()\n\nfunc get_setting(section: String, key: String, default_value: Variant) -> Variant:\n    return config.get_value(section, key, default_value)\n\nfunc set_setting(section: String, key: String, value: Variant) -> void:\n    config.set_value(section, key, value)\n\nfunc save() -> void:\n    var err := config.save(PATH)\n    if err != OK:\n        push_error(\"Settings: save failed (error %d)\" % err)\n\nfunc apply_all() -> void:\n    apply_volume(\"Master\")\n    apply_volume(\"Music\")\n    apply_volume(\"SFX\")\n    apply_display()\n    apply_keybinds()\n\nERR_FILE_NOT_FOUND on the very first launch is normal — there's no file yet, so every\nget_value falls back to its default.\nStore volume as a linear 0.0–1.0 value (what a slider gives you) and convert to\nMusic and SFX exist in the Audio tab,\nfunc apply_volume(bus_name: String) -> void:\n    var idx := AudioServer.get_bus_index(bus_name)\n    if idx == -1:\n        return\n    var linear: float = get_setting(\"audio\", bus_name.to_lower(), 1.0)",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何在Godot 4中使用ConfigFile保存游戏设置（音量、全屏、键绑定）",
+        "summary": "在Godot 4中使用ConfigFile进行人类可读的INI存储来持久化游戏设置（音量、全屏、键绑定）的指南。设置按机器存储而不是按保存槽存储，自动默认回退防止缺失键导致的崩溃。"
+      }
+    }
+  },
+  {
+    "title": "Week 15: What the Simulator Actually Binds",
+    "slug": "week-15-simulator-binds",
+    "url": "https://dev.to/magic-peach/week-15-what-the-simulator-actually-binds-1l5i",
+    "source": "DEV Community",
+    "date": "2026-10-01T12:26:33.000Z",
+    "summary": "Technical analysis of simulator bugs discovered through code review: a type validation gap allowing JSON numbers to bypass label checks, and inconsistent input/output label requirements across test groups. Fixes involve adding type checks and validating all groups against a reference shape.",
+    "content": "Week 15: What the Simulator Actually Binds\n\n\n#7746 merged clean, rebase and all, closing out last week's story. That\n#7836) and the runner (#7906),\nCodeRabbit's first flag on the testbench model was on the signal validator:\ndef validate_signal(signal, cases)\n  return errors.add(:data, \"every signal needs a label\") unless signal.is_a?(Hash) && signal[\"label\"].present?\n  ...\n\npresent? rejects nil, empty strings, and whitespace-only strings. It does\n1. A JSON body with \"label\": 1 sails through this check, gets\n.trim() on every\n.trim() method in JavaScript. The failure is not \"this test case behaves\nTypeError that kills the run.\nThe fix is one clause:\nreturn errors.add(:data, \"every signal needs a label\") unless signal.is_a?(Hash) && signal[\"label\"].is_a?(String) && signal[\"label\"].present?\n\nSmall, but it is the kind of small that only shows up if you trace the value\nThe second finding was not from CodeRabbit. A reviewer left this on the same\nnothing checks that later groups use the same input/output labels as\ngroups[0]. the simulator binds pins from groups[0] only\ninputs[label].state and\ngroup.outputs.find(...).results.push per group, so a suite that passes\nI went and read testbench.js before touching anything, because the claim is\nfunction bindIO(data, scope) {\n    const inputs = {};\n    data.groups[0].inputs.forEach((dataInput) => {\n        inputs[dataInput.label.trim()] = scope.Input.find(...);\n    });\n    ...\n}\n\nOnly data.groups[0] ever gets read here. Every other group is bound\nbindIO built from the first one. If group two declares an\nc that group one never had, inputs['c'] is undefined, and\nsetInputValues dies trying to set .state on it. The model's own\nThe fix compares each group after the first against the first's shape:\ndef validate_group(group, reference)\n  ...\n  next unless reference\n\n  shape = ->(list) { list.map { |s| [s[\"label\"], s[\"bitWidth\"]] } }\n  next if shape.call(signals) == shape.call(reference[side])\n\n  errors.add(:data, \"#{side} must match the fi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第15周：模拟器实际绑定什么",
+        "summary": "通过代码审查发现的模拟器错误的技术分析：一个类型验证漏洞允许JSON数字绕过标签检查，以及跨测试组的不一致的输入/输出标签需求。修复涉及添加类型检查和根据参考形状验证所有组。"
+      }
+    }
+  },
+  {
+    "title": "# Week 6 Task 3: Advanced Git Workflows",
+    "slug": "week-6-advanced-git-workflows",
+    "url": "https://dev.to/koushikmaya/-week-6-task-3-advanced-git-workflows-235k",
+    "source": "DEV Community",
+    "date": "2026-10-01T12:26:16.000Z",
+    "summary": "Comprehensive tutorial on advanced Git workflows including merge vs. rebase tradeoffs, interactive rebasing, squashing, cherry-picking, and conflict resolution. Essential knowledge for collaborative development with feature branches and pull requests.",
+    "content": "Introduction\n\n\nGit is more than just a tool for saving code. In a team environment, developers need to understand how to manage branches, clean up commit history, move specific changes between branches, temporarily store unfinished work, and safely undo changes.\nIn this task, I learned:\nMerge vs Rebase\nInteractive Rebase\nSquashing commits\nReordering commits\nEditing commits\nResolving Merge Conflicts\nGit Stash\nCherry-pick\nGit Revert vs Reset\nThese commands are important when working on feature branches and collaborating through Pull Requests.\nBoth merge and rebase are used to incorporate changes from one branch into another.\nSuppose we have:\nA---B---C  main\n     \\ \n      D---E  feature\n\nThe feature branch was created from commit B.\nMeanwhile, main received commit C.\nNow we want the feature branch to contain the latest changes from main.\nThere are two common approaches:\nMerge\n\nor:\nRebase\n\nMerge combines two branch histories.\nFor example:\ngit switch feature\ngit merge main\n\nGit may create a merge commit:\nA---B---C-------M  feature\n     \\         /\n      D---E---\n\nThe merge commit M connects the two histories.\nPreserves the original history.\nDoes not rewrite existing commits.\nSafe for branches that are already shared with other developers.\nClearly shows where branches were combined.\nThe history can become more complicated, especially when many branches are merged.\nRebase moves your branch's commits so they are based on the latest commit from another branch.\nSuppose we start with:\nA---B---C  main\n           D---E  feature\n\nRun:\ngit switch feature\ngit rebase main\n\nGit effectively replays the feature commits on top of C:\nA---B---C---D'---E'  feature\n\nThe commits are recreated, which is why their commit IDs change.\nRebase can create a cleaner, more linear history.\nInstead of:\nA---B---C\n     \\         D---E---M\n\nwe get:\nA---B---C---D'---E'\n\nThis can make the project history easier to read.\nThe main difference is:\n\n\n\nMerge\nRebase\n\n\n\n\nCombines histories\nReplays commits\n\n\nUsually",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第6周任务3: 高级Git工作流程",
+        "summary": "关于高级Git工作流程的综合教程，包括merge与rebase的权衡、交互式变基、压缩、cherry-picking和冲突解决。这是具有特性分支和拉取请求的协作开发的基本知识。"
+      }
+    }
+  },
+  {
+    "title": "WebMCP: Letting Agents Call Your Web App Instead of Clicking It",
+    "slug": "webmcp-agents-call-web-apps",
+    "url": "https://dev.to/mehdimohseni82/webmcp-letting-agents-call-your-web-app-instead-of-clicking-it-ik6",
+    "source": "DEV Community",
+    "date": "2026-10-01T12:26:15.000Z",
+    "summary": "Proposes WebMCP, a browser standard allowing AI agents to call registered tools instead of parsing DOM and clicking elements. Improves speed, reduces token costs, and eliminates fragility from CSS class changes compared to screenshot-based automation.",
+    "content": "An AI agent that wants to book a flight on your site today does it the hard way. It reads the DOM, guesses which element is the date picker, clicks, waits, screenshots, and checks whether the guess worked. It is slow, it costs a lot of tokens, and it breaks when you rename a CSS class.\nWebMCP is a proposed browser standard that lets you stop that. Instead of the agent guessing how your page works, your page tells it. You register named tools with descriptions and JSON schemas, and the agent calls them.\nThis is not the same thing as the MCP server you may already run. It is the browser half of the same idea, and the two solve different problems. I get to that below.\nOne question first, because it decides whether any of this is worth your time. Who is on the other end? Three kinds of caller: an agent built into the browser, an agent running in a browser extension, and an agent in an iframe on your own page. In every case the browser sits in the middle and mediates the call. There is no open port and no inbound connection. A tool you register is reachable only from the tab it was registered in, by a caller the browser lets through.\nMost of the WebMCP posts you will find right now show this:\n// This is the old shape. It is not in the current explainer.\nnavigator.modelContext.provideContext({ tools: [ /* ... */ ] });\n\nThe current API is on document, not navigator, and the method is registerTool, not provideContext. I checked the explainer in the W3C Web Machine Learning group repository and the specification draft. The strings navigator.modelContext and provideContext appear zero times in either one.\nThe proposal was first published in August 2025 and the API shape changed since. A lot of the written material did not follow. If you copy a sample and provideContext is undefined, that is why.\nThe imperative API is one call:\nconst controller = new AbortController();\n\nawait document.modelContext.registerTool({\n  name: \"add-todo\",\n  description: \"Add a new item to the user's",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "WebMCP: 让代理调用您的网络应用而不是点击",
+        "summary": "提出WebMCP，一个浏览器标准，允许AI代理调用注册的工具，而不是解析DOM和点击元素。相比基于截图的自动化，提高了速度，降低了令牌成本，消除了CSS类更改的脆弱性。"
+      }
+    }
+  },
+  {
+    "title": "Turn On Airplane Mode and Your App's AI Feature Dies. It Doesn't Have To.",
+    "slug": "on-device-ai-airplane-mode",
+    "url": "https://dev.to/nikolovv/turn-on-airplane-mode-and-your-apps-ai-feature-dies-it-doesnt-have-to-575",
+    "source": "DEV Community",
+    "date": "2026-10-01T12:24:55.000Z",
+    "summary": "Demonstrates running AI models locally on phones using NobodyWho library, with models as small as 330MB working offline on iPhone 11+. Enables privacy-preserving features for text operations while reducing API costs, though frontier model capabilities are limited.",
+    "content": "Why is that?\nThat's because the AI was never in the app. It's an HTTP call to someone's GPU, with your user's text in the request body and a bill at the end of the month.\nFor a lot of features it doesn't need to be. A 330 MB model runs on an iPhone 11. Here's how to put one inside your app.\nNobodyWho, the open-source library i'm using below.\nReact Native / Expo:\nnpx expo install react-native-nobodywho\n\nimport { Chat } from \"react-native-nobodywho\";\n\nconst chat = await Chat.fromPath({\n  modelPath: \"hf:NobodyWho/Qwen_Qwen3-0.6B-GGUF:Q4_K_M\",\n});\n\nconst msg = await chat.ask(\"What is the capital of Denmark?\").completed();\nconsole.log(msg); // The capital of Denmark is Copenhagen.\n\nThat's it. The model downloads from Hugging Face on first run and is cached after that. From then on it works offline, with no API key, no server and no per-token bill.\nFlutter, Swift and Kotlin look almost the same (Chat.fromPath, then ask). There's also Python for desktop and Godot for games.\nSummaries, tagging or rewriting text that shouldn't leave the phone (notes, journals, messages)\nFeatures that have to work offline, on a plane or with bad signal\nStructured output and tool calling. NobodyWho builds the grammar from your function signatures, so you don't write JSON schemas by hand\nVoice: speech-to-text with Whisper and text-to-speech run locally too\nBeing honest here, because this is where people get burned:\nModel size. The Qwen3 0.6B model above is ~330 MB and runs on any phone. Bigger models need a lot more RAM, roughly 2× the file size free.\nDevice floor. iPhone 11 / 4 GB RAM or newer. On Android, around Snapdragon 855 with 6 GB RAM.\nIt's not a frontier model. A small local model is great at narrow jobs and bad at being a know-it-all.\nGaps. No web export yet, and no Windows ARM64.\nSo it won't replace a frontier model. But for a lot of app features you were about to send to an API, it's enough, and it still works in airplane mode.\nStarter apps for Expo, React Native, Flutter and Swift,",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "打开飞行模式，你的应用程序的AI功能就会关闭。实际上不必如此。",
+        "summary": "展示使用NobodyWho库在手机上本地运行AI模型，330MB大小的模型可在iPhone 11+上离线运行。支持隐私保护的文本操作功能，同时降低API成本，尽管前沿模型的能力受限。"
+      }
+    }
+  },
+  {
+    "title": "The Gateway Consolidated Your Controls. NetScaler Compromise Response Has to Unconsolidate Them.",
+    "slug": "netscaler-compromise-response-cisa",
+    "url": "https://dev.to/ntctech/the-gateway-consolidated-your-controls-netscaler-compromise-response-has-to-unconsolidate-them-42md",
+    "source": "DEV Community",
+    "date": "2026-10-01T12:23:56.000Z",
+    "summary": "Citrix disclosed eight NetScaler vulnerabilities on September 27, 2026, with two actively exploited including unauthenticated command execution. Response complexity stems from NetScaler's centralized role in authentication and access control, requiring forensic preservation before patching.",
+    "content": "NetScaler compromise response is difficult for the same reason the appliance is valuable: it concentrates authentication, remote access, certificates and administrative trust in one node, so every step of response has to unwind that concentration.\nCitrix disclosed eight NetScaler ADC and Gateway vulnerabilities on September 27, 2026, two of them already exploited. The guidance that followed from Citrix, CISA and Google's Mandiant and Threat Intelligence Group reads less like a patch procedure than a list of interruptions, and the order depends on what you find on the appliance.\n\nEvery control the gateway concentrated is a connection that compromise response has to cut.\nCitrix published bulletin CTX697096 on September 27, 2026, covering CVE-2026-88771 through CVE-2026-88778. The bulletin says exploitation of CVE-2026-88771 and CVE-2026-88772 has been observed on unmitigated deployments. The first is an unauthenticated command-execution flaw that affects every deployment in its default configuration. The second is a memory-overflow flaw that requires DTLS, which is on by default for VPN virtual servers. The bulletin covers customer-managed deployments; Citrix upgrades its own cloud-managed services.\nCISA added both to its Known Exploited Vulnerabilities catalog the same day, with a September 30 federal remediation date and a requirement for forensic triage under BOD 26-04. Its alert also carries a caution that matters later in this note: preserve forensic evidence before applying updates, because updates can cost forensic visibility.\nThe bulletin says nothing about how long exploitation had been running, how widely, or by whom. The public source for that is Google's Mandiant and Threat Intelligence Group, whose September 29 report describes a campaign against CVE-2026-88772 that was \"ongoing since at least early September,\" with likely impact on government, financial services, technology, education, and legal and professional services organizations in North America an",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "网关统一了您的控制。NetScaler 泄露应对必须解除这种统一。",
+        "summary": "Citrix 在 2026 年 9 月 27 日披露了八个 NetScaler 漏洞，其中两个被积极利用，包括未认证命令执行。应对的复杂性源于 NetScaler 在身份验证和访问控制中的集中角色，需要在修补前进行法证保存。"
+      }
+    }
+  },
+  {
+    "title": "Stop your AI agent from writing N+1 Prisma queries (free Cursor rule + Claude Code skill)",
+    "slug": "stop-ai-agents-n-plus-one-prisma",
+    "url": "https://dev.to/juan_requena_33c1b26641ee/stop-your-ai-agent-from-writing-n1-prisma-queries-free-cursor-rule-claude-code-skill-fam",
+    "source": "DEV Community",
+    "date": "2026-10-01T12:23:22.000Z",
+    "summary": "Addresses AI agents' tendency to generate N+1 Prisma queries through findMany loops. Proposes scoped Cursor rules teaching agents to use nested selects, batch queries, or aggregations, with examples showing 7 queries vs. 501 for 500-row datasets.",
+    "content": "AI coding agents are great at writing Prisma code that works and quietly terrible at writing Prisma code that scales. The most common thing I see in reviews: a findMany followed by a loop that does one more query per row.\n// what the agent writes\nconst projects = await db.project.findMany();\nfor (const p of projects) {\n  p.owner = await db.user.findUnique({ where: { id: p.ownerId } });\n}\n\nI measured it on a tiny SQLite database with Prisma 7 and query logging on: 6 projects → 7 queries. The same data with a nested select → 2 queries. With 500 rows the loop becomes 501 queries; the nested read stays flat.\nThe fix isn't \"remember to tell the agent every time\". It's giving the agent a short, scoped rule that loads only when it's touching data-access files, plus a skill it can run when something is already slow.\n.cursor/rules/05-prisma-queries-n-plus-one.mdc)\n\n\nThe frontmatter is the important part. globs makes Cursor attach the rule only when a matching file is in context, so it doesn't eat your context window on UI work:\n---\ndescription: \"Prisma query patterns, select vs include, pagination and N+1 avoidance. Use when writing or reviewing database reads in the data access layer.\"\nglobs: src/server/**/*.ts, server/**/*.ts, src/lib/db/**/*.ts\nalwaysApply: false\n---\n\nThe body is intentionally blunt. Agents follow \"forbidden pattern → fix\" better than prose:\n## N+1: forbidden patterns\n// BAD: 1 query + N queries\nconst projects = await db.project.findMany();\nfor (const p of projects) p.owner = await db.user.findUnique({ where: { id: p.ownerId } });\n// BAD: same thing hidden in Promise.all(map(...)) or in a child Server Component per row\n\nFix with one of:\n- Nested read: db.project.findMany({ select: { id: true, name: true, owner: { select: { id: true, name: true } } } })\n- Batch: collect ids → db.user.findMany({ where: { id: { in: ids } } }) → map in memory\n- Counts: _count: { select: { tasks: true } } instead of loading children to count them\n- Aggregates: groupBy, aggrega",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "阻止你的 AI 代理编写 N+1 Prisma 查询（免费 Cursor 规则 + Claude Code 技能）",
+        "summary": "解决 AI 代理通过 findMany 循环生成 N+1 Prisma 查询的倾向。提议使用作用域的 Cursor 规则教导代理使用嵌套选择、批量查询或聚合，示例展示 500 行数据集中 7 个查询对比 501 个查询。"
+      }
+    }
+  },
+  {
+    "title": "Como anonimizar rostos e placas em imagens com Python (LGPD/GDPR)",
+    "slug": "anonimizar-rostos-placas-python-lgpd",
+    "url": "https://dev.to/leandro_zanatta_34ce26010/como-anonimizar-rostos-e-placas-em-imagens-com-python-lgpdgdpr-jhl",
+    "source": "DEV Community",
+    "date": "2026-10-01T12:21:54.000Z",
+    "summary": "Tutorial for anonymizing faces and license plates in images using Apify's API for LGPD/GDPR compliance. Removes faces, plates, and EXIF metadata in batch operations via Python or curl, targeting Brazilian license plate variants without requiring model training.",
+    "content": "Se o seu sistema guarda, compartilha ou publica fotos com pessoas ou carros, ele está tratando dados pessoais. Pela LGPD, rosto e placa identificam alguém (art. 5º, I), e os metadados EXIF ainda guardam a localização GPS de onde a foto foi tirada.\nEste tutorial mostra como anonimizar imagens em lote com uma API: localizar rostos e placas, borrar de forma irreversível e remover os metadados. Tudo com curl ou Python, sem treinar modelo e sem GPU.\nUma conta gratuita na Apify (o plano gratuito inclui US$ 5 de uso por mês)\nO token da API, em Settings → API & Integrations\n\nPython 3.9+ com apify-client e requests\n\n\n\n\npip install apify-client requests\nexport APIFY_TOKEN=\"seu_token_aqui\"\n\nVamos usar o Image Anonymizer, uma API que detecta rostos e placas (com detector ajustado para placas brasileiras, Mercosul e modelo antigo), aplica o borrão e devolve a imagem sem EXIF.\nO endpoint run-sync-get-dataset-items roda a anonimização e devolve o resultado na mesma resposta. Serve para lotes pequenos, que terminam em até 5 minutos.\ncurl -X POST \\\n  \"https://api.apify.com/v2/acts/adorable_partial~image-anonymizer/run-sync-get-dataset-items\" \\\n  -H \"Authorization: Bearer $APIFY_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"imageUrls\": [\"https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Car_from_Sankt_Gallen.jpg/1280px-Car_from_Sankt_Gallen.jpg\"],\n    \"method\": \"blur\"\n  }'\n\nRepare que o token vai no cabeçalho Authorization, não na URL. Assim ele não fica gravado em logs de proxy nem no histórico do terminal de quem vê a URL.\nA resposta é uma lista, com um item por imagem:\n[\n  {\n    \"sourceUrl\": \"https://upload.wikimedia.org/.../Car_from_Sankt_Gallen.jpg\",\n    \"outputUrl\": \"https://api.apify.com/v2/key-value-stores/.../records/anonymized-00001.jpg?signature=...\",\n    \"width\": 1280,\n    \"height\": 960,\n    \"facesBlurred\": 0,\n    \"platesBlurred\": 1,\n    \"metadataRemoved\": true,\n    \"faces\": [],\n    \"plates\": [{ \"x1\": 474, \"y1\": 717, \"x2\": 801, \"y2\": 843, \"score\":",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何使用 Python 匿名化图像中的人脸和车牌（LGPD/GDPR）",
+        "summary": "使用 Apify 的 API 教程，用于匿名化图像中的人脸和车牌以符合 LGPD/GDPR。通过 Python 或 curl 在批量操作中删除人脸、车牌和 EXIF 元数据，针对巴西车牌变体，无需模型训练。"
+      }
+    }
+  },
+  {
+    "title": "Ollama vs vLLM vs llama.cpp: Which Local LLM Engine?",
+    "slug": "ollama-vllm-llama-cpp-comparison",
+    "url": "https://dev.to/amareswer/ollama-vs-vllm-vs-llamacpp-which-local-llm-engine-58h6",
+    "source": "DEV Community",
+    "date": "2026-10-01T12:20:51.000Z",
+    "summary": "Comparison of local LLM inference engines: Ollama for ease-of-use on single machines, llama.cpp for portability and control, vLLM for high-concurrency GPU servers. Choice depends on deployment scenario and concurrent user load.",
+    "content": "Originally published on DevToolHub.\nOllama vs vLLM vs llama.cpp comes down to one question: how many people will hit the model at once? For one developer on a laptop, pick Ollama or llama.cpp. For a GPU server with many concurrent users, pick vLLM. Below, I explain why. I also benchmarked Ollama and llama.cpp on the same model file, and the defaults changed the result more than the engine did.\nIf you haven't installed any of these yet, start with our LM Studio and Ollama setup guide.\n\n\n\n\nOllama\nllama.cpp\nvLLM\n\n\n\n\nWhat it is\nModel manager and local server\nC/C++ inference engine, CLI and server\nHigh-throughput serving engine\n\n\nBest at\nEasiest local setup\nRunning anywhere, fine control\nMany concurrent requests on GPUs\n\n\nModel format\nIts own library, or import GGUF / Safetensors\nGGUF\nHugging Face weights; GGUF \"highly experimental\" via a plugin\n\n\nHardware\nmacOS, Windows, Linux; CPU, NVIDIA, AMD, Apple Silicon\nCPU, Metal, CUDA, HIP, Vulkan, SYCL and more\nNVIDIA, AMD and Intel GPUs, TPUs, CPUs; experimental on Apple Silicon\n\n\nAPI\nNative API plus OpenAI-compatible\nOpenAI-compatible (llama serve)\nOpenAI-compatible, Anthropic Messages API, gRPC\n\n\nConcurrency default\n1 request per model\nParallel slots, auto-sized\nContinuous batching\n\n\nSetup effort\nLowest\nLow to medium\nHighest\n\n\n\nllama.cpp is the engine underneath much of the local-LLM world. It's a plain C/C++ implementation with no dependencies. Per its README, it targets \"a wide range of hardware.\" It runs GGUF files and supports 1.5-bit to 8-bit quantization. As of v0.5.0 it ships a single llama command, so the old llama-server workflow is now llama serve:\n# Chat with a model straight from Hugging Face\nllama cli -hf ggml-org/Qwen3-4B-GGUF\n\n# OpenAI-compatible server on port 8080\nllama serve -m ./Qwen3-4B-Q4_K_M.gguf --port 8080\n\nOllama wraps local inference in a model manager: ollama pull, ollama run, a model library, and a background service. It exposes both its own API and an OpenAI-compatible one on port 11434. It trade",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Ollama vs vLLM vs llama.cpp: 选择哪个本地LLM引擎?",
+        "summary": "本地LLM推理引擎的比较:Ollama适合单机易用性,llama.cpp提供可移植性和控制,vLLM适合高并发GPU服务器。选择取决于部署场景和并发用户负载。"
+      }
+    }
+  },
+  {
+    "title": "Kubernetes in the Enterprise: Scalability, Resilience, and Release Speed Explained",
+    "slug": "kubernetes-enterprise-scalability",
+    "url": "https://dev.to/md_irshadalam_195108db40/kubernetes-in-the-enterprise-scalability-resilience-and-release-speed-explained-38go",
+    "source": "DEV Community",
+    "date": "2026-10-01T12:20:22.000Z",
+    "summary": "Enterprise guide to production Kubernetes covering auto-scaling, failure recovery, safe deployment strategies, monitoring, and cost control. Addresses practical challenges beyond demo clusters when running containerized applications at scale.",
+    "content": "Kubernetes in the Enterprise: Scalability, Resilience, and Release Speed Explained\n\n\nKubernetes has become a standard platform for many teams building and operating containerized applications.\nBut running Kubernetes in a production environment is very different from deploying a demo cluster.\nFor enterprise teams, Kubernetes needs to solve practical engineering problems:\nHow do we scale applications when traffic changes?\nHow do we recover when workloads fail?\nHow do we deploy new versions safely?\nHow do we monitor distributed applications?\nHow do we control security and infrastructure costs**?\nThis article looks at Kubernetes from that perspective.\nAt its core, Kubernetes is a container orchestration platform.\nIt helps teams automate the deployment and management of containerized workloads.\nA simplified architecture looks like this:\n                  Kubernetes Cluster\n                         |\n        -----------------------------------\n        |                 |               |\n     Node 1            Node 2          Node 3\n        |                 |               |\n      Pod               Pod             Pod\n        |                 |               |\n   Container         Container       Container\n\nInstead of manually managing individual application instances, Kubernetes allows teams to describe the desired state of their workloads.\nThe control plane then works toward maintaining that state.\nThat becomes particularly useful when an organization is running many applications across multiple environments.\nEnterprise traffic isn't always predictable.\nAn e-commerce application may receive a large traffic spike during a sale. A SaaS application may gain thousands of new users. An internal application may have heavy usage during specific business hours.\nKubernetes provides several scaling mechanisms.\nThe Horizontal Pod Autoscaler (HPA) can adjust the number of pod replicas based on configured metrics.\nFor example:\nLow Traffic\n    ↓\n3 Pods\n    ↓\nTraffic Increases\n    ↓",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "企业中的Kubernetes:可扩展性、弹性和发布速度解析",
+        "summary": "生产Kubernetes企业指南,涵盖自动扩展、故障恢复、安全部署策略、监控和成本控制。解决大规模运行容器化应用程序时的实际挑战。"
+      }
+    }
+  },
+  {
+    "title": "Green Build, Broken Site: Three Next.js 16 Failures You Only See in Production",
+    "slug": "next-js-16-production-failures",
+    "url": "https://dev.to/mahmut_gndzalp_c736ac4b/green-build-broken-site-three-nextjs-16-failures-you-only-see-in-production-134p",
+    "source": "DEV Community",
+    "date": "2026-10-01T12:20:21.000Z",
+    "summary": "Case study of three Next.js 16 production failures invisible in development: image upload 422 errors, persistent file 404s, and missing scheduled posts. Root cause: Turbopack vs. Webpack differences in bundling external packages like sharp.",
+    "content": "One Next.js 16 site, one working day, three failures. None of them showed up on the development machine. All three passed the build. Each one broke a single feature quietly while the rest of the site looked fine.\nImage uploads in the admin panel returned 422 for every file.\nFiles uploaded after the server started returned 404 until the next restart.\nScheduled posts went live in the database but never appeared on the site.\nThey share one root cause: the environment you test in is not the one you ship. Below is each failure, how it showed up, the fix, and the check that would have caught it before a user did.\nThe admin upload endpoint re-encodes every image with sharp (strip metadata, resize, convert to WebP). In production it answered every request with:\n{ \"hata\": \"Görsel işlenemedi\" }\n\nThat's \"image could not be processed\", the message from our own catch block. The interesting part was what the catch block was hiding.\nLocally we built with next build --webpack, because a font download failed under Turbopack on that Windows machine. The server ran a plain next build, which in Next.js 16 means Turbopack.\nIn the Turbopack output, the static import\nimport sharp from \"sharp\";\n\nhad been replaced with (void 0). The handler compiled, the route existed, and then the first call failed at runtime.\nThe usual advice is to list the package in serverExternalPackages. sharp is already on Next's built-in list, and adding it explicitly made no difference in that build.\nResolve the module at runtime, from the app's own node_modules, so that the bundler has nothing to analyse statically:\nimport { createRequire } from \"node:module\";\nimport path from \"node:path\";\n\ntype Sharp = typeof import(\"sharp\");\nconst MODULE_NAME = \"sharp\"; // a variable, not a literal: nothing to resolve at build time\nlet cached: Sharp | null = null;\n\nexport function loadSharp(): Sharp {\n  cached ??= createRequire(path.join(process.cwd(), \"package.json\"))(MODULE_NAME) as Sharp;\n  return cached;\n}\n\nThe type import k",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "绿色构建,破损网站:三个只在生产环境中出现的Next.js 16故障",
+        "summary": "三个Next.js 16生产故障的案例研究,在开发中不可见:图像上传422错误、持久文件404错误和缺失的计划文章。根本原因:Turbopack和Webpack在捆绑sharp等外部包时的差异。"
+      }
+    }
+  },
+  {
     "title": "Proof Desk: receipts before rewards",
     "slug": "proof-desk-receipts-before-rewards",
     "url": "https://dev.to/di_wang_3516db206ab336792/proof-desk-receipts-before-rewards-3m7n",
@@ -28,6 +220,22 @@
       "zh": {
         "title": "工业4.0深度剖析：现代工厂如何处理实时物联网传感器遥测",
         "summary": "现代制造工厂通过分布式系统、本地网关、边缘缓存和专用协议来处理数千个实时传感器，以在网络限制和环境干扰的情况下维持生产连续性。"
+      }
+    }
+  },
+  {
+    "title": "Fuck Android Developer Verification Program",
+    "slug": "android-developer-verification",
+    "url": "https://twitter.com/0xcrypto/status/2105515822643114182",
+    "source": "Hacker News",
+    "date": "2026-10-01T04:32:38.000Z",
+    "summary": "Hacker News discussion criticizing Android Developer Verification Program requirements. Reflects developer frustration with Google's verification barriers.",
+    "content": "Article URL: https://twitter.com/0xcrypto/status/2105515822643114182\nComments URL: https://news.ycombinator.com/item?id=49917761\nPoints: 255\n# Comments: 105",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Android开发者验证计划真是太糟了",
+        "summary": "黑客新闻讨论批评Android开发者验证计划的要求。反映开发者对谷歌验证壁垒的沮丧。"
       }
     }
   },
