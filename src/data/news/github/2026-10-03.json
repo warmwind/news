@@ -1,5 +1,197 @@
 [
   {
+    "title": "Hiding the table is not enough. Your LLM can still see the salary column.",
+    "slug": "hiding-llm-access-schema-columns-with-schemagate",
+    "url": "https://dev.to/ashish_sinha_5241c7673d93/hiding-the-table-is-not-enough-your-llm-can-still-see-the-salary-column-12ne",
+    "source": "DEV Community",
+    "date": "2026-10-03T20:36:51.000Z",
+    "summary": "Hiding tables from LLM prompts isn't enough—models infer sensitive data from column names in schema. Schemagate 1.1.0 adds column-level access controls, removing restricted columns entirely from the model's view so it can't attempt to query data it shouldn't see.",
+    "content": "Most text-to-SQL setups protect data at the table level. The analyst cannot read hr_compensation, so that table never goes into the prompt. Good.\nBut a lot of sensitive data does not live in its own table. It lives in one column of a table everyone uses. employees.salary. customers.national_id. patients.diagnosis. If the model sees the column name in the schema, it will happily write SELECT salary FROM employees. Your database might block the query, or it might not. Either way, the model has already learned the column exists.\nschemagate 1.1.0 adds column rules you can write in a JSON file:\n{\n  \"restrict_column\": {\n    \"employees\": {\n      \"salary\": [\"hr\"],\n      \"national_id\": [\"hr\", \"compliance\"]\n    }\n  }\n}\n\nA caller without the hr role now gets the employees table with salary simply not there. Not marked secret. Not ranked low. Absent. The model cannot write a query against a column it was never shown.\npip install schemagate\n\n# the bundled demo database; this prints its sqlite:/// URL\npython -c \"from schemagate.demo_schema import create_demo_db; print(create_demo_db())\"\n\necho '{\"restrict_column\": {\"hr_compensation\": {\"annual_amount\": [\"hr\"]}}}' > catalog.json\n\nschemagate select --url <url printed above> --prompt \"salary by employee\"\nschemagate select --url <url printed above> --config catalog.json --prompt \"salary by employee\"\n\nThe first prompt shows annual_amount. The second does not.\nThe command line, the local Studio page and the MCP server all read the same catalog.json. So if you connect Claude, Cursor or any MCP client to your database through schemagate, the column rule applies there too. You state the policy once.\nThis one matters more than it sounds. Before 1.1.0, a block the loader did not know was quietly ignored. Write \"restrict_columns\" with an extra s, and you had a file that looked like a policy and did nothing.\nNow it stops with one line:\nschemagate: --config catalog.json: unknown block(s) 'restrict_columns'; expected any of restrict, restrict_col",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "隐藏表格还不够。你的LLM仍然可以看到工资列。",
+        "summary": "从LLM提示中隐藏表格是不够的——模型可以从模式中的列名推断敏感数据。Schemagate 1.1.0添加了列级访问控制,将受限列完全从模型的视图中移除,使其无法尝试查询不应该看到的数据。"
+      }
+    }
+  },
+  {
+    "title": "Nightly Pipeline Reconstruction — Serverless Polling Windows for Error Tracking API Timeouts",
+    "slug": "serverless-polling-windows-error-tracking-timeouts",
+    "url": "https://dev.to/lunarbreeze4173085/nightly-pipeline-reconstruction-serverless-polling-windows-for-error-tracking-api-timeouts-2a1a",
+    "source": "DEV Community",
+    "date": "2026-10-03T20:36:23.000Z",
+    "summary": "Serverless pipeline timeouts should be treated as query-planning failures, not reasons to increase function limits. This architecture uses fixed time intervals, pagination checkpoints, and restartable state to ensure data reconstruction is deterministic and debuggable, which matters for incident investigation when API timeouts are unpredictable.",
+    "content": "TL;DR: Treat a serverless timeout while polling an error-tracking API as a query-planning failure, not as a reason to raise the function timeout. For a nightly education-data pipeline, persist a closed time range, traverse it with deterministic pagination, and split any range whose query budget is nearly exhausted. Alert from durable run state after collection finishes; do not infer pipeline health from whether one long polling invocation returned.\nThe decision rule is strict: an invocation may stop, but an incident-reconstruction interval may never become ambiguous. That distinction matters when a 02:00 enrollment import fails and the on-call engineer must determine which tenant, course, and stage were affected. A larger search window appears to provide more context, yet it also increases scan work, response size, page count, and the chance that the collector dies between pages. More context can produce less evidence.\nThis architecture decision record chooses bounded, replayable retrieval over a single long query. It assumes an API that can filter by event time and paginate results, but it does not assume a particular vendor, SDK, or serverless runtime.\nThe first invariant is temporal closure. A poller records both ends of its target interval before sending the first request: [start, end). The end is fixed, rather than continually set to “now,” so late pages cannot pull newly arriving events into a result set whose earlier pages were calculated against a different population. Half-open intervals also give adjacent partitions one unambiguous boundary: an event at 03:00:00Z belongs to the interval beginning at that instant, not the one ending there.\nThe second invariant is restartability. A checkpoint contains the interval, the next pagination token, and the identity of the pipeline run being reconstructed. The token is opaque. Code must store and return it unchanged rather than parse it, increment it, or assume it remains useful outside the query that produced it. I",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "夜间管道重建——用于错误跟踪API超时的无服务器轮询窗口",
+        "summary": "无服务器管道超时应该被视为查询规划失败,而不是增加函数限制的理由。这个架构使用固定时间间隔、分页检查点和可重启状态,以确保数据重建是确定性的和可调试的,这对于API超时不可预测时的事件调查很重要。"
+      }
+    }
+  },
+  {
+    "title": "📺 What happens when you let autonomous AI agents run a 24/7 television network?",
+    "slug": "autonomous-ai-agents-24-7-television-network",
+    "url": "https://dev.to/cholorine/what-happens-when-you-let-autonomous-ai-agents-run-a-247-television-network-36en",
+    "source": "DEV Community",
+    "date": "2026-10-03T20:34:28.000Z",
+    "summary": "TECHNET is a fully autonomous 24/7 tech news broadcaster—not a personalized feed or dashboard, but a shared pixel-art TV channel where every viewer sees identical content at the exact same time. It demonstrates a new model for algorithmic curation that prioritizes synchronized experience over personalization.",
+    "content": "Meet TECHNET : a fully autonomous, continuously broadcasting tech news station I just built.\nThis isn't a personalized feed, a chatbot, or a static news dashboard. It’s a unified, live pixel-art TV channel. There is one network, one canonical broadcast clock, and every viewer watching sees the exact same broadcast at the exact same time.\nView Here",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "📺 当你让自主AI代理运营24/7电视网络会发生什么?",
+        "summary": "TECHNET是一个完全自主的24/7科技新闻广播机构——不是个性化的信息源或仪表板,而是一个共享的像素艺术电视频道,每个观众在同一时刻看到相同的内容。它展示了一个新的算法策展模型,优先考虑同步体验而不是个性化。"
+      }
+    }
+  },
+  {
+    "title": "FTL: propone aislar contenedores como una VM",
+    "slug": "ftl-unikernel-container-isolation-vm-security",
+    "url": "https://dev.to/lu1tr0n/ftl-propone-aislar-contenedores-como-una-vm-5flf",
+    "source": "DEV Community",
+    "date": "2026-10-03T20:33:05.000Z",
+    "summary": "FTL isolates containers using a userspace kernel library that runs alongside applications, achieving VM-like security isolation without full virtualization overhead. Linux binaries run unmodified with syscalls translated to minimal interfaces, reducing kernel attack surface while simplifying updates and maintaining compatibility.",
+    "content": "FTL corrió su primera aplicación real, un servidor HTTP en Rust compilado para Linux, en septiembre de 2026, usando un kernel de usuario que mide una fracción del código de un sistema operativo convencional. Lo demostró en su propio sitio, ftl-os.org.\nEs la prueba de un diseño poco común. FTL mueve casi todo el sistema operativo a una biblioteca que corre en espacio de usuario y deja que el kernel haga lo mínimo: así aísla contenedores con la seguridad de una máquina virtual, pero sin pagar el costo de arrancar una VM completa.\nUn kernel de usuario mueve el sistema operativo a una biblioteca que corre junto a la app.- FTL aísla contenedores con el modo de usuario de la CPU, sin pedir hardware de virtualización ni bare-metal.- Los binarios Linux corren sin cambios: FTL traduce sus syscalls a una interfaz mínima de vCPU, memoria y drivers.- El roadmap oficial fija filesystem para noviembre de 2026 y Node.js y Go para diciembre.- Actualizar el sistema de un contenedor FTL es recompilar una librería, no parchar el kernel compartido.\nUn kernel de usuario es una capa de sistema operativo que implementa procesos, sistema de archivos y red dentro de una biblioteca que corre junto a la aplicación, no en el núcleo privilegiado. FTL lo usa para aislar contenedores con el aislamiento de modo de usuario de una CPU, sin máquinas bare-metal.\nLa idea no es nueva en el papel: los unikernels y los microkernels llevan décadas moviendo lógica fuera del núcleo compartido. Lo que cambia con FTL es la ejecución: cada contenedor corre su propio sistema operativo de biblioteca, compilado junto a la aplicación, y el kernel FTL se limita a repartir CPU virtual, memoria y acceso a dispositivos, como lo haría un hipervisor.\nUn contenedor normal comparte el kernel Linux del host con todos los demás contenedores de la máquina. Si un atacante encuentra un bug en cualquiera de los cientos de syscalls, subsistemas de red o controladores que expone ese kernel, puede escapar del contenedor y tocar lo",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "FTL：像虚拟机一样隔离容器",
+        "summary": "FTL 通过运行在应用程序旁的用户空间内核库来隔离容器，实现类似虚拟机的安全隔离，无需完整虚拟化开销。Linux 二进制文件无需修改即可运行，系统调用被转换为最小接口，降低内核攻击面，同时简化更新并保持兼容性。"
+      }
+    }
+  },
+  {
+    "title": "I rejected a model that passed everyone else's benchmark",
+    "slug": "rejected-audio-deepfake-detector-benchmark-gap",
+    "url": "https://dev.to/dawnofgenx/i-rejected-a-model-that-passed-everyone-elses-benchmark-33gm",
+    "source": "DEV Community",
+    "date": "2026-10-03T20:29:48.000Z",
+    "summary": "An audio deepfake detector passed all integration tests and forward-pass checks but achieved only 0.54 AUC on held-out data versus vendor claims of 0.9967. The author rejected it anyway, demonstrating how integration success doesn't measure discriminative power—and why setting evaluation criteria in advance prevents shipping models that fail users.",
+    "content": "I vendored an audio deepfake detector into my verification platform. It loaded cleanly, every integration check passed, and the forward pass looked healthy. Then I measured it on a held-out slice and got an AUC of 0.54 — barely above chance. The vendor reports 0.9967. This is the story of what happened in between, and why I decided not to ship it.\nThe model is Spectra-AASIST3, an audio deepfake detector released under Apache-2.0. I vendored it into the project as a potential audio channel for a WhatsApp-first deepfake and malware verification platform. The integration work was straightforward and, by every check I ran, successful.\nThe checkpoint loaded without a single mismatch: 1022 out of 1022 keys matched and applied, 318.9 million parameters. The forward pass was responsive and produced sensible outputs across a range of inputs. I probed it with silence, real speech, envelope noise, and a pure tone. The bonafide logit came back at 1.63 on silence, 1.76 on speech, 1.33 on envelope noise, and 2.8 to 4.0 on tone. The model was clearly doing something — it was not broken, not degenerate, not returning constant outputs. It was alive and responsive.\nBy every integration test I had, this component worked.\nBut an integration test asks a narrow question: does the component run? Does it load? Does it produce outputs? Does it respond to inputs? It does not ask the question that actually matters: does it discriminate? Can it tell a real voice from a synthetic one on the data I care about? Those are different questions, and conflating them is how you end up shipping a model that passes every unit test and fails every user.\nBefore I ran the evaluation, I fixed the acceptance criterion in writing: AUC ≥ 0.85 on a held-out slice, with non-overlapping posterior quantiles between classes and a global posterior standard deviation above 0.01. Three conditions, all of which had to hold.\nFixing the bar in advance is the only reason this story has a clean ending. Once you have a numbe",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我拒绝了通过所有人基准测试的模型",
+        "summary": "音频深度伪造检测器通过了所有集成测试和前向传播检查，但在保留数据上仅达到 0.54 AUC，而供应商声称为 0.9967。作者仍然拒绝了它，证明了集成成功无法衡量判别力——为什么提前设置评估标准可以防止发布对用户失败的模型。"
+      }
+    }
+  },
+  {
+    "title": "Un backup sirve cuando puedes restaurarlo: laboratorio con SQLite y GitHub Actions",
+    "slug": "backup-restoration-testing-sqlite-github-actions",
+    "url": "https://dev.to/antonys3010/un-backup-sirve-cuando-puedes-restaurarlo-laboratorio-con-sqlite-y-github-actions-3i4p",
+    "source": "DEV Community",
+    "date": "2026-10-03T20:29:26.000Z",
+    "summary": "Backups only prove value when tested end-to-end through controlled data loss, restoration, and verification—not merely stored. This lab demonstrates backup strategies using SQLite and automated GitHub Actions, validating both full and logical backups to show that recovery actually works.",
+    "content": "Una carpeta llena de copias no demuestra que una aplicación pueda recuperarse. Para comprobarlo, necesitamos provocar una pérdida controlada, restaurar una copia y verificar que los datos recuperados sean los esperados.\nEste proyecto usa SQLite y un inventario ficticio. No utiliza Microsoft SQL Server. Incluye una aplicación que ejecuta SQLite en el navegador y un laboratorio de Python que prueba copias físicas y lógicas.\nRepositorio público y código\nAplicación pública: Backup Lab\nPruebas y despliegue con GitHub Actions\nGuion y tomas para el video de 4:30\nEl RPO expresa cuántos cambios podemos permitirnos perder. Si guardo una copia y después ingreso una venta, restaurar esa copia no recuperará la venta posterior. El RTO expresa cuánto tiempo podemos permitir que dure la recuperación; incluye localizar la copia, preparar el entorno y comprobar la aplicación.\nEn esta demostración ambos conceptos se observan con pocos registros. El tiempo local mostrado es una medición del ejercicio, no una promesa para producción.\nUna copia completa conserva un estado íntegro y simplifica la recuperación, pero su coste aumenta con el volumen de datos. Una incremental guarda cambios desde la copia anterior y exige reconstruir la cadena; una diferencial guarda cambios desde la última completa. Este laboratorio implementa copias completas, no incrementales, diferenciales ni recuperación a un instante mediante logs.\nTambién hay formatos físicos y lógicos. En Python creo otra base SQLite mediante Connection.backup() y genero un dump SQL con iterdump(). El dump reconstruye esquema y registros, pero no conserva todos los detalles físicos del archivo. Ambas operaciones aparecen en la documentación de sqlite3 de Python.\nCopiar un archivo activo sin coordinar escrituras puede producir una copia incorrecta o incompleta. SQLite ofrece su Online Backup API y la alternativa VACUUM INTO. Con WAL no debemos asumir que el archivo principal contiene todos los cambios confirmados. Aquí uso la API de ba",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "备份只有在您能恢复它时才有用：SQLite 和 GitHub Actions 实验室",
+        "summary": "备份只有通过受控数据丢失、恢复和验证的端到端测试才能证明其价值——而不仅仅是存储。本实验室演示了使用 SQLite 和自动化 GitHub Actions 的备份策略，验证了完整备份和逻辑备份以证明恢复确实有效。"
+      }
+    }
+  },
+  {
+    "title": "A Windows context menu editor in one PowerShell file",
+    "slug": "windows-context-menu-editor-powershell-script",
+    "url": "https://dev.to/rocisapps/a-windows-context-menu-editor-in-one-powershell-file-2mc",
+    "source": "DEV Community",
+    "date": "2026-10-03T20:27:29.000Z",
+    "summary": "A single PowerShell script provides a unified GUI for Windows context menu management, unifying shell verbs, extension handlers, and Windows 11 packaged app contexts that normally scatter across three registry locations. It solves the friction of Windows 11 hiding half the right-click menu behind \"Show more options.\"",
+    "content": "The Windows right-click menu is built from several different places, and Windows 11 hides half of it behind \"Show more options\". Most tools I found each cover one part of it. I wanted one list for all of it, so I built Context Menu Editor: a single PowerShell script with a WPF window, free and MIT licensed.\nYou can try it without installing anything:\nirm https://rocisapps.com/cme | iex\n\nYou can read the source first, and the same script is attached to every GitHub release.\n\n\nHere is how it works, and the parts that were harder than I expected.\nWindows builds the menu from three different places, and each one is switched off differently:\nShell verbs under Software\\Classes\\<class>\\shell\\<verb>. Adding a LegacyDisable value turns one off without deleting it.\nShell extension handlers under shellex\\ContextMenuHandlers (7-Zip, antivirus, PowerToys). You turn one off by adding its CLSID to the per-user Shell Extensions\\Blocked list.\nWindows 11 packaged items, which apps declare in their AppxManifest.xml as windows.fileExplorerContextMenus. They have no command line at all, only a COM handler, and they are blocked the same way as extensions.\nReading all three into one list, with the right \"off\" mechanism behind each switch, is most of the work.\n\n# Turn a shell extension off for the current user (restart Explorer afterwards)\n$blocked = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey(\n    'Software\\Microsoft\\Windows\\CurrentVersion\\Shell Extensions\\Blocked')\n$blocked.SetValue('{00000000-0000-0000-0000-000000000000}', '')   # the handler's CLSID\n\nAll registry access goes through Microsoft.Win32.Registry. The PowerShell registry provider treats the * in HKCU\\Software\\Classes\\*\\shell as a wildcard, so a path that means \"all files\" quietly matches other keys. The .NET API takes the path literally:\n$shell = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Software\\Classes\\*\\shell')\n$shell.GetSubKeyNames()\n\nSend to is a folder of shortcuts, so adding an app is easy. Windows",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "一个 PowerShell 文件中的 Windows 右键菜单编辑器",
+        "summary": "一个 PowerShell 脚本提供了统一的 Windows 右键菜单管理 GUI，统一了通常分散在三个注册表位置的 shell 谓词、扩展处理程序和 Windows 11 打包应用上下文。它解决了 Windows 11 将一半右键菜单隐藏在\"显示更多选项\"后面的问题。"
+      }
+    }
+  },
+  {
+    "title": "StudyBuddy",
+    "slug": "studybuddy-focused-study-workspace-consolidation",
+    "url": "https://dev.to/ankit_kumar810/studybuddy-5bc8",
+    "source": "DEV Community",
+    "date": "2026-10-03T20:26:58.000Z",
+    "summary": "StudyBuddy consolidates study tools—Pomodoro timer, tasks, flashcards, quizzes, progress tracking—into one focused workspace to eliminate context-switching overhead. Built with vanilla JavaScript and browser storage, it requires no backend or account, addressing the common student problem of spending more time organizing study than actually studying.",
+    "content": "📚 I Built StudyBuddy — A Simple Study Workspace for Students\n\n\nThis is my submission for the Hacktoberfest Weekend Challenge: Build for a Friend.\nStudying sounds simple:\nOpen your notes. Focus. Revise. Practice. Repeat.\nBut in reality, students often end up jumping between different tools for timers, tasks, flashcards, quizzes, and tracking progress.\nSo I built StudyBuddy — a focused study workspace that brings these essential study activities together in one place.\nThe idea came from a simple problem that almost every student can relate to: sometimes we spend more time organizing how we're going to study than actually studying.\nStudyBuddy is designed to reduce that friction.\n⏱️ Pomodoro Focus Timer — customizable focus and break cycles\n📝 Study Tasks — plan and track tasks for your study session\n🧠 Flashcards — decks, hints, starring, filtering, and mastery tracking\n🎯 Practice Quizzes — timed questions, instant feedback, explanations, and score breakdowns\n📊 Study Statistics — focus sessions, total study time, and streaks\n🌧️ Ambient Sounds — browser-generated rain and white noise\n⚙️ Custom Settings — personalize your study sessions and sound preferences\n📦 Import / Export — backup your study data as JSON\n🔄 Flashcard → Quiz Generation — quickly turn revision material into practice questions\nThe goal wasn't to build another complicated productivity dashboard.\nIt was to build something a student can open and immediately think:\n\"Okay. Let's study.\"\n👉 StudyBuddy on GitHub\nThe project is completely client-side, so you can run it locally by opening index.html or using a simple local development server.\nStudyBuddy is intentionally built using simple web technologies:\nHTML5\nCSS3\nVanilla JavaScript\nBrowser LocalStorage\nWeb Audio API\nThere is no backend or database.\nThe application stores study data directly in the browser, including tasks, flashcards, settings, and progress.\nI separated the main functionality into controllers so that each part of the application has a c",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "StudyBuddy",
+        "summary": "StudyBuddy 将学习工具（番茄计时器、任务、抽认卡、测试、进度跟踪）整合到一个专注的工作区，以消除上下文切换的开销。使用纯 JavaScript 和浏览器存储构建，不需要后端或账户，解决了学生花费更多时间组织学习而不是实际学习的常见问题。"
+      }
+    }
+  },
+  {
+    "title": "I built a tiny tool that catches the \"printed at 94%\" problem",
+    "slug": "print-scale-checker-paper-size-verification",
+    "url": "https://dev.to/removewaterfromspeakers/i-built-a-tiny-tool-that-catches-the-printed-at-94-problem-1hj1",
+    "source": "DEV Community",
+    "date": "2026-10-03T20:26:27.000Z",
+    "summary": "A browser-based print scale checker catches the invisible failure of documents shrinking to 94% due to paper-size mismatches—they look correct on screen but print wrong. Users measure a reference bar and the tool reports whether scale matches expectations, directly addressing an otherwise undetectable print quality problem.",
+    "content": "Hi everyone,\nI built a free print scale checker as part of my printer test site, after running into a frustrating problem: prints that look fine but come out the wrong size.\nThe usual cause: an A4 file printed on Letter with \"Fit to page\" on shrinks to about 94%. Nothing looks broken, but templates, labels and patterns are off.\nWhat I focused on:\nPrint one sheet, measure a 100 mm bar, type the number\nIt tells you the scale and whether it matches a paper-size mismatch\nRuns in the browser, nothing uploaded\nWhat I learned:\n\"The printer printed\" and \"it printed correctly\" are different checks\nReal vector PDFs beat HTML print for exact sizes\nQuestion for developers: have you built anything that has to print at an exact size? How did you test it?",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我构建了一个能发现\"打印缩放 94%\"问题的小工具",
+        "summary": "一个基于浏览器的打印比例检查工具，可以捕捉文档因纸张尺寸不匹配而缩小到 94% 的隐藏故障——它们在屏幕上看起来正确，但打印出来是错的。用户测量参考条形码，工具报告比例是否符合预期，直接解决了一个原本无法检测的打印质量问题。"
+      }
+    }
+  },
+  {
+    "title": "Building a Sub-Minute Cross-Platform Inventory Sync Engine with n8n, Shopify, WooCommerce & Airtable",
+    "slug": "cross-platform-inventory-sync-n8n-shopify-woocommerce",
+    "url": "https://dev.to/reigen/building-a-sub-minute-cross-platform-inventory-sync-engine-with-n8n-shopify-woocommerce-airtable-13jg",
+    "source": "DEV Community",
+    "date": "2026-10-03T20:25:54.000Z",
+    "summary": "A self-hosted n8n and Airtable inventory sync achieves sub-minute synchronization across Shopify and WooCommerce while eliminating webhook ping-pong loops. By using Airtable as an atomic central source of truth instead of direct point-to-point webhooks, it prevents the overselling and infinite loops plaguing commercial solutions.",
+    "content": "Building a Sub-Minute Cross-Platform Inventory Sync Engine with n8n, Shopify, WooCommerce & Airtable\n\n\nDual-channel e-commerce sounds great on a slide deck until an order drops simultaneously on Shopify and WooCommerce for your last unit of inventory. Within 45 seconds, you've oversold, triggered a support ticket, and compromised a customer relationship.\nMost teams reach for commercial integration platforms (Zapier, Celigo, or specialized multichannel SaaS tools). Then they discover the fine print: tiered pricing based on order volume, 15-minute polling windows on entry tiers, or brittle two-way connectors that enter infinite webhook loops the moment inventory changes bounce back and forth.\nIn this technical breakdown, we will walk through engineering a self-hosted, bidirectional inventory synchronization engine using n8n and Airtable as an immutable Single Source of Truth (SSOT). This setup achieves sub-minute delta propagation, completely eliminates infinite sync ping-pong, and runs on your own infrastructure for pennies a day.\nCommercial sync services rely on two flawed primitives:\nHigh-Frequency Polling: Checking platform APIs every 5–15 minutes introduces a massive latency window where stockouts happen invisibly.\nDirect Point-to-Point Webhooks: Triggering an inventory adjustment on Shopify when WooCommerce updates creates an immediate echo loop unless state is cleanly managed.\n\n\n\n\nShopify Order Placed -> Webhook to WooCommerce -> WooCommerce Stock Drops\n                                  ^                               |\n                                  |--- Webhook to Shopify fires --|\n\nWithout an atomic central state orchestrator, platform A and platform B trade fractional updates until API rate limits throttle both endpoints or your SKU balances hit negative values.\nFurthermore, direct multi-point sync burns through Shopify's REST/GraphQL leaky bucket limits (40 requests/sec for Plus, 2 requests/sec for standard) and WooCommerce's REST bottlenecks on unoptim",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用n8n、Shopify、WooCommerce和Airtable构建亚分钟级跨平台库存同步引擎",
+        "summary": "自托管的n8n和Airtable库存同步实现了Shopify和WooCommerce之间的亚分钟级同步，同时消除了webhook乒乓循环。通过使用Airtable作为原子化中央真实来源而不是直接点对点webhooks，它防止了困扰商业解决方案的过度销售和无限循环。"
+      }
+    }
+  },
+  {
+    "title": "From Comics to Code: Building MyZubster One Piece of Evidence at a Time",
+    "slug": "myzubster-rag-evidence-based-retrieval-system",
+    "url": "https://dev.to/n4k48/from-comics-to-code-building-myzubster-one-piece-of-evidence-at-a-time-489i",
+    "source": "DEV Community",
+    "date": "2026-10-03T20:25:32.000Z",
+    "summary": "MyZubster's RAG system prioritizes proving what evidence actually supports an answer rather than generating eloquent synthesis from retrieval. It distinguishes between what was observed, recorded, retrieved, verified, and generated—preventing AI from conflating semantic similarity with ground truth and addressing the core weakness in naive RAG architectures.",
+    "content": "From Comics to Code: Building MyZubster One Piece of Evidence at a Time\nSemantic retrieval correctly found that observation.\nIn English:\nThis sounds like a small behavior change.\nYet a small local model could turn it into a longer response containing claims that were never present in the source.\nNothing added.\nAI becomes useful where interpretation and synthesis are actually required—not as an unavoidable intermediary between the user and every piece of stored evidence.\nWe exposed the MyZubster RAG system through an OpenAI-compatible API, allowing Open WebUI to use myzubster-rag as a model.\nThat is where decentralization becomes meaningful.\nThe interesting part is not the commit count.\nMost AI systems are designed around the final step.\nWe are increasingly interested in everything that happens before it.\nBecause an eloquent answer is not necessarily a grounded answer.\nA semantically similar document is not necessarily the requested evidence.\nA model saying something confidently does not turn it into a recorded fact.\nAnd a decentralized record is only useful if we understand what that record actually proves.\nWhere This Is Going\nThe goal of MyZubster is not to build an AI that appears to know everything.\nThe more interesting goal is to build a system that becomes increasingly capable of distinguishing between:\nwhat was observed,\nwhat was recorded,\nwhat can be retrieved,\nwhat can be verified,\nand what the AI generated.\nThere is still a lot to solve.\nGeneric semantic questions can still retrieve partially relevant context. Small local models can still infer things that the evidence does not say. Provenance can become stronger. Verification can extend beyond the boundaries of one application. And decentralization remains a direction to build and test rather than a label to attach prematurely.\nBut that is exactly why this journey is interesting.\nIt started with comic panels imagining a world.\nNow we are working on the less spectacular—but perhaps more important—part:\ngivi",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "从漫画到代码：一次一条证据地构建MyZubster",
+        "summary": "MyZubster的RAG系统优先证明什么证据实际支持答案，而不是从检索生成优雅的综合。它区分了观察、记录、检索、验证和生成的内容——防止AI将语义相似性与事实真相混淆，并解决了朴素RAG架构的核心弱点。"
+      }
+    }
+  },
+  {
+    "title": "Two Sisters Tinctures: Building an Apothecary Skincare Tracker with Gemma 4 for My Sister",
+    "slug": "two-sisters-tinctures-skincare-tracker-gemma",
+    "url": "https://dev.to/earlgreyhot1701d/two-sisters-tinctures-building-an-apothecary-skincare-tracker-with-gemma-4-for-my-sister-3lm1",
+    "source": "DEV Community",
+    "date": "2026-10-03T20:25:06.000Z",
+    "summary": "Two Sisters Tinctures is a private skincare shelf tracker where Gemma 4 reads product labels to populate cards, but a deterministic rules file—not the AI—decides application order and compatibility warnings. The design keeps AI focused on fuzzy reading while humans retain control over safety-critical decisions, with data staying private in the browser.",
+    "content": "This is a submission for the Hacktoberfest Weekend Challenge: Build for a Friend\nTL;DR: I built a skincare shelf tracker for my little sister. Gemma 4 reads a product (typed name or pasted ingredients) and fills in the card. The model gets to read the label. It does not get a vote. A plain rules file decides what goes on first, what waits until night, and what should never be layered with what.\nMy little sister is my skincare product whisperer. Every time I need a cleanser, a serum, or a sunscreen, I ask her. She knows what she uses, what works, and what she gave up on, and all of that lives in her head and on her bathroom shelf.\nSo for Build for a Friend, I built her a place to keep it: a private skincare shelf. It helps her keep her own routine straight, and the next time I ask \"what should I get?\", her answer is already on her phone. She can screenshot her shelf and send it to me.\nTwo Sisters Tinctures lets her add a product by typing its name or pasting its ingredient list, keep track of what she owns, see when something has been open too long, and get a morning and night routing, with a warning when two things on her shelf should not be layered. Her shelf lives in her own browser. There is no account.\nI didn't want AI deciding my sister's skincare routine. I wanted it doing the annoying reading.\nSo the design rule became: the model reads, the rules decide. Gemma 4 reads the label and drafts the card. She checks it and taps save. A plain rules file, not the model, decides the order, what waits until night, and the warnings. Nothing lands on her shelf without her confirming it.\nIf I had to say it in one breath:\nI built a private skincare shelf for my sister where AI does the fuzzy reading, but deterministic code makes the decisions. The model cannot silently add something to her shelf, rules don't depend on model improvisation, her data stays in her browser, and I measured where the model fails instead of hiding it.\nThen I handed it to her. What she said is at th",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "两姐妹酊剂：用Gemma 4为我妹妹构建的药店护肤追踪器",
+        "summary": "两姐妹酊剂是一个私人护肤架追踪器，其中Gemma 4读取产品标签来填充卡片，但确定性规则文件——而不是AI——决定应用顺序和兼容性警告。该设计保持AI专注于模糊阅读，而人类保留对安全关键决策的控制，数据在浏览器中保持私密。"
+      }
+    }
+  },
+  {
     "title": "How I Built a Linux Virtual Machine by Hand (and Fixed the 3 Problems That Almost Stopped Me)",
     "slug": "how-i-built-a-linux-virtual-machine-by-hand",
     "url": "https://dev.to/ojor_g/how-i-built-a-linux-virtual-machine-by-hand-and-fixed-the-3-problems-that-almost-stopped-me-5aco",
@@ -384,6 +576,38 @@
     }
   },
   {
+    "title": "Aleph Alpha Kolibri: How the sovereign German LLM works",
+    "slug": "aleph-alpha-kolibri-sovereign-german-llm",
+    "url": "https://tej.as/blog/aleph-alpha-kolibri",
+    "source": "Hacker News",
+    "date": "2026-10-03T10:43:51.000Z",
+    "summary": "Aleph Alpha released Kolibri, a sovereign German language model built for data privacy and regulatory compliance. The release emphasizes German technological independence in the LLM space.",
+    "content": "https://aleph-alpha.com/en/blog/kolibri-has-landed-a-soverei...\nComments URL: https://news.ycombinator.com/item?id=49943034\nPoints: 407\n# Comments: 11",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Aleph Alpha Kolibri: 主权德国大语言模型如何运作",
+        "summary": "Aleph Alpha发布了Kolibri，一个为数据隐私和监管合规性构建的主权德国语言模型。该发布强调了德国在大语言模型领域的技术独立性。"
+      }
+    }
+  },
+  {
+    "title": "Kolibri: A Sovereign Open-Weight Model",
+    "slug": "kolibri-sovereign-open-weight-model",
+    "url": "https://aleph-alpha.com/en/blog/kolibri-has-landed-a-sovereign-open-weight-model/",
+    "source": "Hacker News",
+    "date": "2026-10-03T09:36:04.000Z",
+    "summary": "Kolibri is an open-weight sovereign language model from Aleph Alpha, providing an alternative to US-based LLMs. Its release reflects growing demand for LLMs that comply with European data sovereignty and regulatory requirements.",
+    "content": "https://tej.as/blog/aleph-alpha-kolibri\nComments URL: https://news.ycombinator.com/item?id=49942706\nPoints: 374\n# Comments: 250",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Kolibri: 一个主权开放权重模型",
+        "summary": "Kolibri是来自Aleph Alpha的一个开放权重主权语言模型，为基于美国的大语言模型提供了替代方案。其发布反映了对符合欧洲数据主权和监管要求的大语言模型日益增长的需求。"
+      }
+    }
+  },
+  {
     "title": "How to sync Shopify orders to Notion (2026): 4 options compared",
     "slug": "sync-shopify-orders-notion-four-options",
     "url": "https://dev.to/ginugokz/how-to-sync-shopify-orders-to-notion-2026-4-options-compared-gai",
@@ -588,6 +812,22 @@
       "zh": {
         "title": "超大型智能",
         "summary": "这是一个Hacker News提交的内容，引用了extrabigassintelligence.com上的文章，引发了大量讨论（311点，67条评论）。由于没有完整的文章内容，该主题仍不清楚。"
+      }
+    }
+  },
+  {
+    "title": "Newgrounds.com – A community of games, music, and art",
+    "slug": "newgrounds-community-games-music-art",
+    "url": "https://www.newgrounds.com/",
+    "source": "Hacker News",
+    "date": "2026-10-03T00:55:25.000Z",
+    "summary": "Newgrounds is a long-running community platform for creators to share games, music, and art. It has served as a launching pad for independent creators and remains a cultural artifact of early internet creative communities.",
+    "content": "Article URL: https://www.newgrounds.com/\nComments URL: https://news.ycombinator.com/item?id=49940394\nPoints: 412\n# Comments: 121",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Newgrounds.com – 游戏、音乐和艺术的社区",
+        "summary": "Newgrounds是一个长期运营的社区平台，供创作者分享游戏、音乐和艺术。它已成为独立创作者的跳板，并仍然是早期互联网创意社区的文化遗迹。"
       }
     }
   }
