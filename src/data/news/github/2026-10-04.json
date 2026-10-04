@@ -1,0 +1,226 @@
+[
+  {
+    "title": "AI Meal Planner : Building a Personalized Diet Assistant for my Friend",
+    "slug": "ai-meal-planner-personalized-diet-assistant",
+    "url": "https://dev.to/mr_saifi_e43c05d9038888f9/ai-meal-planner-building-a-personalized-diet-assistant-for-my-friend-d57",
+    "source": "DEV Community",
+    "date": "2026-10-04T04:35:30.000Z",
+    "summary": "A developer built an AI meal planner using open-source Llama 3 to help a friend manage food allergies and fitness goals, automatically generating personalized weekly diet charts. The tool eliminates guesswork in meal preparation by accounting for specific dietary restrictions while maintaining daily calorie targets.",
+    "content": "What I Built\n\n\nI built a personalized AI Meal Planner using open-source weight models to help my friend who struggles with specific food allergies and fitness goals. It automatically generates a weekly healthy diet chart based on user preferences.\nMy friend needed a smart assistant that knows exactly what to avoid due to allergies while keeping up with daily calorie needs. This tool removes all the guesswork from their daily meal prep!\nModel: Llama 3 (Open-source AI model)\nPlatform: Built with Python for quick response generation.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI 餐食规划器：为朋友构建个性化饮食助手",
+        "summary": "一名开发者使用开源 Llama 3 构建了一个 AI 餐食规划器，帮助朋友管理食物过敏症和健身目标，自动生成个性化的每周饮食计划表。该工具通过考虑特定的饮食限制同时保持每日卡路里目标，消除了餐食准备中的猜测。"
+      }
+    }
+  },
+  {
+    "title": "AI agents got email. The first thing they did was file bug reports on each other.",
+    "slug": "ai-agents-email-bug-reports-coordination",
+    "url": "https://dev.to/aipass/ai-agents-got-email-the-first-thing-they-did-was-file-bug-reports-on-each-other-5dad",
+    "source": "DEV Community",
+    "date": "2026-10-04T04:35:11.000Z",
+    "summary": "An open-source multi-agent framework called AIPass discovered that effective inter-agent coordination relies on email and dispatch messaging rather than reasoning capabilities, with agents using structured communication to file bug reports and coordinate across isolated domains. The framework isolates each specialist agent with its own memory and identity, forcing explicit communication protocols.",
+    "content": "AI agents got email. The first thing they did was file bug reports on each other.\nMost multi-agent setups treat agents as isolated workers. Each one gets a task, runs it and returns a result, with no awareness of the others and no way to coordinate.\nAIPass is an open source framework built in public for about seven months: 18 agents, over 21,000 tests, 280+ stars on GitHub. The part that turned out to matter most was not reasoning. It was communication.\nSpecialists in their own directories\nEach agent is a specialist in one domain. The mail agent only thinks about mail. The routing agent only thinks about routing. Each lives in its own directory with its own identity file, its own memory and its own tests. A hook loads that identity at the start of every session, before anything else runs, so no agent starts cold.\nThat created a coordination problem. An agent cannot write files outside its own directory. It is a hard block, not a convention: the write is refused. So an agent that finds a bug in someone else's code cannot just go and fix it.\nSo the agents got email\nThe expectation was that agents would use mail to share data, pass results around, maybe sync state. What the developer saw instead was that the first thing they did was file bug reports against each other. One agent hits a failure in another agent's domain and writes something like: \"your path resolution fails when the branch name has a dot in it, here is the traceback.\" The owner reads it and fixes it, with no human in the middle.\nThere are two ways to send. email drops a letter in the mailbox. dispatch drops the letter and rings the doorbell: it starts the receiving agent and points it at its inbox.\ndrone @ai_mail email @drone \"Bug report\" \"Path fails on dotted names...\"\ndrone @ai_mail dispatch @drone \"Fix needed\" \"Traceback attached...\"\n\nEmail is mail. Dispatch is mail plus a wake.\nReliability came from breaking\nThe mail agent has about 1,460 tests. Nobody sat down and planned 1,460 test cases: it kept",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI 代理收到了电子邮件。它们做的第一件事就是相互提交错误报告。",
+        "summary": "一个名为 AIPass 的开源多代理框架发现，有效的代理间协调依赖于电子邮件和调度消息传递，而不是推理能力，代理使用结构化通信来提交错误报告并在隔离的域中进行协调。该框架使用自己的内存和身份隔离每个专家代理，强制使用显式通信协议。"
+      }
+    }
+  },
+  {
+    "title": "pgvector HNSW Filtering: My RAG Asked for 10 Rows and Got 0",
+    "slug": "pgvector-hnsw-filtering-rag-zero-rows",
+    "url": "https://dev.to/ji_ai/pgvector-hnsw-filtering-my-rag-asked-for-10-rows-and-got-0-3fie",
+    "source": "DEV Community",
+    "date": "2026-10-04T04:35:11.000Z",
+    "summary": "A RAG system returned zero rows for small tenants because pgvector's HNSW index applies WHERE filters after selecting candidates, causing selectivity-based losses when filters match less than LIMIT divided by ef_search rows. Solutions include iterative scans, partial indexes, or detection via logging under-limit retrievals.",
+    "content": "The support ticket was one line long: \"Your assistant says our docs don't mention refunds. We have an entire page called Refunds.\"\nI checked. The page was there. It was chunked, embedded, and sitting in Postgres with the right tenant_id. I ran the exact retrieval query the bot runs, by hand, in psql.\nZero rows.\nNot wrong rows. Not bad rows. Zero, from a query with LIMIT 10, against a tenant with 4,000 chunks. The cause is pgvector HNSW filtering: your WHERE clause runs after the approximate index has already picked its candidates. Small tenants lose that race, and nothing in your logs tells you.\npgvector's HNSW index finds the hnsw.ef_search nearest vectors (default 40) across the whole table first, then Postgres applies your WHERE filter to those 40.\nExpected rows returned ≈ ef_search × selectivity. A filter that matches 2% of rows gives you about 0.8 rows on average, no matter what your LIMIT says.\nAny filter matching less than LIMIT / ef_search of the table (10/40 = 25% for top-10) returns fewer rows than you asked for, on average.\nFix it with iterative index scans (SET hnsw.iterative_scan = strict_order, pgvector 0.8.0+), partial indexes or partitions per tenant, or an exact scan for small filters.\nDetect it by logging every retrieval that returns fewer rows than LIMIT. It's free and it would have caught my bug on day one.\nThis is the most normal RAG query in the world:\nSELECT id, content\nFROM chunks\nWHERE tenant_id = 42\nORDER BY embedding <=> $1   -- cosine distance\nLIMIT 10;\n\nWith an HNSW index on embedding:\nCREATE INDEX ON chunks USING hnsw (embedding vector_cosine_ops);\n\nMy table had about 200,000 chunks. One big tenant owned most of them. Tenant 42 owned 4,000, which is 2%. For the big tenant, retrieval was perfect. For tenant 42, the bot was confidently telling a paying customer their own documentation didn't exist.\nHere's what EXPLAIN ANALYZE showed:\nLimit  (actual rows=0)\n  ->  Index Scan using chunks_embedding_idx on chunks  (actual rows=0)\n        Orde",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "pgvector HNSW 过滤：我的 RAG 要求 10 行但得到 0",
+        "summary": "一个 RAG 系统对小租户返回零行，因为 pgvector 的 HNSW 索引在选择候选项后应用 WHERE 过滤器，当过滤器匹配少于 LIMIT 除以 ef_search 行时导致基于选择性的损失。解决方案包括迭代扫描、部分索引或通过日志检测不足限制的检索。"
+      }
+    }
+  },
+  {
+    "title": "I Tested Crowdwide v1 for 48 Hours. Here Is What Worked, What Broke, and Whether You Should Join.",
+    "slug": "crowdwide-v1-48-hour-review",
+    "url": "https://dev.to/koda2026/i-tested-crowdwide-v1-for-48-hours-here-is-what-worked-what-broke-and-whether-you-should-join-2mf4",
+    "source": "DEV Community",
+    "date": "2026-10-04T04:34:53.000Z",
+    "summary": "A 48-hour test of Crowdwide found it excels at live real-time help with mobile-friendly design and authentic developer questions free of influencer content. Major gaps include poor search results, unreliable Android notifications, and basic code syntax highlighting.",
+    "content": "Most dev communities are graveyards. You post a question, wait three days, get one upvote from a bot, and feel more alone than before. \nSo when @Puneet-Kumar2010 launched Crowdwide, I was skeptical. Another Discord clone? Another forum? \nI decided to put it through its paces. Not as a fanboy, but as a critic. I used it exclusively for two days while debugging KODA’s new UI. \nHere is the verdict. \nThis is the killer feature. \nCompare that to Reddit or Stack Overflow, where you might wait weeks for a moderator to approve your post. Crowdwide is live. The energy is immediate. If you are stuck, someone will help you, because they are also building. \nAs someone who codes on a $150 phone, I hate platforms that require a desktop browser to function properly. \n  Navigation: Bottom bar (thumb-friendly). \n  Input: Large text areas, easy tap targets. \n  Media: Images load progressively without killing data plans. \nIt feels like an app, not a website squeezed into a phone. That is rare. \nThere are no \"influencers\" here. No one is trying to sell you a course. \n  \"My API is returning 500 errors, help?\" \n  \"Is this color palette too harsh?\" \n  \"How do I center this div?\" \nIt is humble. It is helpful. It is refreshing. \nIf you try to find old threads about \"React hooks,\" the search returns irrelevant results or nothing at all. \nFix Needed: Implement Algolia or Meilisearch integration ASAP. \nSometimes, replies don’t trigger push notifications reliably on Android. I missed two critical responses because I didn’t have the tab open. \nFix Needed: Granular notification settings (e.g., \"Notify only on @mentions\"). \nYou can paste code blocks, but syntax highlighting is basic. No copy-button on hover. No language detection. \nFix Needed: Integrate Prism.js or Highlight.js for proper rendering. \nYES, IF:\n  You are a solo founder or student developer who needs real-time feedback. \n  You code primarily on mobile devices. \n  You value speed over polish. \n  You want to build in public with people",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我花了 48 小时测试 Crowdwide v1：什么有效、什么失败，以及你是否应该加入",
+        "summary": "Crowdwide v1 的 48 小时测试发现它在实时帮助、移动友好设计和无网红内容的真实开发者问题方面表现突出。主要不足包括搜索结果差、Android 通知不可靠和代码语法高亮功能基础。"
+      }
+    }
+  },
+  {
+    "title": "The URL in the tag manager is not the URL the browser fired.",
+    "slug": "tag-manager-template-vs-fired-urls",
+    "url": "https://dev.to/aleksuix/the-url-in-the-tag-manager-is-not-the-url-the-browser-fired-95k",
+    "source": "DEV Community",
+    "date": "2026-10-04T04:31:24.000Z",
+    "summary": "Campaign Manager stores templated URLs with macros like [CACHEBUSTER] while Chrome Network shows the actual fired URL with expanded values, but HTTP 200 masks validation errors since both forms can return success. The pixellint tool distinguishes template state from fired state to validate pixel correctness across ad tech vendors.",
+    "content": "The string in Campaign Manager and the string in Chrome Network are not the same artifact. One of them is allowed to contain [CACHEBUSTER]. The other is not. A pixel checker that does not know which one you pasted will fail every legal macro, or it will pass a token that never expanded.\nThat is the whole job of the tester: say what you pasted, then check it against the contract for that state.\nTemplate versus fired URLs is the state model. The playground at pixellint.org is the same engine as pixellint validate, running in the browser. cargo install pixellint and npm install pixellint are the same rule ids again. A finding in the box is the finding CI will print. Pixel not firing is how you get a URL worth pasting. The GTM snippet is not that URL.\nunknown is the default when you did not say. Macro rules stay conservative. They will not assume the token was supposed to expand, and they will not assume it was supposed to remain. You get core URL checks and vendor parameter checks, with less certainty on macros. A first paste in the playground without a state is fine. Leaving production CI on unknown because it feels safer is not. It is vaguer. Teams that leave unknown everywhere either ignore macro findings or argue about them every sprint.\ntemplate means this is what the ad server, the MMP, or the tag manager stores. [NAME], ${NAME}, and {{NAME}} are expected in legal slots. Empty consent fields are unfilled slots. Copying from the Google Ad Manager UI is a template even when it looks like a URL. A Slack message from trafficking with ord=[timestamp] is a template. A Jira attachment of the Floodlight tag as sold is a template. A GTM custom pixel field that still has {{dlv-order-id}} is a template.\nfired means this is what left the device or the server. Chrome Network, Charles, a HAR, an access log, MMP raw data, server-side GTM preview of the outbound request. If you see ord=1724284800123, it has fired. If you see [TIMESTAMP], it has not. If you see both in one URL, o",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "标签管理器中的 URL 与浏览器实际发送的 URL 不同",
+        "summary": "Campaign Manager 存储包含 [CACHEBUSTER] 等宏的模板 URL，而 Chrome Network 显示展开后的实际发送 URL，但 HTTP 200 掩盖了验证错误，因为两种形式都可返回成功。pixellint 工具可区分模板状态和发送状态，用于验证广告技术平台间的像素正确性。"
+      }
+    }
+  },
+  {
+    "title": "Why 'Do It for Future You' Fails When You Have ADHD",
+    "slug": "adhd-future-you-motivation-time-perception",
+    "url": "https://dev.to/revanzart/why-do-it-for-future-you-fails-when-you-have-adhd-2pnp",
+    "source": "DEV Community",
+    "date": "2026-10-04T04:31:05.000Z",
+    "summary": "ADHD impairs time perception research shows \"do it for future you\" fails because the future doesn't feel real enough to motivate action, making the motivation gap a design issue rather than a willpower problem. The intervention relies on vividly simulating future rewards, which ADHD disrupts through altered time estimation and temporal management.",
+    "content": "Why \"Do It for Future You\" Fails When You Have ADHD\n\n\nThe planner lasted eleven days.\nIt was a beautiful planner. Linen cover, dot grid, a column for each day that asked me one simple question: What would future you thank you for today? I wrote that question in the header of every page myself. I believed in it. Future me was going to run a marathon, read forty books, finally have clean email.\nBy day twelve I was avoiding the planner the way you avoid a friend you owe money to. Which is funny, because the whole premise was that I was doing this for myself. You cannot ghost yourself. And yet, somehow, I did.\nIt took me years to understand that the problem was not discipline. The problem was the mechanism. \"Do it for future you\" is a strategy built on two assumptions, and ADHD breaks both of them.\nThe intervention \"do it for future you\" works through a mental trick most people do automatically: you simulate the future vividly enough that it starts to feel real, and that simulated reward pulls you forward. For that to work, your brain has to be able to hold the future at a distance and still assign it weight.\nFor ADHD brains, the future is not far away. It is simply not there.\nMioni and colleagues (2023) reviewed a decade of time perception research in adult ADHD and found the most reliably impaired domains are time estimation, time reproduction, and time management. Not just being late. Something more fundamental: the felt sense of how long things take and when they are coming is unreliable. Ptacek and colleagues (2019) went further, proposing that altered time perception is not a side effect of ADHD but plausibly a core symptom of the adult presentation.\nSo when I ask you to work for future you, I am asking you to be motivated by a person who does not feel real, in a time that does not feel like it is coming. That is not a willpower failure. It is a design failure.\nHere is the part that made me stop blaming myself.\nJackson and MacKillop (2016) ran a meta-analysis of c",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为什么患有 ADHD 时\"为了未来的你\"会失效",
+        "summary": "ADHD 损害时间感知。研究显示\"为了未来的你\"失效是因为未来感受不够真实无法激励行动，将动机缺口转变为设计问题而非意志力问题。这种干预依赖于生动地模拟未来奖励，而 ADHD 通过改变的时间估计和时间管理能力来干扰这一过程。"
+      }
+    }
+  },
+  {
+    "title": "Hash the email. Do not hash the IP. Both mistakes still return 200.",
+    "slug": "meta-conversions-api-email-ip-hashing",
+    "url": "https://dev.to/aleksuix/hash-the-email-do-not-hash-the-ip-both-mistakes-still-return-200-214h",
+    "source": "DEV Community",
+    "date": "2026-10-04T04:30:45.000Z",
+    "summary": "A helper function hashed both email and IP address for Meta's Conversions API, correctly hashing email but illegally hashing IP—yet both mistakes returned HTTP 200 making them invisible. Vendors require specific SHA-256 normalization per field, and hashing the wrong ones creates unmatchable conversion events despite successful HTTP responses.",
+    "content": "A Purchase reaches the Meta Conversions API with a 64-character hex string in every user_data field. Test Events shows the event. Match quality on the live dataset stays poor, and nobody can see which field missed.\nThe helper hashed the email, which Meta requires. It also hashed the IP address and the click cookie, which Meta requires you to leave alone. Both mistakes return HTTP 200.\nVendors match SHA-256 of a specific normalization. Not bcrypt. Not MD5. Not a digest of the display string as the CRM stored it. The 64-character hex is the payload. The algorithm is not a choice. Hashing PII is the split. The field list for Meta lives on the Conversions API pack.\nOn Meta CAPI, user_data.em, ph, fn, ln, ge, db, ct, st, zp, country, and external_id are SHA-256 hex. Lists are the same contract, one digest per value. TikTok Events API hashes context.user.email, phone_number, and external_id. Snap uses the Meta-shaped em and ph fields. Pinterest CAPI hashes em, ph, external_id, and hashed_maids.\nA raw email in those slots is a matching miss and a log leak. A digest of the wrong input is a 64-character string that never joins a person. The collector still returns 200. Pixellint flags a raw address as vendor.meta-conversions-api.body.unhashed_email, and the TikTok, Snap, and Pinterest twins. A value that is not 64 hex characters on a hashed slot fails as user_data.em.invalid and the matching field ids.\nWhat must stay plaintext: client_ip_address and client_user_agent on Meta, Snap, and Pinterest. context.ip and context.user_agent on TikTok. Those are request metadata, not customer information parameters. Hashing them makes the event unmatchable. A helper that maps every string in user_data through SHA-256 will hash them by accident.\nClick ids and cookies are plaintext too. fbc, fbp, fbclid, ttclid, gclid, msclkid, li_fat_id, and twclid are not SHA-256 inputs. If a privacy pass hashed every string, you deleted the strongest identifiers you had. The cookie values are already o",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "散列电子邮件。不要散列IP。两个错误仍然返回200。",
+        "summary": "一个辅助函数为Meta的转换API同时散列了电子邮件和IP地址，电子邮件散列正确但IP散列非法——两个错误都返回HTTP 200，使问题不可见。供应商要求每个字段的特定SHA-256规范化，散列错误的字段会创建不匹配的转换事件，尽管HTTP响应成功。"
+      }
+    }
+  },
+  {
+    "title": "Floodlight still needs src, type, and cat. A leftover ord=1 counts once.",
+    "slug": "floodlight-activity-tags-campaign-manager",
+    "url": "https://dev.to/aleksuix/floodlight-still-needs-src-type-and-cat-a-leftover-ord1-counts-once-237e",
+    "source": "DEV Community",
+    "date": "2026-10-04T04:30:42.000Z",
+    "summary": "Floodlight activity tags use semicolon-delimited parameters (src, type, cat) on doubleclick.net and trafficking the wrong cat silently routes conversions to the wrong activity with no error signal. The cache-busting ord parameter requires unique values per fire; leftover ord=1 from samples collapses multiple events into a single conversion.",
+    "content": "People still search for DART Floodlight tags. DART was DoubleClick's ad server. Campaign Manager 360 still serves the same activity on doubleclick.net. The request returns a GIF. The conversion still lands on the wrong activity, or it lands once.\nFloodlight is not a query string, and it is not a Conversions API with the host changed.\nThe shape is semicolon pairs on the path:\nhttps://ad.doubleclick.net/ddm/activity/src=1234567;type=conv;cat=purch;ord=987654321;qty=1;cost=19.99\n\nsrc is the numeric Floodlight configuration id, the advertiser. type is the activity group tag. cat is the activity tag. Trafficking the wrong cat is a silent wrong conversion, not a 404. The activity you meant never increments. A different activity does. DART Floodlight tags is that identity. The path table is the Floodlight pack.\n$ pixellint validate url @floodlight.txt --rulepack vendor/floodlight\n\nMissing, empty, or illegal values show up as vendor.floodlight.param.src.missing, .type.missing, .cat.missing, and the empty and invalid twins. Staging has to use a staging cat. A QA purchase on the production activity is real revenue in Campaign Manager and a lie in the test plan. Server-to-server Floodlight is a different Campaign Manager feature. If you use it, src, type, and cat still have to name the activity you think they name. There is no second pipe with a different clock. Do not invent an event_id query because a Meta playbook said both sides need one. Dedup for this tag is the counting method on the activity, not a shared UUID with a browser pixel.\nord is required cache busting. A browser or a CDN that sees the same URL will collapse a thousand impressions into one response. A standard counter tag needs a unique ord on every fire. Unique counting is the other method: you send ord=1 together with a random num. vendor.floodlight.counting.unique_requires_ord fires when num is present and ord is not. A leftover ord=1 on a standard counter, copied from a screenshot or a sample tag, collapse",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Floodlight仍然需要src、type和cat。剩余的ord=1计数一次。",
+        "summary": "Floodlight活动标签在doubleclick.net上使用分号分隔的参数（src、type、cat），发送错误的cat会无声地将转换路由到错误的活动，且没有错误信号。缓存破坏ord参数要求每次触发都有唯一值；样本中剩余的ord=1将多个事件折叠为单个转换。"
+      }
+    }
+  },
+  {
+    "title": "Which Programming Language Should You Learn First? (Stop Overthinking It)",
+    "slug": "first-programming-language-choice-guide",
+    "url": "https://dev.to/adhikareeprayush/which-programming-language-should-you-learn-first-stop-overthinking-it-1km8",
+    "source": "DEV Community",
+    "date": "2026-10-04T04:30:14.000Z",
+    "summary": "Programming language choice shouldn't paralyze beginners since fundamental concepts like loops and functions are universal—the decision should depend on what projects you want to build rather than ranking lists. The core problem-solving skills transfer across languages, making the second language significantly faster to learn.",
+    "content": "You asked Reddit. You watched three \"best language in 2026\" videos. You messaged a friend who studies CS. Now you have six different answers, four browser tabs of comparison charts, and zero lines of code written.\nI get it. I lost an embarrassing amount of time on this exact question before I wrote a single real program, and I see the same thing every time new members join our IT club. This post will end the debate for you. It won't declare a winner, because there isn't one. It'll give you a way to choose in about ten minutes.\nHere's what nobody tells beginners: the hard part of programming isn't the language. It's the ideas underneath it. Variables, conditions, loops, functions, and how to break a problem into small steps. Those ideas are the same everywhere.\nLook at the same loop in two different languages.\nPython:\nfor i in range(3):\n    print(\"Hello\", i)\n\nJavaScript:\nfor (let i = 0; i < 3; i++) {\n  console.log(\"Hello\", i);\n}\n\nSame idea, same output, different spelling. Once you truly understand a loop in one language, you understand it in all of them. Your second language will take a fraction of the time your first one did.\nSo the question isn't \"which language is the best?\" It's \"which language will keep me learning and building until the fundamentals click?\"\nSay you want to learn music. Guitar, piano, and drums are all fine choices. What actually matters is what you want to play.\nWant to accompany songs around a campfire? Guitar. Want to compose and understand theory? Piano. Want to drive a band? Drums.\nWhichever you pick, you learn rhythm, timing, and how to practice. Switch to another instrument later and all of that carries over. Nobody who started on piano is stuck on piano forever.\nProgramming languages work the same way. Pick based on what you want to make, learn the universal skills, and move sideways whenever you need to.\nSkip the \"top languages\" lists for a minute and ask a simpler question: what do I want to make?\n\n\n\nIf you want to build...\nGood first",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你应该首先学习哪种编程语言？（停止过度思考）",
+        "summary": "编程语言的选择不应该让初学者困惑，因为循环和函数等基本概念是通用的——决定应该取决于你想构建的项目，而不是排名列表。核心问题解决技能可以跨语言转移，使得第二种语言学起来明显更快。"
+      }
+    }
+  },
+  {
+    "title": "Pixel Helper cannot see a Conversions API POST. A 200 is not the contract.",
+    "slug": "meta-conversions-api-json-validation",
+    "url": "https://dev.to/aleksuix/pixel-helper-cannot-see-a-conversions-api-post-a-200-is-not-the-contract-3521",
+    "source": "DEV Community",
+    "date": "2026-10-04T04:30:12.000Z",
+    "summary": "HTTP 200 from Meta's Conversions API doesn't validate the event payload—Pixel Helper cannot monitor server-side POSTs, and the JSON body must be validated separately for required fields, types, hashing, and vendor enums. A CAPI validator checks the envelope against published specs before relying on Test Events for attribution verification.",
+    "content": "A checkout worker posts a Purchase to the Meta Conversions API. The response is HTTP 200. Test Events stays empty. The next move is usually a new access token.\nThe token is rarely the bug. Pixel Helper cannot see the POST at all. The 200 is liveness. The body is the contract.\nMeta Pixel Helper, TikTok Pixel Helper, and GTM preview watch the browser. Conversion API events are POSTs from your backend, from server-side GTM, or from a queue worker. They do not appear in Chrome Network unless you proxied them through the page. Debugging a server event inside Pixel Helper is how you conclude the server is down when event_time had thirteen digits. A CAPI tester is the check on the JSON you are about to ship. HTTP 200 is not validation is why the status code is the wrong assert. Conversions API not working is the ticket this produces.\nA conversion API validator checks required fields, types, timestamp units, hashed versus raw identifiers, action_source enums, event_source_url when the source is the web, and value plus currency on money events. Each finding has a stable id, a severity, a fix, and a link to the page the vendor published.\nIt does not prove the event attributed. It does not log into Events Manager. It does not mint a click id you never stored. It does not call the Graph API. A pass means the artifact matches the published envelope. Attribution is a later, slower UI. Use Pixel Helper for the browser pipe: event name, eventID, value, whether two base codes fired PageView. Use the validator on the JSON. Use Test Events only after the body already passed, and strip test_event_code before production. That field diverts the event into the test panel. Leaving it on a live POST is how a green QA panel hides a pipe that never trains.\nThe usual first body looks like this. It 200s. It should not ship.\n{\n  \"data\": [{\n    \"event_name\": \"Purchase\",\n    \"event_time\": 1770000000000,\n    \"action_source\": \"website\",\n    \"user_data\": { \"em\": \"buyer@example.com\" }\n  }]\n}\n\nevent_ti",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Pixel Helper 看不到转换 API POST。HTTP 200 不是保证",
+        "summary": "Meta 的转换 API 返回 HTTP 200 并不能验证事件负载——Pixel Helper 无法监控服务器端 POST，必须单独验证 JSON 主体中的必需字段、数据类型、哈希和供应商枚举。在依赖测试事件进行归因验证之前，CAPI 验证器会检查信封是否符合已发布的规范。"
+      }
+    }
+  },
+  {
+    "title": "Pixel Helper said the tag fired. Chrome Network never requested facebook.com/tr.",
+    "slug": "pixel-helper-chrome-network-debugging",
+    "url": "https://dev.to/aleksuix/pixel-helper-said-the-tag-fired-chrome-network-never-requested-facebookcomtr-12mb",
+    "source": "DEV Community",
+    "date": "2026-10-04T04:30:10.000Z",
+    "summary": "GTM preview, Pixel Helper, and Chrome Network observe different objects: the GTM loader proves container script loaded, but collector URLs prove actual conversion firing, and missing collectors indicate blocked requests, missing loaders, or wrong origins for hosted checkouts. Pixel debugging requires filtering by collector host in Network, not the word \"pixel.\"",
+    "content": "GTM preview said the Meta tag fired. Pixel Helper painted a green PageView. Events Manager is empty, and the ticket says the Facebook pixel is not firing.\nThose three tools are not looking at the same object.\nThe GTM loader is googletagmanager.com/gtm.js?id=GTM-XXXX. That request proves a container script was fetched. It is not a conversion. The Meta collector is www.facebook.com/tr. Google Analytics 4 is google-analytics.com/g/collect with v=2 and a tid that starts with G-. TikTok collection is analytics.tiktok.com and ads.tiktok.com. Pinterest is ct.pinterest.com. LinkedIn Insight is px.ads.linkedin.com/collect. Google Ads image conversions sit on googleadservices.com/pagead/conversion. Floodlight is an activity on doubleclick.net, and a filter for the word pixel will miss it.\nA pixel that is not firing means the collector URL is absent, cancelled, blocked by an extension, or never queued. A loader that returns 200 with an empty container is a different bug: a missing container id, an unpublished workspace, or a GTM environment query that selected the wrong container. Pixel not firing is the order of those checks. Chrome Network is where you copy the request. Pixel Helper versus Network is why the extension and the request disagree.\nDo this on the page where the event should exist. Purchase debugging on the homepage is how a thank-you route that never loaded GTM gets filed as a dead pixel. Hosted checkout on Shopify, Stripe Checkout, or Adyen is often a second origin. Your container does not run there unless someone installed it on that host, or the conversion is a server POST.\nPublish the container. Then open a clean profile: no preview cookie, no gtm_debug query, extensions off.\nPreserve the Network log across navigations.\nFilter by the collector host, not by the word pixel.\nIf the loader is missing, the snippet never ran. Theme, single-page route, or Content-Security-Policy.\nIf the loader is present and the collector is missing, the tag did not send: trigger, c",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Pixel Helper 说标签已触发。Chrome 网络中从未请求 facebook.com/tr",
+        "summary": "GTM 预览、Pixel Helper 和 Chrome 网络各自观察到不同的东西：GTM 加载程序证明容器脚本已加载，但收集器 URL 证明实际触发了转换，缺少收集器表示请求被阻止、加载程序缺失或托管结账源错误。调试像素需要在网络中按收集器主机过滤，而不是搜索\"像素\"这个词。"
+      }
+    }
+  },
+  {
+    "title": "Ten hours unattended: what a long job needs to survive alone",
+    "slug": "long-running-unattended-jobs-survival",
+    "url": "https://dev.to/idlecultivation/ten-hours-unattended-what-a-long-job-needs-to-survive-alone-4m29",
+    "source": "DEV Community",
+    "date": "2026-10-04T04:30:05.000Z",
+    "summary": "A 10-hour unattended job must make autonomous decisions with recorded reasoning instead of pausing for human input, and must manage memory leaks from accumulating browser and worker processes. The key insight is accepting that the system should own decisions within fixed criteria rather than halt and create bottlenecks.",
+    "content": "Development covered 5 Aug 2026 to 7 Aug 2026 (commit dates).\nA lot of the work on this project runs overnight with nobody watching. The job plays the game, or edits the book, or sweeps the design documents, for ten hours or so, and in the morning there is a report and a stack of commits. The game tracks dozens of player attributes, and a ten-hour playthrough is the only way to watch them all move.\n\nGetting the work right turned out to be the easy part. Almost everything that went wrong went wrong in the surrounding machinery, and here is the list of it.\nThe first rule and the one with the largest effect. A run that stops to ask whether it should do something has not saved anybody any effort. It has converted eight hours of unattended work into a question waiting on a desk, and the answer arrives too late to be useful.\nSo the job decides. It argues both sides against a fixed set of criteria, picks one, records the reasoning and the alternative it rejected, and continues. If a decision turns out wrong, that is one thing to revisit in the morning instead of ten hours of nothing.\nThe version of this that took longest to accept is that stopping is almost never right. Every case where I wanted a human was a case where an acceptable answer existed and I was reluctant to own it. The book it edits is the companion novel, and a chapter such as the Body Integration act shows the scale of what it keeps consistent.\n\nLong runs leak. The browser they drive grows, the worker processes accumulate, and eventually the machine is swapping and everything takes ten times as long while appearing to still be working.\nThree attempts to bound that, and only the third was right. Measuring total memory across the machine tells you there is a problem and not what to do about it. Measuring per process is worse, because one browser is several processes and the biggest one was not the one I was looking at: most of the growth was in a graphics helper process that never appeared in my accounting at",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "十小时无人值守：长期作业需要什么才能独立运行",
+        "summary": "十小时无人值守的作业必须在固定的标准内做出自主决策并记录推理，而不是暂停等待人工输入，并且必须管理来自积累的浏览器和工作进程的内存泄漏。关键的见解是系统应该在固定的标准内做出决策，而不是暂停并造成瓶颈。"
+      }
+    }
+  },
+  {
+    "title": "Bob Cringely Has Died",
+    "slug": "bob-cringely-mark-stevens-obituary",
+    "url": "https://news.ycombinator.com/item?id=49949438",
+    "source": "Hacker News",
+    "date": "2026-10-04T00:50:52.000Z",
+    "summary": "Bob Cringely, born Mark Stevens, an early Apple employee and creator of the PBS documentary \"Triumph of the Nerds,\" has passed away in his sleep.",
+    "content": "I heard from a friend of the family that Bob passed away in his sleep early Saturday. Very sad news. Bob, who's real name was Mark Stevens, was an early employee of Apple and was best known for his PBS documentaries, especially \"Triumph of the Nerds\". He will be missed.\nComments URL: https://news.ycombinator.com/item?id=49949438\nPoints: 253\n# Comments: 44",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "鲍勃·克林格利已逝世",
+        "summary": "出生于马克·史蒂文斯的鲍勃·克林格利是苹果公司早期员工和PBS纪录片《计算机奇才的胜利》的制作人，已在睡眠中去世。"
+      }
+    }
+  },
+  {
+    "title": "We're going to need default hard budget caps on pretty much everything",
+    "slug": "default-hard-budget-caps",
+    "url": "https://simonwillison.net/2026/Oct/3/default-hard-budget-caps/",
+    "source": "Hacker News",
+    "date": "2026-10-04T00:20:16.000Z",
+    "summary": "An article argues for implementing default hard budget caps on cloud services and AI APIs to prevent runaway costs and financial surprises.",
+    "content": "Article URL: https://simonwillison.net/2026/Oct/3/default-hard-budget-caps/\nComments URL: https://news.ycombinator.com/item?id=49949235\nPoints: 293\n# Comments: 155",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我们需要在几乎所有东西上设置默认的硬预算上限",
+        "summary": "一篇文章主张在云服务和AI API上实施默认的硬预算上限，以防止成本失控和经济意外。"
+      }
+    }
+  }
+]
