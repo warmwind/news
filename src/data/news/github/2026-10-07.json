@@ -1,5 +1,197 @@
 [
   {
+    "title": "Addestrare un mini-LLM da 25M parametri su CPU: anatomia di un GLM “flash” e cosa imparare davvero",
+    "slug": "training-25m-parameter-llm-cpu-architecture",
+    "url": "https://dev.to/frontendfacile/addestrare-un-mini-llm-da-25m-parametri-su-cpu-anatomia-di-un-glm-flash-e-cosa-imparare-davvero-32la",
+    "source": "DEV Community",
+    "date": "2026-10-07T12:42:28.000Z",
+    "summary": "Building small LLMs on consumer hardware teaches core architectural principles without massive infrastructure costs. This article covers tokenization strategies, design choices like hybrid attention and MoE, and how pre-training and post-training combine in a 25M-parameter model. Understanding mini-LLM design illuminates the tradeoffs in modern production systems.",
+    "content": "Dalla tokenizzazione “a byte” alle scelte architetturali (attenzione ibrida, MoE, weight tying): come costruire un modello piccolo ma utile per sperimentare con pre-training e post-training.\nCostruire e addestrare un LLM “da zero” su una macchina comune non è un esercizio nostalgico: è il modo più rapido per capire cosa conta davvero in un sistema moderno, senza dover inseguire miliardi di parametri e infrastrutture costose. Un modello nell’ordine dei 25 milioni di parametri è abbastanza piccolo da iterare velocemente, ma abbastanza grande da rendere evidenti i compromessi architetturali che oggi guidano quasi tutte le scelte industriali.\nL’obiettivo non è replicare un modello frontier: è imparare a progettare esperimenti, leggere segnali di training e capire come si combinano pre-training e post-training (in particolare via reinforcement learning) per ottenere capacità osservabili.\nUn LLM, in forma essenziale, fa una cosa: dato un contesto, stima una distribuzione di probabilità sul prossimo token.\nPipeline concettuale:\nTokenizzazione: testo → sequenza di token ID.\nEmbedding: token ID → vettori (uno per token).\nTransformer layers: i vettori vengono trasformati iterativamente.\nLM head: l’ultimo stato (o gli stati) viene proiettato in una distribuzione su tutto il vocabolario.\nQuesta semplicità è ingannevole: molte decisioni critiche (compute, parametri, memoria, stabilità numerica) derivano proprio dai punti 1 e 4.\nNei modelli reali si usano tokenizer subword (BPE e simili) con vocabolari enormi (centinaia di migliaia di token). Funziona benissimo… finché non lavori con un modello molto piccolo.\nIl motivo è pratico: embedding matrix e output projection scalano con la dimensione del vocabolario.\nEmbedding: vocab_size × hidden_dim\n\nOutput head: hidden_dim × vocab_size\n\n\n\nCon un vocabolario gigantesco, un modello “mini” finisce per sprecare la maggior parte dei parametri solo per convertire token↔vettori, lasciando pochissima capacità ai layer “intelligenti”.\nUna scelt",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在CPU上训练2500万参数的小型LLM：一个\"闪电\"GLM的解剖及真正学到的东西",
+        "summary": "在消费级硬件上构建小型语言模型教会了核心架构原理，无需庞大基础设施投入。本文涵盖分词策略、混合注意力和专家混合等设计选择，以及预训练和后训练如何在2500万参数模型中结合。理解小型语言模型设计阐明了现代生产系统中的权衡。"
+      }
+    }
+  },
+  {
+    "title": "Showing TrailerType from vPIC Without Inventing Tow Ratings",
+    "slug": "showing-trailertype-vpic-without-inventing-tow-ratings",
+    "url": "https://dev.to/vin_lookup_8dbd4710f77e9e/showing-trailertype-from-vpic-without-inventing-tow-ratings-2o37",
+    "source": "DEV Community",
+    "date": "2026-10-07T12:40:37.000Z",
+    "summary": "TrailerType from NHTSA's vPIC API identifies which trailer classification a VIN decode matched, but is often misused to generate fictional tow ratings. The article stresses displaying the field only when provided and refusing to invent vehicle capacity specs from other sources. Properly handling this data prevents misleading users about vehicle capabilities.",
+    "content": "NHTSA vPIC sometimes returns a TrailerType field on DecodeVinValues-style payloads -- catalog tokens for trailer-oriented patterns (boat, utility, fifth-wheel style labels, and similar). That string can help when the VIN actually decodes as a trailer. The trap is turning it into a tow-rating pitch for a truck or SUV decode -- \"tows 10,000 lb,\" \"fifth-wheel ready,\" \"rated for this trailer type\" -- that TrailerType never asserted for the tow vehicle.\nThis post is about honest display: show TrailerType when vPIC provides it, refuse tow inventing, and allow a clean \"not provided\" state when the field is empty. Keep trailer catalog labels separate from vehicle GVWR, drive type, and marketing tow charts.\nTrailerType is a catalog attribute associated with the VIN decode. It answers a narrow question: which trailer-type label did the decode associate with this pattern?\nIt does not answer:\nMaximum tow capacity of a pickup, SUV, or chassis cab\nTongue weight, hitch class, or trailer brake controller requirements\nWhether a truck VIN \"matches\" a trailer VIN for safe pairing\nPayload remaining after passengers and bed load\nLifestyle copy (\"weekend warrior,\" \"ranch ready\") derived from a trailer token\nEmpty TrailerType does not mean \"not a trailer\" in a way that authorizes you to invent hitch ratings on a truck card. It means vPIC did not give you that field. Do not fill the gap from BodyClass folklore or from a static tow table keyed only by Make/Model/Year.\nTreat blank, \"Not Applicable\", \"N/A\", and similar tokens as missing. Do not rewrite a trailer type string into \"7,500 lb tow\" or append hitch class because a brochure listed that combination for a different trim.\nconst EMPTY = new Set([\n  \"\",\n  \"not applicable\",\n  \"n/a\",\n  \"na\",\n  \"null\",\n  \"none\",\n  \"unknown\",\n]);\n\nexport type TrailerTypeView = {\n  label: string | null;\n  source: \"vpic\" | \"missing\";\n};\n\nexport function viewTrailerType(fields: {\n  TrailerType?: string | null;\n}): TrailerTypeView {\n  const raw = (fields.Trailer",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "展示vPIC中的拖车类型而不虚构牵引额定值",
+        "summary": "NHTSA的vPIC API中的拖车类型标识了VIN解码匹配的拖车分类，但经常被滥用来生成虚构的牵引额定值。本文强调仅在提供该字段时才显示它，并拒绝从其他来源虚构车辆规格。正确处理这些数据可防止误导用户关于车辆能力的信息。"
+      }
+    }
+  },
+  {
+    "title": "FreeSWITCH mod_verto: a 2 MiB buffer and a 10 MiB Content-Length",
+    "slug": "freeswitch-mod-verto-buffer-overflow-cve-2026-49841",
+    "url": "https://dev.to/kozhevniko/freeswitch-modverto-a-2-mib-buffer-and-a-10-mib-content-length-4amn",
+    "source": "DEV Community",
+    "date": "2026-10-07T12:40:32.000Z",
+    "summary": "FreeSWITCH mod_verto versions before 1.11.1 contain a critical heap overflow vulnerability (CVE-2026-49841, CVSS 9.8) where a 2 MiB buffer accepts Content-Length headers up to 10 MiB, allowing arbitrary write past allocation bounds. The classic pattern: one function decides allocation size, another decides copy size, with no enforcement of agreement.",
+    "content": "FreeSWITCH mod_verto: a 2 MiB buffer and a 10 MiB Content-Length\n\n\nFreeSWITCH is a software telecom stack that runs on commodity hardware, and its mod_verto module accepts HTTP POST bodies from browsers that use the Verto WebRTC client. In versions before 1.11.1 the module allocates a fixed 2 MiB buffer for a form-encoded POST body but still honours a Content-Length header of just under 10 MiB. The loop that copies the body into the buffer is bounded by the declared length rather than the buffer size, so a request that announces a large body and then delivers it can write past the end of the allocation. That is CVE-2026-49841, published with a CVSS base score of 9.8 and fixed in 1.11.1.\nThe description is specific about the mechanism. mod_verto allocates a fixed 2 MiB buffer for a POST body with the type application/x-www-form-urlencoded, accepts Content-Length up to just under 10 MiB, and bounds the body-read loop by Content-Length. The buffer is roughly five times smaller than the largest length the handler will accept, and the copy does not consult the allocation size. The project shipped the fix in version 1.11.1 and published a GitHub security advisory.\nMost heap overflows in C request handlers come from the same shape: one function decides how much memory to reserve, another function decides how much data to copy, and nothing forces the two numbers to agree. Here the two numbers are a compile-time constant of 2 MiB and a runtime header value the client chooses. Nothing in the code path compares them before the copy begins.\nContent-Length is client-controlled, and a handler that uses it as a loop bound is trusting an attacker-supplied integer. The safe pattern is to reject a request whose declared length exceeds the buffer, or to allocate from the declared length after applying an upper bound.\nA heap overflow in the process that terminates SIP signalling and media is not a small problem. FreeSWITCH handles call routing, authentication for the SIP layer, and the",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "FreeSWITCH mod_verto：2 MiB缓冲区和10 MiB内容长度",
+        "summary": "FreeSWITCH mod_verto 1.11.1版本之前包含一个严重的堆溢出漏洞（CVE-2026-49841，CVSS 9.8），其中2 MiB缓冲区接受高达10 MiB的Content-Length头，允许任意写入超过分配边界。这是经典模式：一个函数决定分配大小，另一个决定复制大小，但没有强制执行一致性。"
+      }
+    }
+  },
+  {
+    "title": "6 things that broke our Polymarket trading bot before it made a dollar",
+    "slug": "6-things-broke-polymarket-trading-bot",
+    "url": "https://dev.to/ekocam/6-things-that-broke-our-polymarket-trading-bot-before-it-made-a-dollar-4efi",
+    "source": "DEV Community",
+    "date": "2026-10-07T12:39:33.000Z",
+    "summary": "Six engineering issues derailed a Polymarket trading bot before profitability: secondsDelay order delays, taker fee curves that eliminate thin edges, on-chain settlement latency, and market-maker withdrawal patterns. The post details each failure from a real arbitrage and market-making pipeline.",
+    "content": "We spent a few weeks trying to build a profitable Polymarket bot. Arbitrage between linked markets, in-play market making, copying wallets that trade before goals, betting against miscalibrated prices. We recorded the full order book for every football market, indexed on-chain trades and replayed each idea.\nNone of them made money. The full research with numbers is on our blog, and the CSVs are on GitHub.\nThis post is the engineering side: six things about the Polymarket API and our own pipeline that would have broken the bot even if a strategy had worked.\nSports markets have a field in the Gamma API called secondsDelay. Football is 1, NBA is 0. You can see it on any event:\nGET https://gamma-api.polymarket.com/events?slug=fif-sri-mri-2026-10-05\n... \"secondsDelay\": 1 ...\n\nPer the Order Lifecycle docs, a marketable order waits out that delay before matching, and \"during either delay, the order is pending and cannot be canceled\". Resting limit orders can still be cancelled. Some crypto and finance up/down markets have a 250 ms version of the same thing.\nWhat it did to us: our arbitrage detector found 369 mispriced sets across linked football markets in 18 hours. Of the 2c+ ones we rechecked one second later, all legs were still in the book in 3, worth $1.83 total. Makers pull their quotes inside your delay, or a faster taker takes the legs. If your bot sees a price and hits it, check secondsDelay first.\nOnly takers pay, and the fee depends on price:\ndef taker_fee(shares: float, price: float, fee_rate: float) -> float:\n    # fee_rate from Gamma feeSchedule.rate, e.g. 0.05 for sports\n    return shares * fee_rate * price * (1 - price)\n\nIt peaks at 0.50 (p * (1 - p) = 0.25) and goes to zero near 0 and 1. A 1c edge on a 50c contract is mostly eaten. Rates and maker rebates are in the fees docs.\nOrders and cancels are off-chain (EIP-712 signatures), only the settlement goes to Polygon. We measured:\n\n\n\nSource\nLag behind matching\n\n\n\n\nOrder book WebSocket\n~17 ms\n\n\nOn-chain sett",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我们Polymarket交易机器人赚钱前崩溃的6个原因",
+        "summary": "六个工程问题导致Polymarket交易机器人在盈利前失败：订单延迟、做市费用曲线消除薄边利润、链上结算延迟和做市商提现模式。该文章详细介绍了真实套利和做市管道中的每个失败。"
+      }
+    }
+  },
+  {
+    "title": "Coles, Woolworths and Aldi prices in one schema: what a weekly snapshot actually captures",
+    "slug": "coles-woolworths-aldi-weekly-price-snapshot-schema",
+    "url": "https://dev.to/yappman/coles-woolworths-and-aldi-prices-in-one-schema-what-a-weekly-snapshot-actually-captures-5004",
+    "source": "DEV Community",
+    "date": "2026-10-07T12:39:25.000Z",
+    "summary": "A weekly scrape of Australian grocery prices from Coles, Woolworths, and Aldi consolidates 25,618 products into one schema using normalized matchKey for cross-retailer joins. Coles' 80-request rate limit constrains each snapshot; the post explains trade-offs between coverage and budget.",
+    "content": "The problem\n\n\nColes, Woolworths and Aldi Australia have three sites, three schemas and no shared product id. We wanted one weekly snapshot of all three in a single row shape, with a key to join rows on. The Australia Supermarket Price Scraper, an Apify Actor, returns exactly that. This post covers what a real weekly snapshot of all three looks like, measured on Wednesday 7 October 2026 (ISO week 2026-W41), and the one hard constraint we hit: Coles.\nColes' and Woolworths' weekly specials start on Wednesday, so the snapshot runs every Wednesday, in five slots from 07:00 UTC. This week it made seven runs, all completed: Coles in 2 runs, Woolworths in 4, Aldi in 1.\n\n\n\nRetailer\nRuns\nProducts\nRequests\nNotes\n\n\n\n\nWoolworths\n4\n16,430 (7,194 + 2,515 + 5,582 + 1,139)\n947\nNo blocks. Store 1101 (the national default) on every run. Everyday Market (third-party marketplace) products excluded\n\n\nAldi\n1\n2,560\n102\nPlain direct connection, no proxy needed\n\n\nColes\n2\n6,628 (3,350 + 3,278)\n81 to 82 per run\nStopped at Coles' request limit, as designed\n\n\n\nThat is 25,618 rows in total.\nEvery row carries matchKey: a normalised brand, name and pack size. It is the recommended way to match the same product across all three retailers.\nRows can also carry ean, the GTIN-13 barcode, validated by its check digit. Woolworths rows carry one on nearly every row. Aldi publishes no barcode anywhere, so Aldi rows carry an empty ean array and join on matchKey. Coles listing rows, which is what the weekly snapshot reads, carry no barcode either; they also join on matchKey.\nColes' bot protection answers about 80 requests per session and then stops. The Actor never evades or rotates around a block. When Coles stops answering, the Actor stops cleanly for Coles and keeps the rows it has already returned.\nSo the question was how much of Coles fits into about 80 requests. Two choices:\nThe snapshot reads listing pages only: 48 products per page, with no per-product barcode request.\nCategories are ordered staples f",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "一个模式中的Coles、Woolworths和Aldi价格：每周快照实际捕获了什么",
+        "summary": "来自Coles、Woolworths和Aldi的澳大利亚杂货价格每周爬取将25,618个产品整合到一个模式中，使用规范化的matchKey进行跨零售商关联。Coles的80请求速率限制约束了每个快照；该文章解释了覆盖范围和预算之间的权衡。"
+      }
+    }
+  },
+  {
+    "title": "How I Built ConvertLinx: 20+ Free Online Tools That Run Entirely in Your Browser",
+    "slug": "convertlinx-20-free-online-browser-tools",
+    "url": "https://dev.to/convertlinx_51edd3049d5d1/how-i-built-convertlinx-20-free-online-tools-that-run-entirely-in-your-browser-17fl",
+    "source": "DEV Community",
+    "date": "2026-10-07T12:39:05.000Z",
+    "summary": "ConvertLinx is a no-signup collection of 20+ browser-based utilities (image resizer, JSON formatter, QR code generator, etc.) that process all data locally and never contact a server. The project addresses the friction and privacy concerns of ad-heavy web tool sites.",
+    "content": "Small online tasks shouldn't need big software.\n\n\nI've personally run into this many times. I just need to compress an image, resize a photo for a form, convert a HEIC file from an iPhone, or generate a quick QR code. Most of the time I end up on a website full of ads, forced signups, or \"free trial\" popups, or I'm told to install an app for a 10-second job.\nAs a developer, I started wondering:\nThat question led me to build ConvertLinx.\nMost free tool websites have the same issues:\nIf you've ever tried to compress one image and ended up closing five popups, you know the pain.\nInstead of building one tool at a time on random domains, I wanted a single place where everyday utilities live together. The goals were simple:\nNo signup\nConvertLinx is a collection of 20+ free tools, grouped by what you actually need:\nImage Compressor, Image Resizer, Image Cropper\nWord Counter, Case Converter, Lorem Ipsum Generator\nJSON Formatter, Base64 Tool, Regex Tester\nQR Code Generator, Password Generator, Unit Converter\nOne of the most-used tools is the Image Converter. Different platforms want different formats: WebP for faster websites, PNG when you need transparency, JPG for universal compatibility. Switching between them shouldn't require Photoshop.\nYou upload an image, pick the output format, and download it. Transparency stays intact where the format supports it, and nothing is sent to a server.\n👉 Try it here: https://convertlinx.com/image-converter\n(Again, I intentionally kept it simple: choose, convert, download.)\nFor most image and text tasks, there's no real reason to upload your file anywhere. Modern browsers are powerful enough to do the work locally. That gives you:\nSpeed: no waiting for upload and download cycles\nPDF work (merge, split, compress, convert) is a different kind of problem, so I keep it in a separate project: PDFLinx. ConvertLinx covers images, text, developer utilities, and everyday tools. PDFLinx handles document workflows. Together they cover most of what",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何构建ConvertLinx：20多个完全在浏览器中运行的免费在线工具",
+        "summary": "ConvertLinx是一个无需注册的20多个基于浏览器的实用工具集合（图像调整器、JSON格式化工具、二维码生成器等），所有数据都在本地处理，从不与服务器通信。该项目解决了广告众多的网站工具所带来的摩擦和隐私问题。"
+      }
+    }
+  },
+  {
+    "title": "The Safety Check That Runs on the Conversation, Not the Turn",
+    "slug": "safety-check-conversation-level-not-turn",
+    "url": "https://dev.to/basavaraj_sh_1ea7d95f0f2e/the-safety-check-that-runs-on-the-conversation-not-the-turn-4573",
+    "source": "DEV Community",
+    "date": "2026-10-07T12:38:48.000Z",
+    "summary": "Per-turn AI safety moderation can miss harmful drift that emerges over a multi-turn conversation—Common Sense Media flagged ChatGPT as risky despite every individual response passing policy checks. The fix is a session-level evaluator that reads conversation arc, adding latency and false-positive surface but catching what stateless filters miss.",
+    "content": "Common Sense Media just called OpenAI's teen-oriented ChatGPT an unacceptable risk for young users - months after it launched with guardrails specifically for that group. A product built to be safe can fail review while every individual response looks fine. That's the key tension for anyone shipping AI.\nAlmost every moderation setup starts the same way: classify each incoming message and each outgoing response against a policy, block or rewrite what fails. It's cheap, fast, stateless, and easy to audit - one input, one verdict, one log line.\nIt also can't see drift. A conversation that gets gradually more personal, more dependent, or more role-play-committed over thirty turns produces thirty individually clean messages. The harm emerges in the trajectory, not the turn. That's the mismatch: some platforms evaluate sessions, while most teams evaluate messages.\nSo the decision is whether to add a session-level evaluator - a second check that reads the conversation so far and judges the arc, not the line. The cost is real: more tokens, added latency, a new false-positive surface where a legitimate long tutoring session gets flagged. The usual rejected alternative - just make the per-turn classifier stricter - is cheaper but trades directly against usefulness, because the only way a stateless filter catches drift is by over-blocking turns that are fine in isolation.\nLook at your eval suite to determine which one you need. If every test case is one prompt and one expected response, you have no visibility into the failure mode reviewers will actually report.\nMulti-turn evals aren't exotic. They're a fixture file:\n- id: escalation-dependency-01\n persona: 15yo, late night, repeat user\n turns: 24 # scripted, gradually more personal\n assert:\n per_turn: no_policy_violation\n per_session:\n - support_resource_offered_by_turn: 8\n - persona_roleplay_persists: false\n - encourages_offline_contact: false\n\nTwo assertion layers, one fixture. The per-turn checks are what you already have.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在对话层面而非轮次层面运行的安全检查",
+        "summary": "基于轮次的AI安全审核可能会错过在多轮对话中逐渐出现的有害偏移——尽管每个单独的回应都通过了政策检查，Common Sense Media仍将ChatGPT标记为风险。解决方案是使用会话级评估器来读取对话轨迹，虽然增加了延迟和误报表面，但能捕获无状态过滤器无法识别的问题。"
+      }
+    }
+  },
+  {
+    "title": "Use mcp-me v0.6.0 to Share One Local AI Profile Across MCP Clients",
+    "slug": "mcp-me-v0-6-0-share-local-ai-profile-mcp-clients",
+    "url": "https://dev.to/paladini/use-mcp-me-v060-to-share-one-local-ai-profile-across-mcp-clients-262l",
+    "source": "DEV Community",
+    "date": "2026-10-07T12:38:11.000Z",
+    "summary": "mcp-me v0.6.0 lets you define a single local AI profile in YAML and share it across MCP clients (Cursor, VS Code, Windsurf, Claude Desktop), eliminating repeated configuration. The tool validates profiles against schema and exposes them via an MCP server.",
+    "content": "TL;DR\n\n\nIf you use more than one MCP-compatible AI client, repeating your background in every tool is tedious and easy to get wrong. mcp-me v0.6.0 gives you one local profile directory, a YAML configuration file, and an MCP server that clients can read.\nThis tutorial creates the profile, validates it, configures the same server for Cursor, VS Code, and Windsurf, and explains where Claude Desktop fits. The setup uses the published mcp-me@0.6.0 package, not an unreleased checkout.\nYou need:\nNode.js 20 or later. The package declares node >=20.0.0 in its release metadata.\nnpm and a terminal.\nOne MCP-compatible client such as Cursor, VS Code with GitHub Copilot, Windsurf, or Claude Desktop.\nThe project is open source under the MIT license. The v0.6.0 release is the stable reference for this walkthrough, and the package manifest records the version and Node.js requirement.\nYou can run the CLI without a global installation through npx. This keeps the example tied to the exact version used in the tutorial.\nnpx --yes mcp-me@0.6.0 init\nnpx --yes mcp-me@0.6.0 validate\n\nWith no directory argument, v0.6.0 uses ~/.mcp-me as the default profile location. The init command creates the YAML templates, .mcp-me.yaml, and agent instruction files. The validate command checks the profile YAML files against the project's schemas.\nThe command output should end with a successful validation message for the profile files. In a clean smoke test, the release created 11 files and validated identity, career, skills, interests, personality, goals, projects, and FAQ data.\nNow inspect the generated configuration:\ncat ~/.mcp-me/.mcp-me.yaml\n\nOn Windows PowerShell, use this equivalent command:\nGet-Content \"$HOME\\.mcp-me\\.mcp-me.yaml\"\n\nThe file separates data generators from live plugins. Start with a small configuration and replace the example values with your own public handles:\ngenerators:\n  github: your-username\n  devto: your-username\n\nplugins:\n  github:\n    enabled: true\n    username: your-username",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用mcp-me v0.6.0在MCP客户端之间共享一个本地AI配置文件",
+        "summary": "mcp-me v0.6.0让你可以在YAML中定义一个本地AI配置文件，并在MCP客户端（Cursor、VS Code、Windsurf、Claude Desktop）之间共享，消除重复配置。该工具验证配置文件是否符合架构，并通过MCP服务器公开它们。"
+      }
+    }
+  },
+  {
+    "title": "Malformed Metrics Query JSON Explained — Rollback-Safe Node.js Monitoring",
+    "slug": "malformed-metrics-query-json-rollback-safe-monitoring",
+    "url": "https://dev.to/kaelvyn47/malformed-metrics-query-json-explained-rollback-safe-nodejs-monitoring-43je",
+    "source": "DEV Community",
+    "date": "2026-10-07T12:37:48.000Z",
+    "summary": "Marketplace monitoring should treat malformed metrics responses as 'unknown' rather than evidence of failure, preserving the last known-good result and only escalating after a bounded duration. The post separates transport, schema, freshness, and domain checks to enable safe rollbacks and prevent parser defects from triggering false incidents.",
+    "content": "A marketplace import watchdog should treat a malformed metrics response as an unknown observation, not as proof that scheduled imports failed. Short answer: in a Node.js alert worker, separate transport, decoding, schema, freshness, and domain checks; preserve the last known-good result; emit a bounded diagnostic reason; and page only when the business signal is valid enough to support the claim. This costs a little detection speed during monitoring-path trouble, but it keeps a parser defect from turning a routine deployment into a false marketplace incident. Rollback stays available because old and new workers can evaluate the same response contract before the new path is allowed to notify.\nJSON.parse answers one narrow question: can these bytes be decoded as JSON? An alert worker has several more questions. Was the HTTP exchange successful? Is the decoded value an object rather than null, an array, or a scalar? Does it contain the expected result collection? Are timestamps finite and recent? Are counts finite, non-negative numbers? A payload can pass decoding and fail every condition that matters to the scheduled-import decision.\nThe distinction changes alert semantics. Suppose the last confirmed import result arrived at 10:00 and the 10:05 metrics query returns an HTML error page. The worker knows that its current observation is unusable. It does not know that imports stopped at 10:00. Those are different claims.\nUnknown is not zero.\nKeep three outcomes in the evaluator: healthy, stalled, and unknown. Only stalled represents a validated business condition. unknown represents an inability to evaluate, and it needs its own operational policy: retry with bounded delay, record a low-cardinality reason, and escalate as a monitoring-path problem only after a separately defined duration. Never coerce missing data to zero. Zero is data.\nFor this marketplace job, the smallest useful observation has an import identity, a result count, and a timestamp. The contract should a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "格式错误的指标查询JSON解释——安全回滚的Node.js监控",
+        "summary": "市场监控应将格式错误的指标响应视为\"未知\"而非失败证据，保留最后已知的良好结果，仅在有限期限后升级。该文章将传输、架构、新鲜度和域检查分开，以实现安全回滚并防止解析器缺陷触发虚假事件。"
+      }
+    }
+  },
+  {
+    "title": "Python Functions Explained: 10 Concepts Every Python Developer Should Know",
+    "slug": "python-functions-10-concepts-every-developer",
+    "url": "https://dev.to/kailas_warade_d2a15d1ef8a/python-functions-explained-10-concepts-every-python-developer-should-know-239d",
+    "source": "DEV Community",
+    "date": "2026-10-07T12:36:54.000Z",
+    "summary": "Python function concepts ranging from parameter vs. argument terminology to *args, keyword arguments, and return values are interview staples and essential for effective code. The article clarifies ten foundational ideas that extend beyond simple def syntax.",
+    "content": "If you are learning Python for Data Analytics, Data Engineering, automation, or backend development, functions are one of the first topics you need to get comfortable with.\nBut in interviews, knowing only this is not enough:\ndef add(a, b):\nYou may be asked what happens when you change the arguments, use \"*args\", pass keyword arguments, use default values, return multiple values, or access variables outside the function.\nHere are 10 Python function concepts worth understanding properly.\nFunction Definition vs Function Call\nA function definition tells Python what the function should do.\ndef calculate_total(price, quantity):\nNothing happens when Python reads the definition.\nThe function runs when you call it:\ntotal = calculate_total(500, 3)\nprint(total)\nOutput:\n1500\nThis distinction sounds basic, but it is a common interview question.\nParameters and Arguments Are Not the Same Thing\nConsider this function:\ndef calculate_total(price, quantity):\nHere, \"price\" and \"quantity\" are parameters.\nWhen we call:\ncalculate_total(500, 3)\n\"500\" and \"3\" are arguments.\nA simple way to remember it:\nParameter → variable written in the function definition\nArgument → actual value passed during the function call\nThis becomes more important when you start working with different types of arguments.\nPositional and Keyword Arguments\nWith positional arguments, Python matches values based on their position.\ndef create_user(name, age):\ncreate_user(\"Rahul\", 28)\nHere:\nname = Rahul\nWith keyword arguments, you explicitly mention the parameter name:\ncreate_user(age=28, name=\"Rahul\")\nThis can make function calls easier to read, especially when a function has several parameters.\nYou can also mix them:\ncreate_user(\"Rahul\", age=28)\nThis is valid because the positional argument comes before the keyword argument.\nDefault Arguments Make Functions More Flexible\nSuppose most users are from India:\ndef create_user(name, country=\"India\"):\nNow you can call:\ncreate_user(\"Rahul\")\nOutput:\nRahul India\nOr override the d",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Python 函数讲解：每个 Python 开发者都应该了解的 10 个概念",
+        "summary": "从参数与论证的术语、*args、关键字参数到返回值等 Python 函数概念是面试常考内容，也是有效编码的必要基础。这篇文章阐明了十个超越简单 def 语法的基础理念。"
+      }
+    }
+  },
+  {
+    "title": "I Built FRIDAY AI (Iron Man) in Pure C++ - Fully Offline, No Python",
+    "slug": "friday-ai-iron-man-pure-cpp-offline-assistant",
+    "url": "https://dev.to/prey_gandhi_516b81cb3df21/i-built-friday-ai-iron-man-in-pure-c-fully-offline-no-python-1933",
+    "source": "DEV Community",
+    "date": "2026-10-07T12:36:09.000Z",
+    "summary": "FRIDAY is a fully offline voice assistant built in C++17 with Win32 SAPI, multithreaded non-blocking speech, and features like battery reporting, weather, and system control—no Python or internet dependency. The article walks through the architecture and the threading trick that prevents speech from blocking user input.",
+    "content": "I built FRIDAY - Iron Man's AI - but fully offline in C++ from Navsari, Gujarat.\nNo Python. No internet needed for core features.\nI was tired of Python assistants that lag and need internet for everything. So I built one that runs 100% on my laptop.\nTech Stack:\nC++17 - Pure, no external dependencies\nWin32 SAPI 5.4 for voice input/output\nMultithreading for non-blocking speech\nWin32 API for system controls\nFeatures I shipped in v14.0:\nBattery percentage voice report - \"Battery at 85 percent\"\nVoice time / date / weather\nOpens YouTube / Google with voice - \"Open YouTube\"\nWikipedia search + maths solver\nSTARK-43 L1-L4 shutdown protocol\nNon-blocking voice - You can interrupt it while it speaks\nThe hardest part - Non-blocking voice:\nSAPI blocks by default. I fixed it with threading and a speech queue.\n\ncpp\n// My non-blocking core\nvoid speakAsync(const std::string& text) {\n    std::thread([text]() {\n        pVoice->Speak(text.c_str(), 0, NULL);\n    }).detach();\n}\n\nwhile (true) {\n    listen();\n    if (command) speakAsync(response);\n}",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我用纯 C++ 构建了 FRIDAY AI（钢铁侠）— 完全离线，无需 Python",
+        "summary": "FRIDAY 是一个完全离线的语音助手，用 C++17 和 Win32 SAPI 构建，具有多线程非阻塞语音，以及电池报告、天气和系统控制等功能——无需 Python 或互联网依赖。这篇文章详细介绍了架构和防止语音阻塞用户输入的多线程技巧。"
+      }
+    }
+  },
+  {
+    "title": "How LoRA Actually Works: Low-Rank Decomposition, Weight Merging, and Memory Breakdown Under the Hood",
+    "slug": "how-lora-works-low-rank-decomposition-memory",
+    "url": "https://dev.to/syed_anzar/how-lora-actually-works-low-rank-decomposition-weight-merging-and-memory-breakdown-under-the-hood-2b18",
+    "source": "DEV Community",
+    "date": "2026-10-07T12:35:30.000Z",
+    "summary": "Full fine-tuning an 8B-parameter language model requires ~128 GB of GPU memory due to gradient, optimizer state, and master weight tracking; LoRA reduces this by ~70% while updating less than 0.1% of parameters and retaining 99% of performance. The post breaks down memory requirements step-by-step and explains why low-rank adaptation enables practical fine-tuning.",
+    "content": "How LoRA Actually Works: Low-Rank Decomposition, Weight Merging, and Memory Breakdown Under the Hood\n\n\nIf you try to full-parameter fine-tune an 8-billion parameter language model in 16-bit precision, your GPU memory requirement immediately explodes past 80 GB.\nThe raw model weights only occupy 16 GB of VRAM ($8 \\times 10^9 \\text{ parameters} \\times 2 \\text{ bytes}$). Yet standard training crashes on a single 80 GB A100 or H100. \nWhere does the missing 64+ GB of VRAM go? And why can Low-Rank Adaptation (LoRA) reduce that memory footprint by over 70% while updating fewer than 0.1% of the parameters and retaining 99% of full fine-tuning performance?\nHere is what actually happens mathematically, mechanically, and in physical GPU memory during LoRA fine-tuning and inference.\nWhen training a neural network with the standard AdamW optimizer, model weights are only a tiny fraction of your memory consumption.\nFor every single trainable parameter, the system must track:\nFP16 / BF16 Model Weights: 2 bytes\nFP16 / BF16 Gradients: 2 bytes\nFP32 Master Weights (for numerical stability): 4 bytes\nFP32 First Momentum ($m_t$): 4 bytes\nFP32 Second Momentum ($v_t$): 4 bytes\n$$\\text{Total Memory per Trainable Parameter} = 2 + 2 + 4 + 4 + 4 = 16 \\text{ bytes}$$\n+-------------------------------------------------------------+\n| Full Parameter Training (16 bytes per parameter)            |\n+-------------------------------------------------------------+\n| Weights: 2B | Grads: 2B | Master: 4B | Mom1: 4B | Mom2: 4B  |\n+-------------------------------------------------------------+\n\nFor an 8B parameter model:\nOptimizer States: $8\\text{B} \\times 12 \\text{ bytes} = 96 \\text{ GB}$\nGradients: $8\\text{B} \\times 2 \\text{ bytes} = 16 \\text{ GB}$\nModel Weights: $8\\text{B} \\times 2 \\text{ bytes} = 16 \\text{ GB}$\nBaseline Total (before activation memory and KV cache): $\\approx 128 \\text{ GB}$\nThis is why full fine-tuning requires multi-GPU distributed clusters (DeepSpeed ZeRO or FSDP).\nLoRA solves this pr",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "LoRA 实际上是如何工作的：低秩分解、权重合并和内存详解",
+        "summary": "完全微调一个 80 亿参数的语言模型需要约 128 GB 的 GPU 内存，这是因为梯度、优化器状态和主权重追踪；LoRA 可将其减少约 70%，同时更新不到 0.1% 的参数并保持 99% 的性能。这篇文章逐步分解了内存需求，并解释了为什么低秩适应使实际微调成为可能。"
+      }
+    }
+  },
+  {
     "title": "CF7 Conditional Logic + API: Send Different Data Based on Field Value",
     "slug": "cf7-conditional-logic-api-send-different-data",
     "url": "https://dev.to/rahul_sharma_15bd129bc69e/cf7-conditional-logic-api-send-different-data-based-on-field-value-3c86",
