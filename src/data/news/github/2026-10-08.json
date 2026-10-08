@@ -1,0 +1,194 @@
+[
+  {
+    "title": "GitHub Actions GITHUB_TOKEN Won't Trigger Workflows: 0 of 11 Releases",
+    "slug": "github-actions-github-token-wont-trigger-workflows",
+    "url": "https://dev.to/ji_ai/github-actions-githubtoken-wont-trigger-workflows-0-of-11-releases-42em",
+    "source": "DEV Community",
+    "date": "2026-10-08T04:46:24.000Z",
+    "summary": "GITHUB_TOKEN doesn't trigger workflows by design—a deliberate guard against infinite loops—causing silent failures when release tags are pushed. The publish workflow never runs, leaving no failed run to debug. Solutions include GitHub App tokens, fine-grained PATs, workflow_dispatch calls, or merging workflows into one job.",
+    "content": "Eleven releases. Eleven green \"Create Release\" runs. Eleven tags sitting on GitHub. And my npm package was still on the version from three weeks earlier.\nThe publish workflow had never run once. No failure, no red X, no email. It simply didn't exist in the Actions tab. My release workflow created tags and releases with the default GITHUB_TOKEN, and GITHUB_TOKEN won't trigger workflows. That's a deliberate rule, not a bug, and it took me an embarrassing amount of time to find it.\nEvents created with the built-in GITHUB_TOKEN (pushes, tags, releases, pull requests, comments) do not start new workflow runs. The two exceptions are workflow_dispatch and repository_dispatch.\nGitHub does this on purpose so a workflow can't trigger itself in an infinite loop.\nThe symptom is silence: no failed run, just a missing one. Bot-opened PRs show required checks stuck on \"Expected — Waiting for status to be reported\".\nFixes: use a GitHub App token, a fine-grained PAT, an explicit workflow_dispatch call, or merge the two workflows into one job.\nIf you switch to a token that does trigger workflows, add a loop guard.\nMy setup looked like what half the internet runs:\n# release.yml\non:\n  push:\n    branches: [main]\n\njobs:\n  release:\n    runs-on: ubuntu-latest\n    permissions:\n      contents: write\n    steps:\n      - uses: actions/checkout@v4\n      - run: |\n          VERSION=$(node -p \"require('./package.json').version\")\n          git tag \"v$VERSION\"\n          git push origin \"v$VERSION\"\n          gh release create \"v$VERSION\" --generate-notes\n        env:\n          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n\n# publish.yml\non:\n  push:\n    tags: ['v*']\n\njobs:\n  publish:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npm publish\n\nThe tag push is real. You can see the tag in the repo. But publish.yml never fires, because the push was authenticated with GITHUB_TOKEN. Same story if publish.yml listened on release: types: [published] instead. The release exists. T",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "GitHub Actions GITHUB_TOKEN 不会触发工作流: 11 个发布中的 0 个",
+        "summary": "GITHUB_TOKEN 设计上不会触发工作流——这是防止无限循环的刻意保护——导致推送版本标签时的无声失败。发布工作流永远不会运行，没有失败的运行可供调试。解决方案包括 GitHub App 令牌、细粒度 PAT、workflow_dispatch 调用或将工作流合并到一个作业中。"
+      }
+    }
+  },
+  {
+    "title": "Validate HTTP requests and responses against OpenAPI at runtime: middleware, proxies, and fail-open vs fail-closed",
+    "slug": "validate-http-requests-responses-against-openapi-runtime",
+    "url": "https://dev.to/jeff_pdc/validate-http-requests-and-responses-against-openapi-at-runtime-middleware-proxies-and-fail-open-3h47",
+    "source": "DEV Community",
+    "date": "2026-10-08T04:46:24.000Z",
+    "summary": "Runtime validation of OpenAPI specs turns documentation into executable guardrails by enforcing contracts at request and response edges. Validation can occur in app middleware for rich field-level errors, at gateways for language-agnostic enforcement, or in CI to catch drift before deploy. These approaches are complementary, with mature setups validating requests in middleware while running response validation in tests.",
+    "content": "If your OpenAPI document is only consumed by a documentation renderer, it is a brochure. The same schema that tells a developer that email must be an email and amount_minor must be an integer can be enforced at the edge, so malformed input never reaches business logic and, just as importantly, so your handlers cannot accidentally return a response that violates the contract you published. Runtime validation turns the spec into an executable guardrail rather than a description. The design decisions are where to run it, what to validate, and what to do when reality and the spec disagree.\n\n\n\nLocation\nExamples\nStrengths\nTrade-offs\n\n\n\n\nApp middleware\nexpress-openapi-validator, OpenAPI validator middleware for Fastify/Koa\nClosest to routes, rich errors, framework-native\nMust be wired per service; language-specific\n\n\nFramework-native routing\nopenapi-backend (routes and validates from the spec)\nSingle source drives routing, validation, and mocks\nMore opinionated structure\n\n\nGateway / proxy\nEnvoy, Kong, or a Prism-style validation proxy\nLanguage-agnostic, covers legacy services, central policy\nHarder to return app-specific errors; latency at the edge\n\n\nBuild-time / tests\nSpectral, contract tests, Prism in CI\nCatches drift before deploy\nCannot reject a live bad request\n\n\n\nThese are complementary, not competing. A common mature setup validates requests in app middleware for precise field-level errors and runs response validation in CI and staging, with the gateway enforcing coarse rules (content type, size, auth) across all services.\nA request validator loads the spec once, compiles the schemas (most use Ajv under the hood), and registers middleware that matches the incoming method and path, then validates headers, path params, query, cookies, and the body against the operation's schema:\nimport express from \"express\";\nimport * as OpenApiValidator from \"express-openapi-validator\";\n\nconst app = express();\napp.use(express.json());\n\napp.use(\n  OpenApiValidator.middleware({\n    api",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在运行时根据 OpenAPI 验证 HTTP 请求和响应: 中间件、代理和 fail-open vs fail-closed",
+        "summary": "OpenAPI 规范的运行时验证通过在请求和响应边缘执行合同来将文档转化为可执行的护栏。验证可以在应用中间件中进行以获得丰富的字段级错误，在网关处进行以实现语言不可知的执行，或在 CI 中进行以在部署前捕获偏差。这些方法是互补的，成熟的设置在中间件中验证请求，同时在测试中运行响应验证。"
+      }
+    }
+  },
+  {
+    "title": "A2A streaming and the task lifecycle: SSE progress updates, artifacts, and push notifications",
+    "slug": "a2a-streaming-task-lifecycle-sse-progress-push-notifications",
+    "url": "https://dev.to/jeff_pdc/a2a-streaming-and-the-task-lifecycle-sse-progress-updates-artifacts-and-push-notifications-102f",
+    "source": "DEV Community",
+    "date": "2026-10-08T04:45:52.000Z",
+    "summary": "The Agent2Agent protocol addresses long-running tasks by implementing a visible state machine with three observation methods: blocking calls, Server-Sent Events for streaming updates, and push notifications for disconnected clients. Tasks emit explicit states and partial artifacts while in progress. The input-required state enables human-in-the-loop workflows where agents pause and resume with new information.",
+    "content": "When an agent takes thirty seconds or five minutes to finish, a plain request/response call is the wrong shape: the connection idles through proxies that time out, the user sees no progress, and a retry cannot tell whether the work already happened. The Agent2Agent (A2A) protocol addresses this by making the unit of work a task with a visible state machine, and by offering three ways to observe it, a blocking call, a streaming call over Server-Sent Events, and push notifications for when the client cannot hold a connection open. The exact method names and fields are versioned in the A2A specification, so pin the release you implement against; the lifecycle and event model described here are the stable core.\nEvery method call creates or resumes a task whose status moves through a small, explicit set of states:\n\n\n\nState\nMeaning\nWhat the client does\n\n\n\n\nsubmitted\nAccepted, work not started\nWait for updates\n\n\nworking\nActively processing\nShow progress, keep listening\n\n\ninput-required\nAgent needs more information (human in the loop)\nPrompt the user, then send another message on the same task\n\n\ncompleted\nTerminal; artifacts are ready\nRead the result\n\n\nfailed\nTerminal; an error explains why\nSurface the error, optionally retry as a new task\n\n\ncanceled\nTerminal; the client or system canceled it\nStop\n\n\nunknown\nState cannot be determined\nPoll or query the task\n\n\n\nTwo states make this more than a job queue. input-required turns the task into a conversation: the agent pauses, the client supplies the missing information, and the same task resumes. working is not a single hop; the agent may emit many status messages and partial artifacts while in it.\nA task carries an id, a contextId that groups a multi-turn exchange, a status (with a timestamp and a message), and artifacts. Artifacts hold the actual output as ordered parts, text parts, file parts, and structured data parts, which lets an agent stream a document chunk by chunk and attach generated files.\nA2A is JSON-RPC 2.0 over HT",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "A2A 流传输和任务生命周期: SSE 进度更新、工件和推送通知",
+        "summary": "Agent2Agent 协议通过实现具有三种观察方法的可见状态机来处理长期运行的任务：阻塞调用、用于流更新的服务器发送事件和用于断开连接客户端的推送通知。任务在进行中时发出显式状态和部分工件。input-required 状态启用人工循环工作流，其中代理暂停并使用新信息恢复。"
+      }
+    }
+  },
+  {
+    "title": "week -7 Task-1 : Node.js Under the Hood: Architecture, Modules, Streams, Buffers & Process",
+    "slug": "nodejs-under-the-hood-architecture-modules-streams-buffers",
+    "url": "https://dev.to/koushikmaya/week-7-task-1-nodejs-under-the-hood-architecture-modules-streams-buffers-process-57a7",
+    "source": "DEV Community",
+    "date": "2026-10-08T04:45:39.000Z",
+    "summary": "Node.js combines V8 (JavaScript execution), Node.js APIs (fs, http, events), and libuv (asynchronous I/O and event loop) working with the operating system to enable backend development. These layers interact together rather than as separate concepts. Understanding this architecture explains why Node.js is particularly effective for I/O-heavy server applications beyond simply running JavaScript outside the browser.",
+    "content": "When I first started learning Node.js, I mostly thought of it as:\n\"JavaScript running outside the browser.\"\nThat is technically true, but it doesn't really explain why Node.js is so useful, especially for backend development.\nAs I went deeper, I came across things like libuv, the event loop, streams, buffers, the process object, and core modules. At first, these sounded like separate complicated topics.\nBut they actually fit together pretty well.\nThis blog is my attempt to understand Node.js as a story rather than a list of definitions.\nLet's start with the big picture.\nWhen we run:\nnode app.js\n\nNode.js doesn't simply take our JavaScript code and execute everything one line at a time.\nThere are several important pieces working together:\nJavaScript Code\n      |\n      v\n   V8 Engine\n      |\n      v\n Node.js APIs\n      |\n      v\n    libuv\n      |\n      v\nOperating System\n\nThe important players are:\nV8 → executes JavaScript\nNode.js APIs → provide things like fs, http, events, etc.\nlibuv → handles asynchronous operations and the event loop\nOperating System → actually performs many low-level operations\nSo Node.js is more than just V8.\nV8 is the JavaScript engine originally created by Google for Chrome.\nNode.js uses V8 to execute JavaScript.\nFor example:\nconst name = \"Koushik\";\n\nconsole.log(`Hello ${name}`);\n\nV8 is responsible for understanding and executing this JavaScript.\nBut there is a problem.\nJavaScript itself doesn't know how to:\nread files from your computer\ncreate HTTP servers\ncommunicate with the operating system\nwork with sockets\naccess environment variables\nThat's where Node.js comes in.\nNode.js provides additional APIs around V8.\nThis was one of the concepts that confused me initially.\nlibuv is a library used by Node.js to provide asynchronous I/O and the event loop.\nIn simple words:\nlibuv helps Node.js deal with things that may take time without blocking JavaScript execution.\nFor example:\nconst fs = require(\"node:fs\");\n\nfs.readFile(\"data.txt\", \"utf8\", (err, d",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "第 -7 周 Task-1：Node.js 底层揭秘：架构、模块、流、缓冲区与进程",
+        "summary": "Node.js 结合了 V8（JavaScript 执行）、Node.js API（fs、http、events）和 libuv（异步 I/O 和事件循环）与操作系统协同工作以实现后端开发。这些层相互交互而非独立概念。理解这个架构解释了为什么 Node.js 对于 I/O 密集型服务器应用特别有效，超越了仅在浏览器外运行 JavaScript。"
+      }
+    }
+  },
+  {
+    "title": "Multiple security schemes in OpenAPI: AND vs OR, optional auth, and per-operation overrides",
+    "slug": "multiple-security-schemes-openapi-and-vs-or-optional-auth",
+    "url": "https://dev.to/jeff_pdc/multiple-security-schemes-in-openapi-and-vs-or-optional-auth-and-per-operation-overrides-1m3b",
+    "source": "DEV Community",
+    "date": "2026-10-08T04:45:19.000Z",
+    "summary": "The security keyword in OpenAPI is an array of alternatives where each alternative is a set of required schemes; the distinction between outer-array (OR) and inner-object (AND) logic determines whether endpoints require one or multiple factors. A single requirement object with both API key and OAuth means callers must provide both; multiple requirement objects mean either suffices. Missing this distinction leaves endpoints under-protected or forces unwanted credentials.",
+    "content": "The security keyword is small and surprisingly easy to invert. It is an array of alternatives, where each alternative is itself a set of schemes that must all be satisfied. Miss the distinction between the outer array and the inner object and you either leave a sensitive endpoint protected by a single factor when you required two, or force credentials on an endpoint that was meant to be public. Once you read security as an OR of ANDs, every multi-auth design falls into place.\nsecurity:\n  - A\n  - B\n\nmeans \"A or B,\" either scheme is sufficient.\nsecurity:\n  - [A, B]\n\nwritten as one requirement object containing both, means \"A and B,\" the caller must satisfy both. In YAML the inner object is a map listing the required schemes and their scopes:\nsecurity:\n  - apiKeyAuth: []\n    oauth2: [read:orders]\n\nThis single array element containing two schemes requires the caller to send both the API key and the OAuth token. To express \"either an API key or OAuth,\" use two array elements:\nsecurity:\n  - apiKeyAuth: []\n  - oauth2: [read:orders]\n\n\n\n\nGoal\nShape\n\n\n\n\nAny one of several login methods (API key or bearer or OAuth)\nMultiple requirement objects, one scheme each\n\n\nTwo factors together (API key and bearer)\nOne requirement object listing both\n\n\nOAuth with scopes\nOne object, scopes in the array\n\n\nPublic, no auth\nAn empty requirement object security: []\n\n\n\n\nSchemes are declared under components.securitySchemes; the security keyword only references them:\ncomponents:\n  securitySchemes:\n    apiKeyAuth:\n      type: apiKey\n      in: header\n      name: X-API-Key\n    bearerAuth:\n      type: http\n      scheme: bearer\n      bearerFormat: JWT\n    oauth2:\n      type: oauth2\n      flows:\n        authorizationCode:\n          authorizationUrl: https://auth.example.com/authorize\n          tokenUrl: https://auth.example.com/token\n          scopes:\n            'read:orders': Read orders\n            'write:orders': Create or modify orders\n    partnerSignature:\n      type: apiKey\n      in: header",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "OpenAPI 中的多个安全方案：AND vs OR、可选身份验证和按操作覆盖",
+        "summary": "OpenAPI 中的 security 关键字是一个替代方案数组，其中每个替代方案是一组必需的方案；外部数组（OR）和内部对象（AND）逻辑之间的区别决定了端点是否需要一个或多个因素。单个要求对象同时包含 API 密钥和 OAuth 意味着调用者必须两者都提供；多个要求对象意味着任一都可以。忽视这一区别会导致端点保护不足或强制要求不必要的凭证。"
+      }
+    }
+  },
+  {
+    "title": "Health checks for APIs: /healthz, /readyz, /livez, version, and metrics in OpenAPI",
+    "slug": "health-checks-for-apis-healthz-readyz-livez-version-metrics",
+    "url": "https://dev.to/jeff_pdc/health-checks-for-apis-healthz-readyz-livez-version-and-metrics-in-openapi-4m87",
+    "source": "DEV Community",
+    "date": "2026-10-08T04:44:47.000Z",
+    "summary": "Liveness, readiness, and startup health checks answer different operational questions, and conflating them causes cascading restarts and wasted traffic; Kubernetes kills containers that fail liveness probes. Liveness should only verify the process isn't wedged, readiness should check dependencies required for requests, and startup should protect slow-booting applications. A mature setup uses /livez, /readyz, and /startz conventions with simple, fast responses.",
+    "content": "A single /health endpoint that checks the database, the cache, and three downstream services, and returns 500 if any of them is briefly unreachable, is actively harmful. Kubernetes interprets a failed liveness probe as \"this process is dead,\" kills the container, and starts a new one, which then hammers the same struggling dependency and makes the outage worse. The probe answered the wrong question. Operational health is at least three separate questions, and conflating them causes both cascading restarts and traffic sent to instances that cannot handle it.\n\n\n\nProbe\nQuestion it asks\nFailure action\nShould check dependencies?\n\n\n\n\nLiveness (/livez)\nIs the process alive and not wedged?\nRestart the container\nNo\n\n\nReadiness (/readyz)\nCan this instance serve a request right now?\nStop sending traffic, keep the pod\nYes, the ones needed for the next request\n\n\nStartup (/startz or startup probe)\nHas slow initialization finished?\nRestart only if it never starts\nWarm-up state\n\n\n\nLiveness should be nearly impossible to fail except a true deadlock: if the HTTP server itself can answer, liveness is usually fine. Putting dependency checks in liveness turns a downstream blip into a restart storm. Readiness is where the database and cache belong; an instance that cannot reach its data store reports not-ready and is pulled from the load balancer without being killed, then returns to readiness when the dependency recovers. Startup probes protect slow-booting JVMs and migration runners so the other two probes do not fire before the app is ready.\nKeep the responses simple, fast, and machine-readable. A widely used convention (popularized by Kubernetes itself) is the z suffix:\nGET /livez   -> 200 OK\nGET /readyz  -> 200 OK | 503 Service Unavailable\nGET /startz  -> 200 OK | 503\n\nA healthy response can be a plain ok; a failed readiness response lists the failing components without leaking internals:\n{\n  \"status\": \"unavailable\",\n  \"checks\": {\n    \"database\": \"ok\",\n    \"cache\": \"unavailable\",",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "API 的健康检查：OpenAPI 中的 /healthz、/readyz、/livez、版本和指标",
+        "summary": "活跃性、就绪性和启动健康检查回答不同的操作问题，混淆它们会导致级联重启和流量浪费；Kubernetes 杀死未通过活跃性探针的容器。活跃性应仅验证进程未卡滞，就绪性应检查请求所需的依赖项，启动应保护启动缓慢的应用程序。成熟的设置使用 /livez、/readyz 和 /startz 约定，提供简单、快速的响应。"
+      }
+    }
+  },
+  {
+    "title": "OpenAPI docs renderers compared: Swagger UI, Redoc, Scalar, Stoplight Elements, and RapiDoc on one spec",
+    "slug": "openapi-docs-renderers-compared-swagger-ui-redoc-scalar",
+    "url": "https://dev.to/jeff_pdc/openapi-docs-renderers-compared-swagger-ui-redoc-scalar-stoplight-elements-and-rapidoc-on-one-f23",
+    "source": "DEV Community",
+    "date": "2026-10-08T04:44:15.000Z",
+    "summary": "Five mainstream OpenAPI documentation renderers optimize for different use cases: Swagger UI for interactive try-it, Redoc for long-form reading, Scalar for modern product-like UI, Stoplight Elements for embeddable components, and RapiDoc for self-hosting with minimal tooling. Feature support varies significantly across webhooks, polymorphism, OAuth integration, and theming. Choosing based on priorities improves the developer experience of API documentation.",
+    "content": "Choosing an API documentation renderer is usually an accident: someone drops in the tool they used five years ago and the team lives with it. But the renderer is the part of your spec developers actually touch, and the five mainstream options optimize for different things, an interactive console, a long-form reference, a modern product surface, a lightweight embeddable widget. We ran one realistic OpenAPI 3.1 document (polymorphic oneOf, webhooks and callbacks, bearer and OAuth security, file uploads, and a large component library) through each and compared what matters. Verify exact bundle sizes and feature flags against the current release; these projects ship frequently and the shape of the comparison is more durable than any single version number.\n\n\n\nRenderer\nOrientation\nDelivery\nBest at\n\n\n\n\nSwagger UI\nInteractive console\nJS/CSS bundle or Docker\nThe default, ubiquitous try-it experience\n\n\nRedoc\nLong-form reference\nReact component or standalone\nReading a large spec like polished docs\n\n\nScalar\nModern product docs\nComponent, API client, hosted\nClean UI, strong OpenAPI 3.1 and AI-era features\n\n\nStoplight Elements\nEmbeddable components\nWeb components\nFitting reference docs into an existing site\n\n\nRapiDoc\nCustomizable single file\nWeb component, one script tag\nSelf-hosting with near-zero build tooling\n\n\n\n\n\n\nCapability\nSwagger UI\nRedoc\nScalar\nElements\nRapiDoc\n\n\n\n\nInteractive \"try it\" requests\nYes\nLimited/paid in some setups\nYes, polished\nYes\nYes\n\n\nOpenAPI 3.1 support\nPartial; 3.1 support has lagged\nVia 3.1-capable builds\nStrong, a focus area\nGood\nGood\n\n\nCode sample generation\nBuilt-in + plugins\nVia extensions\nBuilt-in, multiple languages\nBuilt-in\nBuilt-in\n\n\nWebhooks / callbacks rendering\nBasic\nGood\nGood\nGood\nBasic\n\n\nPolymorphism (oneOf/discriminator)\nFunctional, plain\nVery readable\nGood\nGood\nFunctional\n\n\nMultiple servers / env picker\nYes\nVia extension\nYes\nYes\nYes\n\n\nOAuth / API-key auth in try-it\nYes\nRead-only mostly\nYes\nYes\nYes\n\n\nTheming / branding\nCSS overrides, dated",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "比较 OpenAPI 文档渲染器：Swagger UI、Redoc、Scalar、Stoplight Elements 和 RapiDoc",
+        "summary": "五个主流的 OpenAPI 文档渲染器针对不同的使用场景进行了优化：Swagger UI 用于交互式试用、Redoc 用于长篇阅读、Scalar 用于现代化的产品级用户界面、Stoplight Elements 用于可嵌入的组件、RapiDoc 用于自托管且工具最少。功能支持在 Webhook、多态性、OAuth 集成和主题方面差异很大。根据优先级选择可以改进 API 文档的开发者体验。"
+      }
+    }
+  },
+  {
+    "title": "Kafka Interview Prep (Part 2) — When Things Break in Production",
+    "slug": "kafka-interview-prep-part-2-when-things-break-production",
+    "url": "https://dev.to/tejaswipandava/kafka-interview-prep-part-2-when-things-break-in-production-2ljf",
+    "source": "DEV Community",
+    "date": "2026-10-08T04:44:00.000Z",
+    "summary": "The article covers production scenarios and interview questions for Kafka, illustrating why Kafka fits specific high-throughput event problems like real-time delivery tracking. Real-world patterns involve stream processing (validation, deduplication, enrichment) feeding into fast storage like Redis. Understanding the 'why' behind architectural choices—decoupling write paths, enabling independent consumption, handling failures—is more valuable than stating generic use cases.",
+    "content": "This is Part 2 of a two-part Kafka prep sheet. Part 1 covered the fundamentals — partitions,\nreal-world design reasoning and what happens when production breaks.\n📎 Haven't read Part 1 yet? Start there first → Kafka Interview Prep Part 1 — Know Your\n. Everything below assumes you already know partitions, keys, ISR, and the\nA great illustration of why Kafka fits a problem, not just that it's used. The question\n📍 Delivery Partner App\n   (sends lat, long, timestamp, order_id every few seconds)\n        │\n        ▼\n⚡ Kafka topic: \"location-updates\"\n   (high-throughput event streaming, millions of events reliably)\n        │\n        ▼\n🔄 Stream Processing (consumer services)\n   - validate incoming locations\n   - filter invalid/duplicate updates\n   - enrich with additional data (e.g., ETA, route info)\n   - execute business logic\n        │\n        ▼\n⚡ Fast Storage: Redis\n   (only the latest location per order/rider — extremely fast reads)\n        │\n        ▼\n📱 Customer App\n   (polls or subscribes to the latest location, updates the map in real time)\n\nInterviewers rarely want to hear \"Kafka is used for live tracking.\" They want to hear why it\n. The strong answers to the questions they're actually probing for:\nQ: Why stream events instead of making synchronous API calls?\nat that instant,\nevery single ping. That couples the rider app's write path to the uptime and latency of every\nQ: Why introduce a message broker at all?\nall of them consume the same event stream independently,\nQ: How are events processed after Kafka?\nvalidation → dedup → enrichment → business\n pipeline — e.g., reject GPS coordinates that are physically impossible (rider \"teleporting\"\nQ: Why use Redis for live location storage, not the primary DB?\n\"give me the single latest location for this order,\" read\n A relational DB\norder_id → {lat, long, timestamp}) gives sub-millisecond reads/writes with none of the overhead\nQ: How does the customer finally see the moving rider?\npolls the latest-location endpoint (back",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Kafka 面试准备（第二部分）——生产环境中出现问题时",
+        "summary": "该文章涵盖了 Kafka 的生产场景和面试问题，说明了为什么 Kafka 适合特定的高吞吐量事件问题，如实时配送跟踪。现实世界的模式涉及流处理（验证、去重、丰富）流向快速存储（如 Redis）。理解架构选择背后的\"原因\"——解耦写入路径、启用独立消费、处理故障——比阐述通用用例更有价值。"
+      }
+    }
+  },
+  {
+    "title": "Enforce an API style guide in CI with Spectral: custom rules that stop bad OpenAPI before it merges",
+    "slug": "enforce-api-style-guide-ci-spectral-custom-rules",
+    "url": "https://dev.to/jeff_pdc/enforce-an-api-style-guide-in-ci-with-spectral-custom-rules-that-stop-bad-openapi-before-it-merges-58da",
+    "source": "DEV Community",
+    "date": "2026-10-08T04:43:43.000Z",
+    "summary": "Spectral turns API style guides into machine-readable rules that fail pull requests, encoding team conventions once and enforcing them consistently. Rules can extend OpenAPI's built-in recommendations and define custom patterns like operationId casing and required fields. Splitting rules into error (hard contracts) and warning (conventions under rollout) allows gradual adoption without blocking PRs.",
+    "content": "Every API program starts with a style guide document, and most end with it unread in a wiki while specs quietly grow duplicate operationIds, 200 responses with no body, GET requests that take secrets in the query string, and a dozen subtly different error shapes. Linting turns the guide into something that actually runs: a machine-readable ruleset that fails the pull request. Spectral is the standard OpenAPI linter for exactly this job, and the value is not its built-in rules, it is encoding your team's conventions once and enforcing them forever.\nSpectral takes a ruleset file (YAML or JS) and lints one or more documents:\nnpm install --save-dev @stoplight/spectral-cli\nnpx spectral lint openapi/openapi.yaml --ruleset openapi/.spectral.yaml\n\nA minimal CI step fails the build on errors while letting warnings pass:\n# .github/workflows/openapi-lint.yml (excerpt)\n- name: Lint OpenAPI\n  run: npx spectral lint openapi/openapi.yaml --ruleset openapi/.spectral.yaml --fail-severity=error\n\n--fail-severity=error is the key split: conventions you are still rolling out are warn and do not block, while hard contracts are error and do. Add the same command to a pre-commit hook so authors get feedback before they open the PR.\nStart by extending the OpenAPI recommended rules, then turn the style guide into explicit rules:\n# openapi/.spectral.yaml\nextends:\n  - spectral:oas\nrules:\n  # ---- Documentation completeness (warnings during rollout) ----\n  operation-operationId: error\n  operation-summary: warn\n  operation-description: warn\n  info-contact: error\n  info-description: error\n\n  # ---- operationId conventions ----\n  operation-id-camel-case:\n    message: operationId must be lowerCamelCase and verb-first.\n    severity: error\n    given: $.paths[*][*]\n    then:\n      field: operationId\n      function: pattern\n      functionOptions:\n        match: '^(list|get|create|update|patch|delete|archive|cancel|approve|export)[A-Z][A-Za-z0-9]*$'\n\n  operation-id-unique:\n    message: operationId must",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在 CI 中使用 Spectral 强制执行 API 风格指南：在合并前阻止不良 OpenAPI 的自定义规则",
+        "summary": "Spectral 将 API 风格指南转换为机器可读的规则来使拉取请求失败，一次性编码团队约定并持续执行。规则可以扩展 OpenAPI 的内置建议并定义自定义模式，如 operationId 的大小写和必需字段。将规则分为错误（硬合约）和警告（正在推出的约定）允许逐步采用而不阻止 PR。"
+      }
+    }
+  },
+  {
+    "title": "I let an AI agent drive my remote desktop. It can't touch my passwords.",
+    "slug": "ai-agent-remote-desktop-passwords-security",
+    "url": "https://dev.to/derajkumar_s_694ae6b8f55/i-let-an-ai-agent-drive-my-remote-desktop-it-cant-touch-my-passwords-44j4",
+    "source": "DEV Community",
+    "date": "2026-10-08T04:43:18.000Z",
+    "summary": "Allowing AI agents to control remote desktops requires careful credential isolation through sandboxing, such as giving agents a short lease on a throwaway VM that blocks at credential prompts. Remote desktop tools like DeskVNC support split view and multiple protocol backends (VNC and RDP). The core security principle is that agents should not have access to sensitive authentication material.",
+    "content": "It's 11 PM. Three servers need the same patch, and I'm alt-tabbing between four remote windows. Two are RDP, two are VNC.\n- Library and groups for every host\n- Split view for multiple sessions in one window\n- VNC and RDP in the same client\n- Native app, so there's no server to configure\nTry it\n- 1. Download the installer: v0.27.9\n- 2. Add a host to the library and connect\n- 3. Open a second host and try split view\n- Give an agent a short lease on a throwaway VM and watch it stop at a credential prompt\nDeskVNC Install:",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我让一个AI代理驾驶我的远程桌面。它无法接触我的密码。",
+        "summary": "允许AI代理控制远程桌面需要通过沙箱化进行仔细的凭证隔离，例如在一次性虚拟机上为代理授予短期的访问权限并在凭证提示处阻止。DeskVNC等远程桌面工具支持分割视图和多种协议后端（VNC和RDP）。核心安全原则是代理不应该访问敏感的身份验证材料。"
+      }
+    }
+  },
+  {
+    "title": "OpenAPI servers and server variables: local, staging, production, regions, and per-tenant hosts from one spec",
+    "slug": "openapi-servers-server-variables-local-staging-production",
+    "url": "https://dev.to/jeff_pdc/openapi-servers-and-server-variables-local-staging-production-regions-and-per-tenant-hosts-43dj",
+    "source": "DEV Community",
+    "date": "2026-10-08T04:43:10.000Z",
+    "summary": "The servers array in OpenAPI 3.0+ lets a single document describe multiple environments (local, staging, production) and regions without forking the spec; operation paths resolve relative to the selected server URL. Server variables with enums generate dropdown pickers in generated clients and documentation renderers. This pattern keeps frontend developers, CI, docs renderers, and multi-region customers aligned on correct base URLs.",
+    "content": "A spec with a single hard-coded production URL is awkward for everyone. The frontend dev wants to point generated calls at a local mock, CI wants staging, the docs \"Try it\" panel needs a reachable host, and multi-region customers each hit a different subdomain. The servers array exists precisely so one document describes all of these without forking the spec. Get it slightly wrong, and every path gains a doubled prefix or a missing slash.\nservers replaces the OpenAPI 2.0 host, basePath, and schemes fields with a list of base URLs. Every operation path is resolved relative to the chosen server:\nopenapi: 3.1.0\nservers:\n  - url: https://api.example.com/v1\n    description: Production\n  - url: https://api.staging.example.com/v1\n    description: Staging\n  - url: http://localhost:4010/v1\n    description: Local mock\npaths:\n  /users:\n    get: ...\n\nA client or docs renderer resolves GET /users against the selected entry, giving https://api.example.com/v1/users in production and http://localhost:4010/v1/users against the mock. Put production first when the tool defaults to the first entry, but always include the local mock so generated clients and mock servers agree on the shape of the URL.\nWhen the host varies by a bounded set of values, template it with a variable and enumerate the options. Clients and renderers turn this into a dropdown:\nservers:\n  - url: https://{region}.api.example.com/v1\n    description: Regional endpoint (pick the region closest to your data residency).\n    variables:\n      region:\n        enum: [us-east, eu-west, ap-northeast]\n        default: us-east\n        description: AWS region hosting the endpoint.\n  - url: https://{tenant}.example.com/v1\n    description: Per-tenant vanity host.\n    variables:\n      tenant:\n        default: acme\n        description: Your organization slug.\n\nUse a variable with an enum when the set is known and small (regions, environments). Use a free-text variable (no enum, just a default) only for values only the customer knows",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "OpenAPI服务器和服务器变量：从一个规范中使用本地、测试、生产、区域和按租户主机",
+        "summary": "OpenAPI 3.0+中的servers数组允许单个文档描述多个环境（本地、测试、生产）和区域，而无需分叉规范；操作路径相对于所选服务器URL进行解析。带有枚举的服务器变量在生成的客户端和文档渲染器中生成下拉菜单选择器。这种模式使前端开发人员、CI、文档渲染器和多区域客户保持在正确的基础URL上的一致性。"
+      }
+    }
+  },
+  {
+    "title": "operationId and tags in OpenAPI: naming conventions that keep generated SDKs and docs usable",
+    "slug": "operationid-tags-openapi-naming-conventions-sdks-docs",
+    "url": "https://dev.to/jeff_pdc/operationid-and-tags-in-openapi-naming-conventions-that-keep-generated-sdks-and-docs-usable-2hpp",
+    "source": "DEV Community",
+    "date": "2026-10-08T04:42:39.000Z",
+    "summary": "operationId and tags are the public naming API of a service; poor naming makes generated SDKs undiscoverable and requires renaming as breaking changes for downstream code. operationId should be verb-first, resource-oriented, lowercase camelCase, unique, and specific enough to be unambiguous without the path. Tags should group related operations into sections for documentation navigation and SDK namespaces.",
+    "content": "Open a generated SDK where the methods are named getV1UsersByIdGet, postV1UsersPost, and usersGet2, and the cost of careless operationIds is immediate: nobody can discover anything, and every rename is a breaking change for downstream code. Open the docs sidebar and see 200 operations in one flat list because every endpoint got its own tag, and the same problem appears on the human side. These two fields look like optional labels; they are the public naming API of your service.\n\n\n\nField\nConsumed by\nConsequence of getting it wrong\n\n\n\n\noperationId\nCode generators, mocking tools, agent tool lists\nBecomes the method/function name; must be unique and stable\n\n\ntags\nDocumentation navigation, generator namespaces\nGroups operations into sections or SDK classes\n\n\n\nsummary / description\n\nDocs, AI tool descriptions\nThe sentence a developer or agent reads first\n\n\n\nx-* group names\nSome renderers\nVendor-specific grouping; do not rely on it portably\n\n\n\nGenerators that do not find an operationId synthesize one from the method and path, which is how you get getV1UsersByIdGet. Once a synthesized name ships, fixing it later breaks every caller. Set the id deliberately from day one.\nUnique across the whole document. Two operations cannot share an id; some generators dedupe by appending a number, silently. Enforce uniqueness with a linter.\nLanguage-neutral and code-safe. Use lowerCamelCase with ASCII letters and digits, starting with a letter. Avoid hyphens, dots, and spaces, because not every language maps them cleanly into an identifier.\nVerb-first, resource-oriented, specific. The id should read as an action on a resource and say enough to be unambiguous without the path:\n\n\n\nMethod and path\nAvoid\nPrefer\n\n\n\n\nGET /users\ngetUsersGet\nlistUsers\n\n\nPOST /users\npostUsers\ncreateUser\n\n\nGET /users/{id}\n\ngetUserById (fine) or getV1UsersId\n\ngetUser\n\n\nPATCH /users/{id}\n\nupdateUser (ambiguous vs PUT)\n\npatchUser / updateUser split by verb\n\n\nDELETE /users/{id}\ndeleteUsersId\ndeleteUser\n\n\nPOST /users/{i",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "OpenAPI中的operationId和tags：使生成的SDK和文档可用的命名约定",
+        "summary": "operationId和tags是服务的公共命名API；命名不当会使生成的SDK无法被发现，并且需要将重命名作为下游代码的重大更改。operationId应该是动词优先、资源导向、小写驼峰式、唯一的，并且具体到足以在没有路径的情况下明确。Tags应该将相关操作分组到文档导航和SDK命名空间的部分中。"
+      }
+    }
+  }
+]
