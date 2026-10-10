@@ -1,5 +1,229 @@
 [
   {
+    "title": "How to Prevent Duplicate Orders in a Polymarket Trading Bot with Python",
+    "slug": "how-to-prevent-duplicate-orders-in-polymarket-trading-bot",
+    "url": "https://dev.to/dexoryn/how-to-prevent-duplicate-orders-in-a-polymarket-trading-bot-with-python-3p20",
+    "source": "DEV Community",
+    "date": "2026-10-10T21:15:05.000Z",
+    "summary": "A Polymarket trading bot can face duplicate orders from repeated events, app restarts, or network timeouts, requiring idempotent event processing to ensure reliable operation. The solution involves giving each source event a stable identity, maintaining persistent state, and implementing order reconciliation rather than simple delays.",
+    "content": "A Polymarket trading bot can receive the same event more than once, restart after a crash, or lose its connection while an order is being submitted. If the application treats every repeated signal as a new instruction, it can place duplicate orders and expose more capital than intended.\nThe solution is not simply to add a delay between trades. A reliable bot needs idempotent event processing, persistent state, and order reconciliation.\nThis tutorial explains how to design those safeguards in Python, using a copy-trading bot as the example. The same principles apply to other automated trading systems.\nWhy duplicate orders happen\nConsider a bot that monitors a target wallet and copies its trades.\nThe bot detects a buy event and submits a corresponding order. Several failure scenarios can produce an unintended second order.\nRepeated events: A reconnect or polling cycle causes the same source activity to be processed again.\nApplication restarts: The process crashes after detecting a trade but before recording that the event has been handled.\nNetwork timeouts: The order request reaches the trading API, but the response never reaches the bot. The application cannot tell whether the order was accepted.\nConcurrent workers: Two workers process the same event before either records it as complete.\nPartial failures: The bot saves a trade as processed before submitting its order, then crashes. On restart, it may skip a trade that was never submitted.\nThese are different failure modes. A single in-memory set of processed events will not solve all of them.\nGive every source event a stable identity\nThe first safeguard is to distinguish a genuinely new trade from a repeated notification about an existing trade.\nIdeally, the source provides a stable event identifier. Depending on the data source, this might be a transaction hash combined with a log index, or another unique activity identifier.\nDo not use only the wallet address, market ID, and trade direction as the deduplication key",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何在Polymarket交易机器人中用Python防止重复订单",
+        "summary": "Polymarket交易机器人可能由于重复事件、应用重启或网络超时而面临重复订单的问题,需要幂等事件处理以确保可靠运行。解决方案涉及为每个源事件赋予稳定的身份、维持持久状态,以及实现订单协调而非简单延迟。"
+      }
+    }
+  },
+  {
+    "title": "How to Make Playwright Autonomous (Without Letting an AI Agent Run Wild)",
+    "slug": "how-to-make-playwright-autonomous-without-ai-run-wild",
+    "url": "https://dev.to/orbitpickle307/how-to-make-playwright-autonomous-without-letting-an-ai-agent-run-wild-3ck4",
+    "source": "DEV Community",
+    "date": "2026-10-10T21:14:46.000Z",
+    "summary": "This tutorial demonstrates how to build an autonomous browser automation agent using Playwright and an LLM that observes page state, requests the next action from a language model, and validates actions before execution. The key principle is keeping the agent separate from final assertions, using it to find navigation paths while reserving verdict on success for explicit code.",
+    "content": "Playwright is very good at following instructions.\nTell it to click a button, it clicks the button. Tell it to fill an input, it fills the input. Give it a test with 40 steps and, assuming the page behaves, it'll run all 40.\nThe problem is that someone has to write those steps.\nWhat if you gave Playwright a goal instead?\nAdd two items to a shopping cart, apply the discount code, and check that the total is correct.\nThe browser would need to inspect the page, work out what to click, notice when something changes, and decide what to do next. That's a different kind of automation. And it's a fun engineering problem, provided you don't confuse the agent completed its plan with the application passed a test.\nLet's build a small version. No giant agent framework. Just Playwright, an LLM API, and a loop we can inspect.\nA normal Playwright script is a list of instructions:\nawait page.getByRole('button', { name: 'Add notebook' }).click();\nawait page.getByRole('button', { name: 'Checkout' }).click();\n\nOur agent will do something closer to this:\nObserve the current page using an accessibility snapshot.\nAsk a language model for exactly one next action.\nValidate that the action belongs to a small set of permitted operations.\nExecute it with Playwright.\nObserve the new state and repeat.\nSeparately assert the result in code.\nThe important word is separately. An agent is useful for finding a path through the interface. It shouldn't get the final vote on whether the system works.\nWe'll use a local checkout page so this tutorial doesn't depend on somebody else's website or an account with real payment details.\nCreate a directory and install the dependencies:\nmkdir autonomous-playwright\ncd autonomous-playwright\nnpm init -y\nnpm install playwright dotenv\nnpx playwright install chromium\n\nYou'll also need an API key for an OpenAI-compatible chat completions endpoint. The example below uses OpenAI's endpoint and defaults to gpt-4.1-mini. You can select a different compatible model with an",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何让Playwright自主运行(不让AI代理失控)",
+        "summary": "本教程演示了如何使用Playwright和LLM构建自主浏览器自动化代理,该代理观察页面状态、向语言模型请求下一步操作,并在执行前验证操作。关键原则是将代理与最终断言分离,使用它来寻找导航路径,同时将成功的判决保留给显式代码。"
+      }
+    }
+  },
+  {
+    "title": "Your Readiness Probe Is Lying to You",
+    "slug": "your-readiness-probe-is-lying-to-you",
+    "url": "https://dev.to/avneet_bansal_a65b3f31fc4/your-readiness-probe-is-lying-to-you-5e1g",
+    "source": "DEV Community",
+    "date": "2026-10-10T21:14:36.000Z",
+    "summary": "KEDA's Metrics Server reported as ready even when its critical gRPC connection to the keda-operator was down, causing the HPA to stop receiving scale signals while the component appeared healthy. The fix required making the readiness probe observe actual gRPC connection state and proactively reconnect idle connections to avoid permanent NotReady states.",
+    "content": "A readiness probe is a promise. It tells Kubernetes \"route traffic to me, I can handle it.\" Most of the time the promise is kept because the probe checks the thing that actually matters. The failures worth writing about are the ones where the probe keeps saying Ready while the component has quietly lost the one connection it needs to do any useful work. The traffic keeps arriving. None of it can be served. Nothing looks broken on the dashboard.\nI hit exactly this in KEDA, the CNCF event-driven autoscaler, and the fix merged as kedacore/keda #8226. The bug is a good teaching case on its own. The part I did not expect was the second bug hiding inside the fix, which a maintainer caught in review.\nTL;DR\nKEDA's Metrics Server reported Ready even when its gRPC connection to the keda-operator was down.\nIn that state the HPA silently stops receiving scale signals, while the replica still looks healthy.\nThe fix makes the readiness probe observe the real gRPC connection state and report NotReady when the connection is unusable.\nA naive version of that fix has a trap: once a replica goes NotReady it stops receiving RPCs, so an Idle connection never gets woken and the replica can stay NotReady forever.\nThe merged fix nudges an Idle connection to reconnect from inside the readiness check itself.\nKEDA has two moving parts here. The keda-operator does the actual work of talking to scalers and computing metrics. The Metrics Server (a custom metrics API server) is what the Kubernetes HPA queries when it wants to know \"how many of these should be running.\" The Metrics Server does not compute metrics itself. It forwards the request to the operator over a gRPC connection and relays the answer.\nThat gRPC connection is the Metrics Server's entire reason to exist. If it is down, the Metrics Server is a shell. It can accept an HPA query and has nothing to answer it with.\nThe Metrics Server's readiness probe did not check that connection. It reported Ready as long as the process was up and",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的就绪探针在欺骗你",
+        "summary": "KEDA的Metrics Server在其与keda-operator的关键gRPC连接断开时仍报告为就绪,导致HPA停止接收扩展信号,而该组件看起来仍然健康。修复需要让就绪探针观察实际的gRPC连接状态,并主动重新连接空闲连接以避免永久的NotReady状态。"
+      }
+    }
+  },
+  {
+    "title": "Ask Threads for 50 Replies and Half of What Comes Back Is Other People's Posts",
+    "slug": "ask-threads-for-50-replies-half-other-peoples-posts",
+    "url": "https://dev.to/nikita_iakovlev_415524c19/ask-threads-for-50-replies-and-half-of-what-comes-back-is-other-peoples-posts-pao",
+    "source": "DEV Community",
+    "date": "2026-10-10T21:13:39.000Z",
+    "summary": "Meta Threads' replies API returns roughly half parent posts and half replies when querying user replies, since conversations require both the original post and the response to be meaningful. The maxPosts parameter counts rows rather than distinct replies, making data extraction more complex than expected.",
+    "content": "I run a visa agency in Bali. The part of my week that has nothing to do with visas goes into scrapers on Apify, and one of them reads the part of Meta Threads nobody screenshots: the conversation layer. What an account replies to other people, the replies under a given post, and what it reposts.\nPosts are the easy half of a social network. Replies are where the data model fights you, because a reply on its own is not information. \"Here you go! https://dev.meta.ai\" means nothing until you also have the question it answered.\nEvery number below is from runs I can point at: a 50-row replies run on 6 October 2026, the same input on 23 September, and a 7-row thread run I made today, 10 October 2026, on build 0.1.26.\nThreads has a tab at /@username/replies. Visit it logged out and you do not see a list of that person's replies. You see a list of little conversations: somebody else's post, and underneath it the reply the account wrote. Threads serves it that way because it is the only way the tab reads as anything.\nSo the scraper has a choice, and both obvious answers are bad: drop the parent and the export is a column of orphan sentences, keep only the parent and you have lost the reply you came for.\nI keep both and label them. Here is the real shape of a run with maxPosts: 50 against zuck on 6 October:\n\n\n\nsource\nrows\n\n\n\n\n\nreplies — the account's own replies\n25\n\n\n\nreply-context — the post each one answers\n23\n\n\n\nForty-eight rows, roughly half of them written by somebody else. (Twenty-three rather than twenty-five because two of those parents had already appeared earlier in the run and are de-duplicated.) Shrink the input and the pairing is plain to see — maxPosts: 2 returns exactly this:\nreply-context | merab.dvalishvili | isReply=false | \"Always fun sparring with Mark 🦾⚔️\"\nreplies       | zuck              | isReply=true  | \"Always fun when you visit 🙏\"\n\nThe practical consequence is about money and expectations, so I will say it bluntly: maxPosts counts rows, not replies",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "向 Threads 要求 50 个回复，却发现一半是其他人的帖子",
+        "summary": "Meta Threads 的回复 API 在查询用户回复时返回大约一半的父帖和一半的回复，因为对话需要原始帖子和回复才能有意义。maxPosts 参数计算的是行数而非不同的回复，使数据提取变得比预期复杂。"
+      }
+    }
+  },
+  {
+    "title": "The Sliding Window Chronicles: A Journey Through the Matrix",
+    "slug": "sliding-window-chronicles-journey-through-matrix",
+    "url": "https://dev.to/timevolt/the-sliding-window-chronicles-a-journey-through-the-matrix-9j5",
+    "source": "DEV Community",
+    "date": "2026-10-10T21:13:19.000Z",
+    "summary": "The sliding window technique solves substring and subarray problems by maintaining a window that moves across input only forward, reducing time complexity from O(n²) to O(n). The key insight is maintaining minimal state to determine when to expand or contract the window while processing each element at most once.",
+    "content": "The Quest Begins (The \"Why\")\n\n\nEver felt like you’re staring at a problem and your brain just loops over the same idea, like a boss fight where you keep dodging the same attack? I’ve been there. A few months ago I was prepping for a technical interview and kept getting tripped up by questions that asked for “the longest substring without repeating characters” or “the smallest sub‑array with sum at least K”. My first instinct was to brute‑force: two nested loops, check every window, and watch my solution sputter out with O(n²) time. It felt like I was trying to defeat a final boss with a wooden spoon—frustrating and hopeless.\nThat’s when I realized I wasn’t missing a clever trick; I was missing the right pattern. The sliding window isn’t just another technique; it’s a mindset shift. Once you see it, those seemingly nasty problems melt away like ice under a laser. I wanted to share that “aha!” moment because it’s saved me hours of debugging and turned interview anxiety into genuine excitement.\nSo what’s the magic? Imagine you have a conveyor belt of items passing by. Instead of picking up every item, examining it, then putting it back and starting over, you keep a window that slides along the belt. You add the new item at the right, maybe drop the leftmost item when the window gets too big, and you maintain just enough information to answer the question right now. The window never moves backward; it only advances, guaranteeing each element is processed a constant number of times. That’s why the runtime collapses to O(n).\nThe key insight is statefulness: you keep just enough state (a hash map, a running sum, a counter) to know whether the current window satisfies the condition. When it does, you record the answer and try to shrink from the left to see if you can do better. When it doesn’t, you expand to the right until the condition holds again—or you run out of items. Because each index enters and leaves the window at most once, the total work is linear.\nThink of it l",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "滑动窗口编年史：穿越矩阵的旅程",
+        "summary": "滑动窗口技术通过维护一个仅向前移动的窗口来解决子字符串和子数组问题，将时间复杂度从 O(n²) 降低到 O(n)。关键洞察是在处理每个元素最多一次时，维护最小状态来决定何时扩展或收缩窗口。"
+      }
+    }
+  },
+  {
+    "title": "Connecting an Android App to a REST API Using Retrofit in Java",
+    "slug": "connecting-android-app-rest-api-retrofit-java",
+    "url": "https://dev.to/dhananjay_bagul/connecting-an-android-app-to-a-rest-api-using-retrofit-in-java-3j6g",
+    "source": "DEV Community",
+    "date": "2026-10-10T21:13:03.000Z",
+    "summary": "Retrofit is a type-safe HTTP client library for Android that simplifies making API requests, converting JSON responses into Java objects, and organizing network code into separate interfaces. This tutorial demonstrates how to set up Retrofit dependencies, create model classes, and define API interfaces for Android applications.",
+    "content": "When building an Android application, we often need to communicate with a backend server to fetch or send data. For example, an HRMS app may need to display employees, a shopping app may need to load products, or a booking app may need to retrieve reservations.\nOne popular way to make these network requests in Android is Retrofit.\nIn this article, we will learn how to connect an Android application to a REST API using Java and Retrofit, step by step.\nWhat Is Retrofit?\nRetrofit is a type-safe HTTP client for Android and Java. It helps us make API requests without writing all the networking code manually.\nWith Retrofit, we can:\nSend GET requests to fetch data.\nSend POST requests to submit data.\nConvert JSON responses into Java objects using a converter.\nHandle successful responses and network errors.\nKeep API-related code organized in a separate interface.\nAdd Retrofit Dependencies\nOpen your app-level build.gradle file and add these dependencies inside dependencies:\nimplementation 'com.squareup.retrofit2:retrofit:2.11.0'\nSync the project after adding them. If your project uses build.gradle.kts, use the Kotlin DSL syntax for dependencies.\nAdd Internet Permission\nOpen AndroidManifest.xml and add this permission above the  tag:\nThis permission allows your application to access the internet.\nCreate a Java Model Class\nSuppose our backend returns employee information in JSON format:\n{\n  \"id\": 1,\nrahul@example.com\"\nCreate a Java class named Employee.java:\npublic class Employee {\nprivate int id;\nprivate String name;\nprivate String email;\n\npublic int getId() {\n    return id;\n}\n\npublic String getName() {\n    return name;\n}\n\npublic String getEmail() {\n    return email;\n}\n\n}\n\nGson converts the JSON response into an Employee object when the JSON field names match the Java fields.\nCreate the API Interface\nCreate a file named ApiService.java:\nimport java.util.List;\npublic interface ApiService {\n@GET(\"api/employees\")\nCall<List<Employee>> getEmployees();\n\n}\n\nThe @get annotation tells",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用 Java 中的 Retrofit 将 Android 应用连接到 REST API",
+        "summary": "Retrofit 是 Android 的类型安全 HTTP 客户端库，简化了发送 API 请求、将 JSON 响应转换为 Java 对象以及将网络代码组织到单独接口的工作。本教程演示了如何为 Android 应用程序设置 Retrofit 依赖项、创建模型类和定义 API 接口。"
+      }
+    }
+  },
+  {
+    "title": "Forest Radar: planning a walk with Polish forest data and local AI",
+    "slug": "forest-radar-planning-walk-polish-forest-data-ai",
+    "url": "https://dev.to/dominik_alberski/forest-radar-planning-a-walk-with-polish-forest-data-and-local-ai-5e4o",
+    "source": "DEV Community",
+    "date": "2026-10-10T21:12:10.000Z",
+    "summary": "Forest Radar is a web application that helps users discover nearby forests for walking by searching Polish forest inventory data and providing AI-generated descriptions of each forest range with safety information. The application runs locally and combines location-based search with machine learning to suggest outdoor exploration opportunities.",
+    "content": "This is a submission for the Hacktoberfest Open-Source AI Challenge Week 1: Touch Grass.\nMy idea for the Touch Grass challenge was a small application that helps you choose a nearby forest for a walk. Give it a location and a radius, then get information about the forests nearby and suggestions about what you might find there. Save the result or print it, and take it outside.\nI called it Forest Radar, or Leśny Radar in the Polish interface.\nThe original idea included mushrooms, berries, animal tracks, and questions like whether you can bring a dog. Those questions sound simple until you start looking at the available data. Forest inventory data can tell you about the trees and habitat. It cannot tell you that a mushroom is there today, or that a particular forest is safe to enter.\nThe current application accepts coordinates and a radius between 1 and 20 kilometres. You can also ask the browser to fill in your location. It produces a separate Polish description for each forest range returned by the search, with a Google Maps link and the same safety footer on every card.\nA forest range is an administrative area, not a complete walking route. This version does not provide turn-by-turn navigation, verify dog-access rules, or guarantee a suitable entrance.\nThe application runs locally. The example in the screenshot uses latitude 52, longitude 21, and a search radius of 5 kilometres. The first card is for Uwieliny. It has an AI-generated forest description, a Maps link, a print button, and a mushroom-safety warning with a link to look for expert help.\n\nScreenshot: the Uwieliny card in Leśny Radar. The description is labelled as AI-generated and potentially inaccurate; the safety footer is fixed application text.\nA search at this location produces cards for Uwieliny, Bogatki, Dobiesz, Chojnów, Góra Kalwaria, and Sękocin. One run took about 97 seconds to fetch the data and generate all six descriptions. It is slow enough that I would want to prepare the cards before leavin",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "森林雷达：使用波兰森林数据和本地AI规划散步",
+        "summary": "Forest Radar是一个网络应用程序，通过搜索波兰森林库存数据并为每个森林区域提供AI生成的描述（包含安全信息）来帮助用户发现附近的森林供散步使用。该应用程序在本地运行，结合基于位置的搜索和机器学习来推荐户外探索机会。"
+      }
+    }
+  },
+  {
+    "title": "🌿 TerraQuest AI — Touch Grass, Not Screens",
+    "slug": "terraquest-ai-touch-grass-not-screens",
+    "url": "https://dev.to/genx0gravitas/terraquest-ai-touch-grass-not-screens-1n6n",
+    "source": "DEV Community",
+    "date": "2026-10-10T21:11:47.000Z",
+    "summary": "TerraQuest AI is an offline-first, privacy-preserving platform designed to encourage outdoor exploration through guided nature identification, adventure planning, screen-free challenges, and a private journal. The application combines local AI models with gamification to help users spend less time on screens and more time connecting with nature.",
+    "content": "This is a submission for the Hacktoberfest Open-Source AI Challenge — Week 1: Touch Grass\nI built TerraQuest AI — Your Offline AI Companion for the Real World, an open-source, privacy-first outdoor exploration platform designed to help people spend less time staring at screens and more time connecting with nature.\nMost digital applications are designed to maximize engagement and keep users online. TerraQuest AI takes the opposite approach: it uses AI to help people explore the real world, learn about biodiversity, and put their phones away.\nThe application combines offline-first functionality, local AI models, nature exploration tools, and gamified outdoor challenges to make stepping outside a more engaging and educational experience.\nPocket Mode: Choose an outdoor quest, review your checklist, and switch to a minimal screen that encourages you to lock your phone and explore.\nAI-Powered Nature Identification: Explore plants, birds, trees, and insects using guided morphological questions, image analysis, and optional local vision models.\nSmart Adventure Planner: Plan outdoor activities lasting 15–60 minutes, with nature-focused checkpoints and accessibility considerations.\nTouch Grass Challenges: Complete screen-free activities, observe wildlife, discover leaf structures, and earn nature-themed XP and badges.\nAI Garden Planner: Get seasonal gardening guidance based on sunlight, soil type, and growing conditions.\nPrivate Nature Journal: Save observations, photographs, notes, and optional location information directly in your browser.\nBirdsong Analysis: Explore audio waveforms through the browser's Web Audio API.\nOffline Field Guide: Continue using local taxonomy information and deterministic identification heuristics when internet access or a local AI model is unavailable.\nData Portability: Export and import journal data in JSON and CSV formats.\nTerraQuest AI is designed around a simple philosophy: technology should help us reconnect with the world beyond our screens.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "🌿 TerraQuest AI — 接触大自然，而非屏幕",
+        "summary": "TerraQuest AI是一个离线优先、隐私保护的平台，旨在通过引导式自然识别、冒险规划、无屏幕挑战和私密日记来鼓励户外探索。该应用程序将本地AI模型与游戏化相结合，帮助用户减少屏幕时间，增加与自然的互动。"
+      }
+    }
+  },
+  {
+    "title": "Make SonarCloud quality gate fail GitHub Actions",
+    "slug": "make-sonarcloud-quality-gate-fail-github-actions",
+    "url": "https://dev.to/raylabs/make-sonarcloud-quality-gate-fail-github-actions-34pg",
+    "source": "DEV Community",
+    "date": "2026-10-10T21:11:28.000Z",
+    "summary": "GitHub Actions workflows can incorrectly report success when SonarCloud quality gates fail because successful scan uploads don't guarantee code passed quality checks. Adding sonar.qualitygate.wait=true to the scanner configuration makes it poll for the actual gate result before completing the build step.",
+    "content": "Your GitHub Actions workflow can report success even when your SonarCloud quality gate fails because a successful scan upload does not mean the code passed the gate.\nQuick solution:\nsonar.qualitygate.wait=true to your scanner invocation and set a finite timeout to make the scanner poll for the gate result.\n- name: SonarCloud Scan\n  uses: sonarsource/sonarcloud-github-action@master\n  env:\n    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n    SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}\n  with:\n    args: >\n      -Dsonar.qualitygate.wait=true\n      -Dsonar.qualitygate.timeout=300\n\nPrerequisites include having a valid SONAR_TOKEN configured in your repository secrets and running the scan after your test and coverage reports are generated.\nA common issue in continuous integration pipelines is the decoupling of analysis submission from analysis evaluation. When a CI runner executes a code analysis scanner, the default behavior of many scanner tasks is to upload the raw report to the remote service and immediately exit with a success code as long as the network request succeeds.\nIn a real implementation case, a project reported new-code coverage at 79 percent against a strict 80 percent threshold. The scanner step successfully uploaded its analysis payload to SonarCloud, and the workflow continued to finish with a green status. The deployment pipeline treated the upload confirmation as a passing build, hiding the underlying quality violation from developers.\nTo bridge the gap between uploading data and evaluating rules, the scanner must instruct the remote server to process the uploaded payload and return the resulting status before terminating the build step. This prevents the pipeline from proceeding if the project violates its defined metrics.\nBy adding the wait parameter to your command or action arguments, the scanner enters a polling loop. It checks the analysis identifier against the SonarCloud API until the server finishes calculating the quality gate status.\nPolling a remo",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "让SonarCloud质量门槛导致GitHub Actions失败",
+        "summary": "GitHub Actions工作流在SonarCloud质量门槛失败时可能会错误地报告成功，因为成功的扫描上传不能保证代码通过质量检查。在扫描仪配置中添加sonar.qualitygate.wait=true可使其轮询实际的门槛结果，然后再完成构建步骤。"
+      }
+    }
+  },
+  {
+    "title": "Running a BFT blockchain as one native binary on a 2 GB VPS — what broke and what held",
+    "slug": "running-bft-blockchain-native-binary-2gb-vps",
+    "url": "https://dev.to/syriandeveloper/running-a-bft-blockchain-as-one-native-binary-on-a-2-gb-vps-what-broke-and-what-held-4ff1",
+    "source": "DEV Community",
+    "date": "2026-10-10T21:09:42.000Z",
+    "summary": "Janzeer, a stake-free BFT blockchain Layer-1, runs an entire network of four validators on a single 2 GB VPS by using GraalVM native images for every process, achieving approximately 200 MB memory per node. The implementation required careful management of lazy injections, reflective instantiation, and Hibernate configuration to fit resource constraints.",
+    "content": "I run a small Layer-1 called Janzeer: stake-free BFT, 15-second slots, two voting rounds, finality in one block. Mainnet went live on 2026-10-01. The whole network — four validator nodes, PostgreSQL, and a Telegram mini-game that pays players — runs on one 2 GB, single-core VPS. This post is about how that is possible and what went wrong on the way. No token talk; the coin is not on any exchange and that is not what this is about.\nThe node is a Spring Boot application in Kotlin: Netty for P2P, JPA on PostgreSQL, a REST and JSON-RPC API, and it serves the explorer SPA. Four of those as JVMs would never fit in 2 GB with a database next to them. So every process is a GraalVM native image: a ~250 MB binary that boots in 3 seconds and is capped at -Xmx256m. The binary's pages are shared by the four processes, so the cgroup charge is about 200 MB per node. The game backend is a native image too. Peak memory of the whole box during a 6-hour rehearsal, with load: 933 MB.\nThree rules keep the native image working, and each one was learned the hard way:\nNo @Lazy injections. A lazy CGLIB proxy cannot be generated in the image. ObjectProvider does the same job.\nEvery class that is instantiated reflectively must be registered. The wire codec builds messages by reflection. The tracing agent only sees the messages that happen to flow during the trace, so the hints are written by hand for every message type. The first image pushed no WebSocket notifications because the notification envelope was missing from the hints — Jackson serialized it fine on the JVM and silently failed in the image.\nHibernate's bytecode provider off (hibernate.bytecode.provider=none) and a capped DB pool. An image otherwise grows towards a share of physical RAM per process.\nBefore going live, the public test network ran for a week with a monitor that scanned the logs for consensus errors, killed and relaunched nodes, and pushed load. Thirty-seven findings, all fixed before launch. The ones worth retelling:\nF",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在2GB VPS上运行BFT区块链作为单个本地二进制 — 什么崩溃了，什么保持住了",
+        "summary": "Janzeer是一个无质押的BFT区块链第1层，通过为每个进程使用GraalVM本地镜像，在单个2GB VPS上运行整个四个验证者的网络，每个节点实现约200MB内存。该实现需要仔细管理延迟注入、反射实例化和Hibernate配置以适应资源约束。"
+      }
+    }
+  },
+  {
+    "title": "Dawn Chorus: An Offline Bird-Call Bingo Built on BirdNET and Gemma (hacktoberfest week 1 dev challenge)",
+    "slug": "dawn-chorus-offline-bird-call-bingo-birdnet-gemma",
+    "url": "https://dev.to/anushdeotare11/dawn-chorus-an-offline-bird-call-bingo-built-on-birdnet-and-gemma-hacktoberfest-week-1-dev-4jjo",
+    "source": "DEV Community",
+    "date": "2026-10-10T21:09:08.000Z",
+    "summary": "Dawn Chorus is an offline-first bird identification application for walking that uses open-source BirdNET to identify birds from audio recordings and local AI to generate field-journal entries. Users take walks with their phone recording in pocket and screen off, then upload the recording to identify species from their predicted checklist.",
+    "content": "This is a submission for the Hacktoberfest Open-Source AI Challenge Week 1: Touch Grass\nDawn Chorus is a listening-walk bird bingo that runs entirely on my laptop.\nThe app shows a bingo card of the 12 birds most likely near me this week.\nI put my phone in my pocket, in airplane mode with the screen off, and record the walk with the normal voice recorder.\nAfterwards I upload the recording. An open-source model identifies the birds by their calls, and a local model writes a short field-journal page.\nThe journal ends with the birds I missed, which is the reason to go out again tomorrow.\nThe screen is the shortest part of the experience. A \"Grass Ratio\" card compares the minutes I spent outside with the seconds I spent on screen. It's for anyone curious about the sounds around them, including places with no signal.\nReal test: I walked 30 minutes on DATE. BirdNET found 10 species, including 5 of the 12 bingo birds, and I confirmed Myna, House Crow, Rock Pigeon myself. Screen time: 2 minutes.\nA short captioned walkthrough: the bingo card, airplane mode, the walk with the screen dark, then the results.\n / \n        dawn-chorus\n      \n    \n\nDawn Chorus\nPut your phone away. Listen to the morning.\nDawn Chorus is a listening-walk bird bingo that runs entirely on your own laptop. You get a checklist of the birds likely to be near you this week, you go for a walk with your phone recording in your pocket and the screen off, and when you get back an open-source model tells you who was singing. A local language model then writes you a short field-journal page about the walk.\nBuilt for the Hacktoberfest Open-Source AI Challenge, Week 1: \"Touch Grass\". The idea: the screen should be the shortest part of the experience.\n  \nThe story, real walk results and demo video are in the DEV post: Dawn Chorus on DEV\nContents\nHow it works\nFeatures\nQuick start\nTaking a walk\nUpload straight from your phone\nRunning fully offline\nWhy open-source AI\nLimitations (please read)\nProject structure\nTesting a",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "晨唱：一个基于BirdNET和Gemma构建的离线鸟鸣宾果游戏（hacktoberfest第1周开发挑战）",
+        "summary": "晨唱是一个离线优先的鸟类识别应用程序，用于散步，使用开源BirdNET从音频录音中识别鸟类，并使用本地AI生成野外日志条目。用户在口袋里录音、屏幕关闭的情况下散步，然后上传录音以从其预测的清单中识别物种。"
+      }
+    }
+  },
+  {
+    "title": "FinOps na AWS: reduzindo custos ao ligar e desligar instâncias EC2 automaticamente",
+    "slug": "finops-aws-reduzindo-custos-ligar-desligar-ec2",
+    "url": "https://dev.to/biancaszimanski/finops-na-aws-reduzindo-custos-ao-ligar-e-desligar-instancias-ec2-automaticamente-34mj",
+    "source": "DEV Community",
+    "date": "2026-10-10T21:08:51.000Z",
+    "summary": "This AWS FinOps guide demonstrates how to automate EC2 instance startup and shutdown using EventBridge, Lambda, and tags to reduce costs in development and testing environments. The solution allows organizations to define business-hour schedules for instances and automatically manage infrastructure lifecycle without manual intervention.",
+    "content": "1. Introdução\n\n\nEm muitos ambientes corporativos, é comum manter instâncias ligadas mesmo durante períodos em que não estão sendo utilizadas. Em ambientes de desenvolvimento, homologação e testes, por exemplo, muitas instâncias EC2 permanecem em execução fora do horário comercial, gerando custos mesmo sem demanda. Uma alternativa simples para reduzir esse desperdício é automatizar o start/stop das máquinas, definindo horários para ligar e desligar de acordo com a necessidade do ambiente.\nNeste artigo, será apresentada uma arquitetura na AWS, utilizando os serviços EC2, EventBridge, Lambda (o código será em Python), IAM e CloudWatch Logs para automatizar esse processo. A solução também utiliza tags para identificar quais recursos devem participar da automação. Além de reduzir custos, a automação ajuda a evitar processos manuais e cria um padrão para o gerenciamento de ambientes que não precisam permanecer ativos 24h por dia.\nAbaixo, arquitetura da solução:\n\nO Amazon EC2 oferece as máquinas virtuais (instâncias) que a automação vai ligar e desligar. Para dizer à automação quais instâncias devem participar, será utilizada uma tag, que é uma etiqueta formada por uma chave e um valor.\nPor exemplo:\ntag_key = \"lambda-start-stop\"\ntag_value = \"true\"\n\nAssim, a função Lambda pode buscar somente as instâncias que possuem essa tag.\nDocumentação: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html\nDocumentação: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Instances.html\n--\nResponsável por definir quando a automação será executada. O EventBridge Scheduler chama a função Lambda no horário configurado.\nExemplo comum nas empresas:\n08h00 - ligar as instâncias\n18h00 - desligar as instâncias\nDocumentação: https://docs.aws.amazon.com/scheduler/latest/UserGuide/what-is-scheduler.html\n--\nÉ responsável por executar o código da automação, sem a necessidade de gerenciar servidores. Neste caso, a função roda um código em Python que usa o boto3 (o SDK da AWS para Python)",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AWS上的FinOps：通过自动启动和关闭EC2实例来降低成本",
+        "summary": "这个AWS FinOps指南演示了如何使用EventBridge、Lambda和标签自动化EC2实例启动和关闭，以减少开发和测试环境中的成本。该解决方案允许组织为实例定义业务时间表，并自动管理基础设施生命周期，无需手动干预。"
+      }
+    }
+  },
+  {
+    "title": "Bitwarden Dual License Model",
+    "slug": "bitwarden-dual-license-model",
+    "url": "https://community.bitwarden.com/t/published-version-update-in-app-stores/102750",
+    "source": "Hacker News",
+    "date": "2026-10-10T14:32:50.000Z",
+    "summary": "Bitwarden announced updates to its licensing model through a community post, generating significant discussion on Hacker News regarding the changes and their implications for the project.",
+    "content": "Article URL: https://community.bitwarden.com/t/published-version-update-in-app-stores/102750\nComments URL: https://news.ycombinator.com/item?id=50033407\nPoints: 290\n# Comments: 217",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Bitwarden 双许可证模式",
+        "summary": "Bitwarden 通过社区帖子宣布了其许可证模式的更新，在 Hacker News 上引发了关于这些变化及其对项目影响的广泛讨论。"
+      }
+    }
+  },
+  {
+    "title": "Lobbying is corruption",
+    "slug": "lobbying-is-corruption",
+    "url": "https://carette.xyz/posts/lobbying_and_corruption/",
+    "source": "Hacker News",
+    "date": "2026-10-10T13:05:58.000Z",
+    "summary": "An article argues that lobbying constitutes a form of corruption, sparking substantial debate on Hacker News about the relationship between political influence and ethical governance.",
+    "content": "Article URL: https://carette.xyz/posts/lobbying_and_corruption/\nComments URL: https://news.ycombinator.com/item?id=50032556\nPoints: 443\n# Comments: 244",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "游说就是腐败",
+        "summary": "一篇文章论证游说构成了一种腐败形式，在 Hacker News 上引发了关于政治影响力与道德治理之间关系的重大辩论。"
+      }
+    }
+  },
+  {
     "title": "Cloudflare Pages not updating after deploy: the s-maxage trap",
     "slug": "cloudflare-pages-cache-maxage-trap",
     "url": "https://dev.to/howardzlh/cloudflare-pages-not-updating-after-deploy-the-s-maxage-trap-799",
@@ -188,6 +412,22 @@
       "zh": {
         "title": "构建帮助学生更有效学习的AI驱动扩展",
         "summary": "本文介绍了构建AI驱动学习扩展的挑战，包括AI导师、测验生成器、个性化推荐和使用开源模型的语音学习等功能。它强调在本地运行开源权重模型而非仅依赖闭源API，并建议通过已发布代码和现场演示来展示实际课程材料的集成。"
+      }
+    }
+  },
+  {
+    "title": "Apple/macOS removed from official Unix registry",
+    "slug": "apple-macos-removed-official-unix-registry",
+    "url": "https://www.opengroup.org//openbrand/register/",
+    "source": "Hacker News",
+    "date": "2026-10-10T10:57:31.000Z",
+    "summary": "Apple and macOS have been removed from the official Unix registry maintained by The Open Group, marking a significant change in the platform's official Unix certification status.",
+    "content": "Article URL: https://www.opengroup.org//openbrand/register/\nComments URL: https://news.ycombinator.com/item?id=50031653\nPoints: 196\n# Comments: 186",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Apple/macOS 从官方 Unix 注册表中移除",
+        "summary": "Apple 和 macOS 已从由开放组（The Open Group）维护的官方 Unix 注册表中移除，标志着该平台官方 Unix 认证状态的重大变化。"
       }
     }
   },
