@@ -1,5 +1,245 @@
 [
   {
+    "title": "06 - React: memo, useCallback, and useMemo",
+    "slug": "react-memo-usecallback-usememo",
+    "url": "https://dev.to/atilla_baspinar_c5c68ec63/06-react-memo-usecallback-and-usememo-fpj",
+    "source": "DEV Community",
+    "date": "2026-10-12T14:32:12.000Z",
+    "summary": "React performance optimization tools (memo, useCallback, useMemo) are most useful when addressing real bottlenecks identified through profiling, not as premature optimization. The article explains each tool with examples: memo prevents unnecessary re-renders when props unchanged, useCallback stabilizes function references for memoized children. Best practice is writing clear code first, then optimizing only when profiling shows a need.",
+    "content": "These tools are about performance optimization, but they are only useful when you have a real problem to solve.\nA good rule is:\nfirst write clear code\nthen optimize only if profiling or a real bottleneck shows you need it\nmemo\n\n\nmemo is a higher-order component that tells React:\n\"If the props for this component did not change, do not re-render it just because its parent re-rendered.\"\nimport { memo } from 'react';\n\nconst Counter = memo(function Counter({ initialCount }: { initialCount: number }) {\n  console.log('Counter rendered');\n\n  return <div>Count: {initialCount}</div>;\n});\n\nexport default function App() {\n  const [count, setCount] = useState(0);\n\n  return (\n    <>\n      <button onClick={() => setCount((prev) => prev + 1)}>Update parent</button>\n      <Counter initialCount={0} />\n    </>\n  );\n}\n\nIn this example, the parent state changes, but the Counter prop value stays the same. Because the props did not change, React can skip re-rendering the child component.\nThis is useful when the child is expensive to render and the input props are unchanged.\nBefore using memo, check whether the component structure can be improved.\nSometimes the better solution is to move the state lower in the tree or split the component into smaller pieces, instead of adding optimization too early.\nuseCallback\n\n\nuseCallback is used to keep a function reference stable across renders.\nThis matters when a child component is wrapped in memo and receives a function as a prop.\nWithout useCallback, the function is recreated every render, so React sees a new prop value and may re-render the child.\nimport { memo, useCallback, useState } from 'react';\n\nconst ButtonRow = memo(function ButtonRow({\n  onClick,\n}: {\n  onClick: () => void;\n}) {\n  console.log('ButtonRow rendered');\n\n  return <button onClick={onClick}>Click me</button>;\n});\n\nexport default function App() {\n  const [count, setCount] = useState(0);\n\n  const handleClick = useCallback(() => {\n    console.log('clicked');\n  }, []);\n\n  return (",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "06 - React: memo、useCallback 和 useMemo",
+        "summary": "React 性能优化工具（memo、useCallback、useMemo）在解决通过性能分析识别的真实瓶颈时最有用，而不是作为过度优化。本文通过示例解释了每个工具：memo 在属性未改变时防止不必要的重新渲染，useCallback 为记忆化的子组件稳定函数引用。最佳实践是先编写清晰的代码，然后仅在性能分析显示需要时进行优化。"
+      }
+    }
+  },
+  {
+    "title": "ulimit doesn't cap memory on macOS: stop a job before it swaps",
+    "slug": "ulimit-memory-cap-macos",
+    "url": "https://dev.to/nefayran/ulimit-doesnt-cap-memory-on-macos-stop-a-job-before-it-swaps-4dd3",
+    "source": "DEV Community",
+    "date": "2026-10-12T14:31:35.000Z",
+    "summary": "macOS lacks memory capping mechanisms like Linux's ulimit or cgroups, causing memory-heavy jobs to swap instead of failing. The article provides monitoring commands (sysctl) and introduces stageload, a library that guards against excessive memory use by monitoring swap growth and terminating processes before system slowdown.",
+    "content": "On Linux a job's memory can be capped with ulimit -v, systemd-run -p MemoryMax= or a cgroup, and a job that grows too big fails on its own instead of taking the machine down. macOS has no systemd and no cgroups, and ulimit refuses. This is macOS 26.5.2:\n$ /bin/bash -c 'ulimit -v 1048576'\n/bin/bash: line 0: ulimit: virtual memory: cannot modify limit: Invalid argument\n$ /bin/bash -c 'ulimit -m 1048576'\n/bin/bash: line 0: ulimit: max memory size: cannot modify limit: Invalid argument\n\nresource.setrlimit(resource.RLIMIT_DATA, ...) in Python raises ValueError, and in the shell where ulimit -m had failed, a script went on to allocate and touch 3 GiB. What macOS does instead is compress memory and write it to swap. A model that doesn't fit doesn't fail: it slows down, and so does everything else on the Mac.\nSo the questions worth asking change: is there room before a job starts, and is swap growing while it runs?\nsysctl vm.swapusage             # compare \"used\" before and after a run\nsysctl kern.memorystatus_level  # system-wide free memory, in percent\n\nThe process footprint, the number Activity Monitor shows, doesn't count pages that are already in swap. In one run of Qwen-Image-2.1 with diffusers' model CPU offload on my 48 GB M5 Pro, the footprint never went above 18.5 GB while swap grew by 9.6 GB. A chart of the footprint alone would have called that run a fit.\nstageload, a small library I wrote for loading models one stage at a time, ships a guard for this (pip install stageload):\nstageload guard --wait-free 40 --swap-budget 8G -- python generate.py\n\nIt waits until kern.memorystatus_level is at least 40 %, then starts the command. If swap grows more than 8 GB over what was in use at the start, or free memory stays under 10 % for two samples, it sends SIGTERM to the command's process group and, five seconds later, SIGKILL to whatever is left. It needs no root, and the command and its process group are the only processes it ever stops. Exit code 3 means the guard stopp",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "ulimit 在 macOS 上不能限制内存：在交换前停止任务",
+        "summary": "macOS 缺乏像 Linux 的 ulimit 或 cgroups 那样的内存限制机制，导致内存密集型任务交换而不是失败。本文提供了监控命令（sysctl）并介绍了 stageload，这是一个通过监控交换增长并在系统减速前终止进程来防止过度内存使用的库。"
+      }
+    }
+  },
+  {
+    "title": "Balancing AI Integration and Manual Coding: Addressing Frustration in Programming Practices",
+    "slug": "ai-integration-manual-coding-frustration",
+    "url": "https://dev.to/viklogix/balancing-ai-integration-and-manual-coding-addressing-frustration-in-programming-practices-44cl",
+    "source": "DEV Community",
+    "date": "2026-10-12T14:31:27.000Z",
+    "summary": "As AI tools automate coding tasks, experienced developers face frustration over skill atrophy and loss of craftsmanship. The article examines the tension between efficiency-driven AI adoption and the intrinsic value of hands-on problem-solving, arguing that homogenized AI solutions risk stifling innovation and diverse approaches.",
+    "content": "Introduction: The Rise of AI in Programming\n\n\nThe programming landscape is undergoing a seismic shift as AI tools increasingly permeate workflows, automating tasks like code generation, debugging, and optimization. This integration, driven by demands for faster development cycles and cost efficiency, is reshaping the industry. However, this technological advancement is not without its friction. For programmers like the poster, who have spent 15 years honing their craft, the rise of AI represents a threat to the intrinsic values that define their profession: craftsmanship, creativity, and the joy of hands-on problem-solving.\nThe integration of AI tools is altering the traditional coding process by abstracting away manual tasks. For instance, AI-powered code generation can produce functional code in seconds, but this efficiency comes at a cost. The causal chain is clear: impact of AI adoption -> internal process of skill atrophy -> observable effect of declining foundational skills. As developers rely more on AI, their ability to debug complex issues or optimize code manually may atrophy, leading to a dependency on automated solutions. This is not merely a theoretical risk; it’s a mechanism of deformation in the skill set of programmers, where the very muscles of their craft weaken from underuse.\nThe poster’s frustration is rooted in a deeper philosophical conflict: the tension between efficiency-driven adoption of AI and the intrinsic value of manual coding. For them, programming is not just a job but a labor of love, driven by curiosity and the enjoyment of the process. AI tools, while powerful, threaten to homogenize the coding experience, replacing unique problem-solving approaches with standardized solutions. This homogenization is not just a loss of creativity but a risk of stifling innovation, as diverse perspectives are squeezed out by the dominance of AI-generated code.\nIn response to this shift, the poster has taken a strategic retreat, disabling AI utilitie",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "平衡 AI 集成与手动编码：解决编程实践中的挫折感",
+        "summary": "随着 AI 工具自动化编码任务，经验丰富的开发人员面临技能衰退和工艺丧失的挫折。本文审视了效率驱动的 AI 采用与手动问题解决的内在价值之间的紧张关系，主张标准化的 AI 解决方案有可能抑制创新和多样化的方法。"
+      }
+    }
+  },
+  {
+    "title": "How I Hunted Down 23 N+1 Queries in a Rails App With Claude Code",
+    "slug": "hunting-23-n1-queries-rails-app",
+    "url": "https://dev.to/yureki_lab/how-i-hunted-down-23-n1-queries-in-a-rails-app-with-claude-code-405p",
+    "source": "DEV Community",
+    "date": "2026-10-12T14:31:23.000Z",
+    "summary": "A developer paired with Claude Code to find and fix 23 N+1 queries in a legacy Rails app, reducing p95 response time from 1.4s to under 400ms through systematic testing. The breakthrough was requiring failing tests before implementing each fix, which prevented a first-pass approach that initially made endpoints slower.",
+    "content": "TL;DR\n\n\nOur Rails app's p95 response time had crept from 280 ms to 1.4 s over a year, and nobody could say why. I paired with Claude Code for four days, found 23 N+1 queries, fixed 19 of them, and got p95 back under 400 ms. The real win wasn't the fixes, though: it was making Claude prove every N+1 with a failing test before touching the code, because the first \"fix everything with includes\" pass made two endpoints slower.\nHere's the setup: a seven-year-old Rails monolith (Rails 7.1, Ruby 3.3, PostgreSQL 16), about 140 models, a B2B dashboard that customers live in all day. Nothing was on fire. It was just... slow. The kind of slow where support tickets say \"the app feels sluggish\" and nobody can reproduce anything specific.\nWhen I pulled APM data, the pattern was obvious in hindsight:\np95 on the dashboard endpoint: 1.4 s (was ~280 ms a year earlier)\nAverage SQL queries per request on the top 10 endpoints: 187\nWorst single request I could find: 2,341 queries to render one page\nNobody had written a \"bad\" query. Every one of those queries was a perfectly reasonable SELECT ... WHERE id = $1. The problem was that they ran inside loops, inside partials, inside serializers, inside helper methods that called other helper methods. Classic N+1, spread across hundreds of files.\nI'd tried fixing this by hand twice before. Both times I got through three or four endpoints, got pulled onto feature work, and the gains evaporated as new code reintroduced the same patterns. This time I wanted two things:\nFind all of them, not just the ones I happened to notice.\nMake sure they stay fixed.\nThat second goal turned out to be the one that mattered.\nMy first instinct was to open Claude Code and say \"find N+1 queries in this app.\" I did exactly that, and it came back with a list of 60+ \"suspicious\" associations based on reading the code. Most were false positives: associations that looked like they'd loop, but were only ever called on a single record.\nStatic reading isn't enough for N+1s.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我如何在Rails应用中用Claude Code追踪到23个N+1查询",
+        "summary": "一位开发者与Claude Code合作在遗留的Rails应用中找到并修复了23个N+1查询，通过系统化测试将p95响应时间从1.4秒减少到400毫秒以下。关键突破是在实现每个修复之前要求先编写失败的测试，这防止了最初会让端点变慢的第一遍方法。"
+      }
+    }
+  },
+  {
+    "title": "My Triton Kernel Ties bitsandbytes — and Both Lose to Math",
+    "slug": "triton-kernel-gemv-decoding-performance",
+    "url": "https://dev.to/raihan-js/my-triton-kernel-ties-bitsandbytes-and-both-lose-to-math-2bie",
+    "source": "DEV Community",
+    "date": "2026-10-12T14:30:49.000Z",
+    "summary": "This technical article details implementing a fused W4A16 GEMV kernel in Triton for batch-1 LLM decoding, measuring performance against RTX 3060 hardware roofline limits. Three kernel versions were tested and correctness-verified against PyTorch references; the fused version proved fastest despite theoretical advantages of a tuned variant.",
+    "content": "A fused W4A16 GEMV for batch-1 decoding, measured against the RTX 3060 roofline.\n\nScope note: one RTX 3060 12GB, batch-1 greedy decoding, Qwen2.5-1.5B-Instruct. This is a learning kernel, stated as such — the point is understanding, not beating Marlin.\nBatch-1 decoding is memory-bandwidth bound: each token reads every weight byte once. So the ceiling is bandwidth divided by the bytes read per token (weights plus a 2,048-token KV-cache read) — worked out before any code.\nMeasured (torch copy benchmark, not the spec sheet): 323.9 GB/s (spec: 360).\nCounted (from the architecture, not guessed):\n\n\n\nModel\ndtype\nWeight GB\nCeiling tok/s\n\n\n\n\nQwen2.5-1.5B\nbf16\n3.087\n102.9\n\n\nQwen2.5-1.5B\nint4\n0.772\n411.8\n\n\nORCH-Fusion\nbf16\n0.550\n539.7\n\n\nORCH-Fusion\nint4\n0.137\n2158.8\n\n\n\nTwo details worth knowing: the tied 151,936-token embedding is ~15% of Qwen's weights, and ORCH's matrices are so small that launch overhead may dominate — tested below.\nThree versions, all correctness-tested against a PyTorch reference on the models' real matrix shapes before any number was reported:\nv1 (dequantise-then-matmul): materialise fp16, then torch matmul. Shows the cost of the extra memory pass — 3–7× slower than v2.\nv2 (fused): one kernel, dequantise on the fly, no materialisation.\nv3 (split-K + tuned): autotuned tiles, split-K parallelism for large matrices.\nPer-shape microbenchmarks (in the repo) hold one more surprise: v3 is not faster than v2 on any of the five shapes I measured (v2 is 1.0–1.4× faster), yet end-to-end decoding uses v3. The fused kernel itself is up to 5.5× faster than a pre-dequantised reference on the wide MLP-gate shape; swapping v2 into the decode loop is the obvious next experiment.\nTwo bugs found along the way, both load-bearing:\nMissing +8 zero-point in packing — every positive weight destroyed. Caught by review before first GPU run.\n@triton.autotune vs atomic_add: autotune benchmarks all configs against the same output buffer (~500 timing reps), and a split-K kernel accumu",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我的Triton内核与bitsandbytes打平——两者都输给了数学",
+        "summary": "这篇技术文章详细介绍了在Triton中为批处理为1的LLM解码实现融合的W4A16 GEMV内核，并根据RTX 3060硬件屋顶线限制测量性能。测试了三个内核版本并针对PyTorch参考实现进行了正确性验证；融合版本被证明最快，尽管调优变体具有理论上的优势。"
+      }
+    }
+  },
+  {
+    "title": "Microsoft Graph PowerShell SDK v2: The Enterprise Automation Engine for Entra ID",
+    "slug": "microsoft-graph-powershell-sdk-enterprise",
+    "url": "https://dev.to/cloud-knowledge/microsoft-graph-powershell-sdk-v2-the-enterprise-automation-engine-for-entra-id-p2p",
+    "source": "DEV Community",
+    "date": "2026-10-12T14:30:00.000Z",
+    "summary": "After legacy PowerShell modules were deprecated, enterprise teams migrated to Microsoft Graph PowerShell SDK v2, which requires optimization to avoid performance and rate-limiting issues. The article covers certificate-based authentication for CI/CD and micro-module imports to reduce startup latency by 15–25 seconds, with reference implementations for automated workflows.",
+    "content": "The deprecation of legacy PowerShell modules (AzureAD, AzureADPreview, and MSOnline) forced identity and cloud security teams worldwide to migrate their entire automation stack to the Microsoft Graph PowerShell SDK v2.\nHowever, many engineers discovered that naive scripts written for Graph SDK v2 suffered from sluggish performance, rate-limiting HTTP 429 throttling errors, and oversized authentication token scopes.\nIn this enterprise engineering guide, we break down how to architect robust, high-performance identity automation engines using Microsoft Graph SDK v2, including:\nApp-Only certificate authentication (Zero manual interactive prompts in CI/CD).\nSlashing Module Load Time: Avoid Import-Module Microsoft.Graph\nThe monolithic Microsoft.Graph module bundles dozens of sub-modules encompassing thousands of cmdlets. Importing the full module adds 15–25 seconds of startup latency to every Azure Automation runbook or GitHub Actions workflow.\nInstead, import only the precise micro-modules your runbook requires:\npowershell\nImport-Module Microsoft.Graph.Authentication\nUnattended Enterprise Authentication via Certificate\nHardcoded client secrets create credential leakage risks and expire unpredictably. Enterprise automation must leverage certificate-based authentication against Microsoft Entra ID App Registrations:\npowershell\n\n    -ClientId $ClientId\n\n    -CertificateThumbprint $CertificateThumbprint\nProduction Script: Automated Zero Trust Leaver Offboarding Runbook\nWhen an employee departs, deprovisioning must be atomic across sessions, credentials, group memberships, and privileged roles:\npowershell\n[CmdletBinding()]\nOpen-Source Repositories & Full Guide\nAll automation scripts and production cmdlets from this article are maintained open-source on GitHub:\n📦 Shivi7566/graph-api-toolkit\nFor the comprehensive 4,500-word architecture breakdown with JSON batching payloads and multi-tenant management:\n👉 Read the Full Guide on Cloud Knowledge\nMore Identity Architecture on Clo",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Microsoft Graph PowerShell SDK v2：Entra ID的企业自动化引擎",
+        "summary": "在遗留的PowerShell模块被弃用后，企业团队迁移到Microsoft Graph PowerShell SDK v2，它需要优化以避免性能和速率限制问题。文章涵盖了用于CI/CD的基于证书的身份验证和微型模块导入，以将启动延迟减少15-25秒，以及用于自动化工作流的参考实现。"
+      }
+    }
+  },
+  {
+    "title": "How to choose an artifact repository: Nexus, Artifactory, and self-hosted AngusRepo by team size",
+    "slug": "choosing-artifact-repository-nexus-artifactory",
+    "url": "https://dev.to/wenping/how-to-choose-an-artifact-repository-nexus-artifactory-and-self-hosted-angusrepo-by-team-size-5f4g",
+    "source": "DEV Community",
+    "date": "2026-10-12T14:29:58.000Z",
+    "summary": "Choosing an artifact repository depends on team size, format support, and deployment model rather than feature count. The article provides a decision matrix mapping scenarios to recommended solutions: GitHub Packages for GitHub-native teams, Google Artifact Registry for GCP, Artifactory for enterprises, and Nexus OSS or AngusRepo for smaller self-hosted setups.",
+    "content": "Choosing an artifact repository is less about who has the longest feature list, and more about which deployment model fits your team size, stack, compliance needs, and budget. For self-hosted setups, Sonatype Nexus and JFrog Artifactory are the pair most often compared. If you are already deeply tied to a cloud or code host, GitHub Packages or Google Artifact Registry is usually less work. Teams that want open-source control and room to extend can also look at self-hosted options such as AngusRepo.\nThis article helps you filter among those categories. If you have already narrowed to Nexus, Artifactory, and AngusRepo, read 2026 private artifact repository selection: Nexus, Artifactory, AngusRepo deep comparison for a finer product-level comparison of formats, security, storage, and operations.\n\n\n\n\nScenario\nStart with\nWhy\n\n\n\n\nCode already on GitHub; mainly npm / Maven / Docker\nGitHub Packages\nNative Actions, permissions, and audit—no extra infrastructure\n\n\nFull stack on Google Cloud, GKE + Cloud Build\nGoogle Artifact Registry\nDeep IAM, VPC, and Cloud Build integration\n\n\nLarge enterprise; many formats/regions; mature commercial support\nJFrog Artifactory\nBroad format coverage, complete enterprise features, rich ecosystem and references\n\n\nGrowing team (~10–100), multi-format + multi-CI, self-hosted control\nAngusRepo\n10 formats, PROXY/GROUP, Compose-friendly; light admission gate; deep scan via AngusSecurity—avoids jumping straight to IQ/Xray licenses\n\n\nMostly Java/npm, ultra-tight budget, minimal private server\nSonatype Nexus OSS / AngusRepo\nNexus has mature Maven docs; AngusRepo fits when frontend / containers / Helm join the stack\n\n\nNeed commercial SLA and ecosystem, but keep OSS as a backup\nArtifactory / Nexus Pro; or AngusRepo POC\nCommercial editions for enterprise features; AngusRepo for “controllable first, deepen governance later”\n\n\nMostly container images; need a private registry\nHarbor or AngusRepo\nHarbor focuses on images; AngusRepo also manages Maven, npm, and",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何选择制品仓库：按团队规模选择 Nexus、Artifactory 和自托管 AngusRepo",
+        "summary": "选择制品仓库取决于团队规模、格式支持和部署模式，而不是功能数量。本文提供了一个决策矩阵，将不同场景映射到推荐的解决方案：适合 GitHub 原生团队使用 GitHub Packages，适合 GCP 使用 Google Artifact Registry，适合企业使用 Artifactory，适合较小自托管设置使用 Nexus OSS 或 AngusRepo。"
+      }
+    }
+  },
+  {
+    "title": "Ethereum RPC Providers for Developers: NOWNodes, Alchemy, Infura, QuickNode, GetBlock, and Chainstack",
+    "slug": "ethereum-rpc-providers-nownodes-alchemy-infura",
+    "url": "https://dev.to/stasias/ethereum-rpc-providers-for-developers-nownodes-alchemy-infura-quicknode-getblock-and-3lce",
+    "source": "DEV Community",
+    "date": "2026-10-12T14:29:55.000Z",
+    "summary": "Six Ethereum RPC providers (NOWNodes, Alchemy, Infura, QuickNode, GetBlock, Chainstack) abstract away node operation for multi-chain wallet backends via a standardized JSON-RPC interface. The article explains connection methods and compares providers by chain coverage, traffic handling, and cost; switching typically requires only a URL change.",
+    "content": "Say you're building a multi-chain wallet backend. It needs Ethereum, a couple of L2s, and — because your users hold it — Bitcoin. You do not want to sync and babysit a node for each chain. So you reach for an Ethereum RPC provider: a service that runs the node and hands you a URL to send JSON-RPC calls to.\nSix names come up for that job: NOWNodes, Alchemy, Infura, QuickNode, GetBlock, and Chainstack. They all speak the same protocol, so the hard part isn't writing the code — it's picking the one that fits your chains, your traffic, and your bill. This post covers both: how to connect, and how to choose.\nTL;DR\nThe rest of this is the reasoning and the code behind that list.\nHow an RPC Provider Fits Into Your App\nRPC stands for remote procedure call: you ask a remote server to run a function and return the result. eth_getBalance, eth_call, eth_sendRawTransaction — each is a request your app fires at a node over HTTPS or WebSocket. Ethereum clients expose a standard method set, documented in Ethereum.org's JSON-RPC reference.\nA provider runs that node behind an authenticated URL and keeps the client patched and the hardware scaled. Because the method set is standardized, the same request works whether it hits a self-hosted Geth node or a managed endpoint — which is why switching providers later is usually a URL change, not a rewrite.\nThe raw version, with curl:\nbash\ncurl -X POST https://eth.nownodes.io \\\n  -H \"Content-Type: application/json\" \\\n  -H \"api-key: YOUR_API_KEY\" \\\n  -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"eth_getBalance\",\"params\":[\"0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045\",\"latest\"]}'\n\nConnecting With ethers.js\nYou rarely hand-roll JSON-RPC in production — you point a library at the endpoint. The only provider-specific part is authentication; here NOWNodes takes the key in an api-key header.\nethers.js (v6):\njs\nconst req = new ethers.FetchRequest(\"https://eth.nownodes.io\");\nconst provider = new ethers.JsonRpcProvider(req);\nconst balance = await provider.getBal",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "以太坊 RPC 提供商供开发者使用：NOWNodes、Alchemy、Infura、QuickNode、GetBlock 和 Chainstack",
+        "summary": "六个以太坊 RPC 提供商（NOWNodes、Alchemy、Infura、QuickNode、GetBlock、Chainstack）通过标准化的 JSON-RPC 接口为多链钱包后端抽象化了节点操作。本文解释了连接方法，并按链覆盖范围、流量处理和成本比较提供商；切换通常只需要更改 URL。"
+      }
+    }
+  },
+  {
+    "title": "Import Student Marks from Excel: A Smarter Way to Enter Grades",
+    "slug": "import-student-marks-excel",
+    "url": "https://dev.to/manjushaps/import-student-marks-from-excel-a-smarter-way-to-enter-grades-334m",
+    "source": "DEV Community",
+    "date": "2026-10-12T14:29:20.000Z",
+    "summary": "The Teacher Assistant App now accepts Excel sheets for grade entry, parsing the file, validating marks, and matching students to subjects. Valid marks flow into the existing Grades workflow, enabling PDF generation and email delivery alongside the standard interface.",
+    "content": "One Excel sheet. Different results.\nA new post is live on Techn0tz: Import Student Marks from Excel: A Smarter Way to Enter Grades.\nThe Teacher Assistant App can now use an Excel marks sheet as another entry point to the existing Grades workflow.\nThe application reads the sheet, matches students and subjects, validates each mark, and separates valid records from issues such as invalid marks, missing values, name mismatches, and students that cannot be found.\nValid marks are saved to the same Grades data used by the existing reporting workflow, allowing them to continue through PDF generation and email delivery.\nThe post walks through the implementation in Rust, from Excel parsing and validation to database storage and the existing reporting workflow.\nA short demo is also included in the post.\n👇Read the full implementation here:\nImport Marks from Excel\nI’d love to hear your feedback and suggestions.\n— Manjusha (Techn0tz)",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "从 Excel 导入学生成绩：一种更智能的成绩输入方式",
+        "summary": "教师助手应用现在接受 Excel 电子表格进行成绩输入，解析文件、验证成绩和匹配学生与科目。有效的成绩流入现有的成绩工作流中，在标准界面的基础上启用 PDF 生成和电子邮件发送。"
+      }
+    }
+  },
+  {
+    "title": "Meme Monday",
+    "slug": "meme-monday",
+    "url": "https://dev.to/ben/meme-monday-4e47",
+    "source": "DEV Community",
+    "date": "2026-10-12T14:28:34.000Z",
+    "summary": "A brief Meme Monday community announcement from DEV featuring humor content. No substantive technical information provided.",
+    "content": "Meme Monday!\nToday's cover image comes from the last thread.\nDEV is an inclusive space! Humor in poor taste will be downvoted by mods.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Meme Monday（梗周一）",
+        "summary": "来自DEV的简短Meme Monday社区公告，主要呈现幽默内容。未提供实质性的技术信息。"
+      }
+    }
+  },
+  {
+    "title": "05 - React: useEffect",
+    "slug": "react-useeffect-hook-guide",
+    "url": "https://dev.to/atilla_baspinar_c5c68ec63/05-react-useeffect-ca4",
+    "source": "DEV Community",
+    "date": "2026-10-12T14:28:07.000Z",
+    "summary": "React's useEffect hook runs after render and DOM updates, making it ideal for data fetching, subscriptions, and timers. The article explains dependency arrays (run once after render, or again when dependencies change) and cleanup functions with examples including timer setup and event subscriptions.",
+    "content": "This tutorial focuses on one important hook: useEffect.\nuseEffect does\n\n\nuseEffect runs after React has rendered the component and committed the DOM updates.\nThat means it is not part of the render itself. It runs after the UI has been painted, which makes it a good place for:\nfetching data\nsubscribing to events\nstarting timers\ncleaning up resources\nuseEffect runs:\nonce after the initial render\nagain whenever one of its dependencies changes\n\n\n\n\nimport { useEffect, useState } from 'react';\n\nexport default function TimerExample() {\n  const [count, setCount] = useState(0);\n  const [userId, setUserId] = useState(1);\n\n  useEffect(() => {\n    console.log('Effect runs after render for user:', userId);\n\n    const timer = window.setInterval(() => {\n      setCount((prev) => prev + 1);\n    }, 1000);\n\n    return () => {\n      console.log('Cleanup runs before the next effect or before unmount');\n      window.clearInterval(timer);\n    };\n  }, [userId]);\n\n  return (\n    <>\n      <p>User: {userId}</p>\n      <p>Seconds: {count}</p>\n      <button onClick={() => setUserId((prev) => prev + 1)}>Next user</button>\n    </>\n  );\n}\n\nOn the first render, the effect runs after the component is mounted.\nIt creates a timer and starts counting.\nWhen userId changes, React runs the cleanup function from the previous effect.\nThen React runs the new effect for the updated value.\nWhen the component unmounts, the cleanup still runs one final time.\nIf the effect returns a function, that function is treated as cleanup.\nReact runs cleanup:\nbefore the next effect runs\nbefore the component is removed from the DOM\nThis is important because cleanup is where we usually stop timers, unsubscribe from listeners, and release resources.\nuseEffect(() => {\n  const subscription = someEventSource.subscribe();\n\n  return () => {\n    subscription.unsubscribe();\n  };\n}, [someValue]);\n\nIn short:\neffect = setup work\ncleanup = teardown work\nThe second argument to useEffect is the dependency array.\nuseEffect(() => {\n  // runs",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "05 - React: useEffect",
+        "summary": "React的useEffect钩子在渲染和DOM更新后运行，非常适合用于数据获取、订阅和计时器。本文章解释了依赖数组（仅在渲染后运行一次，或在依赖项更改时再次运行）和清理函数，并通过计时器设置和事件订阅的示例进行说明。"
+      }
+    }
+  },
+  {
+    "title": "Agentic development: perché il frontend sta cambiando più in fretta dell’infrastruttura",
+    "slug": "agentic-development-frontend-ai-change",
+    "url": "https://dev.to/frontendfacile/agentic-development-perche-il-frontend-sta-cambiando-piu-in-fretta-dellinfrastruttura-8pj",
+    "source": "DEV Community",
+    "date": "2026-10-12T14:27:49.000Z",
+    "summary": "Agentic AI development is changing frontend work faster than underlying infrastructure can adapt, enabling automation of manual tasks like scaffolding and boilerplate. The rise of self-hosted models offers teams deeper control over data and integration, but existing CI/CD and audit systems weren't designed for AI agents.",
+    "content": "Dai modelli self-hosted agli agenti che scrivono codice: opportunità, limiti e responsabilità in un nuovo paradigma di sviluppo.\nNegli ultimi anni abbiamo visto l’AI passare da “supporto” a “forza operativa”: non solo suggerisce una riga di codice, ma può esplorare un repository, proporre refactor, creare componenti, aggiornare dipendenze, generare test e aprire pull request. In pratica, stiamo entrando in un’era in cui chiunque può costruire qualcosa — e dove la distanza tra idea e prototipo si accorcia drasticamente.\nQuesto cambiamento, però, non è solo tecnologico: è un cambio di paradigma. Perché mentre gli agenti diventano più capaci, l’infrastruttura (tecnica e organizzativa) con cui sviluppiamo non è stata progettata per loro.\nSiamo in un periodo in cui la sensazione diffusa è: com’è possibile che tutto stia cambiando così in fretta?.\nModelli sempre più grandi e competenti ampliano ciò che è realizzabile.\nTooling sempre più accessibile riduce la barriera d’ingresso.\nL’effetto combinato è una democratizzazione della produzione software.\nPer il frontend questo significa che molte attività “manuali” (impalcature di progetto, boilerplate, conversioni tra formati, scaffolding di componenti, wiring di API) sono ormai candidati naturali all’automazione.\nUn aspetto spesso sottovalutato è la crescita di soluzioni self-hosted e di modelli eseguibili in locale.\nIn termini pratici, per aziende e team frontend questo apre un “secondo binario”:\nMaggiore controllo su dati e proprietà intellettuale.\nIntegrazioni più profonde con repository e ambienti interni.\nRiduzione della dipendenza da servizi esterni per task sensibili.\nQuesta direzione abilita scenari in cui l’AI non è un servizio remoto “a cui chiedere”, ma una capacità interna, disponibile vicino al codice e ai processi.\nQui emerge la frizione principale: l’ecosistema con cui lavoriamo (pipeline, permessi, CI/CD, ambienti di esecuzione, metriche, audit) è stato pensato per sviluppatori umani e automazioni tradizionali",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "代理开发：为什么前端的变化速度比基础设施更快",
+        "summary": "代理AI开发以比基础设施适应更快的速度改变前端工作，能够自动化搭建和样板代码等手动任务。自托管模型的兴起为团队提供了对数据和集成的更深入控制，但现有的CI/CD和审计系统并未为AI代理而设计。"
+      }
+    }
+  },
+  {
+    "title": "QGIS bans AI assisted contributions",
+    "slug": "qgis-bans-ai-assisted-contributions",
+    "url": "https://github.com/qgis/QGIS-Enhancement-Proposals/pull/387",
+    "source": "Hacker News",
+    "date": "2026-10-12T11:22:24.000Z",
+    "summary": "The QGIS project has formally banned AI-assisted code contributions following community discussion on GitHub. The policy reflects concerns about attribution, code quality, and the nature of open-source contribution in an AI-aided development era.",
+    "content": "Article URL: https://github.com/qgis/QGIS-Enhancement-Proposals/pull/387\nComments URL: https://news.ycombinator.com/item?id=50054751\nPoints: 234\n# Comments: 234",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "QGIS禁止AI辅助的代码贡献",
+        "summary": "QGIS项目在GitHub社区讨论后正式禁止了AI辅助的代码贡献。这一政策反映了对归属权、代码质量以及AI辅助开发时代开源贡献本质的担忧。"
+      }
+    }
+  },
+  {
+    "title": "Deloitte falsified documents to evade tax on Abramovich's wealth",
+    "slug": "deloitte-falsified-tax-documents-abramovich",
+    "url": "https://www.bbc.com/news/articles/c64g1l5389kvo",
+    "source": "Hacker News",
+    "date": "2026-10-12T10:21:27.000Z",
+    "summary": "Audit firm Deloitte falsified documents to help evade taxes on Chelsea Football Club owner Roman Abramovich's wealth, as reported by the BBC. The scandal highlights compliance and ethical risks in professional services firms handling high-net-worth clients.",
+    "content": "Article URL: https://www.bbc.com/news/articles/c64g1l5389kvo\nComments URL: https://news.ycombinator.com/item?id=50054207\nPoints: 450\n# Comments: 146",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "德勤伪造文件逃避阿布拉莫维奇财富税款",
+        "summary": "据BBC报道，审计公司德勤伪造文件以帮助切尔西足球俱乐部老板罗曼·阿布拉莫维奇逃避财富税。这一丑闻凸显了专业服务公司在处理高净值客户时面临的合规和伦理风险。"
+      }
+    }
+  },
+  {
+    "title": "Yandex bot traffic down 99% after data center attack",
+    "slug": "yandex-bot-traffic-data-center-attack",
+    "url": "https://radar.cloudflare.com/bots/as13238?dateRange=7d#bot-traffic",
+    "source": "Hacker News",
+    "date": "2026-10-12T04:54:12.000Z",
+    "summary": "Yandex's search bot traffic dropped 99% after a data center attack, as tracked by Cloudflare's bot traffic monitoring. The incident significantly affected the Russian search engine's ability to crawl and index web content.",
+    "content": "Article URL: https://radar.cloudflare.com/bots/as13238?dateRange=7d#bot-traffic\nComments URL: https://news.ycombinator.com/item?id=50051532\nPoints: 210\n# Comments: 101",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "数据中心遭攻击后Yandex机器人流量下降99%",
+        "summary": "据Cloudflare的机器人流量监控显示，数据中心遭攻击后Yandex的搜索机器人流量下降了99%。这一事件严重影响了该俄罗斯搜索引擎爬取和索引网页内容的能力。"
+      }
+    }
+  },
+  {
     "title": "Girora: Plan Trips with AI and Find People to Travel With",
     "slug": "girora-plan-trips-ai-find-travel-companions",
     "url": "https://dev.to/umeshpawak/girora-plan-trips-with-ai-and-find-people-to-travel-with-4pf0",
