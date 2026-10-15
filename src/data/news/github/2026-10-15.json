@@ -1,0 +1,194 @@
+[
+  {
+    "title": "One MCP config for Claude Code, OpenCode and OMP",
+    "slug": "one-mcp-config",
+    "url": "https://dev.to/mnzs/one-mcp-config-for-claude-code-opencode-and-omp-eeb",
+    "source": "DEV Community",
+    "date": "2026-10-15T03:29:23.000Z",
+    "summary": "Developers using multiple tools (Claude Code, OpenCode, OMP) must configure MCP servers separately in different files, creating maintenance burden and authentication friction. Ivar, a new configuration manager, unifies server setup and authentication workflows across all three tools.",
+    "content": "Three files for one server\n\n\nYou use Claude Code for one task and OpenCode for another, and both should see the same Figma and Linear MCP servers. Each harness wants them in its own file, under its own keys:\n\n\n\nharness\nfile\n\n\n\n\nClaude Code\n.mcp.json\n\n\nOpenCode\nopencode.json\n\n\nOMP\n.omp/mcp.json\n\n\n\nWriting three files once is tedious. Keeping them equal is the real cost: change a URL in one, forget the others, and half your sessions start without the server. Then each harness needs its own login.\nThe files are the easy part. Authentication fails differently in each harness:\n\n\n\nserver\nharness\nthe harness's own login\nwhat ivar mcp auth does\n\n\n\n\nFigma\nOpenCode\nFigma refuses OpenCode's client registration; opencode mcp auth prints Authentication failed and exits 0\nregisters a client under a name Figma accepts, runs the browser flow and writes the tokens into OpenCode's store\n\n\nFigma, Linear\nOMP\nOMP has no MCP login command\nruns the browser flow itself and imports the token with omp auth-broker import\n\n\n\nFigma, Linear\nClaude Code\n\nclaude mcp login works\nhands the browser step to claude mcp login\n\n\n\nLinear\nOpenCode\n\nopencode mcp auth works\nhands the browser step to opencode mcp auth\n\n\n\n\nWhere the harness's own login works, ivar uses it. It only takes over where the harness cannot finish. Figma MCP on OpenCode: fix \"Authentication failed\" explains the Figma case in detail.\nInstall ivar, create a hall in an empty directory with the harnesses you use, and add the servers:\ncurl -fsSL 'https://ivar.run/install?ref=one-mcp-config' | sh\nmkdir tools-hall && cd tools-hall\nivar init --provider claude-code\nivar provider add opencode\nivar provider add omp\nivar mcp add figma\nivar mcp add linear\n\nfigma and linear are known names, so ivar mcp add fills in their URLs. Any other HTTP server takes --url, for example ivar mcp add sentry --url https://mcp.sentry.dev/mcp. Adding a server that is already declared the same way changes nothing; adding one with the same name and a different URL is",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "为 Claude Code、OpenCode 和 OMP 配置一个 MCP",
+        "summary": "使用多种工具（Claude Code、OpenCode、OMP）的开发者必须在不同文件中分别配置 MCP 服务器，造成维护负担和身份验证摩擦。Ivar 是一个新的配置管理器，统一了这三种工具中的服务器设置和身份验证工作流。"
+      }
+    }
+  },
+  {
+    "title": "Node.js API Routes and Server Actions: 3 Error Tracking Boundaries (With Attribution)",
+    "slug": "error-tracking-attribution-boundaries",
+    "url": "https://dev.to/ethanbrooks1486/nodejs-api-routes-and-server-actions-3-error-tracking-boundaries-with-attribution-2egf",
+    "source": "DEV Community",
+    "date": "2026-10-15T03:28:18.000Z",
+    "summary": "Effective error tracking requires a stable application contract capturing both exception details and cost-attribution context (release, environment, pricing rule, cost center) before choosing an error backend. This decouples pricing logic from monitoring provider changes while maintaining support team usability.",
+    "content": "Instrument three server-side boundaries, but define the cost-attribution record before choosing the error backend. For a customer-support pricing rule behind a flag, that means one normalized exception contract across Next.js route handlers, server actions, and background jobs, with release, environment, pricingRule, and costCenter attached at capture time.\nTL;DR: a capture-and-lookup service is enough when the job is grouping server exceptions and feeding an internal support view. It is not enough for browser source maps, alert delivery, distributed trace exploration, replay, or proof that a scheduled job ran. Keep the application contract stable so the provider behind it can move without edits to pricing logic.\nStart from the support question: why did this account receive the wrong quote? A stack trace locates the failed code. It does not identify the rule, deployment, environment, or owning budget. Those are application facts, so the application has to supply them.\nI would keep eight fields. Four describe the exception: name, message, stack, and occurredAt. Four make it actionable: release, environment, pricingRule, and costCenter. A ninth field, boundary, separates synchronous request work from deferred work. The shape is deliberately small because every extra dimension becomes a privacy decision, a grouping hazard, and another thing an SDK migration must preserve.\nHeaders need even less enthusiasm. Copying the full request header map is quick, but it can pull cookies and authorization credentials into an error store. For this workflow, allowlist content-type, user-agent, and x-request-id. Three headers. No clever redaction regex.\nThe attribution rule is equally plain: costCenter names the team paying for and operating the pricing action; pricingRule names the versioned business decision. Neither field should be derived from an exception message. Messages change. Identifiers should not.\nThat gives the support UI a useful join key without pretending an error even",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Node.js API 路由和服务器操作：3 个错误追踪边界（带归属）",
+        "summary": "有效的错误追踪需要一个稳定的应用合同，在选择错误后端之前捕获异常详情和成本归属背景（发布版本、环境、定价规则、成本中心）。这将定价逻辑与监控提供商变更解耦，同时保持支持团队的可用性。"
+      }
+    }
+  },
+  {
+    "title": "Lock GitHub Actions dependencies to reviewed commits with workflow lockfiles",
+    "slug": "github-actions-workflow-lockfiles",
+    "url": "https://dev.to/davekurian/lock-github-actions-dependencies-to-reviewed-commits-with-workflow-lockfiles-3h7g",
+    "source": "DEV Community",
+    "date": "2026-10-15T03:28:11.000Z",
+    "summary": "GitHub Actions Workflow Lockfiles, now in public preview, pin exact commits for direct, transitive, and reusable workflow dependencies, closing the gap between code review and actual execution. The feature eliminates risks from tag movement and maintains a single source of truth for dependency versions.",
+    "content": "A moving tag is not a review\n\n\nYour workflow can keep saying uses: vendor/build-action@v3 while the code behind v3 changes. That leaves a gap between the commit your team reviewed and the commit a later workflow run actually executes. Pinning every action by hand to a full commit SHA narrows that gap, but it is easy to miss transitive dependencies and reusable workflow calls.\nGitHub Actions workflow dependency lockfiles are now in public preview for Free, Team, and eligible Enterprise Cloud plans. The GitHub CLI extension gh actions-lock generates .github/workflows/actions.lock; GitHub says an onboarded workflow must have its dependencies represented there, and runs use the recorded commits even if a tag or branch moves. The file records direct actions, transitive action dependencies, and reusable-workflow dependencies. GitHub’s October 14 announcement also describes gradual onboarding, stale-lock checks, policy enforcement, and Dependabot updates. The preview is useful for teams whose review process already depends on knowing exactly what automation code will run, but a lockfile does not tell you whether the locked code is trustworthy. GitHub’s announcement explains the current preview scope and behavior.\nA workflow reference such as owner/action@v3 is readable, but a tag is a name that can be moved. A full commit SHA in the workflow pins that one reference directly. The lockfile takes a different approach: your workflow can retain a human-meaningful ref while the generated lock records the exact commit to use. For an onboarded workflow, GitHub requires the needed lock entries and executes the locked commit.\nThat is most valuable when a workflow uses more than one action or when actions themselves call other actions. The lockfile captures those transitive dependencies too, so your review can see the resolved set rather than relying on each top-level action tag. Reusable workflows need attention as well: a reusable workflow is covered by the lockfile in the reposito",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "使用工作流锁定文件将 GitHub Actions 依赖锁定到已审查的提交",
+        "summary": "GitHub Actions 工作流锁定文件现已公开预览，为直接、传递和可重用的工作流依赖固定确切的提交，缩小代码审查与实际执行之间的差距。该功能消除了标签移动带来的风险，并为依赖版本维护了单一的真实来源。"
+      }
+    }
+  },
+  {
+    "title": "Title: Small projects still teach me the most",
+    "slug": "small-projects-teach-most",
+    "url": "https://dev.to/chaoditang/title-small-projects-still-teach-me-the-most-3en8",
+    "source": "DEV Community",
+    "date": "2026-10-15T03:28:09.000Z",
+    "summary": "Small side projects reveal real-world usability problems tutorials cannot teach—awkward mobile interactions, confusing instructions, unexpected feature usage. Launching early and iterating on friction points often delivers more value than adding new features.",
+    "content": "I like building small web projects. Sometimes it’s a game, sometimes a tool, sometimes just an idea I want to try over a weekend.\nThe first version is usually the easy part. The interesting problems show up later: a button that feels awkward on mobile, instructions that make sense only to me, or someone using a feature in a way I never expected.\nThose details have changed how I build. I try to get something usable out early, watch where people get stuck, and fix one thing at a time. I still get tempted to add more features, but often a clearer sentence or one fewer step helps more.\nI’m planning to share some of those small lessons here as I go.\nWhat’s one thing a side project taught you that a tutorial didn’t?",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "小型项目仍然教会我最多东西",
+        "summary": "小型副业项目揭示了教程无法教授的真实世界可用性问题——尴尬的移动交互、令人困惑的说明、意外的功能使用。早期推出并在摩擦点上迭代通常比添加新功能提供更多价值。"
+      }
+    }
+  },
+  {
+    "title": "A list of MCP servers (100 active ones), and why your agent needs a list, not ten pages",
+    "slug": "mcp-servers-list-agents",
+    "url": "https://dev.to/specstream/a-list-of-mcp-servers-100-active-ones-and-why-your-agent-needs-a-list-not-ten-pages-4bi8",
+    "source": "DEV Community",
+    "date": "2026-10-15T03:27:10.000Z",
+    "summary": "Agents struggle with paginated searches, hitting context limits and returning partial results; a direct list tool bypasses pagination friction entirely. This curated list of 100 active MCP servers with 500+ GitHub stars demonstrates how bulk results serve agent workflows better than page-by-page retrieval.",
+    "content": "Ask an agent for \"every MCP server on GitHub with more than 500 stars that was pushed to in the last month\" and watch what happens. It searches. It opens ten pages. It reads ten READMEs, hits the context limit around the time it gets interesting, and hands you a tidy list of ten. You asked for all of them.\nThat isn't the agent being lazy. It was given page tools, and a page tool returns pages. Reading them, remembering them and turning them into rows is the agent's job, one page at a time, on a meter that runs per call.\nA list tool takes the sentence and returns the rows. Here is one, asked over MCP:\n100 MCP servers on GitHub with more than 500 stars, pushed to in the last month, with their star count and language\nThe 100 rows are here, no account needed.\nStar counts and push dates are as of the run on October 8, 2026.\n\n\n\nRepository\nStars\nLanguage\nLast push\n\n\n\n\ncodebase-memory-mcp\n46,159\nC\n2026-10-07\n\n\nplaywright-mcp\n37,933\nTypeScript\n2026-10-08\n\n\ngithub-mcp-server\n33,449\nGo\n2026-10-08\n\n\nmcp-toolbox\n16,624\nGo\n2026-10-08\n\n\nFigma-Context-MCP\n15,964\nTypeScript\n2026-10-03\n\n\nDesktopCommanderMCP\n9,968\nTypeScript\n2026-10-08\n\n\nWindows-MCP\n8,308\nPython\n2026-10-08\n\n\nmcp-atlassian\n5,979\nPython\n2026-09-19\n\n\nmcp-grafana\n3,535\nGo\n2026-10-08\n\n\narxiv-mcp-server\n3,202\nPython\n2026-10-08\n\n\n\nThe whole list, in numbers: 41 TypeScript, 33 Python, 7 Go, 6 JavaScript, and a handful of C#, Java and C. Stars run from 506 to 47,362. Nine repos have more than 10,000 stars and 32 have fewer than 1,000. Seventy-six were pushed to on or after October 1. Every row carries a one-line reason it's on the list.\nThe biggest repo on it is not a server. The top row, agentic-awesome-skills at 47,362 stars, reads as a skills collection whose description mentions a local MCP. The reading of \"MCP server\" let it in. Two official SDKs, for Python and TypeScript, got in the same way: they build servers, they aren't servers. So did a Laravel package for building them.\nFive repos are named just \"mcp.\" A name colu",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "MCP服务器列表（100个活跃的），以及为什么你的代理需要一个列表而不是十页",
+        "summary": "代理在分页搜索中遇到困难，超过上下文限制并返回部分结果；直接列表工具完全绕过分页摩擦。这个包含500多个GitHub星的100个活跃MCP服务器的精选列表展示了批量结果如何比逐页检索更好地为代理工作流提供服务。"
+      }
+    }
+  },
+  {
+    "title": "Grants.gov alerts that don't miss: every open federal grant tribes can apply for, from one sentence",
+    "slug": "federal-grants-tribal-organizations",
+    "url": "https://dev.to/specstream/grantsgov-alerts-that-dont-miss-every-open-federal-grant-tribes-can-apply-for-from-one-sentence-5dg3",
+    "source": "DEV Community",
+    "date": "2026-10-15T03:25:35.000Z",
+    "summary": "Federal grant research for tribal organizations typically requires manual tab-hunting through grants.gov to filter by eligibility; a single query returns all matching open opportunities with funding ceilings and deadlines. Eighteen grants currently match criteria for tribal applicants with deadlines in early December 2026.",
+    "content": "The morning goes like this. Open the portal. Search \"tribal\". Sort by close date. Open the first eight results in eight tabs. Find the eligibility paragraph in each. Close seven tabs. Do it all again the next morning, because something new may have posted overnight and the only way to know is to look.\nA saved keyword alert shortens the first half of that. It can't read the eligibility paragraph, which is where the answer lives.\nHere is the list I wanted instead:\nOpen federal grants in the United States that tribes and tribal organizations can apply for, closing by December 7, 2026, with the funder, award ceiling, deadline and official link\nOne sentence, up to 30 results. It came back with 18. The whole list is here, no account needed.\n\n\n\nGrant\nFunder\nCeiling\nCloses\n\n\n\n\n2026 National Urban and Community Forestry Challenge Cost Share Grant Program\nForest Service\n$750,000\n2026-10-12\n\n\nCommunity Forest and Open Space Conservation Program\nForest Service\n$600,000\n2026-10-13\n\n\nTribal Colleges and Universities Program (TCUP)\nU.S. National Science Foundation\n$3,500,000\n2026-10-14\n\n\nU.S. Department of Justice FY26 Coordinated Tribal Assistance Solicitation Notice of Funding Opportunity\nBureau of Justice Assistance\n$5,600,000\n2026-10-15\n\n\nBJA FY 2026 Tribal Justice Training and Technical Assistance Program\nBureau of Justice Assistance\n$1,870,000\n2026-10-21\n\n\nOJJDP FY 2026 Community and Schools Youth Drug Prevention Program\nOffice of Juvenile Justice Delinquency Prevention\n$750,000\n2026-10-29\n\n\nBJA FY 2026 Tribal Civil and Criminal Legal Assistance\nBureau of Justice Assistance\n$600,000\n2026-11-06\n\n\nOJJDP FY 2026 Family Treatment Court Program\nOffice of Juvenile Justice Delinquency Prevention\n$850,000\n2026-11-16\n\n\nTribal Broadband Connectivity Program\nDOC NIST ERA\nnot published\n2026-11-17\n\n\nNative American Affairs: Fiscal Year 2025 Colorado River Basin Tribal Drought Resiliency Program\nBureau of Reclamation\n$1,000,000\n2026-11-20\n\n\n\nEvery row links to its official page on grants.",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "不会遗漏的Grants.gov警报：部落可以申请的每一项开放联邦补助金，用一句话总结",
+        "summary": "部落组织的联邦补助金研究通常需要在grants.gov上手动搜索标签以按资格筛选；单个查询返回所有匹配的开放机会及其资金上限和截止日期。目前有18项补助金符合部落申请者的标准，截止日期在2026年12月初。"
+      }
+    }
+  },
+  {
+    "title": "OpenAI Decisions API: A Practical Developer's Guide",
+    "slug": "openai-decisions-api",
+    "url": "https://dev.to/ali_82f3409ed625e8ba8515b/openai-decisions-api-a-practical-developers-guide-39jo",
+    "source": "DEV Community",
+    "date": "2026-10-15T03:25:13.000Z",
+    "summary": "OpenAI's Decisions API solves the problem of parsing vague LLM responses by returning typed verdicts instead: probabilities for yes/no questions, ranked choices for multiple-option decisions, and weighted scores for rubrics. Currently in public beta with general availability expected within weeks.",
+    "content": "If your app asks a large language model a yes-or-no question, you have probably lived through this: you request a clean label, the model replies with a paragraph, and somewhere in your codebase a regular expression tries to drag the word \"refund\" out of \"I believe this does constitute a refund request.\" It works on Monday. By Friday the model is feeling chatty, the regex misses, and a support ticket goes to the wrong queue.\nOn 6 October, OpenAI put a public beta of a different answer in front of developers: the Decisions API, a new endpoint — POST /v1/decisions — that returns typed verdicts instead of prose. No paragraphs to parse, no JSON mode to coax, just a probability, a choice, or a score. This is a practical guide: what the endpoint does, what it costs, where it genuinely helps, and the calibration work it quietly leaves to you.\nThe idea is deliberately narrow. You send evidence (input) plus one or more questions, and the API answers each question in a fixed shape. Three question types exist:\nPredicate — a yes-or-no condition, answered with a probability between 0 and 1. \"Does this photo show visible product damage?\"\n\n\nChoice — a fixed set of candidate answers you define, answered with the winning choice, the option probabilities and a confidence value. \"Which department owns this ticket?\"\n\n\nScore — an ordered rubric you define, answered with a probability-weighted average across the levels, plus a confidence. \"How severe is this incident?\"\n\n\n\nA refusal is a separate answer type — not a low score and not your fallback category. As of mid-October the API is in public beta, with gpt-6-luna as the only supported model, and OpenAI says it expects general availability \"in the coming weeks\". That is an expectation, not a date.\nThe quickest way to feel the shape of the API is a support-routing call. With curl:\ncurl https://api.openai.com/v1/decisions \\\n  -H \"Authorization: Bearer $OPENAI_API_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"model\": \"gpt-6-l",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "OpenAI 决策 API：实际开发者指南",
+        "summary": "OpenAI 的决策 API 通过返回类型化的判决而非解析模糊的大语言模型响应来解决问题：对 yes/no 问题的概率、对多选项决策的排序选项和对评分标准的加权分数。目前处于公开测试版，预计在几周内正式发布。"
+      }
+    }
+  },
+  {
+    "title": "Why Your Connection Pool is Lying to You",
+    "slug": "connection-pool-nodejs-performance",
+    "url": "https://dev.to/lucyreeves/why-your-connection-pool-is-lying-to-you-4pel",
+    "source": "DEV Community",
+    "date": "2026-10-15T03:24:06.000Z",
+    "summary": "Node.js connection pools with fixed maximum sizes starve query queues when connections are held during external API calls inside transactions; one developer found 99.9% of latency was queue wait time. The solution: architectural separation—move external I/O outside transaction boundaries to keep database connections short-lived.",
+    "content": "We hit a wall last month. Traffic was stable, CPU was idle, but p99 latency spiked to 2s. The PostgreSQL server looked healthy. The culprit wasn't the database; it was our Node.js connection pool configuration.\nMost teams set pool.max based on a static assumption: \"We have 20 connections, so we can handle 20 concurrent requests.\" This fails because connections aren't just resources; they are locks. When you hold a connection for 50ms, you block 19 others. When you hold it for 500ms due to a slow downstream call or a complex join, you starve the queue.\nThe standard pg pool in Node behaves like a fixed-size barrier. If all max connections are in use, new queries wait in a FIFO queue. There is no fallback. There is no read replica offload. Just waiting.\nOur logs showed queryQueueLength climbing steadily. We weren't seeing duplicate queries, but we were seeing long-held connections. Specifically, we had a service that called an external API inside a transaction. The transaction had idleInTransactionSessionTimeout set to 60s. The API was timing out at 5s, but the connection stayed open until the timeout or manual commit.\n// The mistake: holding a connection during external I/O\nconst client = await pool.connect();\ntry {\n  await client.query('BEGIN');\n  const response = await fetch('https://external-api.com/status'); // Blocks for 1-5s\n  await client.query('UPDATE users SET last_synced = NOW() WHERE id = $1', [userId]);\n  await client.query('COMMIT');\n} finally {\n  client.release(); // Too late, the queue was already backed up\n}\n\nThe fix wasn't scaling out the postgres instance. It was architectural separation.\nWe split the lifecycle. We run the external API call outside the database transaction. Yes, this introduces a consistency window. If the API fails after we commit the intent, we have stale data. But in our case, eventual consistency was acceptable for sync status.\n// Better: Short-lived transaction, external I/O separated\nconst updateResult = await pool.query(\n  'BE",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "你的连接池为什么在欺骗你",
+        "summary": "具有固定最大大小的 Node.js 连接池在事务内保持连接期间会导致查询队列饥饿；一位开发者发现 99.9% 的延迟是队列等待时间。解决方案：架构分离——将外部 I/O 移到事务边界之外，以保持数据库连接短生命周期。"
+      }
+    }
+  },
+  {
+    "title": "How to Capture Tribal Knowledge Before You Need It: A Register, a Backup Person, and a 20-Minute Interview",
+    "slug": "capture-tribal-knowledge",
+    "url": "https://dev.to/duaerteam/how-to-capture-tribal-knowledge-before-you-need-it-a-register-a-backup-person-and-a-20-minute-4533",
+    "source": "DEV Community",
+    "date": "2026-10-15T03:23:11.000Z",
+    "summary": "Organizational tribal knowledge—procedures known to only one person—can be systematically discovered through targeted 15-minute interviews, tracked in a spreadsheet with backup-person and documentation status, and prioritized by coverage gaps. A formula-driven status tracker highlights single points of failure and outdated procedures.",
+    "content": "This article is AI-generated.\nEvery team has things that only one or two people know. How to restart the label printer when it jams. Which customer needs certificates in a particular format. Why a step in the month-end process is done in that odd order. None of it is written down because it never seemed worth writing down, until the person who knows is on holiday, off sick, or gone.\nThe usual advice is \"document everything,\" which is why it rarely happens. This guide takes a narrower approach: find out what only one person knows, decide which of it matters, and capture it in short, repeatable sessions.\nTribal knowledge is hard to list because people don't notice they have it. Instead of asking \"what do you know?\", ask questions that surface it:\n\"What do people come to you for that they can't get anywhere else?\"\n\"If you were away for two weeks, what would go wrong first?\"\n\"What do you do that isn't in any procedure?\"\n\"Which questions do new starters ask you most often?\"\nAsk these of each team member in a 15-minute conversation. Write each answer as a short topic, for example \"Restarting label printer after jam\" or \"Certificate format for customer X.\"\nPut the topics into one sheet, one topic per row.\n\n\n\nColumn\nContent\nHow it's filled\n\n\n\n\nA\nTopic\nManual\n\n\nB\nWho knows\nManual\n\n\nC\nBackup person\nManual, can be blank\n\n\nD\nWritten down?\nY or N\n\n\nE\nLast checked\nDate the write-up was last confirmed\n\n\nF\nStatus\nFormula\n\n\n\nIllustrative data (placeholders):\n\n\n\nTopic\nWho knows\nBackup\nWritten?\nLast checked\n\n\n\n\nt1\nAna\nRaj\nY\n2026-08-01\n\n\nt2\nBen\n\nN\n\n\n\nt3\nCy\nDee\nN\n\n\n\nt4\nAna\nBen\nY\n2025-12-01\n\n\n\nStatus (F2)\n=IF(D2=\"Y\",IF(TODAY()-E2>180,\"STALE\",\"COVERED\"),IF(C2=\"\",\"SINGLE POINT\",\"AT RISK\"))\n\nSINGLE POINT: not written down and nobody else knows it. Highest priority.\nAT RISK: not written down, but at least a second person knows it.\nSTALE: written down, but nobody has confirmed it in six months. Processes drift; old notes can be worse than none.\nCOVERED: written and recently checked.\nWith 2026",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "如何在需要之前捕获部落知识：登记册、备份人和 20 分钟面试",
+        "summary": "组织部落知识——只有一个人知道的程序——可以通过有针对性的 15 分钟面试系统地发现，在电子表格中追踪备份人和文档状态，并根据覆盖范围的差距进行优先排序。由公式驱动的状态追踪器突出显示单点故障和过时的程序。"
+      }
+    }
+  },
+  {
+    "title": "I Burned 95% of My AI Coding Quota in 2 Days — Here's What the Logs Revealed",
+    "slug": "claude-code-quota-usage-analysis",
+    "url": "https://dev.to/alairjt/i-burned-95-of-my-ai-coding-quota-in-2-days-heres-what-the-logs-revealed-2omf",
+    "source": "DEV Community",
+    "date": "2026-10-15T03:21:49.000Z",
+    "summary": "Analysis of three days of Claude Code usage revealed 99.9% of tokens were context re-reads and 97.6% were cached material; long sessions with growing context and parallel subagents amplified token costs dramatically. Breaking work into focused sessions, reducing parallel review cycles, and using smaller models for routine tasks can cut consumption by 75%.",
+    "content": "I use Claude Code every day to build a SaaS product. This week, the usage meter hit 95% before Wednesday. I assumed I had somehow written a mountain of code.\nI hadn't.\nEvery request is logged locally, so I added it up. Here's what three days of work looked like (October 12–15):\n65,000 requests\n12.6 billion tokens processed\n14 million tokens of actual output\nThat means 99.9% of my tokens weren't code. They were the model re-reading what it already knew.\n97.6% of all tokens were cache reads. Every turn, the agent resends the entire conversation so far: files read, tool results, earlier decisions.\nWhen the context sits at 200k tokens, a one-line reply still costs 200k tokens of reading.\nTwo thirds of my volume came from requests with more than 200k tokens of context. Only 2.5% came from requests under 50k.\nA long session doesn't cost more because it does more. It costs more because every new turn is more expensive than the last.\nMy workflow splits work into small tasks. For each task, one subagent implements and two review — one for spec conformance, one for code quality. It produces clean results.\nIt also produced 78% of my requests and 53% of my tokens.\nEach subagent starts with a fresh but still large context, runs many tool calls, and each call re-reads that context. One task becomes dozens of requests.\nOut of 46 sessions, five accounted for three quarters of the total volume. These were multi-hour runs where the context kept growing and I never started over. One of them averaged almost 400k tokens of context per request.\nThe rest of the breakdown:\n\n\n\nModel\nShare of Tokens\n\n\n\n\nSonnet\n82%\n\n\nOpus\n14%\n\n\nFable (premium tier)\n3.6% — almost all in a single day\n\n\n\nOne session per block of tasks. I'll clear or compact well before the context reaches 150k.\nFewer parallel subagents. One review cycle for routine work instead of two.\nA smaller model for routine subagents like review and exploration.\nPremium models only for planning and hard decisions.\nA small local script that",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我在2天内用完了95%的AI编码配额——日志揭示了什么",
+        "summary": "对三天Claude Code使用情况的分析表明，99.9%的令牌是上下文重新读取，97.6%是缓存内容；长会话期间上下文增长和并行子代理戏剧性地放大了令牌成本。将工作分解为专注的会话、减少并行审查周期和使用较小的模型完成例行任务可将消耗量减少75%。"
+      }
+    }
+  },
+  {
+    "title": "Cortex XDR Analyst Exam: Seven XQL Queries to Write Before You Book It",
+    "slug": "cortex-xdr-analyst-exam-xql",
+    "url": "https://dev.to/palak_mazumdar_f5431445f6/cortex-xdr-analyst-exam-seven-xql-queries-to-write-before-you-book-it-3l4g",
+    "source": "DEV Community",
+    "date": "2026-10-15T03:19:47.000Z",
+    "summary": "The Palo Alto Cortex XDR Analyst certification exam weighs Data Analysis at 28%, requiring proficiency with XQL queries for filtering, aggregating, time-bucketing, and joining data. The author provides seven progressive XQL query examples mapped directly to exam blueprint tasks to guide hands-on preparation.",
+    "content": "The Palo Alto Networks XDR Analyst exam gives 28% of its score to Data Analysis, and most of that domain is Cortex Query Language (XQL). If you can write a query that filters xdr_data, aggregates it, buckets it by time and joins it to a lookup table, you have covered the part of the exam that rewards hands-on practice most directly.\nThis post walks through seven queries in the order you would build them during a real investigation. Each one is short, uses only stages and fields from Palo Alto's own documentation, and maps to a numbered task in the exam blueprint.\nThe certification checks that you can run a Cortex XDR console as a SOC analyst: triage alerts, investigate incidents, query data and manage endpoint policy. It sits at the Specialist level in the Security Operations track, according to the XDR Analyst certification page.\nYou book the exam through Pearson VUE, and Palo Alto delivers it in English worldwide. The blueprint is short enough to print on one page, and every task in it is numbered, which makes it easy to tick off as you study.\nThe four domains and their weights come from the XDR Analyst datasheet (August 2025 edition, read on 15 October 2026):\n\n\n\nDomain\nWeight\nWhat it asks you to do\n\n\n\n\n1. Alerting and Detection Processes\n23%\nAlert types and sources, incident scoring, alert starring, alert grouping and data stitching\n\n\n2. Incident Handling and Response\n34%\nCausality chain, timeline, forensics, ITDR, response actions, exclusions and exceptions\n\n\n3. Data Analysis\n28%\nXQL syntax and schema, Query Library, scheduled queries, lookup tables, IOC hunting, dashboards, retention, Host Insights\n\n\n4. Endpoint Security Management\n15%\nPrevention and extension profiles, agent operational states, agent and content versions\n\n\n\nThe datasheet also lists \"Basic understanding of programming and scripting languages (i.e., Python, PowerShell, SQL, XQL)\" among the required skills. So XQL is named twice: once as a skill and once as a scored domain.\n\nAn XQL query starts w",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Cortex XDR分析师考试：预约前需要编写的七个XQL查询",
+        "summary": "Palo Alto Cortex XDR分析师认证考试数据分析部分占28%，需要掌握XQL查询的过滤、聚合、时间分组和数据连接等技能。作者提供了七个递进式XQL查询示例，直接映射到考试大纲任务，以指导实践操作准备。"
+      }
+    }
+  },
+  {
+    "title": "Understanding Solar Street Light Installation Layouts",
+    "slug": "solar-street-light-installation-layouts",
+    "url": "https://dev.to/jiren-edobo/understanding-solar-street-light-installation-layouts-1ki6",
+    "source": "DEV Community",
+    "date": "2026-10-15T03:18:02.000Z",
+    "summary": "Solar street light installation requires choosing between single-side, double-side (opposite or staggered), center-median, and cable-suspension arrangements, each suited to different road geometries and coverage requirements. The appropriate layout depends on road width, pole height, and desired lighting uniformity rather than any universal optimal configuration.",
+    "content": "Solar street light installation is not just about choosing a suitable lamp and mounting it on a pole. The arrangement of the lights along a road also affects lighting coverage, uniformity, and the overall design of a project.\nSeveral common layouts are used in road lighting. Each has different requirements depending on road width, pole height, available space, and the desired lighting distribution.\n\nSingle-Side Arrangement\nIn a single-side arrangement, all light poles are installed along one side of the road.\nThis layout is often considered for narrow roads, access roads, and smaller streets where one-sided installation can provide sufficient coverage. However, the road width, mounting height, and light distribution must be evaluated carefully to avoid uneven illumination on the opposite side.\nDouble-Side Arrangement\nDouble-side arrangements place poles along both sides of the road. Two common configurations are used.\nOpposite arrangement: Poles on both sides face each other at similar positions. This can provide a more balanced lighting pattern across the road.\nStaggered arrangement: Poles alternate between the two sides rather than lining up directly opposite each other. This may help distribute light more evenly along the road, depending on the luminaire's optical design and pole spacing.\nNeither configuration is automatically better. The appropriate choice depends on the road geometry and the required lighting performance.\nCenter Arrangement\nIn a center arrangement, light poles are installed along the central divider or median of a road, with luminaires positioned to illuminate the required areas on either side.\nThis layout may be suitable for divided roads and wider road sections where a central installation is practical. Pole structure, mounting height, and luminaire orientation must be designed to provide adequate coverage in both directions.\nCable Suspension Arrangement\nIn a cable suspension arrangement, a luminaire is suspended from a cable stretched betwee",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "理解太阳能路灯安装布局",
+        "summary": "太阳能路灯安装需要在单侧、双侧（相对或交错）、中央分隔带和电缆悬挂等布局中进行选择，每种布局适合不同的道路几何形状和覆盖要求。合适的布局取决于道路宽度、杆高和所需的照明均匀性，而不是任何通用的最优配置。"
+      }
+    }
+  }
+]
