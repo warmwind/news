@@ -1,5 +1,197 @@
 [
   {
+    "title": "Anthropic's 100 Overcharge Bug: What Internationalization Failures Reveal About Agent Payment Pipelines",
+    "slug": "anthropic-100-overcharge-bug",
+    "url": "https://dev.to/mech_app_ai/anthropics-100x-overcharge-bug-what-internationalization-failures-reveal-about-agent-payment-3e58",
+    "source": "DEV Community",
+    "date": "2026-10-17T10:05:49.000Z",
+    "summary": "A Costa Rican developer was charged $10,000 instead of $100 due to missing decimal separator validation in Anthropic's payment console. The bug reveals a critical failure in payment authorization for agent platforms, highlighting the challenge of safely validating currency input across different locales without trusting client-side formatting.",
+    "content": "A Costa Rican developer tried to load $100 in API credits on Anthropic's console. The platform charged $10,000 instead. The root cause was a missing decimal separator validation layer that silently interpreted \"100,00\" (Spanish locale format) as 10000. No confirmation modal. No server-side normalization. Just an instant charge 100 times larger than intended.\nThis is not a UX annoyance. It is a structural failure in the payment authorization boundary that sits between agent consumption metering and financial settlement. Every agent platform that bills for API calls faces this exact problem: how do you validate currency input across locales without trusting client-side formatting?\nAgent platforms have two distinct flows that must intersect cleanly:\nConsumption metering: Agents call APIs, rack up token costs, trigger usage events.\nCredit loading: Users authorize payments to fund future agent activity.\nThe bug occurred in the credit loading flow. Here is what failed:\nClient-side input: User typed \"100,00\" (comma as decimal separator, standard in Spanish-speaking regions).\nMissing sanitization: Platform stripped the comma without locale-aware parsing.\nSilent interpretation: Backend read \"10000\" as the intended amount.\nNo confirmation screen: Payment processor executed immediately.\nNo server-side validation: No range check, no locale normalization, no pre-authorization review.\nThe result: a $10,000 charge with no opportunity to cancel.\nThere are three places to handle locale-aware currency input. Each has trade-offs.\n\n\n\nLayer\nApproach\nFailure Mode\n\n\n\n\nClient validation\nParse input using user's locale, display formatted preview\nUser can bypass with dev tools; locale detection can be wrong\n\n\nAPI gateway\nReject ambiguous formats, require ISO 4217 currency codes and decimal points\nPoor UX; forces users to change system settings\n\n\nPayment processor integration\nNormalize at the last mile before Stripe/Adyen call\nToo late to show confirmation; errors surface after user intent",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Anthropic的100倍超额收费漏洞：国际化失败对代理支付管道的启示",
+        "summary": "一名哥斯达黎加开发者在Anthropic的支付控制台中因缺少小数点分隔符验证而被错误收费10,000美元而不是100美元。该漏洞揭示了代理平台支付授权中的关键故障，突出了在不信任客户端格式化的情况下安全验证不同地区货币输入的挑战。"
+      }
+    }
+  },
+  {
+    "title": "Frontend Memory Leaks — Detection, Diagnosis and Prevention",
+    "slug": "frontend-memory-leaks-detection-prevention",
+    "url": "https://dev.to/zeeshanali0704/frontend-memory-leaks-detection-diagnosis-and-prevention-2j8m",
+    "source": "DEV Community",
+    "date": "2026-10-17T10:04:54.000Z",
+    "summary": "This guide covers browser memory management and techniques for detecting, diagnosing, and preventing memory leaks in long-running web applications. Understanding garbage collection, lifecycle patterns, and automated regression testing is essential for maintaining stable performance in single-page applications.",
+    "content": "Frontend Memory Leaks — Detection, Diagnosis and Prevention\n\n\n\nA practical system-design guide to understanding browser memory, finding retained objects, preventing lifecycle leaks, and keeping long-running web applications stable.\n\nWhat a Memory Leak Is\nHow Browser Memory Works\nMemory Leak vs High Memory Usage\nCommon Frontend Leak Sources\nFramework Lifecycle Patterns\nA Repeatable Detection Workflow\nChrome DevTools Deep Dive\nAutomated Memory Regression Testing\nProduction Monitoring\nPrevention by Design\nSystem Design for Long-Running Apps\nEnd-to-End Incident Case Study\nDebugging Checklist\nInterview Questions and Answers\nA memory leak occurs when an application no longer needs an object but a reachable reference still prevents the garbage collector from reclaiming it.\nGC root\n  |\n  +-- window\n       |\n       +-- event listener\n            |\n            +-- callback closure\n                 |\n                 +-- old component state\n                      |\n                      +-- large response data\n\nThe old component is no longer visible, but the listener keeps its callback reachable. The callback keeps its closure reachable, and the closure keeps the component state and response data reachable.\nIn a long-running single-page application, repeated leaks usually produce a staircase:\nMemory\n  ^\n  |                         ________\n  |                  ______/\n  |           ______/\n  |    ______/\n  |___/________________________________> Time\n      open/close the same screen repeatedly\n\nGarbage collection still happens, but the post-GC baseline rises after each cycle.\nNavigation becomes slower after the app has been open for a long time.\nTyping, scrolling, and animation become janky.\nThe number of DOM nodes or event listeners keeps increasing.\nBackground CPU usage continues after leaving a screen.\nMobile browsers reload or terminate the tab.\nThe browser reports an out-of-memory crash.\nBack to Top\nJavaScript engines allocate most objects on a managed heap. The garbage col",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "前端内存泄漏——检测、诊断和预防",
+        "summary": "本指南涵盖浏览器内存管理以及在长期运行的Web应用程序中检测、诊断和防止内存泄漏的技术。理解垃圾收集、生命周期模式和自动回归测试对于在单页应用程序中维持稳定性能至关重要。"
+      }
+    }
+  },
+  {
+    "title": "OpenAI Agents SDK on a Custom OpenAI-Compatible API: Chat Completions, Responses and the Tracing Trap",
+    "slug": "openai-agents-sdk-compatible-api",
+    "url": "https://dev.to/amankumar_apiclaw/openai-agents-sdk-on-a-custom-openai-compatible-api-chat-completions-responses-and-the-tracing-184d",
+    "source": "DEV Community",
+    "date": "2026-10-17T10:03:23.000Z",
+    "summary": "The OpenAI Agents SDK defaults to OpenAI's hosted API and tracing endpoints, causing 404 errors when pointed at custom OpenAI-compatible servers. Developers must disable tracing and explicitly set the API shape to chat_completions before using third-party implementations like vLLM or Ollama.",
+    "content": "I'm Aman Kumar. The OpenAI Agents SDK (openai-agents on PyPI) is a clean way to run tool-calling agents in Python. Out of the box it talks to api.openai.com over the Responses API and ships traces back to OpenAI. Point it at another OpenAI-compatible server without changing those defaults and you get 404s that look like \"the model is wrong\" or mysterious network errors from the tracer.\nI wrote this against openai-agents 0.23.1 and verified the three working setups below on a local mock that only implements /v1/chat/completions. The examples use APIClaw, a gateway I build, so weigh that accordingly. Base URL is https://apiclaw.biz/v1. Copy the model ID from /v1/models or the model hub; I use YOUR_MODEL_ID below. On that hub you will see IDs like deepseek-v4-flash, deepseek-v4-pro or claude-sonnet-5-5. Crypto is on the site; other payment methods go through support. Swap host, key and model for whatever you run — vLLM, LiteLLM, Ollama's /v1 endpoint, or any server that speaks Chat Completions.\nTwo defaults bite people:\nAPI shape. set_default_openai_api defaults to \"responses\". Most third-party gateways implement /v1/chat/completions, not /v1/responses. Hitting Responses on a chat-only gateway returns NotFoundError (404).\nTracing. Unless you call set_tracing_disabled(True), the SDK tries to export traces using an OpenAI API key. On a custom gateway that key is either absent or not valid for OpenAI's trace endpoint, so you get noise even when chat works.\nFix both before you debug model IDs.\nfrom agents import set_default_openai_api, set_tracing_disabled\n\nset_tracing_disabled(True)\nset_default_openai_api(\"chat_completions\")\n\nPass an AsyncOpenAI client with your base URL into OpenAIChatCompletionsModel. The agent never touches the Responses path.\nimport asyncio\nfrom openai import AsyncOpenAI\nfrom agents import Agent, Runner, OpenAIChatCompletionsModel, set_tracing_disabled\n\nset_tracing_disabled(True)\n\nclient = AsyncOpenAI(\n    base_url=\"https://apiclaw.biz/v1\",  # include",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "在自定义OpenAI兼容API上的OpenAI Agents SDK：聊天完成、响应和追踪陷阱",
+        "summary": "OpenAI Agents SDK默认使用OpenAI托管的API和追踪端点，当指向自定义OpenAI兼容服务器时会导致404错误。开发者在使用vLLM或Ollama等第三方实现之前，必须禁用追踪并显式将API形状设置为chat_completions。"
+      }
+    }
+  },
+  {
+    "title": "I installed a bunch of agent skills. Then I wrote a tool to audit them.",
+    "slug": "skill-audit-agent-skills-validation",
+    "url": "https://dev.to/techdevfun/i-installed-a-bunch-of-agent-skills-then-i-wrote-a-tool-to-audit-them-4e2h",
+    "source": "DEV Community",
+    "date": "2026-10-17T10:02:54.000Z",
+    "summary": "A developer created skill-audit to analyze agent skills packs, revealing issues like duplicate names, overlapping descriptions, and missing metadata that cause agents to malfunction. The tool validates skill pack integrity and helps manage growing collections of agent extensions across multiple sources.",
+    "content": "Every week a new agent skills pack shows up on GitHub Trending. I installed a few. Then a few more. Then I copied skills from three different packs into one folder.\nThat is when things got weird.\nTwo skills had the same name. The agent picked one at random. Two more had almost identical descriptions, so both triggered on the same prompt. One skill had no description at all, so the agent never picked it. I had no idea until I started reading every SKILL.md by hand.\nSo I built a tiny tool to do that reading for me: skill-audit.\nOne command audits a whole skills folder:\nskill-audit check --path ~/.claude/skills\n\nIt checks for:\nDuplicate names — two skills declaring the same name\n\n\nInvalid names — anything that is not kebab-case\nMissing name / description — the description is how the agent decides when to trigger a skill\nMissing frontmatter — a SKILL.md with no --- block\nDuplicate / overlapping descriptions — identical text, or >=70% token overlap, so two skills fight over the same prompt\nDescription too short / too long — under 20 chars, or over 1024\nThin body — a header, not a skill\nMissing SKILL.md — a folder agents will never discover\nNo version — so you can tell whether you have the latest\nExit code 0 means no errors. Warnings never fail the run on their own, so you can use it in CI.\n$ skill-audit check --path examples/messy\n[ERROR] duplicate-name: Duplicate skill name 'dup-skill'\n[ERROR] invalid-name: 'Bad Name' must be kebab-case\n[ERROR] missing-description: no-desc has no 'description'\n[ERROR] missing-description: (unnamed) has no 'description'\n[ERROR] missing-name: no-frontmatter/SKILL.md has no 'name'\n[WARN ] frontmatter-parse: no-frontmatter/SKILL.md missing frontmatter block\n[WARN ] no-version: (unnamed) has no 'version' in frontmatter\nSummary: 5 error(s), 2 warning(s), 5 skill(s).\n\ngit clone https://github.com/techdevfun/skill-audit.git\ncd skill-audit\nPYTHONPATH=src python -m skill_audit check --path examples/good\nPYTHONPATH=src python -m skill_audit check",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我安装了一堆代理技能。然后我写了一个工具来审计它们。",
+        "summary": "开发者创建了skill-audit来分析代理技能包，揭示了重复名称、重叠描述和缺失元数据等导致代理故障的问题。该工具验证技能包的完整性，并帮助管理来自多个来源的不断增长的代理扩展集合。"
+      }
+    }
+  },
+  {
+    "title": "Go Profiling in Production: pprof, Flamegraphs and Memory Leaks",
+    "slug": "go-profiling-production-pprof-flamegraphs",
+    "url": "https://dev.to/ayinedjimi-consultants/go-profiling-in-production-pprof-flamegraphs-and-memory-leaks-45a0",
+    "source": "DEV Community",
+    "date": "2026-10-17T10:02:46.000Z",
+    "summary": "Go's built-in pprof tooling enables production profiling without third-party APM, exposing detailed heap snapshots and CPU profiles through a simple HTTP interface. Flamegraph analysis and memory diff comparisons help identify memory leaks and performance bottlenecks in high-traffic services.",
+    "content": "Your Go service handles thousands of requests per minute — until it doesn't. Memory climbs steadily, p99 latency spikes, and the first instinct is to add more instances. Before doing that, you need to understand what the code is actually doing. Go's built-in profiling tooling makes this tractable without third-party frameworks or expensive APM subscriptions.\npprof is part of the standard library. Adding it to an existing HTTP service takes four lines:\nimport (\n    \"net/http\"\n    _ \"net/http/pprof\"\n)\n\nfunc main() {\n    // Expose pprof on a separate internal port — never public\n    go func() {\n        http.ListenAndServe(\"localhost:6060\", nil)\n    }()\n\n    // ... rest of your server setup\n}\n\nThe blank import registers the pprof HTTP handlers automatically. Never expose this on a public port — the CPU profile endpoint can be used to degrade your service deliberately. Bind to localhost or an internal network interface only.\nOnce the service is running:\ngo tool pprof http://localhost:6060/debug/pprof/heap\n\nThis downloads a heap snapshot and opens an interactive prompt. Type top10 to see the ten functions allocating the most memory. Type web to open a flame graph in your browser (requires Graphviz).\nFlamegraphs look intimidating until you know one rule: width equals time or allocations spent. The x-axis is not time order — it is sorted alphabetically within each stack frame. A wide box means that function consumes a lot of the profiled resource. The y-axis is the call stack — top is where execution is at sample time, bottom is main.\nWhen investigating a memory leak:\nTake a heap profile under normal load: curl http://localhost:6060/debug/pprof/heap > heap1.prof\n\nWait 10–15 minutes\nTake another snapshot: curl http://localhost:6060/debug/pprof/heap > heap2.prof\n\nCompare: go tool pprof -diff_base heap1.prof heap2.prof\n\n\n\nThe diff shows exactly what grew between the two snapshots. If the same function keeps appearing in inuse_objects across successive profiles, that is your le",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Go生产环境性能分析：pprof、火焰图和内存泄漏",
+        "summary": "Go的内置pprof工具无需第三方APM即可实现生产环境性能分析，通过简单的HTTP接口暴露详细的堆快照和CPU配置文件。火焰图分析和内存差异比较有助于识别高流量服务中的内存泄漏和性能瓶颈。"
+      }
+    }
+  },
+  {
+    "title": "I built a handheld mmWave presence radar, and the first bug was a board that never ran my code",
+    "slug": "mmwave-presence-radar-handheld-firmware",
+    "url": "https://dev.to/prodbymarcu/i-built-a-handheld-mmwave-presence-radar-and-the-first-bug-was-a-board-that-never-ran-my-code-1f5a",
+    "source": "DEV Community",
+    "date": "2026-10-17T10:02:32.000Z",
+    "summary": "A developer built firmware for an M5Stack handheld device with an LD2410 mmWave sensor that displays real-time presence detection and distance on a 240x135 screen without external apps. The challenge involved parsing UART frames, rendering a radar scope, and debugging hardware communication issues.",
+    "content": "One small device noticing one thing. That's the demo genre I keep falling for, and this time it's an M5Stack Cardputer-Adv with an LD2410 mmWave sensor hanging off its EXT header. The firmware turns the sensor's UART stream into a radar scope on the handheld's 240 by 135 screen: a sweep line rotating through the cone the sensor watches, roughly 60 degrees, a contact sitting at a radius equal to the measured distance, a trail fading behind it as the target moves, and a NO PRESENCE state when the room is empty. No app, no phone in between. The device itself knows someone is approaching.\nWriting the firmware was the easy part. The hard part was getting a single byte back out of the board.\nThe LD2410 reports presence and distance about every 100 milliseconds at 256000 baud, one target at a time, split into a moving reading and a stationary reading. Frames come wrapped in a fixed envelope: four header bytes up front, F4 F3 F2 F1, four tail bytes at the back, F8 F7 F6 F5, a length and a type in between. The frame I care about carries the basic target state, one byte for the state (nobody, moving, stationary, both), two bytes of moving distance, a moving energy byte, then the same trio again for the stationary side.\nParsing that is a small state machine over the byte stream. Slide until the four header bytes line up, accumulate until the four tail bytes close the frame, decode, repeat. On top of it, a render loop runs at 10 frames a second, the sweep advances 9 degrees per frame, about 40 sweeps a minute, and the contact plots at measured distance against the sensor's 6 meter range, mapped onto the scope radius. Above the scope sits the distance in centimeters, MOVING or STATIC, and two energy bars. And one small flag, ld:OK, that lights when the sensor has sent frames in the last second. That flag ended up being the most important pixel on the screen.\nFirst flash, first open of the serial monitor, and the board had zero bytes to say. No garbage bytes, no half frames, noth",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "我制造了一个手持式毫米波存在雷达，第一个故障是主板从未运行过我的代码",
+        "summary": "开发者为配备LD2410毫米波传感器的M5Stack手持设备开发了固件，在240x135屏幕上显示实时存在检测和距离，无需外部应用。挑战包括解析UART帧、渲染雷达范围和调试硬件通信问题。"
+      }
+    }
+  },
+  {
+    "title": "Codex 0.162 Lets the Model Create Git Worktrees. Its Own Working Directory Doesn't Move",
+    "slug": "codex-git-worktrees-isolated-working-directory",
+    "url": "https://dev.to/gabrielanhaia/codex-0162-lets-the-model-create-git-worktrees-its-own-working-directory-doesnt-move-4fkk",
+    "source": "DEV Community",
+    "date": "2026-10-17T10:02:07.000Z",
+    "summary": "Codex CLI 0.162 introduced the ability for AI models to create git worktrees during tasks, keeping the task's working directory unchanged while creating isolated environments. The feature requires worktrees to be enabled, the project to be trusted, and attachment storage to be available.",
+    "content": "Book: Event-Driven Architecture Pocket Guide\n\n\nAlso by me: Thinking in Go (2-book series) — Complete Guide to Go Programming + Hexagonal Architecture in Go\n\n\nMy project: Hermes IDE | GitHub — an IDE for developers who ship with Claude Code and other AI coding tools\nMe: xgabriel.com | GitHub\n\n\n\n\n\n\nCodex CLI 0.162.0 can create a git worktree in the middle of a task, on the model's own initiative. Then the tool's description, the text the model reads, says: \"The task stays in its existing checkout\" (source). The new tree exists on disk. The agent's shell is still in the folder you started it in.\nThat is by design: the pull request says to keep the task's working directory unchanged. I haven't run 0.162 myself. Each behavior below links to the file it comes from, and the last part shows how to check it on your own clone.\nThe 0.162.0 release went out on October 8, 2026 (changelog). Its New Features section has one line on this: \"Add tools for creating and listing managed Git worktrees from trusted local projects when the worktrees feature is enabled.\"\nThe pull request behind it, #50148, names the tools: create_worktree, get_worktree_creation_status and list_worktrees. The model gets them when three things hold: the worktrees feature is on, the project is a trusted local project, and attachment storage is available.\nThe first condition holds unless you turned it off. In the 0.162.0 feature registry, worktrees is registered as Stage::Stable with default_enabled: true. The CLI reference documents --disable <name> as a per-run switch (\"translates to -c features.<name>=false\") and codex features for changing it persistently in config.toml.\nTwo cases are refused outright, per managed_worktree_tools.rs: an explicitly untrusted source project, and ephemeral side conversations, which get \"Ephemeral side conversations cannot retain worktree attachments.\" A 0.162.1 patch followed on October 9 with two bug fixes (release).\ncreate_worktree doesn't block until the checkout exists. Its",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "Codex 0.162 允许模型创建 Git Worktrees。其自己的工作目录不动",
+        "summary": "Codex CLI 0.162 引入了 AI 模型在任务期间创建 git worktrees 的能力，保持任务的工作目录不变，同时创建隔离的环境。该功能要求启用 worktrees、项目受信任且附件存储可用。"
+      }
+    }
+  },
+  {
+    "title": "OpenAI dots: the agent that works while you sleep",
+    "slug": "openai-dots-persistent-24-7-agent",
+    "url": "https://dev.to/klukyanov/openai-dots-the-agent-that-works-while-you-sleep-6p2",
+    "source": "DEV Community",
+    "date": "2026-10-17T10:01:26.000Z",
+    "summary": "OpenAI's \"dots\" are persistent AI agents running 24/7 on cloud infrastructure with access to 4,000+ apps via plugins and independent memory, able to perform unprompted work when idle. Unlike regular ChatGPT conversations, dots maintain context across channels and continue working after user interaction stops.",
+    "content": "A regular ChatGPT conversation lives as long as the tab is open. Close it, and everything waits for your next message. On September 29 at DevDay, OpenAI showed the opposite: an agent that keeps doing the job after you've gone to bed. OpenAI calls it a dot. Each dot gets its own cloud computer with a browser, access to your apps, and its own memory, and it's on around the clock.\nI went through what dots can do at launch, how their permissions work, what they cost and where the limits are. I haven't run a dot myself yet. OpenAI's announcement page returned 403 while I was collecting material, so the facts below come from detailed write-ups that cite OpenAI's announcement and help center. The key numbers match across three or four sources; where there's only one source, I say so.\nThis is a snapshot as of October 17, 2026. Dots are rolling out gradually, and details will change.\nA dot is a persistent AI agent inside ChatGPT, running on GPT-6 Astra (released September 3). Four things set it apart from a normal chat:\nIts own computer. A cloud machine with a browser that keeps running when you're not chatting. You can open it and watch what the agent is doing right now.\nAccess to your apps. Mail, calendar, Slack, spreadsheets: 4,000+ services via plugins.\nIts own memory. A dot keeps notes separate from ChatGPT memory and learns from your corrections.\nUnprompted work. When you don't give it anything, it looks for ways to help. OpenAI calls this proactive research.\nEvery dot has a name, a look and a handle like @yourname-dot. You can talk to it in ChatGPT on desktop and mobile, in Slack and Microsoft Teams, or call it by voice. Context carries across channels.\nThe example everyone repeats from the launch: an early tester's dot found an invoice he had forgotten to send, assembled it from an email thread and sent it as a PDF — after he approved it. The last part is the important one.\nA dot is a coordinator rather than a worker. It doesn't write code itself; it hands coding to",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "OpenAI dots：在你睡觉时工作的代理",
+        "summary": "OpenAI 的\"dots\"是在云基础设施上 24/7 运行的持久化 AI 代理，可通过插件和独立内存访问 4000 多个应用程序，能够在空闲时执行无提示的工作。与常规 ChatGPT 对话不同，dots 跨渠道保持上下文并在用户交互停止后继续工作。"
+      }
+    }
+  },
+  {
+    "title": "Du for the Owner, Sie for the Client: An i18n Linter That Checks Register Per Audience",
+    "slug": "i18n-register-linter-formal-informal-address",
+    "url": "https://dev.to/iurii_rogulia/du-for-the-owner-sie-for-the-client-an-i18n-linter-that-checks-register-per-audience-1l5j",
+    "source": "DEV Community",
+    "date": "2026-10-17T10:01:11.000Z",
+    "summary": "A Python linter checks whether translations maintain consistent formal/informal address registers appropriate for the intended audience, not just valid grammar in the target language. This tool catches bugs where translations incorrectly mix formal and informal address forms across different product sections.",
+    "content": "German has two ways to say ‘you.’ A sentence addressed with du is informal – the tone you’d use with a colleague or a friend. The same sentence addressed with Sie is formal – the tone you’d use with a stranger, a customer, an institution. Linguists call this a T–V distinction, and German, French, Hungarian, Polish and Romanian all have one. English doesn’t, which is why an English-speaking team can ship the wrong one without noticing.\nThe mistake this article is about isn’t picking the wrong register for a language. It’s picking the wrong register for an audience, inside one language, inside one product. KRI, the booking SaaS I designed and built for beauty businesses, has this shape: the German dashboard, written for the paying salon owner, addresses them as du throughout. The German booking pages and confirmation emails, written for that salon’s own clients – strangers booking an appointment online – address them as Sie. Both are correct German; mixing them inside the same screen is the bug. An i18n linter that only checks ‘is this valid German’ can’t catch that, because every sentence on both sides is valid German. It has to know who is being addressed, not just what language.\nKRI’s translations are plain JSON, one file per namespace per locale, loaded through next-intl. A locale linter – a single Python 3.9+ script with no dependencies beyond the standard library – runs three checks against that JSON: key order, cross-locale drift, and a glossary check for terminology and address register. It runs with the package’s regular lint command, and the format step applies the key-ordering fix automatically. Exit code 0 when clean, 1 when anything needs a human decision.\nIt reads which locale is the reference (en) and which namespace is English-only (legal, which is never translated, not even in part) by parsing them out of the codegen script’s own source rather than hardcoding them twice – so the two scripts can’t quietly drift apart.\nKey order keeps every locale’s JSO",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "所有者用\"Du\"，客户用\"Sie\"：按受众检查地址寄存器的国际化 Linter",
+        "summary": "一个 Python linter 检查翻译是否根据目标受众保持一致的正式/非正式地址寄存器，而不仅仅是目标语言中的有效语法。该工具捕获翻译在不同产品部分中不正确混合正式和非正式地址形式的错误。"
+      }
+    }
+  },
+  {
+    "title": "49 Products, 0 Sales: The Distribution Lesson Nobody Tells Makers",
+    "slug": "49-products-zero-sales-distribution-lesson",
+    "url": "https://dev.to/revanzart/49-products-0-sales-the-distribution-lesson-nobody-tells-makers-1cd5",
+    "source": "DEV Community",
+    "date": "2026-10-17T10:00:57.000Z",
+    "summary": "A maker built 49 products with a sophisticated pipeline but generated zero sales by focusing entirely on production while neglecting distribution strategy. The lesson: distribution and metadata quality matter more than production volume, and stock marketplace submissions require careful platform-specific formatting to avoid rejection.",
+    "content": "Last March I sat in front of my sales dashboard at 11pm and counted again. 49 products live across three marketplaces. Zero sales. Not \"slow sales\", zero. I had spent six months building the machine and almost no time asking whether anyone wanted what the machine made.\nThis post is the honest postmortem. If you are a maker with a pipeline and an empty sales column, this is the distribution lesson I learned the expensive way.\nI had convinced myself that the hard part was making things. So I built it all: a prompt engine, batch rendering, packaging. The pipeline ran on a 1 vCPU, 2 GB RAM server with no GPU, one process at a time, gc.collect() after every asset. It worked. It packaged 39 products, 856 MB of finished output, backed by roughly 19,000 lines of pipeline code and 300+ pages of research.\nNone of that produced a single sale. Because production is the part every maker can already do, or can automate. Distribution is the part that actually decides whether money arrives.\nMy first assumption was that uploading to Adobe Stock, Vecteezy and Dreamstime meant distribution. It does not. It means inventory. Stock sites surface maybe a fraction of new uploads, and they surface them based on metadata quality, not upload volume.\nThat is where I lost months. Adobe's upload CSV has a 5-column header, Vecteezy wants 4 columns, Dreamstime wants 15. Get one column wrong and the file rejects instantly, before a human ever sees it. I burned whole batches on header mistakes and re-uploaded duplicates because nothing tracked what had already gone out. Double-posting is also the fastest way to get an account flagged, which I learned the nerve-wracking way.\nThe fix was boring: a script that writes exactly the header each platform demands and nothing else, and a ledger that remembers every posted file so a re-run can never double-post. That solved the mechanics. It did not solve sales, because mechanics were never the problem.\nHere is the number that stung. I made 49 products in esse",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "49种产品,零销量:制造者不知道的分销课程",
+        "summary": "一位创作者用复杂的生产流程建立了49种产品,但由于完全专注于生产而忽视分销策略,导致零销售。教训是:分销和元数据质量比生产数量更重要,库存市场提交需要仔细的平台特定格式化,以避免被拒绝。"
+      }
+    }
+  },
+  {
+    "title": "Binarising AI Line Art For Vector Traceability: Threshold Choices That Survive Adobe QC",
+    "slug": "binarising-ai-line-art-vector-threshold",
+    "url": "https://dev.to/revanzart/binarising-ai-line-art-for-vector-traceability-threshold-choices-that-survive-adobe-qc-4gen",
+    "source": "DEV Community",
+    "date": "2026-10-17T10:00:46.000Z",
+    "summary": "AI-generated line art requires careful binarization thresholds before vector tracing; using default thresholds tuned for photos creates fuzz and speckles that get rejected by stock platforms. Finding the threshold in the histogram valley between peak white and black ensures clean traces that pass vendor quality checks.",
+    "content": "A batch of 40 line art assets came back from Adobe Stock review with the same rejection note: \"issues with technical quality, visible noise or artifacts.\" I had traced them at whatever threshold the default gave me. The vectors looked fine on my screen. Zoomed to 400%, the strokes were made of tiny islands and speckles, and the reviewer saw it in seconds. That rejection cost me a week of rework, so I got systematic about the binarisation step. Here is what I learned, with the numbers I now use.\nIf you sell vectors from AI generated line art, the pipeline is: generate raster, binarise to pure black and white, trace to paths, export. The trace step is honest. It draws exactly what you give it. If your binarised image has stray pixels along an edge, the trace turns them into microscopic path fragments. Adobe's QC reviewers zoom in, and Adobe's own checks flag files with excessive path fragmentation. Vecteezy's review is a bit more forgiving, but a messy trace gets rejected there too, and Dreamstime asks for clean editable vectors in its 15 column metadata sheet the same way.\nThe fix is upstream. Get the bitmap clean and the trace takes care of itself.\nMost tracing tools apply an automatic threshold when you feed them grayscale or color input. That default is tuned for photos, not for AI line art. AI generators produce anti-aliased edges and faint gray halos around strokes. A mid range threshold can turn those halos into a fog of tiny specks.\nWhat works for me, tested across a few hundred assets:\nConvert to grayscale first, then look at the histogram. AI line art is almost always bimodal, one peak near white and one near black.\nSet the threshold in the valley between the peaks. For my generator's output that lands around 140 to 160 on a 0 to 255 scale. Yours will differ, so look, do not guess.\nIf a stroke comes out broken, lower the threshold. If halos appear as fuzz, raise it. One pass of visual checking per batch beats 50 rejected uploads.\nFor anything destined for st",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "AI线条艺术二值化以实现矢量可追溯性:通过Adobe质量控制的阈值选择",
+        "summary": "AI生成的线条艺术在矢量追踪前需要仔细的二值化阈值;使用为照片调整的默认阈值会产生被库存平台拒绝的模糊和斑点。在直方图中白色和黑色峰值之间的谷值处找到阈值可确保通过供应商质量检查的清晰追踪。"
+      }
+    }
+  },
+  {
+    "title": "703 NocoDB instances: a spreadsheet interface in front of a real database",
+    "slug": "nocodb-spreadsheet-database-interface",
+    "url": "https://dev.to/bianliang/703-nocodb-instances-a-spreadsheet-interface-in-front-of-a-real-database-e9d",
+    "source": "DEV Community",
+    "date": "2026-10-17T10:00:41.000Z",
+    "summary": "NocoDB provides a spreadsheet-style interface for database management, with 703 publicly exposed instances discovered via ZoomEye, demonstrating the tool's prevalence among teams seeking structured data without application development. The widespread deployment highlights both the convenience and potential security exposure of such database frontends.",
+    "content": "NocoDB presents a database as a spreadsheet style interface, which makes it a common choice for teams that want structured data without writing an application. A ZoomEye query for the application fingerprint records 703 matches.\nZoomEye search result for app=\"NocoDB\", retrieved 29 September 2026.\nNocoDB documentation: https://docs.nocodb.com/",
+    "category": "github",
+    "translations": {
+      "zh": {
+        "title": "703个NocoDB实例:数据库前面的电子表格界面",
+        "summary": "NocoDB为数据库管理提供了类似电子表格的界面,通过ZoomEye发现了703个公开暴露的实例,展示了该工具在寻求结构化数据而不需应用程序开发的团队中的普遍性。广泛的部署既强调了此类数据库前端的便利性,也突显了潜在的安全风险。"
+      }
+    }
+  },
+  {
     "title": "Compare building a modern React CRUD application with REST versus GraphQL. Understand query shapes, state mutations, and implementation patterns",
     "slug": "rest-vs-graphql-react-crud",
     "url": "https://dev.to/nileslabs/compare-building-a-modern-react-crud-application-with-rest-versus-graphql-understand-query-shapes-omo",
